@@ -8,7 +8,7 @@ import {
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { RPC_URL } from "./lib/rebyters/config";
 import AdminApp from "./routes/admin/App";
-import { PlayerAccount, PlayerAtlas, PlayerHome, PlayerLab } from "./routes/player/App";
+import { PlayerAccount, PlayerAcquire, PlayerAtlas, PlayerHome, PlayerLab } from "./routes/player/App";
 import { Route, Routes } from "react-router-dom";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import "@xyflow/react/dist/style.css";
@@ -34,6 +34,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route path="/admin/*" element={<AdminApp />} />
               <Route path="/account" element={<PlayerAccount />} />
+              <Route path="/acquire" element={<PlayerAcquire />} />
               <Route path="/lab" element={<PlayerLab />} />
               <Route path="/atlas" element={<PlayerAtlas />} />
               <Route path="/*" element={<PlayerHome />} />
