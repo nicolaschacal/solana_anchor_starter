@@ -22,6 +22,8 @@ import {
   LayoutDashboard,
   Palette,
   Network,
+  Pencil,
+  Save,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -246,6 +248,25 @@ function Home({ state }: { state: RegistryState }) {
           </button>
         </details>
       )}
+      {editing && tree && (
+        <div className="modal-backdrop" onClick={() => setEditing(null)}>
+          <section className="specimen-edit-modal" role="dialog" aria-modal="true" aria-label={`Edit ${editing.name}`} onClick={(e) => e.stopPropagation()}>
+            <div className="specimen-edit-modal-head">
+              <div><span className="eyebrow">ADMIN / SPECIMEN EDITOR</span><h2><Pencil size={18}/> {editing.name}</h2></div>
+              <button className="icon" title="Close editor" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20}/></button>
+            </div>
+            <p className="editor-flow-note">Changes stay in a local draft first. When the complete atlas is ready, publish the new JSON to Irys and activate its hash/root through the registry PDA.</p>
+            <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
+            <div className="specimen-edit-actions">
+              <button onClick={() => setEditing(null)}>Cancel</button>
+              <button className="primary" disabled={!editable || tx.busy} onClick={() => {
+                edit({...tree,evolutions:tree.evolutions.map(old=>old.id===editing.id?editing:old)});
+                setEditing(null);
+              }}><Save size={15}/> Save to atlas draft</button>
+            </div>
+          </section>
+        </div>
+      )}
       <Feedback tx={tx} />
       <div className="registry-address">
         <small>REGISTRY PDA</small>
@@ -303,6 +324,7 @@ function Family({ state }: { state: RegistryState }) {
   const [draft, setDraft] = useState<TreeJson | null>(null),
     [journal, setJournal] = useState<PublishJournal | null>(null),
     [preview, setPreview] = useState(false),
+    [editing, setEditing] = useState<Evolution | null>(null),
     [storageError, setStorageError] = useState("");
   useEffect(() => {
     setDraft(null);
@@ -589,6 +611,8 @@ function Family({ state }: { state: RegistryState }) {
           </div>
           <EvolutionGraphEditor
             tree={tree}
+            editable={editable && !tx.busy}
+            onEditEvolution={(id) => { const e=tree.evolutions.find(x=>x.id===id); if(e) setEditing(structuredClone(e)); }}
             selectedId={selected?.id}
             onClearSelection={() =>
               navigate(`/admin/families/${family}${familyQuery}`)
