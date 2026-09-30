@@ -31,7 +31,7 @@
     "react-router-dom": "^7.6.0",
     "zod": "^3.25.0",
     "three": "^0.180.0",
-    "@solana/spl-token": "^0.4.14"
+    "@solana/spl-token": "^0.4.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
