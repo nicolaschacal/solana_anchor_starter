@@ -248,25 +248,6 @@ function Home({ state }: { state: RegistryState }) {
           </button>
         </details>
       )}
-      {editing && tree && (
-        <div className="modal-backdrop" onClick={() => setEditing(null)}>
-          <section className="specimen-edit-modal" role="dialog" aria-modal="true" aria-label={`Edit ${editing.name}`} onClick={(e) => e.stopPropagation()}>
-            <div className="specimen-edit-modal-head">
-              <div><span className="eyebrow">ADMIN / SPECIMEN EDITOR</span><h2><Pencil size={18}/> {editing.name}</h2></div>
-              <button className="icon" title="Close editor" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20}/></button>
-            </div>
-            <p className="editor-flow-note">Changes stay in a local draft first. When the complete atlas is ready, publish the new JSON to Irys and activate its hash/root through the registry PDA.</p>
-            <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
-            <div className="specimen-edit-actions">
-              <button onClick={() => setEditing(null)}>Cancel</button>
-              <button className="primary" disabled={!editable || tx.busy} onClick={() => {
-                edit({...tree,evolutions:tree.evolutions.map(old=>old.id===editing.id?editing:old)});
-                setEditing(null);
-              }}><Save size={15}/> Save to atlas draft</button>
-            </div>
-          </section>
-        </div>
-      )}
       <Feedback tx={tx} />
       <div className="registry-address">
         <small>REGISTRY PDA</small>
@@ -449,7 +430,7 @@ function Family({ state }: { state: RegistryState }) {
           </span>
           <h1>
             {family === 0 ? "Mammal.exe" : FAMILIES[family]}
-            <span className="title-suffix"> / Evolution atlas</span>
+            <span className="title-suffix"> / Atlas</span>
           </h1>
         </div>
         <div className="heading-actions">
@@ -471,7 +452,7 @@ function Family({ state }: { state: RegistryState }) {
           {tree && (
             <button onClick={() => setPreview(true)}>
               <Code2 size={16} />
-              View JSON
+              Advanced / JSON
             </button>
           )}
           {family === 0 && (
@@ -488,7 +469,7 @@ function Family({ state }: { state: RegistryState }) {
           {editable && tree && (
             <button disabled={tx.busy} onClick={() => void add()}>
               <Plus size={16} />
-              Add evolution
+              New Rebyter
             </button>
           )}
         </div>
@@ -597,10 +578,17 @@ function Family({ state }: { state: RegistryState }) {
         </div>
       )}
       {tree && (
+        <section className="admin-workflow" aria-label="Atlas workflow">
+          <div className="admin-workflow-step is-active"><span>1</span><div><strong>Manage atlas</strong><small>Edit creatures, assets and evolution rules</small></div></div>
+          <div className="admin-workflow-step"><span>2</span><div><strong>Review draft</strong><small>{draft ? "Unpublished changes ready to review" : "No unpublished changes"}</small></div></div>
+          <div className="admin-workflow-step"><span>3</span><div><strong>Publish version</strong><small>Irys JSON → Merkle root → Registry PDA</small></div></div>
+        </section>
+      )}
+      {tree && (
         <>
           <div className="section-heading">
             <h2>
-              {selected ? "Evolution editor" : "Evolutions"}{" "}
+              {selected ? selected.name : "Rebyters"}{" "}
               <span className="count">{tree.evolutions.length}</span>
             </h2>
             {selected && (
@@ -623,72 +611,6 @@ function Family({ state }: { state: RegistryState }) {
               );
             }}
           />
-          {selected ? (
-            <details className="specimen-data">
-              <summary>Specimen data / {selected.name}</summary>
-              <EvolutionEditor
-                tree={tree}
-                evolution={selected}
-                readOnly={!editable || tx.busy}
-                onChange={(e) =>
-                  edit({
-                    ...tree,
-                    evolutions: tree.evolutions.map((old) =>
-                      old.id === e.id ? e : old,
-                    ),
-                  })
-                }
-              />
-            </details>
-          ) : (
-            <details className="specimen-data">
-              <summary>
-                Specimen catalog / {tree.evolutions.length} forms
-              </summary>
-              <div className="evolution-table">
-                <div className="table-head">
-                  <span>Evolution</span>
-                  <span>Stage</span>
-                  <span>Outgoing paths</span>
-                  <span>Status</span>
-                  <span />
-                </div>
-                {tree.evolutions.map((e) => (
-                  <Link
-                    className="table-row"
-                    key={e.id}
-                    to={`/admin/families/${family}/evolutions/${e.id}${familyQuery}`}
-                  >
-                    <span className="name-cell">
-                      <span className="evolution-avatar">
-                        {e.name.slice(0, 2).toUpperCase()}
-                      </span>
-                      <span>
-                        <strong>{e.name}</strong>
-                        <small>#{e.id}</small>
-                      </span>
-                    </span>
-                    <span>{STAGES[e.stage]}</span>
-                    <span className="path-summary">
-                      {e.paths.length
-                        ? e.paths
-                            .map(
-                              (p) =>
-                                tree.evolutions.find((t) => t.id === p.target)
-                                  ?.name ?? `#${p.target}`,
-                            )
-                            .join(", ")
-                        : "Terminal"}
-                    </span>
-                    <span className={`status ${e.enabled ? "verified" : ""}`}>
-                      {e.enabled ? "Enabled" : "Disabled"}
-                    </span>
-                    <ArrowRight size={16} />
-                  </Link>
-                ))}
-              </div>
-            </details>
-          )}
           {warnings(tree).map((w) => (
             <p className="warning" key={w}>
               {w}
@@ -736,6 +658,33 @@ function Family({ state }: { state: RegistryState }) {
             </button>
           )}
           {sample && <span className="tag">LOCAL SAMPLE ONLY</span>}
+        </div>
+      )}
+      {editing && tree && (
+        <div className="modal-backdrop" onClick={() => setEditing(null)}>
+          <section className="specimen-edit-modal" role="dialog" aria-modal="true" aria-label={`Edit ${editing.name}`} onClick={(e) => e.stopPropagation()}>
+            <div className="specimen-edit-modal-head">
+              <div>
+                <span className="eyebrow">REBYTER EDITOR / {STAGES[editing.stage]}</span>
+                <h2><Pencil size={18}/> {editing.name}</h2>
+                <small>#{editing.id} · Changes are saved to the atlas draft</small>
+              </div>
+              <button className="icon" title="Close editor" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20}/></button>
+            </div>
+            <div className="specimen-editor-shortcuts">
+              <Link to={`/admin/design-lab?species=${editing.id}&name=${encodeURIComponent(editing.name)}&stage=${STAGES[editing.stage]}`}><Palette size={15}/> Open in Design Lab</Link>
+              <span>3D asset: {editing.assets?.modelUri || editing.modelUri ? "linked" : "not linked yet"}</span>
+              <span>{editing.paths.length} outgoing evolution{editing.paths.length === 1 ? "" : "s"}</span>
+            </div>
+            <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
+            <div className="specimen-edit-actions">
+              <button onClick={() => setEditing(null)}>Cancel</button>
+              <button className="primary" disabled={!editable || tx.busy} onClick={() => {
+                edit({...tree,evolutions:tree.evolutions.map(old=>old.id===editing.id?editing:old)});
+                setEditing(null);
+              }}><Save size={15}/> Save changes</button>
+            </div>
+          </section>
         </div>
       )}
       <Feedback tx={tx} />
