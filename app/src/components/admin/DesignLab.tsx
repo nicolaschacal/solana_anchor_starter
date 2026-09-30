@@ -89,11 +89,13 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       // Subtle brow/cheek volumes make the face dimensional without becoming a fox.
       faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
       faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
-      // Pointed ear nubs echo the 2D Atlas silhouette.
-      faces.push(...prism([-.48,.70+bob,.03],[-.61,1.18+bob,.04],.20,mistDeep));
-      faces.push(...prism([.48,.70+bob,.03],[.61,1.18+bob,.04],.20,mistDeep));
-      faces.push(...prism([-.49,.77+bob,.17],[-.59,1.08+bob,.14],.09,inner));
-      faces.push(...prism([.49,.77+bob,.17],[.59,1.08+bob,.14],.09,inner));
+      // Tapered animal ears: rounded bases narrowing into clear triangular tips.
+      faces.push(...ellipsoid([-.47,.76+bob,.01],[.25,.25,.20],mistDeep,12,6));
+      faces.push(...ellipsoid([.47,.76+bob,.01],[.25,.25,.20],mistDeep,12,6));
+      faces.push(...prism([-.49,.82+bob,.02],[-.60,1.22+bob,.04],.13,mistDeep));
+      faces.push(...prism([.49,.82+bob,.02],[.60,1.22+bob,.04],.13,mistDeep));
+      faces.push(...prism([-.49,.84+bob,.17],[-.58,1.13+bob,.14],.065,inner));
+      faces.push(...prism([.49,.84+bob,.17],[.58,1.13+bob,.14],.065,inner));
       // Wide simple eyes: readable at thumbnail scale and fully blinkable.
       const es=.275*recipe.proportions.eyeSpacing;
       faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
@@ -105,18 +107,23 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       // Tiny muzzle and Fangbit's permanent visual signature: paired baby fangs.
       faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,12,6));
       faces.push(...ellipsoid([0,.06+bob,.936],[.075,.055,.035],ink,5,2));
-      faces.push(...prism([-.14,-.055+bob,.925],[-.135,-.255+bob,.95],.045,pearl));
-      faces.push(...prism([.14,-.055+bob,.925],[.135,-.255+bob,.95],.045,pearl));
+      // Small tapered fangs: narrow enough to read as teeth rather than blocks.
+      faces.push(...prism([-.14,-.055+bob,.925],[-.135,-.245+bob,.95],.027,pearl));
+      faces.push(...prism([.14,-.055+bob,.925],[.135,-.245+bob,.95],.027,pearl));
       // Four tiny paw buds ground the blob, but do not yet define canine/feline anatomy.
       const armWave=Math.sin(t*2.6)*.025;
       faces.push(...ellipsoid([-.63,-.27+bob+armWave,.43],[.22,.25,.20],mistDeep,11,6));
       faces.push(...ellipsoid([.63,-.27+bob-armWave,.43],[.22,.25,.20],mistDeep,11,6));
       faces.push(...ellipsoid([-.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
       faces.push(...ellipsoid([.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
-      // Short abstract tail bud: enough to animate, not enough to say fox/cat/dog.
-      const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.45;
-      faces.push(...prism([.68,-.43+bob,-.20],[.91,-.28+bob+tw,-.30],.13,mistDeep));
-      faces.push(...ellipsoid([.96,-.24+bob+tw,-.28],[.19,.22,.18],mistMid,10,5));
+      // Animal tail: rooted behind the body, then curving out into view.
+      // The negative Z root keeps the attachment hidden naturally by the torso.
+      const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.55;
+      faces.push(...prism([.34,-.48+bob,-.66],[.68,-.43+bob+tw*.25,-.69],.12,mistDeep));
+      faces.push(...prism([.66,-.43+bob+tw*.25,-.68],[1.00,-.25+bob+tw*.65,-.60],.13,mistDeep));
+      faces.push(...prism([.98,-.25+bob+tw*.65,-.59],[1.24,.04+bob+tw,-.45],.12,mistMid));
+      faces.push(...prism([1.22,.04+bob+tw,-.44],[1.34,.30+bob+tw*1.2,-.28],.085,mistLight));
+      faces.push(...ellipsoid([1.35,.33+bob+tw*1.22,-.27],[.13,.17,.12],mistLight,10,5));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
