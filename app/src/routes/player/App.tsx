@@ -98,20 +98,43 @@ function RebyterPicker({
   </section>;
 }
 
-function EmptyCompanion() {
-  const navigate=useNavigate();
+function EmptyCompanion({
+  creating,
+  status,
+  error,
+  onCreate,
+}:{
+  creating:boolean;
+  status:string;
+  error:string;
+  onCreate:()=>void;
+}) {
   const { connected }=useWallet();
   return <main className="player-main player-home-layout empty-layout">
     <section className="empty-companion-card">
       <div className="empty-orb"><Sparkles/></div>
       <small>{connected ? "YOUR DEN IS EMPTY" : "WELCOME TO REBYTERS"}</small>
-      <h1>{connected ? "Your first Rebyter is waiting." : "Connect to meet your companion."}</h1>
+      <h1>{connected ? "Create your first Rebyter." : "Connect to meet your companion."}</h1>
       <p>{connected
-        ? "You don't have a Rebyter in this wallet yet. Create one to start training it and discovering its evolution path."
+        ? "Mammal is the only origin family open in this first test. Creation price is 0 SOL; normal Solana network rent and transaction fees still apply."
         : "Connect a wallet or, later, use passkey onboarding to access your Rebyters."}</p>
-      {connected
-        ? <button className="acquire-cta" onClick={()=>navigate("/acquire")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button>
-        : <WalletMultiButton>Connect wallet</WalletMultiButton>}
+      {connected ? <>
+        <div className="home-origin-choice">
+          <div className="home-origin-card selected">
+            <Shield/>
+            <span><strong>Mammal</strong><small>Available · BIT origin</small></span>
+          </div>
+          <div className="home-origin-card locked"><Bird/><span><strong>Avian</strong><small>Locked</small></span><LockKeyhole/></div>
+          <div className="home-origin-card locked"><Droplets/><span><strong>Amphibian</strong><small>Locked</small></span><LockKeyhole/></div>
+        </div>
+        <button className="create-rebyter-cta" disabled={creating} onClick={onCreate}>
+          <Dna/>
+          <span><strong>{creating ? "Creating Mammal…" : "Create Mammal"}</strong><small>0 SOL creation price</small></span>
+          <ChevronRight/>
+        </button>
+        {status&&<div className="create-status">{status}</div>}
+        {error&&<div className="create-error">{error}</div>}
+      </> : <WalletMultiButton>Connect wallet</WalletMultiButton>}
     </section>
     <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter keeps the same Token-2022 mint while its on-chain evolution state changes.</p></div></aside>
   </main>;
@@ -119,14 +142,20 @@ function EmptyCompanion() {
 
 export function PlayerHome() {
   const navigate = useNavigate();
-  const { owned, tree, loading, error } = usePlayerCollection();
+  const player = usePlayerCollection();
+  const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useState("");
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
   const [reaction,setReaction]=useState("Your companion is watching you.");
 
   if (loading && !owned.length) return <Shell><Header/><main className="player-main"><div className="player-loading"><Sparkles/><strong>Scanning your den…</strong></div></main></Shell>;
-  if (!active || !evolution) return <Shell><Header/><EmptyCompanion/>{error&&<div className="player-inline-error">{error}</div>}</Shell>;
+  if (!active || !evolution) return <Shell><Header/><EmptyCompanion
+    creating={player.creating}
+    status={player.status}
+    error={player.error || error}
+    onCreate={()=>{void player.create(0).catch(()=>undefined)}}
+  /></Shell>;
 
   return <Shell><Header/><main className="player-main player-home-layout">
     <aside className="home-side home-side-left">
