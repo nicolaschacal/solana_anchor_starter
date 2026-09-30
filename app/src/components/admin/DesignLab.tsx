@@ -84,11 +84,11 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const mistLight=shade(mist,30), mistMid=shade(mist,6), mistDeep=shade(mist,-42);
       const inner=shade(mist,-18);
       // One compact pear-shaped mass: larger cranium, tucked lower body.
-      faces.push(...ellipsoid([0,.08+bob,0],[.91*pulse,1.02*pulse,.82*pulse],mist,22,12));
-      faces.push(...ellipsoid([0,-.35+bob,.18],[.72,.55,.66],mistMid,18,9));
+      faces.push(...ellipsoid([0,.08+bob,0],[.91*pulse,1.02*pulse,.82*pulse],mist,30,16));
+      faces.push(...ellipsoid([0,-.35+bob,.18],[.72,.55,.66],mistMid,24,12));
       // Subtle brow/cheek volumes make the face dimensional without becoming a fox.
-      faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
-      faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
+      faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,18,9));
+      faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,18,9));
       // Softer animal ears: layered tapered volumes instead of hard prisms.
       // The narrow upper lobes visually converge to a point without a boxy outline.
       faces.push(...ellipsoid([-.47,.79+bob,.00],[.24,.30,.19],mistDeep,16,8));
@@ -99,14 +99,14 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       faces.push(...ellipsoid([.50,.88+bob,.17],[.105,.19,.055],inner,12,6));
       // Wide simple eyes: readable at thumbnail scale and fully blinkable.
       const es=.275*recipe.proportions.eyeSpacing;
-      faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
-      faces.push(...ellipsoid([es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
+      faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,16,8));
+      faces.push(...ellipsoid([es,.35+bob,.805],[.135,.205*blink,.052],ink,16,8));
       if(blink>.5){
         faces.push(...ellipsoid([-es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
         faces.push(...ellipsoid([es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
       }
       // Tiny muzzle and Fangbit's permanent visual signature: paired baby fangs.
-      faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,12,6));
+      faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,16,8));
       faces.push(...ellipsoid([0,.06+bob,.936],[.075,.055,.035],ink,5,2));
       // Small tapered fangs: narrow enough to read as teeth rather than blocks.
       faces.push(...prism([-.14,-.055+bob,.925],[-.135,-.245+bob,.95],.027,pearl));
