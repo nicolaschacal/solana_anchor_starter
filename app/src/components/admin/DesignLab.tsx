@@ -105,6 +105,10 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
         faces.push(...ellipsoid([-es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
         faces.push(...ellipsoid([es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
       }
+      // A restrained forehead mask and lower chest patch add character through
+      // colour hierarchy rather than expensive geometry.
+      faces.push(...ellipsoid([0,.58+bob,.785],[.22,.20,.055],mistDeep,12,6));
+      faces.push(...ellipsoid([0,-.48+bob,.655],[.31,.34,.065],pearl,14,7));
       // Tiny muzzle and Fangbit's permanent visual signature: paired baby fangs.
       faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,16,8));
       faces.push(...ellipsoid([0,.06+bob,.936],[.075,.055,.035],ink,5,2));
@@ -117,6 +121,8 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       faces.push(...ellipsoid([.63,-.27+bob-armWave,.43],[.22,.25,.20],mistDeep,11,6));
       faces.push(...ellipsoid([-.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
       faces.push(...ellipsoid([.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
+      faces.push(...ellipsoid([-.39,-.88+bob,.56],[.15,.055,.045],pearl,8,3));
+      faces.push(...ellipsoid([.39,-.88+bob,.56],[.15,.055,.045],pearl,8,3));
       // Animal tail: rooted behind the body, then curving out into view.
       // The negative Z root keeps the attachment hidden naturally by the torso.
       const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.55;
@@ -134,7 +140,7 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
     };
     raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);
   },[recipe,paused]);
-  return <canvas ref={ref} className="design-canvas" onPointerDown={e=>{drag.current={x:e.clientX,yaw:yaw.current};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(drag.current)yaw.current=drag.current.yaw+(e.clientX-drag.current.x)*.008}} onPointerUp={()=>drag.current=null} onWheel={e=>{e.preventDefault();zoom.current=clamp(zoom.current-e.deltaY*.0012,.75,2.7)}} onDoubleClick={()=>{zoom.current=1.42}}/>;
+  return <canvas ref={ref} className="design-canvas" onPointerDown={e=>{drag.current={x:e.clientX,yaw:yaw.current};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(drag.current)yaw.current=drag.current.yaw+(e.clientX-drag.current.x)*.008}} onPointerUp={()=>drag.current=null} onWheel={e=>{e.preventDefault();zoom.current=clamp(zoom.current-e.deltaY*.0016,.65,4.4)}} onDoubleClick={()=>{zoom.current=1.42}}/>;
 }
 
 const Slider=({label,value,min,max,step=.01,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(v:number)=>void})=><label className="lab-slider"><span>{label}<code>{value.toFixed(2)}</code></span><input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>;
