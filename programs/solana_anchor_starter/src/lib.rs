@@ -145,12 +145,12 @@ pub mod solana_anchor_starter {
         metadata_uri: String,
     ) -> Result<()> {
         let family = family_index(family_id)?;
-        require!(family_id == 0, RebyterError::FamilyLocked);
+        require!(family_id == 0, RegistryError::FamilyLocked);
         require!(
             ctx.accounts.registry.active_versions[family] == tree_version
                 && ctx.accounts.tree.family_id == family_id
                 && ctx.accounts.tree.version == tree_version,
-            RebyterError::InactiveTree
+            RegistryError::InactiveTree
         );
         require!(
             merkle::verify_evolution_hash_proof(
@@ -158,18 +158,18 @@ pub mod solana_anchor_starter {
                 &proof,
                 &ctx.accounts.tree.merkle_root,
             ),
-            RebyterError::InvalidEvolutionProof
+            RegistryError::InvalidEvolutionProof
         );
         require!(
             !name.is_empty() && name.len() <= 32 && !name.chars().any(char::is_control),
-            RebyterError::InvalidMetadata
+            RegistryError::InvalidMetadata
         );
         require!(
             !metadata_uri.is_empty()
                 && metadata_uri.len() <= MAX_URI_LENGTH
                 && metadata_uri.starts_with("https://")
                 && !metadata_uri.chars().any(char::is_control),
-            RebyterError::InvalidMetadata
+            RegistryError::InvalidMetadata
         );
 
         let clock = Clock::get()?;
@@ -467,10 +467,6 @@ pub enum RegistryError {
     Stale,
     #[msg("Invalid authority")]
     Authority,
-}
-
-#[error_code]
-pub enum RebyterError {
     #[msg("This Rebyter family is not open for creation yet")]
     FamilyLocked,
     #[msg("The requested evolution tree is not the active family tree")]
