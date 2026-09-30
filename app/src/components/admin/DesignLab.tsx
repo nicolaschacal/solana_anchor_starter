@@ -75,43 +75,31 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const t=paused?0:(now-start)/1000, bob=Math.sin(t*2.2)*recipe.personality.bounce;
       const headBob=Math.sin(t*1.7)*recipe.personality.headBob, blinkPhase=t%recipe.personality.blinkRate, blink=blinkPhase<.13?0.12:1;
       let faces:Face[]=[];
-      const plan=recipe.bodyPlan||"baby", wag=Math.sin(t*3.1)*recipe.personality.tailWag;
-      if(plan==="baby"){
-        // BYTE language: one dominant round body, tiny appendages, face embedded in the mass.
-        faces.push(...ellipsoid([0,.12+bob,0],[.98*recipe.proportions.body,1.02*recipe.proportions.body,.86*recipe.proportions.body],recipe.palette.primary,10,6));
-        const es=.25*recipe.proportions.eyeSpacing;
-        faces.push(...ellipsoid([-es,.36+bob,.79],[.15,.20*blink,.055],recipe.palette.dark,6,3));
-        faces.push(...ellipsoid([es,.36+bob,.79],[.15,.20*blink,.055],recipe.palette.dark,6,3));
-        // tiny Fangbit fangs: enough identity without turning the Byte into a miniature adult animal.
-        faces.push(...prism([-.18,.05+bob,.82],[-.18,-.16+bob,.87],.055,recipe.palette.secondary));
-        faces.push(...prism([.18,.05+bob,.82],[.18,-.16+bob,.87],.055,recipe.palette.secondary));
-        faces.push(...ellipsoid([-.42,-.82+bob,.16],[.26,.15,.34],recipe.palette.secondary,6,3));
-        faces.push(...ellipsoid([.42,-.82+bob,.16],[.26,.15,.34],recipe.palette.secondary,6,3));
-      }else if(plan==="quadruped"){
-        faces.push(...ellipsoid([0,.05+bob,-.05],[1.15,.62,.68],recipe.palette.primary,9,5));
-        faces.push(...ellipsoid([0,.42+bob+headBob,.72],[.58,.58,.54],recipe.palette.primary,8,5));
-        for(const x of [-.62,.62]) for(const z of [-.35,.35]) faces.push(...prism([x,-.25+bob,z],[x,-.82+bob,z],.13*recipe.proportions.legs,recipe.palette.primary));
-        faces.push(...prism([.88,.08+bob,-.35],[1.45,.3+bob+wag,-.5],.14,recipe.palette.primary));
-        const es=.19*recipe.proportions.eyeSpacing;
-        faces.push(...ellipsoid([-es,.5+bob,.115+.72],[.11,.15*blink,.05],recipe.palette.dark,6,3));
-        faces.push(...ellipsoid([es,.5+bob,.115+.72],[.11,.15*blink,.05],recipe.palette.dark,6,3));
-      }else if(plan==="aquatic"){
-        faces.push(...ellipsoid([0,.05+bob,0],[1.28,.62,.66],recipe.palette.primary,10,5));
-        faces.push(...prism([-.8,.02+bob,0],[-1.25,.18+bob,-.08],.18,recipe.palette.secondary));
-        faces.push(...prism([.8,.02+bob,0],[1.25,.18+bob,-.08],.18,recipe.palette.secondary));
-        faces.push(...prism([0,.08+bob,-.5],[0,.42+bob+wag,-1.22],.2,recipe.palette.primary));
-        const es=.25*recipe.proportions.eyeSpacing;
-        faces.push(...ellipsoid([-es,.22+bob,.61],[.12,.16*blink,.05],recipe.palette.dark,6,3));
-        faces.push(...ellipsoid([es,.22+bob,.61],[.12,.16*blink,.05],recipe.palette.dark,6,3));
-      }else{
-        faces.push(...ellipsoid([0,.12+bob,0],[.72,.92,.62],recipe.palette.primary,9,5));
-        faces.push(...ellipsoid([0,.82+bob+headBob,.08],[.55,.54,.5],recipe.palette.primary,8,5));
-        faces.push(...prism([-.35,-.42+bob,0],[-.42,-1.0+bob,.08],.15,recipe.palette.primary));
-        faces.push(...prism([.35,-.42+bob,0],[.42,-1.0+bob,.08],.15,recipe.palette.primary));
-        const es=.19*recipe.proportions.eyeSpacing;
-        faces.push(...ellipsoid([-es,.88+bob,.56],[.11,.15*blink,.05],recipe.palette.dark,6,3));
-        faces.push(...ellipsoid([es,.88+bob,.56],[.11,.15*blink,.05],recipe.palette.dark,6,3));
+      // FANGBIT / BYTE — bespoke silhouette. A compact predatory hatchling:
+      // one pear-shaped mass, oversized eyes, tiny grounded feet, two fangs,
+      // and a short dorsal nub. No adult muzzle/ears/tail.
+      const pulse=1+Math.sin(t*2.15)*.018;
+      faces.push(...ellipsoid([0,.08+bob,0],[.88*pulse,1.03*pulse,.82*pulse],recipe.palette.primary,9,6));
+      // cheek mass gives the front a less generic spherical silhouette
+      faces.push(...ellipsoid([0,-.10+bob,.52],[.69,.58,.48],shade(recipe.palette.primary,-8),8,5));
+      const es=.27*recipe.proportions.eyeSpacing;
+      // large inset eyes, slightly low on the face for a baby proportion
+      faces.push(...ellipsoid([-es,.34+bob,.755],[.17,.235*blink,.06],recipe.palette.dark,6,3));
+      faces.push(...ellipsoid([es,.34+bob,.755],[.17,.235*blink,.06],recipe.palette.dark,6,3));
+      // tiny eye glints keep the face readable at the intentionally low-poly resolution
+      if(blink>.5){
+        faces.push(...ellipsoid([-es-.035,.405+bob,.817],[.038,.05,.018],recipe.palette.secondary,5,2));
+        faces.push(...ellipsoid([es-.035,.405+bob,.817],[.038,.05,.018],recipe.palette.secondary,5,2));
       }
+      // signature paired fangs — Fangbit's defining trait
+      faces.push(...prism([-.205,-.08+bob,.84],[-.19,-.36+bob,.89],.062,recipe.palette.secondary));
+      faces.push(...prism([.205,-.08+bob,.84],[.19,-.36+bob,.89],.062,recipe.palette.secondary));
+      // two tiny feet, visually subordinate to the body
+      faces.push(...ellipsoid([-.36,-.88+bob,.19],[.28,.14,.34],recipe.palette.secondary,6,3));
+      faces.push(...ellipsoid([.36,-.88+bob,.19],[.28,.14,.34],recipe.palette.secondary,6,3));
+      // asymmetric dorsal nubs hint at a future predator without reading as ears
+      faces.push(...prism([-.18,.91+bob,-.12],[-.27,1.20+bob,-.18],.105,shade(recipe.palette.primary,-12)));
+      faces.push(...prism([.14,.96+bob,-.16],[.20,1.13+bob,-.21],.085,shade(recipe.palette.primary,-12)));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=155/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
@@ -137,19 +125,15 @@ export function DesignLab(){
   return <section className="design-lab">
     <div className="page-heading"><div><span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ Fangbit</span></h1></div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
     <div className="design-grid">
-      <aside className="lab-panel"><div className="lab-panel-title">BODY PLAN</div><p className="lab-help">BYTE starts as a simple baby mass. The other plans are reusable defaults for later animaloid stages.</p>
-        <div className="body-plan-grid">{(["baby","quadruped","aquatic","biped"] as const).map(plan=><button key={plan} className={recipe.bodyPlan===plan?"active":""} onClick={()=>setRecipe(r=>({...r,bodyPlan:plan}))}>{plan}</button>)}</div>
-        <div className="lab-panel-title sub">PROPORTIONS</div>
-        <Slider label="Body mass" value={recipe.proportions.body} min={.72} max={1.3} onChange={v=>setProp("body",v)}/>
-        <Slider label="Head size" value={recipe.proportions.head} min={.75} max={1.3} onChange={v=>setProp("head",v)}/>
-        <Slider label="Leg length" value={recipe.proportions.legs} min={.7} max={1.35} onChange={v=>setProp("legs",v)}/>
-        <Slider label="Tail length" value={recipe.proportions.tail} min={.65} max={1.45} onChange={v=>setProp("tail",v)}/>
+      <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Bespoke specimen. Compact predatory hatchling: one dominant mass, oversized eyes, paired fangs and tiny grounded feet.</p>
+        <div className="design-signature"><span>SILHOUETTE</span><strong>ROUND / PEAR</strong><span>SIGNATURE</span><strong>PAIRED FANGS</strong><span>ATTITUDE</span><strong>CURIOUS PREDATOR</strong></div>
+        <div className="lab-panel-title sub">FINE TUNING</div>
         <Slider label="Eye spacing" value={recipe.proportions.eyeSpacing} min={.72} max={1.3} onChange={v=>setProp("eyeSpacing",v)}/>
         <div className="lab-panel-title sub">PALETTE</div>
         {(["primary","secondary","dark"] as const).map(k=><label className="color-field" key={k}><span>{k}</span><input type="color" value={recipe.palette[k]} onChange={e=>setRecipe(r=>({...r,palette:{...r.palette,[k]:e.target.value}}))}/><code>{recipe.palette[k]}</code></label>)}
       </aside>
       <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> LIVE PROCEDURAL SPECIMEN</div><FangbitCanvas recipe={recipe} paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · FACETED PROCEDURAL MESH</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
-      <aside className="lab-panel"><div className="lab-panel-title">PERSONALITY / IDLE</div><p className="lab-help">Motion is procedural, so the same recipe can run in web and app without a rigged GLB.</p>
+      <aside className="lab-panel"><div className="lab-panel-title">PERSONALITY / IDLE</div><p className="lab-help">Fangbit has its own idle. The controls below tune personality only; they do not generate the character.</p>
         <Slider label="Bounce" value={recipe.personality.bounce} min={0} max={.24} onChange={v=>setAnim("bounce",v)}/>
         <Slider label="Head bob" value={recipe.personality.headBob} min={0} max={.18} onChange={v=>setAnim("headBob",v)}/>
         <Slider label="Tail wag" value={recipe.personality.tailWag} min={0} max={.35} onChange={v=>setAnim("tailWag",v)}/>
