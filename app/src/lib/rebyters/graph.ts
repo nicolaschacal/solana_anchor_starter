@@ -87,6 +87,49 @@ export function immediateEvolutionNeighborhood(
   return tree.evolutions.filter((item) => ids.has(item.id));
 }
 
+export function fullEvolutionLineage(
+  tree: TreeJson,
+  evolutionId: number,
+): Evolution[] {
+  const byId = new Map(tree.evolutions.map((e) => [e.id, e]));
+  if (!byId.has(evolutionId)) return [];
+
+  const parents = new Map<number, number[]>();
+  for (const source of tree.evolutions) {
+    for (const path of source.paths) {
+      const list = parents.get(path.target) ?? [];
+      list.push(source.id);
+      parents.set(path.target, list);
+    }
+  }
+
+  const ids = new Set<number>();
+  const walkBack = (id: number) => {
+    if (ids.has(id)) return;
+    ids.add(id);
+    for (const parent of parents.get(id) ?? []) walkBack(parent);
+  };
+  const walkForward = (id: number) => {
+    if (ids.has(id)) {
+      // Still traverse children: this node may have been visited by the ancestor walk.
+    } else {
+      ids.add(id);
+    }
+    const node = byId.get(id);
+    if (!node) return;
+    for (const path of node.paths) {
+      if (!ids.has(path.target)) {
+        ids.add(path.target);
+        walkForward(path.target);
+      }
+    }
+  };
+
+  walkBack(evolutionId);
+  walkForward(evolutionId);
+  return tree.evolutions.filter((e) => ids.has(e.id));
+}
+
 export function autoLayoutEvolutionTree(tree: TreeJson): TreeJson {
   const stageCursor = new Map<string, number>();
   return {
