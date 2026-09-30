@@ -4,7 +4,7 @@ import { validateTree } from "./validation";
 import type { TreeJson, Publication } from "./types";
 export interface Uploader {
   upload: (
-    data: string,
+    data: string | Uint8Array,
     options: { tags: { name: string; value: string }[] },
   ) => Promise<{ id: string }>;
 }
