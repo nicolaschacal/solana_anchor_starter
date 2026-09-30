@@ -44,7 +44,7 @@ export function FangbitPrototype({paused=false}:{paused?:boolean}){
   const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(29,1,.1,100);camera.position.set(0,.03,4.65);
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;el.appendChild(renderer.domElement);
   scene.add(new THREE.HemisphereLight(0xfff4df,0x252838,2.35));const key=new THREE.DirectionalLight(0xfff7e8,1.35);key.position.set(-3,4,5);scene.add(key);
-  const root=new THREE.Group();root.rotation.y=-.08;scene.add(root),tex=makePaintedTexture();
+  const root=new THREE.Group();root.rotation.y=-.08;scene.add(root);const tex=makePaintedTexture();
   const fur=new THREE.MeshStandardMaterial({map:tex,roughness:.96,flatShading:false}),dark=new THREE.MeshStandardMaterial({color:0x3f4054,roughness:.98}),cream=new THREE.MeshStandardMaterial({color:0xeee2c9,roughness:.98}),pink=new THREE.MeshStandardMaterial({color:0xd36f73,roughness:.98}),noseMat=new THREE.MeshStandardMaterial({color:0x332d35,roughness:.9});
   const bodyGeo=customBodyGeometry(),body=new THREE.Mesh(bodyGeo,fur);root.add(body);
   // broad triangular ears
