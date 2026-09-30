@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, Heart, Home, LockKeyhole, MoonStar,
+  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -265,8 +265,23 @@ export function PlayerAtlas() {
 }
 
 export function PlayerAccount() {
-  const { owned }=usePlayerCollection();
-  return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, identity and your Rebyters live here.</p></div><section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Solana wallet support is active. Passkey onboarding can connect to this same identity layer next.</p></div><WalletMultiButton/></section><section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Choose your active Rebyter from Home.":"No Rebyters found in this wallet."}</p></div></section></main></Shell>;
+  const { owned, tree }=usePlayerCollection();
+  return <Shell><Header/><main className="player-main">
+    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, identity and your Rebyters live here.</p></div>
+    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Solana wallet support is active. Passkey onboarding can connect to this same identity layer next.</p></div><WalletMultiButton/></section>
+    <section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Your on-chain Rebyters are listed below.":"No Rebyters found in this wallet."}</p></div></section>
+    {owned.length>0&&<section className="onchain-companions">
+      <div className="section-title"><div><small>ON-CHAIN ASSETS</small><h2>Your mints</h2></div><span>Devnet</span></div>
+      {owned.map(item=>{
+        const evolution=tree.evolutions.find(e=>e.id===item.evolutionId);
+        return <div className="onchain-companion" key={item.mint}>
+          {evolution&&<CreatureSprite evolution={evolution}/>}
+          <div><strong>{evolution?.name??"Rebyter"}</strong><code>{item.mint}</code></div>
+          <a href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer">Explorer <ExternalLink/></a>
+        </div>;
+      })}
+    </section>}
+  </main></Shell>;
 }
 
 const ORIGIN_FAMILIES = [
