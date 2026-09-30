@@ -1280,3 +1280,10 @@ select:disabled {
 .body-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
 .body-plan-grid button{text-transform:uppercase;font:700 9px "IBM Plex Mono",monospace;padding:9px 7px}
 .body-plan-grid button.active{background:#2d4036;border-color:#64836e;color:#c2e9ce}
+
+.design-signature{display:grid;grid-template-columns:78px 1fr;gap:8px 10px;padding:12px;border:1px solid #dfe8e0;border-radius:6px;background:#f6f9f6}
+.design-signature span{font:8px "IBM Plex Mono",monospace;letter-spacing:.08em;color:#829187}
+.design-signature strong{font:700 9px "IBM Plex Mono",monospace;color:#3e5948}
+:root[data-theme="dark"] .design-signature{background:#222a26;border-color:#3b4940}
+:root[data-theme="dark"] .design-signature span{color:#82998b}
+:root[data-theme="dark"] .design-signature strong{color:#c2e9ce}
