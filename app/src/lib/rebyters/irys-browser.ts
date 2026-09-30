@@ -28,14 +28,17 @@ export async function browserUploader(wallet: WalletContextState) {
     let balance = await irys.getLoadedBalance();
     // Keep headroom above the quoted payload price. The upload transaction has
     // its own header/signature overhead, so equality is not sufficient.
-    const uploadTarget = price.multipliedBy(12).dividedToIntegerBy(10).plus(5_000);
+    // Avoid relying on BigNumber methods that are not consistently exposed by
+    // every browser build of the Irys SDK. A fixed 20k-lamport headroom is
+    // enough for this devnet uploader and preserves the SDK's own number type.
+    const uploadTarget = price.plus(20_000);
     if (balance.gte(uploadTarget)) return;
 
     // Irys devnet has an intermittent accounting issue for tiny deposits.
     // Keep a fixed 20,000-lamport floor: this is still devnet SOL, but is large
     // enough to avoid the tiny-deposit behaviour documented by Irys SDK users.
     const DEVNET_FLOOR_LAMPORTS = 20_000;
-    const floor = price.constructor(DEVNET_FLOOR_LAMPORTS);
+    const floor = price.minus(price).plus(DEVNET_FLOOR_LAMPORTS);
     const target = floor.gt(uploadTarget) ? floor : uploadTarget;
     const missing = target.minus(balance);
     if (missing.gt(0)) await irys.fund(missing);
