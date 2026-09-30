@@ -1,4 +1,4 @@
-import { ArrowRight, GitMerge } from "lucide-react";
+import { ArrowRight, GitMerge, Pencil } from "lucide-react";
 import type { TreeJson } from "../../lib/rebyters/types";
 import { GRAPH_STAGE_ORDER } from "../../lib/rebyters/graph";
 import { CreatureSprite } from "./CreatureSprite";
@@ -28,6 +28,8 @@ export function EvolutionOverview({
   compact = false,
   selectedId,
   horizontal = false,
+  editable = false,
+  onEdit,
 }: {
   tree: TreeJson;
   search: string;
@@ -37,6 +39,8 @@ export function EvolutionOverview({
   compact?: boolean;
   selectedId?: number;
   horizontal?: boolean;
+  editable?: boolean;
+  onEdit?: (id: number) => void;
 }) {
   const query = search.trim().toLowerCase();
   const counts = GRAPH_STAGE_ORDER.map(
@@ -101,29 +105,27 @@ export function EvolutionOverview({
                     source.paths.some((p) => p.target === e.id),
                   ).length;
                   return (
-                    <button
-                      className={`specimen-tile ${e.id === selectedId ? "is-selected" : ""}`}
-                      key={e.id}
-                      aria-label={`${e.name}, ${label}`}
-                      onClick={() => onSelect(e.id)}
-                    >
-                      <CreatureSprite evolution={e} />
-                      <span className="specimen-tile-text">
-                        <strong>{e.name}</strong>
-                        <small>
-                          {e.stage === 0 ? "Universal origin" : e.family}
-                        </small>
-                      </span>
-                      <span
-                        className="specimen-tile-routes"
-                        title={`${incoming} previous forms, ${e.paths.length} next forms`}
+                    <div className={`specimen-tile-wrap ${e.id === selectedId ? "is-selected" : ""}`} key={e.id}>
+                      <button
+                        className={`specimen-tile ${e.id === selectedId ? "is-selected" : ""}`}
+                        aria-label={`${e.name}, ${label}`}
+                        onClick={() => onSelect(e.id)}
                       >
-                        <GitMerge size={10} />
-                        {incoming}
-                        <ArrowRight size={10} />
-                        {e.paths.length}
-                      </span>
-                    </button>
+                        <CreatureSprite evolution={e} />
+                        <span className="specimen-tile-text">
+                          <strong>{e.name}</strong>
+                          <small>{e.stage === 0 ? "Universal origin" : e.family}</small>
+                        </span>
+                        <span className="specimen-tile-routes" title={`${incoming} previous forms, ${e.paths.length} next forms`}>
+                          <GitMerge size={10} />{incoming}<ArrowRight size={10} />{e.paths.length}
+                        </span>
+                      </button>
+                      {editable && onEdit && (
+                        <button className="specimen-edit" title={`Edit ${e.name}`} aria-label={`Edit ${e.name}`} onClick={() => onEdit(e.id)}>
+                          <Pencil size={12} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
                 {!forms.length && (
