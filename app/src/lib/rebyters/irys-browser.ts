@@ -55,17 +55,17 @@ export async function browserUploader(wallet: WalletContextState) {
 
   return {
     async upload(
-      data: string,
+      data: string | Uint8Array,
       options: { tags: { name: string; value: string }[] },
     ) {
-      const bytes = new TextEncoder().encode(data).length;
+      const bytes = typeof data === "string" ? new TextEncoder().encode(data).length : data.byteLength;
       await ensureUploadBalance(bytes);
 
       // Do not ask the wallet to sign repeatedly. A successful funding signature
       // is followed by one upload attempt; if Irys still rejects it, surface
       // diagnostics instead of charging/funding again blindly.
       try {
-        return await irys.upload(data, options);
+        return await irys.upload(data as string | Uint8Array, options);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
