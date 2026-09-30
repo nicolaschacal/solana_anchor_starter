@@ -378,7 +378,10 @@ function Family({ state }: { state: RegistryState }) {
     await tx.run(async () => {
       const nextVersion = state.registry!.nextVersions[family];
       if (family === 0 && data.tree && containsMammalWorkbook(data.tree) && !hasStructuredMammalRules(data.tree)) {
-        const tree = upgradeMammalRulesInPlace(data.tree, nextVersion);
+        // The on-chain program intentionally treats a full collection replacement
+        // as a new identity set, so reserve fresh IDs once and remap every path.
+        const start = await tx.writer().reserve(data.tree.evolutions.length);
+        const tree = upgradeMammalRulesInPlace(data.tree, nextVersion, start);
         save({ tree, baseVersion: active, replaceCollection: true });
         return;
       }
