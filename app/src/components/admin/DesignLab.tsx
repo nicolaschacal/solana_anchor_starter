@@ -19,7 +19,7 @@ const DEFAULT: Recipe = {
   speciesId: "fangbit",
   name: "Fangbit",
   stage: "BYTE",
-  palette: { primary: "#6e8f58", secondary: "#b8c98c", dark: "#26332b" },
+  palette: { primary: "#F28A62", secondary: "#FFE08A", dark: "#29304A" },
   proportions: { body: 1, head: 1, legs: 1, tail: 1, eyeSpacing: 1 },
   personality: { bounce: 0.12, headBob: 0.08, tailWag: 0.16, blinkRate: 3.4 },
   bodyPlan: "baby",
@@ -64,7 +64,7 @@ function prism(a:V3,b:V3,r:number,color:string):Face[]{
 }
 
 function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
-  const ref=useRef<HTMLCanvasElement>(null), drag=useRef<{x:number;yaw:number}|null>(null), yaw=useRef(-.42);
+  const ref=useRef<HTMLCanvasElement>(null), drag=useRef<{x:number;yaw:number}|null>(null), yaw=useRef(-.42), zoom=useRef(1.42);
   useEffect(()=>{
     let raf=0, start=performance.now();
     const draw=(now:number)=>{
@@ -75,33 +75,44 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const t=paused?0:(now-start)/1000, bob=Math.sin(t*2.2)*recipe.personality.bounce;
       const headBob=Math.sin(t*1.7)*recipe.personality.headBob, blinkPhase=t%recipe.personality.blinkRate, blink=blinkPhase<.13?0.12:1;
       let faces:Face[]=[];
-      // FANGBIT / BYTE — bespoke silhouette. A compact predatory hatchling:
-      // one pear-shaped mass, oversized eyes, tiny grounded feet, two fangs,
-      // and a short dorsal nub. No adult muzzle/ears/tail.
+      // FANGBIT / BYTE — bespoke colorful low-poly hatchling.
+      // The design keeps the BYTE simplicity while giving it a recognizable toy-like silhouette.
       const pulse=1+Math.sin(t*2.15)*.018;
-      faces.push(...ellipsoid([0,.08+bob,0],[.88*pulse,1.03*pulse,.82*pulse],recipe.palette.primary,9,6));
-      // cheek mass gives the front a less generic spherical silhouette
-      faces.push(...ellipsoid([0,-.10+bob,.52],[.69,.58,.48],shade(recipe.palette.primary,-8),8,5));
-      const es=.27*recipe.proportions.eyeSpacing;
-      // large inset eyes, slightly low on the face for a baby proportion
-      faces.push(...ellipsoid([-es,.34+bob,.755],[.17,.235*blink,.06],recipe.palette.dark,6,3));
-      faces.push(...ellipsoid([es,.34+bob,.755],[.17,.235*blink,.06],recipe.palette.dark,6,3));
-      // tiny eye glints keep the face readable at the intentionally low-poly resolution
+      const coral=recipe.palette.primary, cream=recipe.palette.secondary, ink=recipe.palette.dark;
+      const peach=shade(coral,22), deep=shade(coral,-30), gold="#F4B84B", blush="#F6A6A0";
+      // dominant bean/egg mass
+      faces.push(...ellipsoid([0,.08+bob,0],[.91*pulse,1.01*pulse,.84*pulse],coral,10,6));
+      // warm belly/face mask breaks the generic single-color blob
+      faces.push(...ellipsoid([0,-.10+bob,.64],[.63,.67,.29],peach,8,5));
+      // side cheek patches
+      faces.push(...ellipsoid([-.53,.02+bob,.66],[.20,.19,.09],blush,6,3));
+      faces.push(...ellipsoid([.53,.02+bob,.66],[.20,.19,.09],blush,6,3));
+      const es=.275*recipe.proportions.eyeSpacing;
+      // oversized dark eyes with cream glints
+      faces.push(...ellipsoid([-es,.35+bob,.805],[.18,.235*blink,.055],ink,7,3));
+      faces.push(...ellipsoid([es,.35+bob,.805],[.18,.235*blink,.055],ink,7,3));
       if(blink>.5){
-        faces.push(...ellipsoid([-es-.035,.405+bob,.817],[.038,.05,.018],recipe.palette.secondary,5,2));
-        faces.push(...ellipsoid([es-.035,.405+bob,.817],[.038,.05,.018],recipe.palette.secondary,5,2));
+        faces.push(...ellipsoid([-es-.045,.425+bob,.856],[.046,.058,.014],cream,5,2));
+        faces.push(...ellipsoid([es-.045,.425+bob,.856],[.046,.058,.014],cream,5,2));
       }
-      // signature paired fangs — Fangbit's defining trait
-      faces.push(...prism([-.205,-.08+bob,.84],[-.19,-.36+bob,.89],.062,recipe.palette.secondary));
-      faces.push(...prism([.205,-.08+bob,.84],[.19,-.36+bob,.89],.062,recipe.palette.secondary));
-      // two tiny feet, visually subordinate to the body
-      faces.push(...ellipsoid([-.36,-.88+bob,.19],[.28,.14,.34],recipe.palette.secondary,6,3));
-      faces.push(...ellipsoid([.36,-.88+bob,.19],[.28,.14,.34],recipe.palette.secondary,6,3));
-      // asymmetric dorsal nubs hint at a future predator without reading as ears
-      faces.push(...prism([-.18,.91+bob,-.12],[-.27,1.20+bob,-.18],.105,shade(recipe.palette.primary,-12)));
-      faces.push(...prism([.14,.96+bob,-.16],[.20,1.13+bob,-.21],.085,shade(recipe.palette.primary,-12)));
+      // small central nose
+      faces.push(...ellipsoid([0,.08+bob,.915],[.105,.075,.045],ink,5,2));
+      // signature ivory fangs
+      faces.push(...prism([-.19,-.05+bob,.86],[-.18,-.35+bob,.91],.066,cream));
+      faces.push(...prism([.19,-.05+bob,.86],[.18,-.35+bob,.91],.066,cream));
+      // oversized golden feet give the hatchling a playful PSX-era mascot proportion
+      faces.push(...ellipsoid([-.39,-.88+bob,.23],[.32,.17,.39],gold,7,3));
+      faces.push(...ellipsoid([.39,-.88+bob,.23],[.32,.17,.39],gold,7,3));
+      // three short dorsal fins/spikes: Fangbit's silhouette signature
+      faces.push(...prism([-.30,.84+bob,-.12],[-.42,1.18+bob,-.20],.105,deep));
+      faces.push(...prism([0,.99+bob,-.18],[0,1.30+bob,-.26],.115,gold));
+      faces.push(...prism([.30,.84+bob,-.12],[.42,1.18+bob,-.20],.105,deep));
+      // tiny side arms/fins make the idle silhouette friendlier
+      const armWave=Math.sin(t*2.6)*.06;
+      faces.push(...prism([-.72,.02+bob,.04],[-1.00,.13+bob+armWave,.20],.105,peach));
+      faces.push(...prism([.72,.02+bob,.04],[1.00,.13+bob-armWave,.20],.105,peach));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
-      const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=155/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
+      const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
       ctx.lineJoin="round";
       for(const {f,q} of sorted){ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath();ctx.fillStyle=f.color;ctx.fill();ctx.strokeStyle="rgba(20,35,27,.08)";ctx.lineWidth=.6;ctx.stroke()}
@@ -109,7 +120,7 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
     };
     raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);
   },[recipe,paused]);
-  return <canvas ref={ref} className="design-canvas" onPointerDown={e=>{drag.current={x:e.clientX,yaw:yaw.current};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(drag.current)yaw.current=drag.current.yaw+(e.clientX-drag.current.x)*.008}} onPointerUp={()=>drag.current=null}/>;
+  return <canvas ref={ref} className="design-canvas" onPointerDown={e=>{drag.current={x:e.clientX,yaw:yaw.current};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(drag.current)yaw.current=drag.current.yaw+(e.clientX-drag.current.x)*.008}} onPointerUp={()=>drag.current=null} onWheel={e=>{e.preventDefault();zoom.current=clamp(zoom.current-e.deltaY*.0012,.75,2.7)}} onDoubleClick={()=>{zoom.current=1.42}}/>;
 }
 
 const Slider=({label,value,min,max,step=.01,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(v:number)=>void})=><label className="lab-slider"><span>{label}<code>{value.toFixed(2)}</code></span><input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>;
@@ -132,7 +143,7 @@ export function DesignLab(){
         <div className="lab-panel-title sub">PALETTE</div>
         {(["primary","secondary","dark"] as const).map(k=><label className="color-field" key={k}><span>{k}</span><input type="color" value={recipe.palette[k]} onChange={e=>setRecipe(r=>({...r,palette:{...r.palette,[k]:e.target.value}}))}/><code>{recipe.palette[k]}</code></label>)}
       </aside>
-      <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> LIVE PROCEDURAL SPECIMEN</div><FangbitCanvas recipe={recipe} paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · FACETED PROCEDURAL MESH</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
+      <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> LIVE PROCEDURAL SPECIMEN</div><FangbitCanvas recipe={recipe} paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · WHEEL TO ZOOM · DOUBLE CLICK TO RESET</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
       <aside className="lab-panel"><div className="lab-panel-title">PERSONALITY / IDLE</div><p className="lab-help">Fangbit has its own idle. The controls below tune personality only; they do not generate the character.</p>
         <Slider label="Bounce" value={recipe.personality.bounce} min={0} max={.24} onChange={v=>setAnim("bounce",v)}/>
         <Slider label="Head bob" value={recipe.personality.headBob} min={0} max={.18} onChange={v=>setAnim("headBob",v)}/>
