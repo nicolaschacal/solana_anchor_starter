@@ -1293,3 +1293,45 @@ select:disabled {
 .collection-groups.is-lineage .collection-stage{min-height:72px}
 .collection-groups.is-lineage .specimen-tile.is-selected{border-color:var(--stage-color);box-shadow:inset 3px 0 0 var(--stage-color);background:color-mix(in srgb,var(--stage-color) 10%,transparent)}
 :root[data-theme="dark"] .collection-groups.is-lineage .specimen-tile.is-selected{background:color-mix(in srgb,var(--stage-color) 16%,#222a26)}
+
+/* Horizontal lineage: stages become columns, progression reads left -> right. */
+.collection-groups.is-horizontal-lineage{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(210px,1fr);
+  align-items:start;
+  gap:12px;
+  overflow-x:auto;
+  padding:4px 2px 16px;
+}
+.collection-groups.is-horizontal-lineage .collection-stage{
+  display:block;
+  min-width:210px;
+  border-top:2px solid var(--stage-color);
+  border-left:0;
+  padding:10px 0 0;
+}
+.collection-groups.is-horizontal-lineage .collection-stage-heading{
+  width:auto;
+  min-width:0;
+  padding:0 8px 10px;
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.collection-groups.is-horizontal-lineage .collection-stage-heading .collection-stage-description{
+  display:none;
+}
+.collection-groups.is-horizontal-lineage .collection-stage-items{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  padding:0;
+}
+.collection-groups.is-horizontal-lineage .specimen-tile{
+  width:100%;
+  min-width:0;
+}
+@media (max-width:760px){
+  .collection-groups.is-horizontal-lineage{grid-auto-columns:minmax(190px,78vw)}
+}
