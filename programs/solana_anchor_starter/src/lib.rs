@@ -1,9 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::{
-    associated_token::AssociatedToken,
     token_interface::{
-        mint_to, token_metadata_initialize, Mint, MintTo, Token2022, TokenAccount,
+        mint_to, token_metadata_initialize, MintTo, Token2022,
         TokenMetadataInitialize,
     },
     token_2022_extensions::spl_token_metadata_interface::state::TokenMetadata,
@@ -410,25 +409,15 @@ pub struct CreateRebyter<'info> {
         bump
     )]
     pub rebyter: Account<'info, Rebyter>,
-    #[account(
-        init,
-        payer = owner,
-        mint::decimals = 0,
-        mint::authority = rebyter,
-        extensions::metadata_pointer::authority = rebyter,
-        extensions::metadata_pointer::metadata_address = mint,
-    )]
-    pub mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        init,
-        payer = owner,
-        associated_token::mint = mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program,
-    )]
-    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: The client creates and initializes this Token-2022 mint in the
+    /// same transaction. The program only uses it through Token-2022 CPI.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    /// CHECK: The client creates the owner's Token-2022 ATA in the same
+    /// transaction. The program only uses it as the mint_to destination.
+    #[account(mut, owner = token_program.key())]
+    pub owner_token_account: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
