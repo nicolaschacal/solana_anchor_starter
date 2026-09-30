@@ -6,10 +6,21 @@ pub fn verify_evolution_proof(
     siblings: &[[u8; 32]],
     root: &[u8; 32],
 ) -> bool {
+    verify_evolution_hash_proof(
+        hashv(&[&[0], canonical_leaf]).to_bytes(),
+        siblings,
+        root,
+    )
+}
+
+pub fn verify_evolution_hash_proof(
+    mut current: [u8; 32],
+    siblings: &[[u8; 32]],
+    root: &[u8; 32],
+) -> bool {
     if siblings.len() > 16 {
         return false;
     }
-    let mut current = hashv(&[&[0], canonical_leaf]).to_bytes();
     for sibling in siblings {
         current = if current <= *sibling {
             hashv(&[&[1], &current, sibling]).to_bytes()
