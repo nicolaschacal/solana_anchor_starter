@@ -1,0 +1,13 @@
+{
+  "status": "Workbook published and verified on devnet",
+  "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
+  "registryPda": "EUyxmiAzboxWddes71PfDGAvr6Yd7tMXWzkQXYFirqNX",
+  "treePda": "BsjgB3f8th8vj5pEzE3jsTaYCUwK68kHo2DJw785yAte",
+  "address": "BsjgB3f8th8vj5pEzE3jsTaYCUwK68kHo2DJw785yAte",
+  "familyId": 0,
+  "version": 2,
+  "uri": "https://gateway.irys.xyz/7zv2p9pXZzxg99LTSFaiqD2ToNdurCq91FBEjq1nC5Tw",
+  "merkleRoot": "53e392d456d4bd763e58c995dd841fcc180b96eb2fca5824ec2567fd585b3499",
+  "contentHash": "c736ee11ed5b644596c7cc43670bd466f0154b470cfd483be3aa8d273f01905e",
+  "createdAt": 1790705554
+}

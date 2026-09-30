@@ -1,0 +1,3479 @@
+{
+  "tree": {
+    "schema": 1,
+    "family": {
+      "id": 0,
+      "name": "Mammal"
+    },
+    "version": 2,
+    "development": true,
+    "evolutions": [
+      {
+        "id": 1,
+        "name": "Kitten",
+        "stage": 0,
+        "enabled": false,
+        "initialWeight": 10,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 2,
+        "name": "Cat",
+        "stage": 1,
+        "enabled": false,
+        "initialWeight": 30,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 3,
+        "name": "Lion",
+        "stage": 2,
+        "enabled": false,
+        "initialWeight": 80,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 4,
+        "name": "Tiger",
+        "stage": 2,
+        "enabled": false,
+        "initialWeight": 90,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 5,
+        "name": "Leopard",
+        "stage": 2,
+        "enabled": false,
+        "initialWeight": 100,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 6,
+        "name": "Sabertooth",
+        "stage": 3,
+        "enabled": false,
+        "initialWeight": 110,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 7,
+        "key": "mote",
+        "name": "Mote",
+        "description": "Round soft blob, dot eyes, tiny tail nub",
+        "stage": 0,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Round soft blob, dot eyes, tiny tail nub",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 140
+        },
+        "paths": [
+          {
+            "target": 13,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 11,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 17,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 14,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "key": "puff",
+        "name": "Puff",
+        "description": "Round fluffy blob, dot eyes, tiny ear bumps",
+        "stage": 0,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Round fluffy blob, dot eyes, tiny ear bumps",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 200
+        },
+        "paths": [
+          {
+            "target": 13,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 14,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 18,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 11,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "key": "nox",
+        "name": "Nox",
+        "description": "Dark droplet blob, glowing eyes, tiny fang nub",
+        "stage": 0,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Dark droplet blob, glowing eyes, tiny fang nub",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 260
+        },
+        "paths": [
+          {
+            "target": 12,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 15,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 16,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 13,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "key": "spry",
+        "name": "Spry",
+        "description": "Small bouncing orb, long eye shape, tiny feet",
+        "stage": 0,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Small bouncing orb, long eye shape, tiny feet",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 80
+        },
+        "paths": [
+          {
+            "target": 11,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 12,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 15,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 17,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 14,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "key": "gnawbit",
+        "name": "Gnawbit",
+        "description": "Blob with two tiny incisors and rounded ears",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with two tiny incisors and rounded ears",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 370
+        },
+        "paths": [
+          {
+            "target": 23,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 24,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "key": "fangbit",
+        "name": "Fangbit",
+        "description": "Blob with one visible fang and pointed ear nubs",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with one visible fang and pointed ear nubs",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 430
+        },
+        "paths": [
+          {
+            "target": 19,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 20,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 22,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "key": "pawbit",
+        "name": "Pawbit",
+        "description": "Blob with four tiny paw nubs",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with four tiny paw nubs",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 250
+        },
+        "paths": [
+          {
+            "target": 19,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 20,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 21,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 22,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "key": "hoofbit",
+        "name": "Hoofbit",
+        "description": "Blob with tiny split-hoof feet",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with tiny split-hoof feet",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 310
+        },
+        "paths": [
+          {
+            "target": 26,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 30,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "key": "wingbit",
+        "name": "Wingbit",
+        "description": "Blob with membrane-like side flaps",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with membrane-like side flaps",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 370
+        },
+        "paths": [
+          {
+            "target": 27,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "key": "finbit",
+        "name": "Finbit",
+        "description": "Blob with tail-fin and smooth body",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with tail-fin and smooth body",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 430
+        },
+        "paths": [
+          {
+            "target": 28,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 29,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "key": "handbit",
+        "name": "Handbit",
+        "description": "Blob with long finger-like forelimbs",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Blob with long finger-like forelimbs",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 250
+        },
+        "paths": [
+          {
+            "target": 25,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 21,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "key": "bulkbit",
+        "name": "Bulkbit",
+        "description": "Large dense blob, small eyes, thick feet",
+        "stage": 1,
+        "family": "Abstract",
+        "rarity": "common",
+        "visualDescription": "Large dense blob, small eyes, thick feet",
+        "enabled": true,
+        "initialWeight": 25,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 310
+        },
+        "paths": [
+          {
+            "target": 21,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 30,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 26,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "key": "caniform",
+        "name": "Caniform",
+        "description": "Longer snout, triangular ears, juvenile quadruped",
+        "stage": 2,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Longer snout, triangular ears, juvenile quadruped",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 420
+        },
+        "paths": [
+          {
+            "target": 31,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 32,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "key": "feliform",
+        "name": "Feliform",
+        "description": "Short muzzle, flexible spine, juvenile feline body",
+        "stage": 2,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Short muzzle, flexible spine, juvenile feline body",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 480
+        },
+        "paths": [
+          {
+            "target": 33,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 34,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 35,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "key": "ursiform",
+        "name": "Ursiform",
+        "description": "Round ears, heavy torso, plantigrade juvenile",
+        "stage": 2,
+        "family": "Ursiform",
+        "rarity": "common",
+        "visualDescription": "Round ears, heavy torso, plantigrade juvenile",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 540
+        },
+        "paths": [
+          {
+            "target": 36,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 37,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "key": "musteloid",
+        "name": "Musteloid",
+        "description": "Long body, short legs, flexible swimmer/climber",
+        "stage": 2,
+        "family": "Musteloid",
+        "rarity": "common",
+        "visualDescription": "Long body, short legs, flexible swimmer/climber",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 600
+        },
+        "paths": [
+          {
+            "target": 38,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 39,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "key": "rodentiform",
+        "name": "Rodentiform",
+        "description": "Rounded ears, incisors, long or broad tail",
+        "stage": 2,
+        "family": "Rodent",
+        "rarity": "common",
+        "visualDescription": "Rounded ears, incisors, long or broad tail",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 420
+        },
+        "paths": [
+          {
+            "target": 40,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 41,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "key": "lagomorph",
+        "name": "Lagomorph",
+        "description": "Long ears, hind-leg emphasis",
+        "stage": 2,
+        "family": "Lagomorph",
+        "rarity": "common",
+        "visualDescription": "Long ears, hind-leg emphasis",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 480
+        },
+        "paths": [
+          {
+            "target": 42,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 25,
+        "key": "primatoid",
+        "name": "Primatoid",
+        "description": "Forward-facing eyes, grasping hands, upright tendency",
+        "stage": 2,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Forward-facing eyes, grasping hands, upright tendency",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 540
+        },
+        "paths": [
+          {
+            "target": 43,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 44,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 26,
+        "key": "ungulate",
+        "name": "Ungulate",
+        "description": "Hooved juvenile, long legs",
+        "stage": 2,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Hooved juvenile, long legs",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 600
+        },
+        "paths": [
+          {
+            "target": 45,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 46,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 47,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 48,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 27,
+        "key": "chiropteran",
+        "name": "Chiropteran",
+        "description": "Wing membranes become functional",
+        "stage": 2,
+        "family": "Bat",
+        "rarity": "common",
+        "visualDescription": "Wing membranes become functional",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 420
+        },
+        "paths": [
+          {
+            "target": 49,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 28,
+        "key": "pinniped",
+        "name": "Pinniped",
+        "description": "Flippers, barrel torso, whiskers",
+        "stage": 2,
+        "family": "Pinniped",
+        "rarity": "common",
+        "visualDescription": "Flippers, barrel torso, whiskers",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 480
+        },
+        "paths": [
+          {
+            "target": 50,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 29,
+        "key": "cetacean",
+        "name": "Cetacean",
+        "description": "Streamlined body, tail flukes",
+        "stage": 2,
+        "family": "Cetacean",
+        "rarity": "common",
+        "visualDescription": "Streamlined body, tail flukes",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 540
+        },
+        "paths": [
+          {
+            "target": 51,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 52,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "key": "proboscidean",
+        "name": "Proboscidean",
+        "description": "Heavy body, trunk bud, large ears",
+        "stage": 2,
+        "family": "Proboscidean",
+        "rarity": "common",
+        "visualDescription": "Heavy body, trunk bud, large ears",
+        "enabled": true,
+        "initialWeight": 40,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 600
+        },
+        "paths": [
+          {
+            "target": 53,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 31,
+        "key": "fox",
+        "name": "Fox",
+        "description": "Fox-inspired juvenile monster",
+        "stage": 3,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Fox-inspired juvenile monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 54,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 32,
+        "key": "wolf",
+        "name": "Wolf",
+        "description": "Wolf-inspired juvenile monster",
+        "stage": 3,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Wolf-inspired juvenile monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 55,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 56,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 33,
+        "key": "cat",
+        "name": "Cat",
+        "description": "Domestic/wild cat-inspired monster",
+        "stage": 3,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Domestic/wild cat-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 57,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 34,
+        "key": "lynx",
+        "name": "Lynx",
+        "description": "Tuft-eared feline monster",
+        "stage": 3,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Tuft-eared feline monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 770
+        },
+        "paths": [
+          {
+            "target": 58,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 35,
+        "key": "hyena",
+        "name": "Hyena",
+        "description": "Hyena-inspired monster",
+        "stage": 3,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Hyena-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 59,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 36,
+        "key": "bear",
+        "name": "Bear",
+        "description": "Bear-inspired monster",
+        "stage": 3,
+        "family": "Ursiform",
+        "rarity": "common",
+        "visualDescription": "Bear-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 60,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 37,
+        "key": "panda",
+        "name": "Panda",
+        "description": "Panda-inspired monster",
+        "stage": 3,
+        "family": "Ursiform",
+        "rarity": "common",
+        "visualDescription": "Panda-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 61,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 38,
+        "key": "otter",
+        "name": "Otter",
+        "description": "Otter-inspired monster",
+        "stage": 3,
+        "family": "Musteloid",
+        "rarity": "common",
+        "visualDescription": "Otter-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 770
+        },
+        "paths": [
+          {
+            "target": 62,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 39,
+        "key": "wolverine",
+        "name": "Wolverine",
+        "description": "Wolverine-inspired monster",
+        "stage": 3,
+        "family": "Musteloid",
+        "rarity": "common",
+        "visualDescription": "Wolverine-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 63,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 40,
+        "key": "mouse",
+        "name": "Mouse",
+        "description": "Mouse-inspired monster",
+        "stage": 3,
+        "family": "Rodent",
+        "rarity": "common",
+        "visualDescription": "Mouse-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 64,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41,
+        "key": "beaver",
+        "name": "Beaver",
+        "description": "Beaver-inspired monster",
+        "stage": 3,
+        "family": "Rodent",
+        "rarity": "common",
+        "visualDescription": "Beaver-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 65,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 42,
+        "key": "rabbit",
+        "name": "Rabbit",
+        "description": "Rabbit-inspired monster",
+        "stage": 3,
+        "family": "Lagomorph",
+        "rarity": "common",
+        "visualDescription": "Rabbit-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 770
+        },
+        "paths": [
+          {
+            "target": 66,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 67,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 43,
+        "key": "monkey",
+        "name": "Monkey",
+        "description": "Monkey-inspired monster",
+        "stage": 3,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Monkey-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 68,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 44,
+        "key": "ape",
+        "name": "Ape",
+        "description": "Ape-inspired monster",
+        "stage": 3,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Ape-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 69,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 70,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 45,
+        "key": "horse",
+        "name": "Horse",
+        "description": "Horse-inspired monster",
+        "stage": 3,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Horse-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 71,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 72,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 46,
+        "key": "deer",
+        "name": "Deer",
+        "description": "Deer-inspired monster",
+        "stage": 3,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Deer-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 770
+        },
+        "paths": [
+          {
+            "target": 73,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 47,
+        "key": "goat",
+        "name": "Goat",
+        "description": "Goat-inspired monster",
+        "stage": 3,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Goat-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 74,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 48,
+        "key": "boar",
+        "name": "Boar",
+        "description": "Boar-inspired monster",
+        "stage": 3,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Boar-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 75,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 49,
+        "key": "bat",
+        "name": "Bat",
+        "description": "Bat-inspired monster",
+        "stage": 3,
+        "family": "Bat",
+        "rarity": "common",
+        "visualDescription": "Bat-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 76,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 77,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 83,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 50,
+        "key": "seal",
+        "name": "Seal",
+        "description": "Seal-inspired monster",
+        "stage": 3,
+        "family": "Pinniped",
+        "rarity": "common",
+        "visualDescription": "Seal-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 770
+        },
+        "paths": [
+          {
+            "target": 78,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 51,
+        "key": "dolphin",
+        "name": "Dolphin",
+        "description": "Dolphin-inspired monster",
+        "stage": 3,
+        "family": "Cetacean",
+        "rarity": "common",
+        "visualDescription": "Dolphin-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 590
+        },
+        "paths": [
+          {
+            "target": 79,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 52,
+        "key": "whale",
+        "name": "Whale",
+        "description": "Whale-inspired monster",
+        "stage": 3,
+        "family": "Cetacean",
+        "rarity": "common",
+        "visualDescription": "Whale-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 650
+        },
+        "paths": [
+          {
+            "target": 80,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 53,
+        "key": "elephant",
+        "name": "Elephant",
+        "description": "Elephant-inspired monster",
+        "stage": 3,
+        "family": "Proboscidean",
+        "rarity": "common",
+        "visualDescription": "Elephant-inspired monster",
+        "enabled": true,
+        "initialWeight": 55,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 710
+        },
+        "paths": [
+          {
+            "target": 81,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          },
+          {
+            "target": 82,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 0,
+                "operator": 0,
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 54,
+        "key": "spirit_fox",
+        "name": "Spirit Fox",
+        "description": "Fox with luminous tails / code wisps",
+        "stage": 4,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Fox with luminous tails / code wisps",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 55,
+        "key": "dire_wolf",
+        "name": "Dire Wolf",
+        "description": "Massive armored wolf",
+        "stage": 4,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Massive armored wolf",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 56,
+        "key": "moon_wolf",
+        "name": "Moon Wolf",
+        "description": "Lean silver wolf with lunar markings",
+        "stage": 4,
+        "family": "Caniform",
+        "rarity": "common",
+        "visualDescription": "Lean silver wolf with lunar markings",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 57,
+        "key": "shadowcat",
+        "name": "Shadowcat",
+        "description": "Dark feline with glitch-shadow body",
+        "stage": 4,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Dark feline with glitch-shadow body",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 58,
+        "key": "frost_lynx",
+        "name": "Frost Lynx",
+        "description": "Large lynx with crystal frost tufts",
+        "stage": 4,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Large lynx with crystal frost tufts",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 59,
+        "key": "bone_hyena",
+        "name": "Bone Hyena",
+        "description": "Hyena with bone-mask growths",
+        "stage": 4,
+        "family": "Feliform",
+        "rarity": "common",
+        "visualDescription": "Hyena with bone-mask growths",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 60,
+        "key": "iron_bear",
+        "name": "Iron Bear",
+        "description": "Bear with metallic plates",
+        "stage": 4,
+        "family": "Ursiform",
+        "rarity": "common",
+        "visualDescription": "Bear with metallic plates",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 61,
+        "key": "jade_panda",
+        "name": "Jade Panda",
+        "description": "Panda with jade growths",
+        "stage": 4,
+        "family": "Ursiform",
+        "rarity": "common",
+        "visualDescription": "Panda with jade growths",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 62,
+        "key": "river_trickster",
+        "name": "River Trickster",
+        "description": "Otter-like water trickster",
+        "stage": 4,
+        "family": "Musteloid",
+        "rarity": "common",
+        "visualDescription": "Otter-like water trickster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 63,
+        "key": "berserker_maw",
+        "name": "Berserker Maw",
+        "description": "Wolverine-like hulking predator",
+        "stage": 4,
+        "family": "Musteloid",
+        "rarity": "common",
+        "visualDescription": "Wolverine-like hulking predator",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 64,
+        "key": "volt_mouse",
+        "name": "Volt Mouse",
+        "description": "Tiny charged rodent monster",
+        "stage": 4,
+        "family": "Rodent",
+        "rarity": "common",
+        "visualDescription": "Tiny charged rodent monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 65,
+        "key": "damforger",
+        "name": "Damforger",
+        "description": "Beaver with engineered tail/plates",
+        "stage": 4,
+        "family": "Rodent",
+        "rarity": "common",
+        "visualDescription": "Beaver with engineered tail/plates",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 66,
+        "key": "moon_hare",
+        "name": "Moon Hare",
+        "description": "Lunar hare with long luminous ears",
+        "stage": 4,
+        "family": "Lagomorph",
+        "rarity": "common",
+        "visualDescription": "Lunar hare with long luminous ears",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 67,
+        "key": "jackalope",
+        "name": "Jackalope",
+        "description": "Rabbit with antlers",
+        "stage": 4,
+        "family": "Lagomorph",
+        "rarity": "common",
+        "visualDescription": "Rabbit with antlers",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 68,
+        "key": "trickster_ape",
+        "name": "Trickster Ape",
+        "description": "Agile primate with mask-like face",
+        "stage": 4,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Agile primate with mask-like face",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 69,
+        "key": "titan_ape",
+        "name": "Titan Ape",
+        "description": "Huge ape monster",
+        "stage": 4,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Huge ape monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 70,
+        "key": "mecha_ape",
+        "name": "Mecha Ape",
+        "description": "Cyborg ape with code armor",
+        "stage": 4,
+        "family": "Primate",
+        "rarity": "common",
+        "visualDescription": "Cyborg ape with code armor",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 71,
+        "key": "sky_courser",
+        "name": "Sky Courser",
+        "description": "Winged/levitating horse-like monster",
+        "stage": 4,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Winged/levitating horse-like monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 72,
+        "key": "dread_steed",
+        "name": "Dread Steed",
+        "description": "Black spectral horse",
+        "stage": 4,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Black spectral horse",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 73,
+        "key": "moon_stag",
+        "name": "Moon Stag",
+        "description": "Antlered lunar deer",
+        "stage": 4,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Antlered lunar deer",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 74,
+        "key": "thorn_ram",
+        "name": "Thorn Ram",
+        "description": "Goat/ram with plant armor",
+        "stage": 4,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Goat/ram with plant armor",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 75,
+        "key": "war_boar",
+        "name": "War Boar",
+        "description": "Armored tusked boar",
+        "stage": 4,
+        "family": "Ungulate",
+        "rarity": "common",
+        "visualDescription": "Armored tusked boar",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 76,
+        "key": "blood_bat",
+        "name": "Blood Bat",
+        "description": "Large crimson bat",
+        "stage": 4,
+        "family": "Bat",
+        "rarity": "common",
+        "visualDescription": "Large crimson bat",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 77,
+        "key": "echo_bat",
+        "name": "Echo Bat",
+        "description": "Sonic bat with ring markings",
+        "stage": 4,
+        "family": "Bat",
+        "rarity": "common",
+        "visualDescription": "Sonic bat with ring markings",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 78,
+        "key": "frostmane",
+        "name": "Frostmane",
+        "description": "Massive seal/sea-lion monster with icy mane",
+        "stage": 4,
+        "family": "Pinniped",
+        "rarity": "common",
+        "visualDescription": "Massive seal/sea-lion monster with icy mane",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 79,
+        "key": "storm_dolphin",
+        "name": "Storm Dolphin",
+        "description": "Electric/sonic dolphin monster",
+        "stage": 4,
+        "family": "Cetacean",
+        "rarity": "common",
+        "visualDescription": "Electric/sonic dolphin monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 80,
+        "key": "abyss_whale",
+        "name": "Abyss Whale",
+        "description": "Ancient dark whale monster",
+        "stage": 4,
+        "family": "Cetacean",
+        "rarity": "common",
+        "visualDescription": "Ancient dark whale monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 760
+        },
+        "paths": []
+      },
+      {
+        "id": 81,
+        "key": "mammoth",
+        "name": "Mammoth",
+        "description": "Woolly elephant monster",
+        "stage": 4,
+        "family": "Proboscidean",
+        "rarity": "common",
+        "visualDescription": "Woolly elephant monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 820
+        },
+        "paths": []
+      },
+      {
+        "id": 82,
+        "key": "war_elephant",
+        "name": "War Elephant",
+        "description": "Armored elephant monster",
+        "stage": 4,
+        "family": "Proboscidean",
+        "rarity": "common",
+        "visualDescription": "Armored elephant monster",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 880
+        },
+        "paths": []
+      },
+      {
+        "id": 83,
+        "key": "moon_beast",
+        "name": "Moon Beast",
+        "description": "Abstract lunar mammal chimera",
+        "stage": 4,
+        "family": "Shared",
+        "rarity": "rare",
+        "visualDescription": "Abstract lunar mammal chimera",
+        "enabled": true,
+        "initialWeight": 70,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 940
+        },
+        "paths": []
+      },
+      {
+        "id": 84,
+        "key": "ascension",
+        "name": "Ascension",
+        "description": "Spirit Fox ascension",
+        "stage": 0,
+        "family": "Mythic multi-tail fox code-spirit",
+        "rarity": "common",
+        "visualDescription": "Spirit Fox ascension",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 440,
+          "y": 200
+        },
+        "paths": []
+      },
+      {
+        "id": 85,
+        "key": "ascension",
+        "name": "Ascension",
+        "description": "Dire/Moon Wolf convergence",
+        "stage": 0,
+        "family": "World-wolf with rune/code chains",
+        "rarity": "common",
+        "visualDescription": "Dire/Moon Wolf convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 620,
+          "y": 260
+        },
+        "paths": []
+      },
+      {
+        "id": 86,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Night/mutation convergence",
+        "stage": 0,
+        "family": "Black-silver composite mammal with eclipse halo",
+        "rarity": "common",
+        "visualDescription": "Night/mutation convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 800,
+          "y": 80
+        },
+        "paths": []
+      },
+      {
+        "id": 87,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Cat/Lynx/Hyena convergence",
+        "stage": 0,
+        "family": "Solar feline guardian with wing-like energy",
+        "rarity": "common",
+        "visualDescription": "Cat/Lynx/Hyena convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 980,
+          "y": 140
+        },
+        "paths": []
+      },
+      {
+        "id": 88,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Bear/Boar/Elephant convergence",
+        "stage": 0,
+        "family": "Colossal terrestrial titan",
+        "rarity": "common",
+        "visualDescription": "Bear/Boar/Elephant convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1160,
+          "y": 200
+        },
+        "paths": []
+      },
+      {
+        "id": 89,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Moon Hare/Moon Stag/Moon Wolf convergence",
+        "stage": 0,
+        "family": "White lunar guardian mammal, antlers + long ears",
+        "rarity": "common",
+        "visualDescription": "Moon Hare/Moon Stag/Moon Wolf convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1340,
+          "y": 260
+        },
+        "paths": []
+      },
+      {
+        "id": 90,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Hyena/Ram/Shadowcat convergence",
+        "stage": 0,
+        "family": "Predatory hybrid with horned/feline traits",
+        "rarity": "common",
+        "visualDescription": "Hyena/Ram/Shadowcat convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1520,
+          "y": 80
+        },
+        "paths": []
+      },
+      {
+        "id": 91,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Titan Ape/Mecha Ape convergence",
+        "stage": 0,
+        "family": "Ancient techno-primate titan",
+        "rarity": "common",
+        "visualDescription": "Titan Ape/Mecha Ape convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1474511320723-9a56873867b3?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1700,
+          "y": 140
+        },
+        "paths": []
+      },
+      {
+        "id": 92,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Whale/Dolphin/Pinniped convergence",
+        "stage": 0,
+        "family": "Gigantic abyssal marine mammal",
+        "rarity": "common",
+        "visualDescription": "Whale/Dolphin/Pinniped convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 1880,
+          "y": 200
+        },
+        "paths": []
+      },
+      {
+        "id": 93,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Dread Steed/Blood Bat convergence",
+        "stage": 0,
+        "family": "Spectral horse-bat predator",
+        "rarity": "common",
+        "visualDescription": "Dread Steed/Blood Bat convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 2060,
+          "y": 260
+        },
+        "paths": []
+      },
+      {
+        "id": 94,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Mammoth/Iron Bear/War Elephant convergence",
+        "stage": 0,
+        "family": "Ancient colossal mammal carrying biome-like armor",
+        "rarity": "common",
+        "visualDescription": "Mammoth/Iron Bear/War Elephant convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 80,
+          "y": 80
+        },
+        "paths": []
+      },
+      {
+        "id": 95,
+        "key": "shared",
+        "name": "Shared",
+        "description": "Frost Lynx/Frostmane/Mammoth convergence",
+        "stage": 0,
+        "family": "Luminous cold-climate guardian mammal",
+        "rarity": "common",
+        "visualDescription": "Frost Lynx/Frostmane/Mammoth convergence",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {
+          "metadataUri": "",
+          "imageUri": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+          "thumbnailUri": "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=900&q=80",
+          "modelUri": ""
+        },
+        "position": {
+          "x": 260,
+          "y": 140
+        },
+        "paths": []
+      }
+    ]
+  },
+  "baseVersion": 1,
+  "publication": {
+    "uri": "https://gateway.irys.xyz/7zv2p9pXZzxg99LTSFaiqD2ToNdurCq91FBEjq1nC5Tw",
+    "contentHash": "c736ee11ed5b644596c7cc43670bd466f0154b470cfd483be3aa8d273f01905e",
+    "merkleRoot": "53e392d456d4bd763e58c995dd841fcc180b96eb2fca5824ec2567fd585b3499"
+  },
+  "activationSubmitted": true
+}

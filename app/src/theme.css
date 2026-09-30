@@ -1,0 +1,206 @@
+:root {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e0e7e3;
+  background: #171b1a;
+  --night-surface: #212725;
+  --night-hover: #2b3530;
+  --night-border: #36423b;
+  --night-muted: #a2b3a9;
+}
+:root[data-theme="dark"]
+  :is(
+    button,
+    input,
+    select,
+    textarea,
+    .topbar,
+    .family-card,
+    .evolution-table,
+    .publish-bar,
+    .json-modal,
+    .atlas-results,
+    .atlas-viewport-tools,
+    .react-flow__minimap
+  ) {
+  background: var(--night-surface);
+  color: #e0e7e3;
+  border-color: var(--night-border);
+}
+:root[data-theme="dark"]
+  :is(
+    button:hover,
+    .table-row:hover,
+    .specimen-relations button:hover,
+    .graph-mode-switch:hover
+  ) {
+  background: var(--night-hover);
+}
+:root[data-theme="dark"] :is(.collection-stage-tabs, .atlas-canvas) {
+  background: #171b1a;
+}
+:root[data-theme="dark"]
+  :is(
+    .collection-stage,
+    .collection-stage-tabs,
+    .evolution-lab,
+    .atlas-canvas,
+    .specimen-panel,
+    .specimen-data,
+    .versions,
+    .version-row,
+    .table-row,
+    .identity-strip,
+    .identity-strip > div,
+    .family-card-bottom,
+    .evolution-editor,
+    .path-card,
+    .requirement,
+    .specimen-relations button,
+    footer
+  ) {
+  border-color: var(--night-border);
+}
+:root[data-theme="dark"] :is(.specimen-tile, .creature-node) {
+  background: #222a26;
+  color: #e0e7e3;
+  border-color: #3b4940;
+}
+:root[data-theme="dark"]
+  :is(
+    .specimen-tile:hover,
+    .specimen-tile:focus-visible,
+    .creature-node:hover,
+    .creature-node.is-selected
+  ) {
+  background: #303d34;
+  border-color: var(--stage-color);
+}
+:root[data-theme="dark"]
+  :is(
+    .collection-stage-tabs button,
+    .atlas-view-switch button,
+    .atlas-search input,
+    .atlas-search button,
+    .specimen-relations button
+  ) {
+  background: transparent;
+}
+:root[data-theme="dark"]
+  :is(
+    .collection-stage-tabs button[aria-pressed="true"],
+    .atlas-view-switch button[aria-pressed="true"],
+    .atlas-actions > button.active,
+    .graph-mode-switch
+  ) {
+  background: #2d4036;
+  border-color: #566f60;
+  color: #c2e9ce;
+}
+:root[data-theme="dark"]
+  :is(
+    .eyebrow,
+    .back,
+    .title-suffix,
+    .muted,
+    .publication-details,
+    .specimen-data,
+    .collection-stage header p,
+    .collection-stage-number,
+    .collection-total,
+    .collection-empty,
+    .collection-stage-tabs button,
+    .collection-stage-tabs button span,
+    .specimen-tile small,
+    .specimen-tile-routes,
+    .creature-node small,
+    .specimen-identity p,
+    .specimen-identity small,
+    .specimen-relations h4,
+    .specimen-relations p,
+    .atlas-caption,
+    .atlas-results small,
+    .warning,
+    .sample-banner span,
+    .path-summary,
+    label,
+    footer
+  ) {
+  color: var(--night-muted);
+}
+:root[data-theme="dark"] :is(.collection-stage h3, .specimen-code) {
+  color: color-mix(in srgb, var(--stage-color), white 35%);
+}
+:root[data-theme="dark"] .stage-label {
+  filter: brightness(1.5);
+}
+:root[data-theme="dark"] .status.verified {
+  color: #7bd3b5;
+}
+:root[data-theme="dark"]
+  :is(
+    .tag,
+    .count,
+    .family-number,
+    .evolution-avatar,
+    .table-head,
+    .json-modal pre
+  ) {
+  background: #2d3731;
+  color: #bacbc0;
+}
+:root[data-theme="dark"] .draft-tag {
+  background: #493e29;
+  color: #ead29a;
+}
+:root[data-theme="dark"] :is(.atlas-view-switch, .atlas-search) {
+  border-color: #506158;
+}
+:root[data-theme="dark"] .atlas-coordinate {
+  background: #171b1ae8;
+  color: #a2b3a9;
+}
+:root[data-theme="dark"] .atlas-coordinate span {
+  color: #a2b3a9;
+}
+:root[data-theme="dark"] .react-flow {
+  --xy-background-color-default: #171b1a;
+}
+:root[data-theme="dark"] .react-flow__background circle {
+  fill: #3e4b43;
+}
+:root[data-theme="dark"] .react-flow__minimap-mask {
+  fill: #171b1ab3;
+}
+:root[data-theme="dark"] .notice {
+  background: #26372d;
+  color: #b6d7c0;
+}
+:root[data-theme="dark"] .notice.error {
+  background: #412c2c;
+  color: #f0b4ad;
+}
+:root[data-theme="dark"] .notice.transaction {
+  background: #29363e;
+  color: #b0d0e1;
+}
+:root[data-theme="dark"] :is(input:disabled, select:disabled) {
+  background: #242c27;
+  color: #84998b;
+}
+:root[data-theme="dark"] input::placeholder {
+  color: #91a499;
+}
+:root[data-theme="dark"] .modal-backdrop {
+  background: #0009;
+}
+.theme-toggle {
+  flex-shrink: 0;
+}
+@media (max-width: 420px) {
+  .topbar > span {
+    max-width: 98px;
+  }
+}

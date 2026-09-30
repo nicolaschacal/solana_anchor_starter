@@ -1,0 +1,2470 @@
+{
+  "tree": {
+    "schema": 1,
+    "family": {
+      "id": 0,
+      "name": "Mammal"
+    },
+    "version": 3,
+    "development": true,
+    "evolutions": [
+      {
+        "id": 96,
+        "key": "mammal.exe",
+        "name": "mammal.exe",
+        "stage": 0,
+        "family": "Origin",
+        "visualDescription": "Single abstract digital mammal seed; simple blob/orb with eyes",
+        "description": "Universal origin for every mammal Rebyter",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 97,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "carnivore / strength / independence bias",
+              "Diet group": "meat helps",
+              "Time group": "evening/night helps",
+              "Activity group": "medium+ play",
+              "Physical group": "medium weight",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "Early split: intentionally permissive; more than one BYTE may qualify."
+            }
+          },
+          {
+            "target": 98,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed / sociability / resilience bias",
+              "Diet group": "fruit/plant/mixed",
+              "Time group": "any",
+              "Activity group": "play helps",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "Early split: intentionally permissive; more than one BYTE may qualify."
+            }
+          },
+          {
+            "target": 99,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "size / resilience / herbivore bias",
+              "Diet group": "plant/fruit",
+              "Time group": "morning/day",
+              "Activity group": "medium activity",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "Early split: intentionally permissive; more than one BYTE may qualify."
+            }
+          },
+          {
+            "target": 100,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "piscivore / nocturnal / mutation bias",
+              "Diet group": "fish helps",
+              "Time group": "evening/night",
+              "Activity group": "play helps",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "Early split: intentionally permissive; more than one BYTE may qualify."
+            }
+          }
+        ]
+      },
+      {
+        "id": 97,
+        "key": "fangbit",
+        "name": "Fangbit",
+        "stage": 1,
+        "family": "Predatory tendency",
+        "visualDescription": "Abstract blob with small fang and pointed ear nubs",
+        "description": "Early predatory / carnivorous tendency",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 101,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 102,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 103,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 104,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          }
+        ]
+      },
+      {
+        "id": 98,
+        "key": "pawbit",
+        "name": "Pawbit",
+        "stage": 1,
+        "family": "Terrestrial tendency",
+        "visualDescription": "Abstract blob with tiny paws and rounded body",
+        "description": "General terrestrial / agile tendency",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 104,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 105,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 106,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 107,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          }
+        ]
+      },
+      {
+        "id": 99,
+        "key": "hoofbit",
+        "name": "Hoofbit",
+        "stage": 1,
+        "family": "Heavy / ungulate tendency",
+        "visualDescription": "Abstract blob with longer legs and hoof-like feet",
+        "description": "Large-bodied / herbivore / hoof tendency",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 103,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 107,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 108,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 112,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          }
+        ]
+      },
+      {
+        "id": 100,
+        "key": "finbit",
+        "name": "Finbit",
+        "stage": 1,
+        "family": "Aquatic / nocturnal tendency",
+        "visualDescription": "Abstract blob with fin or membrane-like appendages",
+        "description": "Aquatic / aerial / unusual tendency",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 104,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 109,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 110,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          },
+          {
+            "target": 111,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "body-plan genome traits",
+              "Diet group": "dominant food supports route",
+              "Time group": "time history can bias",
+              "Activity group": "play total",
+              "Physical group": "weight band",
+              "Mandatory gate": "none",
+              "Required groups": "2",
+              "Min cycle": "0",
+              "Notes": "KYLO is the first strong body-plan commitment."
+            }
+          }
+        ]
+      },
+      {
+        "id": 101,
+        "key": "caniform",
+        "name": "Caniform",
+        "stage": 2,
+        "family": "Caniform",
+        "visualDescription": "Juvenile long-snouted quadruped",
+        "description": "Canid-like body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 113,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + independence",
+              "Diet group": "meat/fruit mixed",
+              "Time group": "evening/night",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 114,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + sociability",
+              "Diet group": "meat",
+              "Time group": "day/evening",
+              "Activity group": "medium play",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 102,
+        "key": "feliform",
+        "name": "Feliform",
+        "stage": 2,
+        "family": "Feliform",
+        "visualDescription": "Juvenile flexible feline body",
+        "description": "Felid / hyena-like body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 115,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + independence",
+              "Diet group": "meat/fish",
+              "Time group": "any; night bonus",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 116,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + resilience",
+              "Diet group": "meat",
+              "Time group": "evening/night",
+              "Activity group": "medium play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 117,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + mutation + resilience",
+              "Diet group": "meat",
+              "Time group": "evening/night",
+              "Activity group": "high activity",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 103,
+        "key": "ursiform",
+        "name": "Ursiform",
+        "stage": 2,
+        "family": "Ursiform",
+        "visualDescription": "Heavy juvenile with round ears",
+        "description": "Bear-like body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 118,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + resilience",
+              "Diet group": "mixed",
+              "Time group": "day/evening",
+              "Activity group": "medium",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 104,
+        "key": "musteloid",
+        "name": "Musteloid",
+        "stage": 2,
+        "family": "Musteloid",
+        "visualDescription": "Long body, short legs, flexible swimmer/climber",
+        "description": "Otter / wolverine body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 119,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fish",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 120,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + resilience",
+              "Diet group": "meat",
+              "Time group": "any",
+              "Activity group": "high activity",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 105,
+        "key": "rodentiform",
+        "name": "Rodentiform",
+        "stage": 2,
+        "family": "Rodent",
+        "visualDescription": "Incisors, round ears, tail",
+        "description": "Rodent body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 121,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fruit/plant",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "low",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 122,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "resilience + sociability",
+              "Diet group": "plant",
+              "Time group": "day/evening",
+              "Activity group": "medium play",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 106,
+        "key": "lagomorph",
+        "name": "Lagomorph",
+        "stage": 2,
+        "family": "Lagomorph",
+        "visualDescription": "Long ears and strong hind legs",
+        "description": "Rabbit/hare body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 123,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fruit/plant",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "low-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 107,
+        "key": "primatoid",
+        "name": "Primatoid",
+        "stage": 2,
+        "family": "Primate",
+        "visualDescription": "Forward-facing eyes and grasping forelimbs",
+        "description": "Primate body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 124,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fruit",
+              "Time group": "day",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 125,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + sociability",
+              "Diet group": "fruit/plant",
+              "Time group": "day",
+              "Activity group": "medium play",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 108,
+        "key": "ungulate",
+        "name": "Ungulate",
+        "stage": 2,
+        "family": "Ungulate",
+        "visualDescription": "Longer legs and hooved feet",
+        "description": "Horse/deer/goat/boar body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 126,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + resilience",
+              "Diet group": "plant",
+              "Time group": "morning/day",
+              "Activity group": "high activity",
+              "Physical group": "medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 127,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "plant/fruit",
+              "Time group": "evening/night",
+              "Activity group": "medium",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 128,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "resilience + independence",
+              "Diet group": "plant",
+              "Time group": "day",
+              "Activity group": "high activity",
+              "Physical group": "medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 129,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + resilience",
+              "Diet group": "mixed",
+              "Time group": "any",
+              "Activity group": "high activity",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 109,
+        "key": "chiropteran",
+        "name": "Chiropteran",
+        "stage": 2,
+        "family": "Bat",
+        "visualDescription": "Wing membranes become functional",
+        "description": "Bat body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 130,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "nocturnal + speed",
+              "Diet group": "fruit/fish/meat",
+              "Time group": "night",
+              "Activity group": "medium-high play",
+              "Physical group": "low",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 110,
+        "key": "pinniped",
+        "name": "Pinniped",
+        "stage": 2,
+        "family": "Pinniped",
+        "visualDescription": "Flippers, whiskers, barrel torso",
+        "description": "Seal-like body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 131,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "resilience + sociability",
+              "Diet group": "fish",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 111,
+        "key": "cetacean",
+        "name": "Cetacean",
+        "stage": 2,
+        "family": "Cetacean",
+        "visualDescription": "Streamlined body and tail flukes",
+        "description": "Dolphin/whale body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 132,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fish",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          },
+          {
+            "target": 133,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "resilience + rarity + size",
+              "Diet group": "fish",
+              "Time group": "evening/night",
+              "Activity group": "low-medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "size>=high",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 112,
+        "key": "proboscidean",
+        "name": "Proboscidean",
+        "stage": 2,
+        "family": "Proboscidean",
+        "visualDescription": "Heavy body, trunk bud, large ears",
+        "description": "Elephant-like body plan",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 134,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Branch",
+              "Genetics group": "strength + resilience + sociability",
+              "Diet group": "plant/fruit",
+              "Time group": "day",
+              "Activity group": "medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "size>=high",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "MEGA is a valid final form for a life; no GIGA is guaranteed."
+            }
+          }
+        ]
+      },
+      {
+        "id": 113,
+        "key": "fox",
+        "name": "Fox",
+        "stage": 3,
+        "family": "Caniform",
+        "visualDescription": "Fox-inspired monster",
+        "description": "Fast, curious, adaptable",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 135,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "rarity + mutation OR nocturnal",
+              "Diet group": "meat/fruit",
+              "Time group": "night",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 137,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + rarity",
+              "Diet group": "any",
+              "Time group": "night",
+              "Activity group": "medium+",
+              "Physical group": "any",
+              "Mandatory gate": "nightRatio>=40",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 114,
+        "key": "wolf",
+        "name": "Wolf",
+        "stage": 3,
+        "family": "Caniform",
+        "visualDescription": "Wolf-inspired monster",
+        "description": "Pack, strength, bond",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 136,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "strength + resilience",
+              "Diet group": "meat",
+              "Time group": "day/evening",
+              "Activity group": "high activity",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 137,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + sociability",
+              "Diet group": "meat",
+              "Time group": "night",
+              "Activity group": "medium",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "nightRatio>=40",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 115,
+        "key": "cat",
+        "name": "Cat",
+        "stage": 3,
+        "family": "Feliform",
+        "visualDescription": "Cat-inspired monster",
+        "description": "Agility, independence",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 137,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + speed",
+              "Diet group": "meat/fish",
+              "Time group": "night",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 138,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "independence + mutation",
+              "Diet group": "meat/fish",
+              "Time group": "night",
+              "Activity group": "high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 116,
+        "key": "lynx",
+        "name": "Lynx",
+        "stage": 3,
+        "family": "Feliform",
+        "visualDescription": "Tuft-eared feline monster",
+        "description": "Stealth, cold, speed",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 138,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + resilience + mutation",
+              "Diet group": "meat",
+              "Time group": "evening/night",
+              "Activity group": "medium",
+              "Physical group": "light-medium",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 117,
+        "key": "hyena",
+        "name": "Hyena",
+        "stage": 3,
+        "family": "Feliform",
+        "visualDescription": "Hyena-inspired monster",
+        "description": "Endurance, mutation, aggression",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 138,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "mutation + resilience",
+              "Diet group": "meat",
+              "Time group": "night",
+              "Activity group": "high activity",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "mutation>=high",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 118,
+        "key": "bear",
+        "name": "Bear",
+        "stage": 3,
+        "family": "Ursiform",
+        "visualDescription": "Bear-inspired monster",
+        "description": "Weight, resilience, mixed diet",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 139,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "strength + resilience",
+              "Diet group": "mixed",
+              "Time group": "any",
+              "Activity group": "medium",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 144,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience",
+              "Diet group": "mixed",
+              "Time group": "day/evening",
+              "Activity group": "high activity",
+              "Physical group": "very heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 119,
+        "key": "otter",
+        "name": "Otter",
+        "stage": 3,
+        "family": "Musteloid",
+        "visualDescription": "Otter-inspired monster",
+        "description": "Fish, play, aquatic",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 140,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "speed + sociability",
+              "Diet group": "fish",
+              "Time group": "day/evening",
+              "Activity group": "very high play",
+              "Physical group": "light-medium",
+              "Mandatory gate": "play>=high",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 120,
+        "key": "wolverine",
+        "name": "Wolverine",
+        "stage": 3,
+        "family": "Musteloid",
+        "visualDescription": "Wolverine-inspired monster",
+        "description": "Aggression, resilience",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 121,
+        "key": "mouse",
+        "name": "Mouse",
+        "stage": 3,
+        "family": "Rodent",
+        "visualDescription": "Mouse-inspired monster",
+        "description": "Light, active, social",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 141,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + mutation",
+              "Diet group": "fruit/plant",
+              "Time group": "day/evening",
+              "Activity group": "very high play",
+              "Physical group": "low",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 122,
+        "key": "beaver",
+        "name": "Beaver",
+        "stage": 3,
+        "family": "Rodent",
+        "visualDescription": "Beaver-inspired monster",
+        "description": "Plant, weight, industrious",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 141,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "resilience + mutation",
+              "Diet group": "plant",
+              "Time group": "day/evening",
+              "Activity group": "high play",
+              "Physical group": "medium",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 123,
+        "key": "rabbit",
+        "name": "Rabbit",
+        "stage": 3,
+        "family": "Lagomorph",
+        "visualDescription": "Rabbit-inspired monster",
+        "description": "Fruit/plant, speed, light",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 124,
+        "key": "monkey",
+        "name": "Monkey",
+        "stage": 3,
+        "family": "Primate",
+        "visualDescription": "Monkey-inspired monster",
+        "description": "Social, fruit, play",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 142,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "sociability + strength",
+              "Diet group": "fruit",
+              "Time group": "day",
+              "Activity group": "very high play",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 125,
+        "key": "ape",
+        "name": "Ape",
+        "stage": 3,
+        "family": "Primate",
+        "visualDescription": "Ape-inspired monster",
+        "description": "Strength, weight, social",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 142,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience",
+              "Diet group": "fruit/plant",
+              "Time group": "day",
+              "Activity group": "medium-high",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 126,
+        "key": "horse",
+        "name": "Horse",
+        "stage": 3,
+        "family": "Ungulate",
+        "visualDescription": "Horse-inspired monster",
+        "description": "Speed, daytime activity",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 143,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + rarity",
+              "Diet group": "plant",
+              "Time group": "morning/day",
+              "Activity group": "very high activity",
+              "Physical group": "medium-low",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 127,
+        "key": "deer",
+        "name": "Deer",
+        "stage": 3,
+        "family": "Ungulate",
+        "visualDescription": "Deer-inspired monster",
+        "description": "Calm, plant, evening/night",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 143,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + sociability + rarity",
+              "Diet group": "plant/fruit",
+              "Time group": "morning/evening",
+              "Activity group": "high activity",
+              "Physical group": "light-medium",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 137,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + rarity",
+              "Diet group": "plant/fruit",
+              "Time group": "night",
+              "Activity group": "medium",
+              "Physical group": "light-medium",
+              "Mandatory gate": "nightRatio>=40",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 128,
+        "key": "goat",
+        "name": "Goat",
+        "stage": 3,
+        "family": "Ungulate",
+        "visualDescription": "Goat-inspired monster",
+        "description": "Climber, plant, resilience",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 143,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + resilience + rarity",
+              "Diet group": "plant",
+              "Time group": "day",
+              "Activity group": "high activity",
+              "Physical group": "medium",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 144,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience",
+              "Diet group": "plant",
+              "Time group": "day",
+              "Activity group": "high activity",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 129,
+        "key": "boar",
+        "name": "Boar",
+        "stage": 3,
+        "family": "Ungulate",
+        "visualDescription": "Boar-inspired monster",
+        "description": "Weight, aggression, omnivory",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 144,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience",
+              "Diet group": "mixed/meat",
+              "Time group": "day/evening",
+              "Activity group": "high activity",
+              "Physical group": "heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 130,
+        "key": "bat",
+        "name": "Bat",
+        "stage": 3,
+        "family": "Bat",
+        "visualDescription": "Bat-inspired monster",
+        "description": "Night, speed, mutation",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 145,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "mutation + nocturnal",
+              "Diet group": "meat",
+              "Time group": "night",
+              "Activity group": "high activity",
+              "Physical group": "low-medium",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 137,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + rarity",
+              "Diet group": "any",
+              "Time group": "night",
+              "Activity group": "medium",
+              "Physical group": "any",
+              "Mandatory gate": "nightRatio>=40",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 138,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "mutation + speed",
+              "Diet group": "any",
+              "Time group": "night",
+              "Activity group": "high activity",
+              "Physical group": "low",
+              "Mandatory gate": "mutation>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 131,
+        "key": "seal",
+        "name": "Seal",
+        "stage": 3,
+        "family": "Pinniped",
+        "visualDescription": "Seal-inspired monster",
+        "description": "Fish, play, heavy aquatic",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 146,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "resilience + rarity",
+              "Diet group": "fish",
+              "Time group": "evening/night",
+              "Activity group": "high play",
+              "Physical group": "heavy",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 132,
+        "key": "dolphin",
+        "name": "Dolphin",
+        "stage": 3,
+        "family": "Cetacean",
+        "visualDescription": "Dolphin-inspired monster",
+        "description": "Fish, play, social",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 146,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + sociability + rarity",
+              "Diet group": "fish",
+              "Time group": "evening/night",
+              "Activity group": "very high play",
+              "Physical group": "medium",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 133,
+        "key": "whale",
+        "name": "Whale",
+        "stage": 3,
+        "family": "Cetacean",
+        "visualDescription": "Whale-inspired monster",
+        "description": "Mass, age, aquatic",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 146,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "resilience + rarity + size",
+              "Diet group": "fish",
+              "Time group": "night",
+              "Activity group": "low-medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 134,
+        "key": "elephant",
+        "name": "Elephant",
+        "stage": 3,
+        "family": "Proboscidean",
+        "visualDescription": "Elephant-inspired monster",
+        "description": "Mass, plant, age, social",
+        "rarity": "common",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 147,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Specialization",
+              "Genetics group": "resilience + rarity",
+              "Diet group": "plant",
+              "Time group": "evening/night",
+              "Activity group": "medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=mid",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          },
+          {
+            "target": 144,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience",
+              "Diet group": "plant/mixed",
+              "Time group": "day",
+              "Activity group": "high activity",
+              "Physical group": "very heavy",
+              "Mandatory gate": "none",
+              "Required groups": "3",
+              "Min cycle": "0",
+              "Notes": "GIGA is optional. If no outgoing edge qualifies, the MEGA can be the final form of this life."
+            }
+          }
+        ]
+      },
+      {
+        "id": 135,
+        "key": "spirit_fox",
+        "name": "Spirit Fox",
+        "stage": 4,
+        "family": "Caniform",
+        "visualDescription": "Fox with luminous code tails",
+        "description": "Exclusive fox specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 148,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Ascension",
+              "Genetics group": "rarity + mutation",
+              "Diet group": "meat/fruit",
+              "Time group": "night",
+              "Activity group": "high play",
+              "Physical group": "any",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 136,
+        "key": "dire_wolf",
+        "name": "Dire Wolf",
+        "stage": 4,
+        "family": "Caniform",
+        "visualDescription": "Massive armored wolf",
+        "description": "Exclusive wolf specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 149,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Ascension",
+              "Genetics group": "strength + resilience + rarity",
+              "Diet group": "meat",
+              "Time group": "any",
+              "Activity group": "high activity",
+              "Physical group": "heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 137,
+        "key": "moon_beast",
+        "name": "Moon Beast",
+        "stage": 4,
+        "family": "Shared",
+        "visualDescription": "Lunar mammal chimera",
+        "description": "Shared nocturnal convergence from several MEGA lines",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 149,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + nocturnal + rarity",
+              "Diet group": "meat",
+              "Time group": "night",
+              "Activity group": "medium-high",
+              "Physical group": "medium-heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          },
+          {
+            "target": 150,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "nocturnal + sociability + rarity",
+              "Diet group": "any",
+              "Time group": "night",
+              "Activity group": "medium",
+              "Physical group": "any",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          },
+          {
+            "target": 153,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "mutation + nocturnal + rarity",
+              "Diet group": "any",
+              "Time group": "night",
+              "Activity group": "medium-high",
+              "Physical group": "any",
+              "Mandatory gate": "mutation>=high AND rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 138,
+        "key": "shadow_beast",
+        "name": "Shadow Beast",
+        "stage": 4,
+        "family": "Shared",
+        "visualDescription": "Dark glitch predator",
+        "description": "Shared stealth/mutation convergence",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 153,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Ascension",
+              "Genetics group": "mutation + nocturnal + rarity",
+              "Diet group": "meat/fish",
+              "Time group": "night",
+              "Activity group": "high activity",
+              "Physical group": "any",
+              "Mandatory gate": "mutation>=high AND rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 139,
+        "key": "iron_bear",
+        "name": "Iron Bear",
+        "stage": 4,
+        "family": "Ursiform",
+        "visualDescription": "Bear with metallic armor plates",
+        "description": "Heavy resilience specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 151,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience + rarity",
+              "Diet group": "mixed",
+              "Time group": "any",
+              "Activity group": "high activity",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 140,
+        "key": "river_trickster",
+        "name": "River Trickster",
+        "stage": 4,
+        "family": "Musteloid",
+        "visualDescription": "Water trickster with otter traits",
+        "description": "Fish + play specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 152,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + sociability + rarity",
+              "Diet group": "fish",
+              "Time group": "night",
+              "Activity group": "very high play",
+              "Physical group": "medium",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 141,
+        "key": "volt_rodent",
+        "name": "Volt Rodent",
+        "stage": 4,
+        "family": "Rodent",
+        "visualDescription": "Charged rodent monster",
+        "description": "Shared Mouse/Beaver high-activity specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 142,
+        "key": "titan_ape",
+        "name": "Titan Ape",
+        "stage": 4,
+        "family": "Primate",
+        "visualDescription": "Huge ancient primate",
+        "description": "Shared Monkey/Ape strength specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 151,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience + rarity",
+              "Diet group": "fruit/plant",
+              "Time group": "day",
+              "Activity group": "high activity",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 143,
+        "key": "sky_courser",
+        "name": "Sky Courser",
+        "stage": 4,
+        "family": "Ungulate",
+        "visualDescription": "Celestial hoofed runner",
+        "description": "Shared Horse/Deer/Goat speed specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 150,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "speed + rarity",
+              "Diet group": "plant",
+              "Time group": "evening/night",
+              "Activity group": "high activity",
+              "Physical group": "medium",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 144,
+        "key": "war_beast",
+        "name": "War Beast",
+        "stage": 4,
+        "family": "Shared",
+        "visualDescription": "Armored horned/tusked terrestrial brute",
+        "description": "Shared Bear/Goat/Boar power convergence",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 151,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "strength + resilience + rarity",
+              "Diet group": "mixed",
+              "Time group": "day/evening",
+              "Activity group": "high activity",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 145,
+        "key": "bloodwing",
+        "name": "Bloodwing",
+        "stage": 4,
+        "family": "Bat",
+        "visualDescription": "Large crimson bat predator",
+        "description": "Bat mutation specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 153,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "mutation + nocturnal + rarity",
+              "Diet group": "meat",
+              "Time group": "night",
+              "Activity group": "high activity",
+              "Physical group": "low-medium",
+              "Mandatory gate": "mutation>=high AND rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 146,
+        "key": "abyssal",
+        "name": "Abyssal",
+        "stage": 4,
+        "family": "Shared",
+        "visualDescription": "Deep-sea mammalian monster",
+        "description": "Shared Seal/Dolphin/Whale aquatic convergence",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 152,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Ascension",
+              "Genetics group": "resilience + rarity",
+              "Diet group": "fish",
+              "Time group": "night",
+              "Activity group": "medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 147,
+        "key": "mammoth",
+        "name": "Mammoth",
+        "stage": 4,
+        "family": "Proboscidean",
+        "visualDescription": "Woolly ancient elephant monster",
+        "description": "Elephant age/weight specialization",
+        "rarity": "rare",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": [
+          {
+            "target": 151,
+            "requiredGroupCount": 0,
+            "priority": 0,
+            "requirements": [],
+            "designRule": {
+              "Route Type": "Convergence",
+              "Genetics group": "resilience + rarity",
+              "Diet group": "plant",
+              "Time group": "any",
+              "Activity group": "medium",
+              "Physical group": "very heavy",
+              "Mandatory gate": "rarity>=high",
+              "Required groups": "3",
+              "Min cycle": "1",
+              "Notes": "TERA is exceptional. Most routes require at least one completed life (cycle >= 1)."
+            }
+          }
+        ]
+      },
+      {
+        "id": 148,
+        "key": "kitsune",
+        "name": "Kitsune",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "Mythic multi-tail fox code-spirit",
+        "description": "Rare fox ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 149,
+        "key": "fenrir",
+        "name": "Fenrir",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "World-wolf with rune/code chains",
+        "description": "Wolf / lunar predator ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 150,
+        "key": "lunaris",
+        "name": "Lunaris",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "White lunar guardian mammal",
+        "description": "Lunar convergence ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 151,
+        "key": "behemoth",
+        "name": "Behemoth",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "Colossal terrestrial titan",
+        "description": "Heavy terrestrial convergence ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 152,
+        "key": "leviathan",
+        "name": "Leviathan",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "Gigantic abyssal marine mammal",
+        "description": "Aquatic convergence ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      },
+      {
+        "id": 153,
+        "key": "eclipse_beast",
+        "name": "Eclipse Beast",
+        "stage": 5,
+        "family": "Ascension",
+        "visualDescription": "Black-silver eclipse predator",
+        "description": "Mutation / shadow convergence ascension",
+        "rarity": "ultra",
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "assets": {},
+        "paths": []
+      }
+    ]
+  },
+  "baseVersion": 2,
+  "replaceCollection": true,
+  "publication": {
+    "uri": "https://gateway.irys.xyz/Ezq4kowCxAFH8S4eCgwn4EcCHNYsTDVHEQpcUCPmMWQf",
+    "contentHash": "c07a31b03c48f433970d7ecaa16bc41ad459163a3a41e077794b0d132d2c62ba",
+    "merkleRoot": "6b8c8339e1c817bf03814c56e79513b85008d1ba553dc9388bd786e65b22fb9a"
+  },
+  "activationSubmitted": true
+}

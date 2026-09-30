@@ -1,0 +1,9 @@
+{
+  "status": "LOCAL SAMPLE ONLY: IDs are illustrative until reserved on-chain",
+  "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
+  "registryPda": "EUyxmiAzboxWddes71PfDGAvr6Yd7tMXWzkQXYFirqNX",
+  "mammalV1Pda": "8QUeQeP7RwkzhmqjfY5G6yQXLSdXAQKXG5xmCkecviXu",
+  "merkleRoot": "22afce667738c02b48315ced259af9834c0a8e6ec317e538ddbe1666b7482a5a",
+  "contentHash": "31287e4595e69311856aa823e904488d2dabd18cb4c7d48283a6a9e90b45f15c",
+  "irysUri": null
+}

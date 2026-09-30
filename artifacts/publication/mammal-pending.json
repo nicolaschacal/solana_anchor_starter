@@ -1,0 +1,225 @@
+{
+  "tree": {
+    "schema": 1,
+    "family": {
+      "id": 0,
+      "name": "Mammal"
+    },
+    "version": 1,
+    "development": true,
+    "evolutions": [
+      {
+        "id": 1,
+        "name": "Kitten",
+        "stage": 0,
+        "enabled": true,
+        "initialWeight": 10,
+        "modelUri": "",
+        "paths": [
+          {
+            "target": 2,
+            "requiredGroupCount": 1,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 5,
+                "metric": 1,
+                "operator": 3,
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Cat",
+        "stage": 1,
+        "enabled": true,
+        "initialWeight": 30,
+        "modelUri": "",
+        "paths": [
+          {
+            "target": 3,
+            "requiredGroupCount": 3,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 9,
+                "operator": 3,
+                "value": 60
+              },
+              {
+                "group": 0,
+                "metric": 8,
+                "operator": 3,
+                "value": 50
+              },
+              {
+                "group": 1,
+                "metric": 0,
+                "operator": 3,
+                "value": 30
+              },
+              {
+                "group": 2,
+                "metric": 1,
+                "operator": 3,
+                "value": 10
+              },
+              {
+                "group": 4,
+                "metric": 0,
+                "operator": 3,
+                "value": 50
+              }
+            ]
+          },
+          {
+            "target": 4,
+            "requiredGroupCount": 2,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 4,
+                "operator": 3,
+                "value": 65
+              },
+              {
+                "group": 0,
+                "metric": 9,
+                "operator": 3,
+                "value": 55
+              },
+              {
+                "group": 1,
+                "metric": 0,
+                "operator": 3,
+                "value": 35
+              },
+              {
+                "group": 3,
+                "metric": 0,
+                "operator": 3,
+                "value": 20
+              }
+            ]
+          },
+          {
+            "target": 5,
+            "requiredGroupCount": 3,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 3,
+                "operator": 3,
+                "value": 60
+              },
+              {
+                "group": 0,
+                "metric": 10,
+                "operator": 3,
+                "value": 70
+              },
+              {
+                "group": 1,
+                "metric": 0,
+                "operator": 3,
+                "value": 20
+              },
+              {
+                "group": 1,
+                "metric": 1,
+                "operator": 3,
+                "value": 10
+              },
+              {
+                "group": 2,
+                "metric": 3,
+                "operator": 3,
+                "value": 15
+              }
+            ]
+          },
+          {
+            "target": 6,
+            "requiredGroupCount": 3,
+            "priority": 0,
+            "requirements": [
+              {
+                "group": 0,
+                "metric": 12,
+                "operator": 3,
+                "value": 80
+              },
+              {
+                "group": 0,
+                "metric": 13,
+                "operator": 3,
+                "value": 90
+              },
+              {
+                "group": 5,
+                "metric": 0,
+                "operator": 3,
+                "value": 3
+              },
+              {
+                "group": 4,
+                "metric": 0,
+                "operator": 3,
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Lion",
+        "stage": 2,
+        "enabled": true,
+        "initialWeight": 80,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 4,
+        "name": "Tiger",
+        "stage": 2,
+        "enabled": true,
+        "initialWeight": 90,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 5,
+        "name": "Leopard",
+        "stage": 2,
+        "enabled": true,
+        "initialWeight": 100,
+        "modelUri": "",
+        "paths": []
+      },
+      {
+        "id": 6,
+        "name": "Sabertooth",
+        "stage": 3,
+        "enabled": true,
+        "initialWeight": 110,
+        "modelUri": "",
+        "paths": []
+      }
+    ]
+  },
+  "baseVersion": 0,
+  "publication": {
+    "uri": "https://gateway.irys.xyz/CU7kV1W1iJs8wxFCEFXF1oFZ1g6sUDALNmhWTxsujQFp",
+    "contentHash": "31287e4595e69311856aa823e904488d2dabd18cb4c7d48283a6a9e90b45f15c",
+    "merkleRoot": "22afce667738c02b48315ced259af9834c0a8e6ec317e538ddbe1666b7482a5a"
+  },
+  "activationSubmitted": true
+}

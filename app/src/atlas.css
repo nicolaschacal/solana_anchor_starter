@@ -1,0 +1,883 @@
+:root {
+  color: #283638;
+  background: #f4f6f5;
+}
+.atlas-view-switch {
+  display: flex;
+  border: 1px solid #d6dddc;
+  border-radius: 5px;
+  padding: 2px;
+  gap: 2px;
+}
+.atlas-view-switch button {
+  width: 32px;
+  min-height: 31px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #899a96;
+}
+.atlas-view-switch button[aria-pressed="true"] {
+  color: #226d60;
+  background: #e2ede7;
+}
+.collection-stage-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: #f4f6f5;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 0 16px;
+  border-bottom: 1px solid #d5dfda;
+}
+.collection-stage-tabs button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #738780;
+  padding: 7px 12px;
+  min-height: 34px;
+  font-size: 11px;
+}
+.collection-stage-tabs button[aria-pressed="true"] {
+  background: #fff;
+  border-color: #becfc5;
+  color: #2e4941;
+}
+.collection-stage-tabs button span {
+  font:
+    10px "IBM Plex Mono",
+    monospace;
+  color: #98a59f;
+}
+.collection-stage-tabs i {
+  width: 5px;
+  height: 5px;
+  background: var(--stage-color);
+  border-radius: 1px;
+}
+.collection-stage {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  padding: 12px 0;
+  border-bottom: 1px solid #dce4df;
+  gap: 20px;
+}
+.collection-stage header {
+  border-left: 2px solid var(--stage-color);
+  padding-left: 12px;
+  align-self: stretch;
+}
+.collection-stage-number {
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #96a59d;
+}
+.collection-stage h3 {
+  color: var(--stage-color);
+  margin: 4px 0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.collection-stage h3 span {
+  font:
+    10px "IBM Plex Mono",
+    monospace;
+  opacity: 0.55;
+}
+.collection-stage header p {
+  font-size: 10px;
+  color: #8b9b92;
+  margin: 5px 0 0;
+}
+.collection-specimens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+  align-content: start;
+  gap: 7px;
+}
+.specimen-tile {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  border-radius: 4px;
+  padding: 2px 8px 12px 3px;
+  gap: 3px;
+  justify-content: flex-start;
+  text-align: left;
+  border-color: #dce5e0;
+  background: #ffffffb3;
+}
+.specimen-tile:hover,
+.specimen-tile:focus-visible {
+  background: #fff;
+  border-color: var(--stage-color);
+  box-shadow: 0 2px 7px #2e51430b;
+}
+.specimen-tile .creature-sprite {
+  flex-basis: 40px;
+  width: 40px;
+  height: 40px;
+}
+.specimen-tile-text {
+  min-width: 0;
+}
+.specimen-tile strong {
+  display: block;
+  font-size: 11px;
+  line-height: 14px;
+  overflow-wrap: anywhere;
+}
+.specimen-tile small {
+  display: block;
+  font-size: 8px;
+  font-weight: 400;
+  color: #8a9a91;
+  margin-top: 3px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.specimen-tile-routes {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #93a399;
+  font:
+    8px "IBM Plex Mono",
+    monospace;
+}
+.specimen-tile-routes svg:nth-of-type(2) {
+  margin-left: 4px;
+}
+.collection-total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 15px 0;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #8b9b91;
+}
+.collection-total span:last-child {
+  margin-left: auto;
+}
+.collection-empty {
+  color: #87998e;
+  font-size: 12px;
+  padding: 12px 0;
+}
+@media (max-width: 1050px) {
+  .collection-stage {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+@media (max-width: 600px) {
+  main:has(.collection-overview) .back,
+  main:has(.collection-overview) .title-suffix,
+  .evolution-lab:has(.collection-overview) .atlas-heading {
+    display: none;
+  }
+  main:has(.collection-overview) .page-heading h1 {
+    font-size: 26px;
+  }
+  .evolution-lab:has(.collection-overview) .lab-toolbar {
+    padding: 12px 0;
+  }
+  .collection-stage {
+    display: block;
+    padding: 14px 0;
+  }
+  .collection-stage header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .collection-stage header p {
+    margin: 0 0 0 auto;
+  }
+  .collection-stage-tabs {
+    gap: 3px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .collection-stage-tabs button {
+    padding: 7px 4px;
+    gap: 5px;
+    font-size: 10px;
+  }
+  .collection-specimens {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .specimen-tile {
+    height: 67px;
+  }
+  .specimen-tile strong {
+    font-size: 12px;
+  }
+  .collection-total {
+    gap: 10px;
+    font-size: 8px;
+  }
+  .collection-total span:last-child {
+    margin-left: 0;
+    width: 100%;
+  }
+  .atlas-actions {
+    flex-wrap: wrap;
+  }
+  .atlas-actions .atlas-search {
+    order: -1;
+    flex-basis: 100%;
+  }
+}
+button {
+  color: #344548;
+  border-color: #d6dddc;
+}
+button:hover {
+  background: #edf3f2;
+}
+button.primary,
+.wallet-adapter-button {
+  background: #263b3d !important;
+  border-color: #263b3d;
+}
+.shell {
+  display: block;
+}
+.sidebar {
+  position: relative;
+  width: 100%;
+  min-height: 76px;
+  padding: 16px 32px;
+  flex-direction: row;
+  align-items: center;
+  gap: 50px;
+  background: #202c2e;
+}
+.brand {
+  font-size: 20px;
+}
+.brand svg {
+  color: #e8a28f;
+}
+.brand small {
+  color: #9fb5b4;
+  font-size: 9px;
+}
+.sidebar nav {
+  display: flex;
+  margin: 0;
+  gap: 12px;
+}
+.sidebar nav a {
+  color: #a6b8b9;
+  padding: 12px 16px;
+}
+.sidebar nav a.active {
+  background: #344547;
+  color: #f0f6f5;
+}
+.sidebar-bottom {
+  margin: 0 0 0 auto;
+  border: 0;
+  padding: 0;
+  color: #d0ddda;
+}
+.sidebar-bottom small,
+.sidebar-bottom a {
+  display: none;
+}
+.network-dot {
+  background: #7bd2b6;
+}
+.workspace {
+  width: 100%;
+  margin: 0;
+}
+.topbar {
+  height: 54px;
+  padding: 0 32px;
+  background: #fff;
+  color: #7a8788;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+}
+.top-actions {
+  gap: 10px;
+}
+main {
+  max-width: 1800px;
+  padding: 26px 32px 44px;
+}
+.back {
+  font-size: 11px;
+  margin-bottom: 15px;
+  color: #798987;
+}
+.page-heading {
+  margin-bottom: 14px;
+}
+.page-heading h1 {
+  font-size: 34px;
+  font-weight: 600;
+}
+.title-suffix {
+  font-size: 20px;
+  font-weight: 400;
+  color: #85918f;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: #7c8c89;
+}
+.family-status {
+  margin-bottom: 12px;
+}
+.status.verified {
+  color: #138b75;
+}
+.heading-actions {
+  flex-wrap: wrap;
+}
+.graph-mode-switch {
+  font-size: 11px;
+}
+.publication-details {
+  margin-bottom: 18px;
+  font-size: 11px;
+  color: #7c8986;
+}
+summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.chain-details {
+  margin: 0;
+}
+.sample-banner {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid #dda17b;
+  border-radius: 0;
+  padding: 4px 12px;
+  margin: 12px 0;
+}
+.sample-banner strong {
+  font-size: 11px;
+}
+.sample-banner span {
+  font-size: 10px;
+}
+.section-heading:has(+ .evolution-lab) {
+  display: none;
+}
+.evolution-lab {
+  position: relative;
+  border-top: 1px solid #d9e1df;
+}
+.lab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 19px 0;
+}
+.atlas-heading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.lab-cross {
+  color: #dc816a;
+  font-size: 35px;
+  font-weight: 400;
+}
+.atlas-heading h2 {
+  font-size: 21px;
+  margin-top: 5px;
+}
+.atlas-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.atlas-actions > button.active {
+  background: #e5eeeb;
+  border-color: #bdcfc7;
+}
+.atlas-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #b9c8c4;
+  height: 37px;
+  width: 230px;
+  color: #83928c;
+}
+.atlas-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+  outline-offset: 1px;
+  font-size: 12px;
+}
+.atlas-search button {
+  border: 0;
+  background: transparent;
+  min-width: 25px;
+  width: 25px;
+}
+.atlas-results {
+  position: absolute;
+  right: 0;
+  top: 77px;
+  width: min(480px, 100%);
+  max-height: 365px;
+  overflow: auto;
+  background: #fff;
+  box-shadow: 0 9px 30px #253f3921;
+  z-index: 20;
+  padding: 10px;
+  border: 1px solid #dae4df;
+}
+.atlas-results button {
+  width: 100%;
+  border: 0;
+  justify-content: flex-start;
+  font-size: 13px;
+  text-align: left;
+}
+.atlas-results button > svg:last-child {
+  margin-left: auto;
+}
+.atlas-results small {
+  display: block;
+  font-size: 9px;
+  color: #83918a;
+  margin-top: 4px;
+}
+.atlas-results p {
+  padding: 15px;
+}
+.atlas-canvas {
+  position: relative;
+  height: 780px;
+  background: #fbfcfb;
+  border-block: 1px solid #d6dfdb;
+}
+.atlas-canvas.is-focused {
+  height: 480px;
+}
+.creature-node {
+  width: 210px;
+  height: 74px;
+  background: #fff;
+  border: 1px solid #dce4e0;
+  border-left: 3px solid var(--stage-color);
+  border-radius: 4px;
+  padding: 6px 9px 6px 5px;
+  gap: 5px;
+  justify-content: flex-start;
+  text-align: left;
+  box-shadow: 0 2px 4px #20342b06;
+}
+.creature-node:hover,
+.creature-node.is-selected {
+  border-color: var(--stage-color);
+  background: #f3f7f4;
+  box-shadow: 0 0 0 2px #1b484011;
+}
+.creature-node.is-selected {
+  background: #e3efeb;
+}
+.creature-node.is-compact {
+  height: 46px;
+  padding-block: 0;
+  gap: 8px;
+}
+.creature-node.is-compact .creature-sprite {
+  width: 45px;
+  height: 45px;
+  flex-basis: 45px;
+}
+.creature-node.is-compact small,
+.creature-node.is-compact .specimen-code {
+  display: none;
+}
+.creature-node.is-compact strong {
+  font-size: 16px;
+}
+.creature-node > span {
+  display: block;
+  min-width: 0;
+}
+.creature-node small {
+  display: block;
+  font-size: 9px;
+  color: #86948d;
+  max-width: 135px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.creature-node strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 24px;
+}
+.specimen-code {
+  display: block;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: var(--stage-color);
+}
+.creature-sprite {
+  display: block;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  object-fit: contain;
+}
+.react-flow__handle {
+  background: #a3bab0;
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
+  min-height: 5px;
+  border: 1px solid #fff;
+}
+.stage-label {
+  width: 210px;
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  border-top: 2px solid currentColor;
+  padding-top: 12px;
+}
+.stage-label > span {
+  font:
+    10px "IBM Plex Mono",
+    monospace;
+  opacity: 0.6;
+}
+.stage-label strong {
+  font-size: 17px;
+}
+.stage-label small {
+  margin-left: auto;
+  font-size: 10px;
+  color: #84928b;
+}
+.atlas-viewport-tools {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid #dbe3df;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 2px 8px #273e3510;
+}
+.atlas-viewport-tools button {
+  border: 0;
+}
+.atlas-viewport-tools span {
+  width: 44px;
+  font:
+    11px "IBM Plex Mono",
+    monospace;
+  text-align: center;
+}
+.atlas-coordinate {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+  color: #a0aca4;
+  pointer-events: none;
+  background: #fbfcfbe8;
+  padding: 5px;
+}
+.atlas-coordinate span {
+  display: block;
+  margin-top: 6px;
+  color: #6e8379;
+}
+.react-flow__minimap {
+  width: 150px;
+  height: 100px;
+  border: 1px solid #dce5df;
+  box-shadow: none;
+}
+.react-flow__minimap svg {
+  width: 150px;
+  height: 100px;
+}
+.atlas-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 0;
+  color: #84958b;
+  font:
+    9px "IBM Plex Mono",
+    monospace;
+}
+.atlas-caption > div {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.atlas-caption span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.atlas-caption i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+.specimen-panel {
+  padding: 26px 0;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 40px;
+  border-top: 1px solid #dbe3df;
+}
+.specimen-identity {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.specimen-identity > .creature-sprite {
+  width: 110px;
+  height: 110px;
+  flex-basis: 110px;
+}
+.specimen-identity h3 {
+  font-size: 24px;
+  margin: 8px 0;
+}
+.specimen-identity p {
+  font-size: 13px;
+  color: #61716c;
+}
+.specimen-identity small {
+  color: #91a097;
+  line-height: 1.6;
+}
+.specimen-relations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.specimen-relations h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  margin: 0 0 12px;
+  color: #7f9589;
+}
+.specimen-relations h4 span {
+  margin-left: auto;
+  font-weight: 400;
+}
+.specimen-relations button {
+  justify-content: flex-start;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #dce5df;
+  border-radius: 0;
+  background: transparent;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.specimen-relations button:hover {
+  background: #e9f0ed;
+}
+.specimen-relations .creature-sprite,
+.atlas-results .creature-sprite {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+}
+.specimen-relations p {
+  color: #8a9b90;
+  font-size: 12px;
+}
+.specimen-data {
+  border-top: 1px solid #dbe3df;
+  margin-top: 15px;
+  color: #748779;
+}
+.specimen-data summary {
+  font-size: 12px;
+  padding: 17px 0;
+}
+.specimen-data .evolution-editor {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.warning {
+  font-size: 10px;
+  color: #929b94;
+}
+.versions {
+  border-top: 1px solid #dde4df;
+  padding-top: 22px;
+}
+.versions h2 {
+  font-size: 14px;
+}
+.family-card {
+  border-radius: 6px;
+}
+footer {
+  max-width: 1800px;
+  padding: 20px 32px;
+  color: #8a9890;
+  font-size: 10px;
+}
+@media (max-width: 800px) {
+  .sidebar {
+    gap: 20px;
+    padding: 15px 18px;
+    min-height: 70px;
+  }
+  .sidebar nav {
+    margin-left: auto;
+    gap: 5px;
+  }
+  .sidebar nav a {
+    font-size: 0;
+    padding: 10px;
+    gap: 0;
+  }
+  .sidebar-bottom {
+    display: none;
+  }
+  .topbar {
+    padding: 0 18px;
+  }
+  .topbar > span {
+    max-width: 135px;
+    line-height: 1.5;
+    font-size: 8px;
+  }
+  main {
+    padding: 20px 18px 30px;
+  }
+  .title-suffix {
+    display: block;
+    font-size: 17px;
+    margin-top: 8px;
+  }
+  .page-heading h1 {
+    font-size: 30px;
+  }
+  .heading-actions {
+    gap: 7px;
+  }
+  .heading-actions button,
+  .graph-mode-switch {
+    font-size: 10px;
+  }
+  .lab-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .atlas-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .atlas-search {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+  .atlas-actions > button {
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+  .atlas-canvas {
+    height: 650px;
+  }
+  .atlas-canvas.is-focused {
+    height: 420px;
+  }
+  .atlas-caption > div {
+    gap: 12px;
+  }
+  .atlas-caption > span {
+    display: none;
+  }
+  .atlas-coordinate {
+    left: 8px;
+    top: 12px;
+  }
+  .atlas-viewport-tools {
+    left: 8px;
+    bottom: 12px;
+  }
+  .atlas-viewport-tools .icon {
+    width: 30px;
+    min-width: 30px;
+  }
+  .react-flow__minimap,
+  .react-flow__minimap svg {
+    width: 90px;
+    height: 70px;
+  }
+  .specimen-panel {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .specimen-identity > .creature-sprite {
+    width: 80px;
+    height: 80px;
+    flex-basis: 80px;
+  }
+  .specimen-identity {
+    gap: 12px;
+  }
+  .specimen-relations {
+    gap: 18px;
+  }
+  .specimen-relations h4 {
+    gap: 5px;
+    font-size: 10px;
+  }
+  .atlas-results {
+    top: 126px;
+  }
+}

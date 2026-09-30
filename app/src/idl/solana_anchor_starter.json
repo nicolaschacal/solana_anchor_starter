@@ -1,0 +1,552 @@
+{
+  "address": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
+  "metadata": {
+    "name": "solana_anchor_starter",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "activate_tree",
+      "discriminator": [
+        178,
+        137,
+        253,
+        31,
+        158,
+        231,
+        129,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "close_tree",
+      "discriminator": [
+        9,
+        124,
+        164,
+        131,
+        238,
+        218,
+        148,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "version",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_tree",
+      "discriminator": [
+        165,
+        83,
+        136,
+        142,
+        89,
+        202,
+        47,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "version",
+          "type": "u32"
+        },
+        {
+          "name": "merkle_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "content_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "initialize_registry",
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "reserve_evolution_ids",
+      "discriminator": [
+        193,
+        235,
+        61,
+        104,
+        78,
+        59,
+        197,
+        180
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "expected_next",
+          "type": "u32"
+        },
+        {
+          "name": "count",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "set_authority",
+      "discriminator": [
+        133,
+        250,
+        37,
+        21,
+        110,
+        163,
+        26,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "EvolutionTree",
+      "discriminator": [
+        199,
+        240,
+        99,
+        218,
+        106,
+        221,
+        105,
+        238
+      ]
+    },
+    {
+      "name": "RegistryRoot",
+      "discriminator": [
+        41,
+        63,
+        56,
+        95,
+        151,
+        58,
+        221,
+        79
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "IdsReserved",
+      "discriminator": [
+        87,
+        176,
+        141,
+        193,
+        128,
+        73,
+        203,
+        45
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Bootstrap",
+      "msg": "Only the deployed program upgrade authority can initialize"
+    },
+    {
+      "code": 6001,
+      "name": "Family",
+      "msg": "Family is invalid or reserved"
+    },
+    {
+      "code": 6002,
+      "name": "Version",
+      "msg": "Version must be the next unused version"
+    },
+    {
+      "code": 6003,
+      "name": "Uri",
+      "msg": "URI must be HTTPS and at most 128 UTF-8 bytes"
+    },
+    {
+      "code": 6004,
+      "name": "Hash",
+      "msg": "Hash must not be zero"
+    },
+    {
+      "code": 6005,
+      "name": "Active",
+      "msg": "Cannot close the active tree"
+    },
+    {
+      "code": 6006,
+      "name": "Exhausted",
+      "msg": "Counter exhausted"
+    },
+    {
+      "code": 6007,
+      "name": "Stale",
+      "msg": "Allocation changed; refresh registry"
+    },
+    {
+      "code": 6008,
+      "name": "Authority",
+      "msg": "Invalid authority"
+    }
+  ],
+  "types": [
+    {
+      "name": "EvolutionTree",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
+            "name": "version",
+            "type": "u32"
+          },
+          {
+            "name": "merkle_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "content_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "uri_len",
+            "type": "u16"
+          },
+          {
+            "name": "uri",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "IdsReserved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "start",
+            "type": "u32"
+          },
+          {
+            "name": "count",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryRoot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_evolution_id",
+            "type": "u32"
+          },
+          {
+            "name": "active_versions",
+            "type": {
+              "array": [
+                "u32",
+                16
+              ]
+            }
+          },
+          {
+            "name": "next_versions",
+            "type": {
+              "array": [
+                "u32",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+skip_local_validator = true
+
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+solana_anchor_starter = "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp"
+
+[programs.devnet]
+solana_anchor_starter = "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp"
+
+[provider]
+cluster = "devnet"
+wallet = "artifacts/private/admin-keypair.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

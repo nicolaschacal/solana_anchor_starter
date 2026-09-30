@@ -1,0 +1,9 @@
+{
+  "canonicalLeaf": "{\"evolution\":{\"enabled\":true,\"id\":2,\"initialWeight\":30,\"modelUri\":\"\",\"name\":\"Cat\",\"paths\":[{\"priority\":0,\"requiredGroupCount\":2,\"requirements\":[{\"group\":0,\"metric\":4,\"operator\":3,\"value\":65},{\"group\":0,\"metric\":9,\"operator\":3,\"value\":55},{\"group\":1,\"metric\":0,\"operator\":3,\"value\":35},{\"group\":3,\"metric\":0,\"operator\":3,\"value\":20}],\"target\":4},{\"priority\":0,\"requiredGroupCount\":3,\"requirements\":[{\"group\":0,\"metric\":10,\"operator\":3,\"value\":70},{\"group\":0,\"metric\":3,\"operator\":3,\"value\":60},{\"group\":1,\"metric\":0,\"operator\":3,\"value\":20},{\"group\":1,\"metric\":1,\"operator\":3,\"value\":10},{\"group\":2,\"metric\":3,\"operator\":3,\"value\":15}],\"target\":5},{\"priority\":0,\"requiredGroupCount\":3,\"requirements\":[{\"group\":0,\"metric\":12,\"operator\":3,\"value\":80},{\"group\":0,\"metric\":13,\"operator\":3,\"value\":90},{\"group\":4,\"metric\":0,\"operator\":3,\"value\":80},{\"group\":5,\"metric\":0,\"operator\":3,\"value\":3}],\"target\":6},{\"priority\":0,\"requiredGroupCount\":3,\"requirements\":[{\"group\":0,\"metric\":8,\"operator\":3,\"value\":50},{\"group\":0,\"metric\":9,\"operator\":3,\"value\":60},{\"group\":1,\"metric\":0,\"operator\":3,\"value\":30},{\"group\":2,\"metric\":1,\"operator\":3,\"value\":10},{\"group\":4,\"metric\":0,\"operator\":3,\"value\":50}],\"target\":3}],\"stage\":1},\"familyId\":0,\"schema\":1}",
+  "siblings": [
+    "2b205f76865441a10138b949acf0598961f2d2dcab5481fd6b5ade851f18c973",
+    "5a982e78fea75d029e814011fae4a62bf7d6c78033dca9eef0fc477e3d5fa808",
+    "79fb2902fdd615c0367ed55500cbf30bdefa270fdaa8c986a5e321d61ad60c74"
+  ],
+  "root": "22afce667738c02b48315ced259af9834c0a8e6ec317e538ddbe1666b7482a5a"
+}
