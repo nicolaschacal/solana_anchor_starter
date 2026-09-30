@@ -20,7 +20,7 @@ const DEFAULT: Recipe = {
   speciesId: "fangbit",
   name: "Fangbit",
   stage: "BYTE",
-  palette: { primary: "#9DBBC3", secondary: "#D8EEF0", dark: "#344C54" },
+  palette: { primary: "#D96A42", secondary: "#F4D59A", dark: "#46323A" },
   proportions: { body: 1, head: 1, legs: 1, tail: 1, eyeSpacing: 1 },
   personality: { bounce: 0.12, headBob: 0.08, tailWag: 0.16, blinkRate: 3.4 },
   bodyPlan: "baby",
@@ -81,14 +81,14 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       // the signature, while paws, muzzle and tail remain deliberately embryonic.
       const pulse=1+Math.sin(t*2.15)*.014;
       const mist=recipe.palette.primary, pearl=recipe.palette.secondary, ink=recipe.palette.dark;
-      const mistLight=shade(mist,24), mistMid=shade(mist,5), mistDeep=shade(mist,-28);
-      const inner=shade(mist,-8);
+      const mistLight=shade(mist,30), mistMid=shade(mist,6), mistDeep=shade(mist,-42);
+      const inner=shade(mist,-18);
       // One compact pear-shaped mass: larger cranium, tucked lower body.
-      faces.push(...ellipsoid([0,.08+bob,0],[.91*pulse,1.02*pulse,.82*pulse],mist,16,9));
-      faces.push(...ellipsoid([0,-.35+bob,.18],[.72,.55,.66],mistMid,14,7));
+      faces.push(...ellipsoid([0,.08+bob,0],[.91*pulse,1.02*pulse,.82*pulse],mist,22,12));
+      faces.push(...ellipsoid([0,-.35+bob,.18],[.72,.55,.66],mistMid,18,9));
       // Subtle brow/cheek volumes make the face dimensional without becoming a fox.
-      faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,9,5));
-      faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,9,5));
+      faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
+      faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
       // Pointed ear nubs echo the 2D Atlas silhouette.
       faces.push(...prism([-.48,.70+bob,.03],[-.61,1.18+bob,.04],.20,mistDeep));
       faces.push(...prism([.48,.70+bob,.03],[.61,1.18+bob,.04],.20,mistDeep));
@@ -96,27 +96,27 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       faces.push(...prism([.49,.77+bob,.17],[.59,1.08+bob,.14],.09,inner));
       // Wide simple eyes: readable at thumbnail scale and fully blinkable.
       const es=.275*recipe.proportions.eyeSpacing;
-      faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,8,4));
-      faces.push(...ellipsoid([es,.35+bob,.805],[.135,.205*blink,.052],ink,8,4));
+      faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
+      faces.push(...ellipsoid([es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
       if(blink>.5){
         faces.push(...ellipsoid([-es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
         faces.push(...ellipsoid([es-.025,.415+bob,.855],[.035,.048,.012],pearl,5,2));
       }
       // Tiny muzzle and Fangbit's permanent visual signature: paired baby fangs.
-      faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,8,4));
+      faces.push(...ellipsoid([0,.03+bob,.835],[.24,.16,.12],mistLight,12,6));
       faces.push(...ellipsoid([0,.06+bob,.936],[.075,.055,.035],ink,5,2));
       faces.push(...prism([-.14,-.055+bob,.925],[-.135,-.255+bob,.95],.045,pearl));
       faces.push(...prism([.14,-.055+bob,.925],[.135,-.255+bob,.95],.045,pearl));
       // Four tiny paw buds ground the blob, but do not yet define canine/feline anatomy.
       const armWave=Math.sin(t*2.6)*.025;
-      faces.push(...ellipsoid([-.63,-.27+bob+armWave,.43],[.22,.25,.20],mistDeep,8,4));
-      faces.push(...ellipsoid([.63,-.27+bob-armWave,.43],[.22,.25,.20],mistDeep,8,4));
-      faces.push(...ellipsoid([-.39,-.84+bob,.28],[.31,.17,.34],mistDeep,9,4));
-      faces.push(...ellipsoid([.39,-.84+bob,.28],[.31,.17,.34],mistDeep,9,4));
+      faces.push(...ellipsoid([-.63,-.27+bob+armWave,.43],[.22,.25,.20],mistDeep,11,6));
+      faces.push(...ellipsoid([.63,-.27+bob-armWave,.43],[.22,.25,.20],mistDeep,11,6));
+      faces.push(...ellipsoid([-.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
+      faces.push(...ellipsoid([.39,-.84+bob,.28],[.31,.17,.34],mistDeep,12,6));
       // Short abstract tail bud: enough to animate, not enough to say fox/cat/dog.
       const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.45;
       faces.push(...prism([.68,-.43+bob,-.20],[.91,-.28+bob+tw,-.30],.13,mistDeep));
-      faces.push(...ellipsoid([.96,-.24+bob+tw,-.28],[.19,.22,.18],mistMid,7,4));
+      faces.push(...ellipsoid([.96,-.24+bob+tw,-.28],[.19,.22,.18],mistMid,10,5));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
