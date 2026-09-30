@@ -85,3 +85,38 @@
 :root[data-theme="dark"] .origin-sheet{background:#101d27;border-color:#2b4355}.origin-sheet-backdrop{background:#02070ccc}:root[data-theme="dark"] .origin-pick{background:#152633;border-color:#2b4356;color:#e9f4fb}:root[data-theme="dark"] .origin-pick.available:hover{background:#19364f}:root[data-theme="dark"] .origin-pick.locked{background:#111d26}:root[data-theme="dark"] .origin-pick-icon{background:#17344a;color:#78bdf4}:root[data-theme="dark"] .origin-pick-lock{background:#1d2a33;color:#718796}
 @media(min-width:700px){.origin-sheet-backdrop{align-items:center}.origin-sheet{border-radius:28px}}
 @media(max-width:520px){.origin-sheet-grid{grid-template-columns:1fr}}
+
+/* Dark-mode legibility fixes for Lab and stats */
+:root[data-theme="dark"] .lab-focus h2,
+:root[data-theme="dark"] .lab-focus p,
+:root[data-theme="dark"] .signal-list strong,
+:root[data-theme="dark"] .signal-list small,
+:root[data-theme="dark"] .section-title h2,
+:root[data-theme="dark"] .pet-stat strong,
+:root[data-theme="dark"] .pet-stat small{
+  color:#eaf4fb;
+}
+:root[data-theme="dark"] .lab-focus p,
+:root[data-theme="dark"] .signal-list small,
+:root[data-theme="dark"] .pet-stat small{
+  color:#9bb3c5;
+}
+:root[data-theme="dark"] .signal-list b{
+  background:#1d3a4f;
+  color:#9ed0f6;
+  border:1px solid #31556d;
+}
+
+/* On-chain asset list */
+.onchain-companions{background:white;border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px}
+.onchain-companion{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.onchain-companion:first-of-type{border-top:0}
+.onchain-companion .creature-sprite{width:46px;height:46px}
+.onchain-companion strong{display:block;font-size:12px}
+.onchain-companion code{display:block;margin-top:3px;font-size:9px;max-width:240px;overflow:hidden;text-overflow:ellipsis;color:#7890a2}
+.onchain-companion a{display:inline-flex;align-items:center;gap:5px;font-size:9px;color:#2b83cf}
+.onchain-companion a svg{width:12px;height:12px}
+:root[data-theme="dark"] .onchain-companions{background:#142431;border-color:#2a4355}
+:root[data-theme="dark"] .onchain-companion{border-color:#2a4355}
+:root[data-theme="dark"] .onchain-companion code{color:#91a8b8}
+:root[data-theme="dark"] .onchain-companion a{color:#80c5f7}
