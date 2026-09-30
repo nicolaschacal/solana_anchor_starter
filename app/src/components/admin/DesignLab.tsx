@@ -10,6 +10,7 @@ type Recipe = {
   palette: { primary: string; secondary: string; dark: string };
   proportions: { body: number; head: number; legs: number; tail: number; eyeSpacing: number };
   personality: { bounce: number; headBob: number; tailWag: number; blinkRate: number };
+  bodyPlan: "baby" | "quadruped" | "aquatic" | "biped";
 };
 
 const DEFAULT: Recipe = {
@@ -21,6 +22,7 @@ const DEFAULT: Recipe = {
   palette: { primary: "#6e8f58", secondary: "#b8c98c", dark: "#26332b" },
   proportions: { body: 1, head: 1, legs: 1, tail: 1, eyeSpacing: 1 },
   personality: { bounce: 0.12, headBob: 0.08, tailWag: 0.16, blinkRate: 3.4 },
+  bodyPlan: "baby",
 };
 
 type V3 = [number, number, number];
@@ -73,25 +75,43 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const t=paused?0:(now-start)/1000, bob=Math.sin(t*2.2)*recipe.personality.bounce;
       const headBob=Math.sin(t*1.7)*recipe.personality.headBob, blinkPhase=t%recipe.personality.blinkRate, blink=blinkPhase<.13?0.12:1;
       let faces:Face[]=[];
-      faces.push(...ellipsoid([0,0.02+bob,0],[1.02*recipe.proportions.body,.78*recipe.proportions.body,.72*recipe.proportions.body],recipe.palette.primary,9,5));
-      faces.push(...ellipsoid([-.03,.76+bob+headBob,.06],[.74*recipe.proportions.head,.66*recipe.proportions.head,.62*recipe.proportions.head],recipe.palette.primary,8,5));
-      // muzzle
-      faces.push(...ellipsoid([0,.63+bob+headBob,.58],[.40,.27,.34],recipe.palette.secondary,7,4));
-      // ears
-      faces.push(...prism([-.42,.98+bob,.02],[-.58,1.55+bob,-.02],.22,recipe.palette.primary));
-      faces.push(...prism([.42,.98+bob,.02],[.58,1.55+bob,-.02],.22,recipe.palette.primary));
-      // legs
-      for(const x of [-.55,.55]) faces.push(...prism([x,-.48+bob,.14],[x,-1.02+bob,.20],.19*recipe.proportions.legs,recipe.palette.primary));
-      // feet
-      faces.push(...ellipsoid([-.55,-1.03+bob,.35],[.31,.18,.42],recipe.palette.secondary,6,3));
-      faces.push(...ellipsoid([.55,-1.03+bob,.35],[.31,.18,.42],recipe.palette.secondary,6,3));
-      // tail
-      const wag=Math.sin(t*3.1)*recipe.personality.tailWag;
-      faces.push(...prism([.78,-.05+bob,-.2],[1.42*recipe.proportions.tail,.28+bob+wag,-.36],.18,recipe.palette.primary));
-      // eyes (front z)
-      const es=.24*recipe.proportions.eyeSpacing;
-      faces.push(...ellipsoid([-es,.84+bob+headBob,.585],[.13,.18*blink,.07],recipe.palette.dark,6,3));
-      faces.push(...ellipsoid([es,.84+bob+headBob,.585],[.13,.18*blink,.07],recipe.palette.dark,6,3));
+      const plan=recipe.bodyPlan||"baby", wag=Math.sin(t*3.1)*recipe.personality.tailWag;
+      if(plan==="baby"){
+        // BYTE language: one dominant round body, tiny appendages, face embedded in the mass.
+        faces.push(...ellipsoid([0,.12+bob,0],[.98*recipe.proportions.body,1.02*recipe.proportions.body,.86*recipe.proportions.body],recipe.palette.primary,10,6));
+        const es=.25*recipe.proportions.eyeSpacing;
+        faces.push(...ellipsoid([-es,.36+bob,.79],[.15,.20*blink,.055],recipe.palette.dark,6,3));
+        faces.push(...ellipsoid([es,.36+bob,.79],[.15,.20*blink,.055],recipe.palette.dark,6,3));
+        // tiny Fangbit fangs: enough identity without turning the Byte into a miniature adult animal.
+        faces.push(...prism([-.18,.05+bob,.82],[-.18,-.16+bob,.87],.055,recipe.palette.secondary));
+        faces.push(...prism([.18,.05+bob,.82],[.18,-.16+bob,.87],.055,recipe.palette.secondary));
+        faces.push(...ellipsoid([-.42,-.82+bob,.16],[.26,.15,.34],recipe.palette.secondary,6,3));
+        faces.push(...ellipsoid([.42,-.82+bob,.16],[.26,.15,.34],recipe.palette.secondary,6,3));
+      }else if(plan==="quadruped"){
+        faces.push(...ellipsoid([0,.05+bob,-.05],[1.15,.62,.68],recipe.palette.primary,9,5));
+        faces.push(...ellipsoid([0,.42+bob+headBob,.72],[.58,.58,.54],recipe.palette.primary,8,5));
+        for(const x of [-.62,.62]) for(const z of [-.35,.35]) faces.push(...prism([x,-.25+bob,z],[x,-.82+bob,z],.13*recipe.proportions.legs,recipe.palette.primary));
+        faces.push(...prism([.88,.08+bob,-.35],[1.45,.3+bob+wag,-.5],.14,recipe.palette.primary));
+        const es=.19*recipe.proportions.eyeSpacing;
+        faces.push(...ellipsoid([-es,.5+bob,.115+.72],[.11,.15*blink,.05],recipe.palette.dark,6,3));
+        faces.push(...ellipsoid([es,.5+bob,.115+.72],[.11,.15*blink,.05],recipe.palette.dark,6,3));
+      }else if(plan==="aquatic"){
+        faces.push(...ellipsoid([0,.05+bob,0],[1.28,.62,.66],recipe.palette.primary,10,5));
+        faces.push(...prism([-.8,.02+bob,0],[-1.25,.18+bob,-.08],.18,recipe.palette.secondary));
+        faces.push(...prism([.8,.02+bob,0],[1.25,.18+bob,-.08],.18,recipe.palette.secondary));
+        faces.push(...prism([0,.08+bob,-.5],[0,.42+bob+wag,-1.22],.2,recipe.palette.primary));
+        const es=.25*recipe.proportions.eyeSpacing;
+        faces.push(...ellipsoid([-es,.22+bob,.61],[.12,.16*blink,.05],recipe.palette.dark,6,3));
+        faces.push(...ellipsoid([es,.22+bob,.61],[.12,.16*blink,.05],recipe.palette.dark,6,3));
+      }else{
+        faces.push(...ellipsoid([0,.12+bob,0],[.72,.92,.62],recipe.palette.primary,9,5));
+        faces.push(...ellipsoid([0,.82+bob+headBob,.08],[.55,.54,.5],recipe.palette.primary,8,5));
+        faces.push(...prism([-.35,-.42+bob,0],[-.42,-1.0+bob,.08],.15,recipe.palette.primary));
+        faces.push(...prism([.35,-.42+bob,0],[.42,-1.0+bob,.08],.15,recipe.palette.primary));
+        const es=.19*recipe.proportions.eyeSpacing;
+        faces.push(...ellipsoid([-es,.88+bob,.56],[.11,.15*blink,.05],recipe.palette.dark,6,3));
+        faces.push(...ellipsoid([es,.88+bob,.56],[.11,.15*blink,.05],recipe.palette.dark,6,3));
+      }
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=155/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
@@ -117,7 +137,9 @@ export function DesignLab(){
   return <section className="design-lab">
     <div className="page-heading"><div><span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ Fangbit</span></h1></div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
     <div className="design-grid">
-      <aside className="lab-panel"><div className="lab-panel-title">ANATOMY</div><p className="lab-help">Fangbit is built from reusable low-poly parts. Adjust the recipe, not individual vertices.</p>
+      <aside className="lab-panel"><div className="lab-panel-title">BODY PLAN</div><p className="lab-help">BYTE starts as a simple baby mass. The other plans are reusable defaults for later animaloid stages.</p>
+        <div className="body-plan-grid">{(["baby","quadruped","aquatic","biped"] as const).map(plan=><button key={plan} className={recipe.bodyPlan===plan?"active":""} onClick={()=>setRecipe(r=>({...r,bodyPlan:plan}))}>{plan}</button>)}</div>
+        <div className="lab-panel-title sub">PROPORTIONS</div>
         <Slider label="Body mass" value={recipe.proportions.body} min={.72} max={1.3} onChange={v=>setProp("body",v)}/>
         <Slider label="Head size" value={recipe.proportions.head} min={.75} max={1.3} onChange={v=>setProp("head",v)}/>
         <Slider label="Leg length" value={recipe.proportions.legs} min={.7} max={1.35} onChange={v=>setProp("legs",v)}/>
