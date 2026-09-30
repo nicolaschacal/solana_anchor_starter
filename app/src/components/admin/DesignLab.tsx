@@ -76,64 +76,57 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const t=paused?0:(now-start)/1000, bob=Math.sin(t*2.2)*recipe.personality.bounce;
       const headBob=Math.sin(t*1.7)*recipe.personality.headBob, blinkPhase=t%recipe.personality.blinkRate, blink=blinkPhase<.13?0.12:1;
       let faces:Face[]=[];
-      // FANGBIT / BYTE — character-design pass based on the approved concept:
-      // compact round cub, cream mask/belly, tapered ears, tiny fangs and a
-      // large animal tail. Detail comes from silhouette + colour, not dense mesh.
-      const pulse=1+Math.sin(t*2.15)*.012;
+      // FANGBIT / BYTE — compact PSX-era creature language:
+      // few large readable forms, deliberately visible low-poly planes and
+      // character detail concentrated in the face/silhouette.
+      const pulse=1+Math.sin(t*2.15)*.014;
       const orange=recipe.palette.primary, cream=recipe.palette.secondary, ink=recipe.palette.dark;
       const orangeLight=shade(orange,18), orangeMid=shade(orange,2), orangeDeep=shade(orange,-30);
-      const earDark=shade(ink,10);
-      const innerEar=shade(cream,-4);
+      const innerEar=shade(cream,-8);
 
-      // Main body: round, slightly bottom-heavy, with a distinct head dome.
-      faces.push(...ellipsoid([0,-.14+bob,-.03],[.86*pulse,.91*pulse,.77*pulse],orange,28,15));
-      faces.push(...ellipsoid([0,.47+bob,.02],[.91,.76,.78],orangeMid,30,16));
+      // One simple pear-shaped mass, closer to the original Fangbit.
+      faces.push(...ellipsoid([0,.00+bob,0],[.88*pulse,1.00*pulse,.80*pulse],orange,18,10));
 
-      // Pointed ears with soft bases and narrow tips.
-      faces.push(...ellipsoid([-.52,.91+bob,-.02],[.22,.32,.17],orangeDeep,16,8));
-      faces.push(...ellipsoid([.52,.91+bob,-.02],[.22,.32,.17],orangeDeep,16,8));
-      faces.push(...prism([-.53,1.00+bob,-.01],[-.61,1.34+bob,.00],.095,orangeDeep));
-      faces.push(...prism([.53,1.00+bob,-.01],[.61,1.34+bob,.00],.095,orangeDeep));
-      faces.push(...ellipsoid([-.53,1.00+bob,.145],[.105,.21,.045],innerEar,12,6));
-      faces.push(...ellipsoid([.53,1.00+bob,.145],[.105,.21,.045],innerEar,12,6));
-      // Small forehead tuft.
-      faces.push(...prism([0,1.08+bob,.68],[0,1.25+bob,.64],.075,orangeDeep));
+      // Cheek/muzzle colour blocks add appeal without extra anatomy.
+      faces.push(...ellipsoid([-.38,.22+bob,.61],[.38,.36,.22],orangeLight,12,6));
+      faces.push(...ellipsoid([.38,.22+bob,.61],[.38,.36,.22],orangeLight,12,6));
 
-      // Cream facial mask: two broad cheek patches, deliberately below the eyes.
-      faces.push(...ellipsoid([-.39,.37+bob,.60],[.42,.40,.24],cream,20,10));
-      faces.push(...ellipsoid([.39,.37+bob,.60],[.42,.40,.24],cream,20,10));
+      // Simple pointed ears: broad at the base, small enough to stay species-ambiguous.
+      faces.push(...ellipsoid([-.48,.80+bob,.00],[.22,.28,.17],orangeDeep,10,5));
+      faces.push(...ellipsoid([.48,.80+bob,.00],[.22,.28,.17],orangeDeep,10,5));
+      faces.push(...prism([-.49,.91+bob,.00],[-.55,1.18+bob,.01],.085,orangeDeep));
+      faces.push(...prism([.49,.91+bob,.00],[.55,1.18+bob,.01],.085,orangeDeep));
+      faces.push(...ellipsoid([-.49,.88+bob,.15],[.085,.15,.040],innerEar,8,4));
+      faces.push(...ellipsoid([.49,.88+bob,.15],[.085,.15,.040],innerEar,8,4));
 
-      // Eyes stay graphic and readable, with small highlights.
-      const es=.285*recipe.proportions.eyeSpacing;
-      faces.push(...ellipsoid([-es,.55+bob,.805],[.145,.215*blink,.050],ink,16,8));
-      faces.push(...ellipsoid([es,.55+bob,.805],[.145,.215*blink,.050],ink,16,8));
+      // Big graphic eyes, intentionally simple like a small game character.
+      const es=.275*recipe.proportions.eyeSpacing;
+      faces.push(...ellipsoid([-es,.35+bob,.805],[.145,.205*blink,.052],ink,10,5));
+      faces.push(...ellipsoid([es,.35+bob,.805],[.145,.205*blink,.052],ink,10,5));
       if(blink>.5){
-        faces.push(...ellipsoid([-es-.025,.62+bob,.852],[.035,.045,.010],cream,6,3));
-        faces.push(...ellipsoid([es-.025,.62+bob,.852],[.035,.045,.010],cream,6,3));
+        faces.push(...ellipsoid([-es-.025,.42+bob,.855],[.035,.045,.010],cream,5,2));
+        faces.push(...ellipsoid([es-.025,.42+bob,.855],[.035,.045,.010],cream,5,2));
       }
 
-      // Compact cream muzzle with tiny nose and short tapered baby fangs.
-      faces.push(...ellipsoid([0,.25+bob,.815],[.27,.18,.13],cream,18,9));
-      faces.push(...ellipsoid([0,.31+bob,.932],[.065,.050,.028],ink,6,3));
-      faces.push(...prism([-.12,.16+bob,.905],[-.115,.045+bob,.92],.022,cream));
-      faces.push(...prism([.12,.16+bob,.905],[.115,.045+bob,.92],.022,cream));
+      // Small muzzle and very short triangular-looking baby fangs.
+      faces.push(...ellipsoid([0,.04+bob,.835],[.23,.15,.115],orangeLight,10,5));
+      faces.push(...ellipsoid([0,.08+bob,.936],[.065,.050,.028],ink,5,2));
+      faces.push(...prism([-.115,-.015+bob,.918],[-.11,-.115+bob,.93],.020,cream));
+      faces.push(...prism([.115,-.015+bob,.918],[.11,-.115+bob,.93],.020,cream));
 
-      // Single integrated belly patch, not a floating white shadow.
-      faces.push(...ellipsoid([0,-.37+bob,.675],[.52,.57,.085],cream,22,11));
+      // Tiny limbs stay secondary to the silhouette.
+      const armWave=Math.sin(t*2.6)*.024;
+      faces.push(...ellipsoid([-.62,-.27+bob+armWave,.43],[.21,.24,.19],orangeDeep,9,5));
+      faces.push(...ellipsoid([.62,-.27+bob-armWave,.43],[.21,.24,.19],orangeDeep,9,5));
+      faces.push(...ellipsoid([-.38,-.84+bob,.28],[.30,.16,.33],orangeDeep,10,5));
+      faces.push(...ellipsoid([.38,-.84+bob,.28],[.30,.16,.33],orangeDeep,10,5));
 
-      // Stubby forepaws and broad animal feet.
-      const armWave=Math.sin(t*2.6)*.022;
-      faces.push(...ellipsoid([-.69,-.20+bob+armWave,.36],[.22,.27,.20],orangeDeep,12,6));
-      faces.push(...ellipsoid([.69,-.20+bob-armWave,.36],[.22,.27,.20],orangeDeep,12,6));
-      faces.push(...ellipsoid([-.42,-.91+bob,.24],[.34,.18,.35],orangeDeep,14,7));
-      faces.push(...ellipsoid([.42,-.91+bob,.24],[.34,.18,.35],orangeDeep,14,7));
-
-      // Large tail rooted behind the torso, curving outward and upward.
-      const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.48;
-      faces.push(...prism([.34,-.42+bob,-.69],[.72,-.40+bob+tw*.20,-.72],.17,orangeDeep));
-      faces.push(...prism([.70,-.40+bob+tw*.20,-.71],[1.04,-.18+bob+tw*.55,-.62],.19,orangeDeep));
-      faces.push(...ellipsoid([1.17,.10+bob+tw*.85,-.49],[.30,.45,.27],orangeMid,14,7));
-      faces.push(...ellipsoid([1.27,.39+bob+tw,-.38],[.24,.34,.21],cream,12,6));
+      // One readable curved tail assembled from only a few low-poly masses.
+      const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.55;
+      faces.push(...prism([.34,-.47+bob,-.66],[.70,-.40+bob+tw*.25,-.68],.13,orangeDeep));
+      faces.push(...prism([.68,-.40+bob+tw*.25,-.67],[1.00,-.18+bob+tw*.65,-.57],.14,orangeDeep));
+      faces.push(...ellipsoid([1.12,.08+bob+tw,-.43],[.23,.31,.20],orangeMid,9,5));
+      faces.push(...ellipsoid([1.20,.26+bob+tw*1.08,-.36],[.16,.20,.14],cream,8,4));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
@@ -162,8 +155,8 @@ export function DesignLab(){
   return <section className="design-lab">
     <div className="page-heading"><div>{linkedFromAtlas && <Link className="back design-back" to="/admin/families/0"><ArrowLeft size={14}/> Atlas</Link>}<span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ {targetName || "Fangbit"}</span></h1>{linkedFromAtlas && targetName?.toLowerCase()!=="fangbit" && <p className="design-target-note">{targetName} / {targetStage} is selected from the Atlas. Its bespoke renderer has not been authored yet, so the canvas keeps Fangbit as the current reference instead of pretending it is the selected model.</p>}</div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
     <div className="design-grid">
-      <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Approved character direction: a compact round mammal cub with a warm cream face and belly, pointed ears, tiny signature fangs and a large expressive tail. Still simple enough to remain a BYTE form.</p>
-        <div className="design-signature"><span>SILHOUETTE</span><strong>ROUND CUB / COMPACT</strong><span>SIGNATURE</span><strong>EARS + BABY FANGS</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
+      <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Compact low-poly digital cub built from a few readable forms. Large eyes, tiny baby fangs, pointed ears and an expressive tail give it character while keeping the BYTE silhouette simple.</p>
+        <div className="design-signature"><span>SILHOUETTE</span><strong>BLOB-CUB / COMPACT</strong><span>SIGNATURE</span><strong>EARS + BABY FANGS</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
         <div className="lab-panel-title sub">FINE TUNING</div>
         <Slider label="Eye spacing" value={recipe.proportions.eyeSpacing} min={.72} max={1.3} onChange={v=>setProp("eyeSpacing",v)}/>
         <div className="lab-panel-title sub">PALETTE</div>
