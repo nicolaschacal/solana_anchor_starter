@@ -1,3 +1,4 @@
+import { Buffer } from "buffer";
 import { WebUploader } from "@irys/web-upload";
 import { WebSolana } from "@irys/web-upload-solana";
 import { Connection } from "@solana/web3.js";
@@ -65,7 +66,8 @@ export async function browserUploader(wallet: WalletContextState) {
       // is followed by one upload attempt; if Irys still rejects it, surface
       // diagnostics instead of charging/funding again blindly.
       try {
-        return await irys.upload(data as any, options);
+        const payload = typeof data === "string" ? data : Buffer.from(data);
+        return await irys.upload(payload as any, options);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
