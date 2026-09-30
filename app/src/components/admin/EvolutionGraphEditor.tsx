@@ -108,7 +108,7 @@ function Atlas({
   const [ready, setReady] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [view, setView] = useState<"grid" | "map">("grid");
-  const [lineageView, setLineageView] = useState<"grid" | "map">("grid");
+  const [lineageView, setLineageView] = useState<"grid" | "columns" | "map">("grid");
   const [stageFilter, setStageFilter] = useState<number | "all">(() =>
     window.matchMedia("(max-width: 600px)").matches ? 0 : "all",
   );
@@ -199,7 +199,7 @@ function Atlas({
     return { nodes, edges };
   }, [visible, selected, selectedId, onSelectEvolution, tree.balance]);
   useEffect(() => {
-    if (!ready || (!selected && view === "grid") || (selected && lineageView === "grid")) return;
+    if (!ready || (!selected && view === "grid") || (selected && lineageView !== "map")) return;
     const frame = requestAnimationFrame(() => {
       if (window.innerWidth <= 800) {
         const focus = nodes.find(
@@ -272,6 +272,16 @@ function Atlas({
             >
               <LayoutGrid size={16} />
             </button>
+            {selected && (
+              <button
+                aria-pressed={lineageView === "columns"}
+                title="Stage columns"
+                aria-label="Stage columns"
+                onClick={() => setLineageView("columns")}
+              >
+                <Columns3 size={16} />
+              </button>
+            )}
             <button
               aria-pressed={selected ? lineageView === "map" : view === "map"}
               title={selected ? "Lineage map" : "Connection map"}
@@ -344,7 +354,18 @@ function Atlas({
           )}
         </div>
       )}
-      {selected && lineageView === "grid" ? (
+      {selected && lineageView === "columns" ? (
+        <EvolutionOverview
+          tree={{ ...tree, evolutions: visible }}
+          search={search}
+          stage="all"
+          onStageChange={() => undefined}
+          onSelect={onSelectEvolution}
+          compact
+          selectedId={selected.id}
+          horizontal
+        />
+      ) : selected && lineageView === "grid" ? (
         <EvolutionOverview
           tree={{ ...tree, evolutions: visible }}
           search={search}
