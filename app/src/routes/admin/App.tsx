@@ -388,7 +388,44 @@ function Family({ state }: { state: RegistryState }) {
   }
   async function publishLocalReferences() {
     if (!tree) return;
-    const updated = await tx.publishLocalEvolutionAssets(tree.evolutions);
+
+    // The active on-chain atlas predates the local reference artwork fields.
+    // Match the authored Mammal workbook by stable key/name, copy only its
+    // local reference image into the active identities, then publish those
+    // image+metadata pairs to Irys. Active evolution IDs remain unchanged.
+    const authored = sampleMammal();
+    const authoredByKey = new Map(
+      authored.evolutions.map((e) => [
+        e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"),
+        e,
+      ]),
+    );
+    const candidates = tree.evolutions.map((e) => {
+      if (e.assets?.metadataUri) return e;
+      const key = e.key ?? e.name.toLowerCase().replace(/\s+/g, "_");
+      const reference = authoredByKey.get(key);
+      const localImage = reference?.assets?.imageUri;
+      if (!localImage?.startsWith("/")) return e;
+      return {
+        ...e,
+        assets: {
+          ...e.assets,
+          imageUri: localImage,
+          thumbnailUri: reference?.assets?.thumbnailUri ?? localImage,
+        },
+      };
+    });
+
+    const count = candidates.filter(
+      (e) => (e.assets?.imageUri ?? "").startsWith("/"),
+    ).length;
+    if (!count) {
+      throw new Error(
+        "No unpublished Mammal reference artwork was found in the local workbook.",
+      );
+    }
+
+    const updated = await tx.publishLocalEvolutionAssets(candidates);
     if (updated) edit({ ...tree, evolutions: updated });
   }
 
@@ -489,10 +526,10 @@ function Family({ state }: { state: RegistryState }) {
                 : `Open workbook preview · ${MAMMAL_SEED_EVOLUTION_COUNT} forms`}
             </Link>
           )}
-          {!sample && authorized && tree && tree.evolutions.some((e) => (e.assets?.imageUri ?? "").startsWith("/")) && (
+          {!sample && authorized && tree && family === 0 && (
             <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
               <Upload size={16} />
-              Push local assets to Irys
+              Publish reference assets
             </button>
           )}
           {editable && tree && (
