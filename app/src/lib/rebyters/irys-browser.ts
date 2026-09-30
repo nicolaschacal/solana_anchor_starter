@@ -12,10 +12,15 @@ export async function browserUploader(wallet: WalletContextState) {
   }
   if (!wallet.publicKey || !wallet.signMessage)
     throw new Error("Connect a Solana wallet supporting message signing");
+  // Pin the browser uploader to Irys' Solana devnet node explicitly.
+  // Relying on the SDK's generic .devnet() shortcut has proven inconsistent
+  // for browser funding, while this is the endpoint used by the established
+  // Solana/Irys integrations.
   const irys = await WebUploader(WebSolana)
     .withProvider(wallet)
     .withRpc(RPC_URL)
-    .devnet();
+    .bundlerUrl("https://devnet.irys.xyz")
+    .build();
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   async function ensureUploadBalance(byteLength: number) {
