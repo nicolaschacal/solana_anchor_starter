@@ -28,20 +28,23 @@ export async function browserUploader(wallet: WalletContextState) {
     let balance = await irys.getLoadedBalance();
     if (balance.gte(price)) return;
 
-    // Irys funding transactions have overhead/minimums that are larger than a
-    // tiny JSON upload price. Funding only `price` can produce a transaction
-    // that the devnet node rejects with HTTP 402 even when the wallet itself
-    // has plenty of devnet SOL. Keep a small devnet upload buffer instead.
-    const minimumBuffer = price.multipliedBy(20);
-    const target = minimumBuffer.gt(price) ? minimumBuffer : price;
-    await irys.fund(target);
+    // Irys devnet has an intermittent accounting issue for tiny deposits.
+    // Keep a fixed 20,000-lamport floor: this is still devnet SOL, but is large
+    // enough to avoid the tiny-deposit behaviour documented by Irys SDK users.
+    const DEVNET_FLOOR_LAMPORTS = 20_000;
+    const floor = price.constructor(DEVNET_FLOOR_LAMPORTS);
+    const target = floor.gt(price) ? floor : price;
+    const missing = target.minus(balance);
+    if (missing.gt(0)) await irys.fund(missing);
 
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let attempt = 0; attempt < 30; attempt++) {
       await sleep(1000);
       balance = await irys.getLoadedBalance();
       if (balance.gte(price)) return;
     }
-    throw new Error("Irys devnet funding was signed, but its loaded balance did not update. Retry Publish.");
+    throw new Error(
+      `Irys devnet funding was signed but not credited after 30s (price=${price.toString()}, loaded=${balance.toString()}).`,
+    );
   }
 
   return {
@@ -52,21 +55,20 @@ export async function browserUploader(wallet: WalletContextState) {
       const bytes = new TextEncoder().encode(data).length;
       await ensureUploadBalance(bytes);
 
-      // Irys devnet can briefly return 402 while a fresh deposit propagates.
-      // Re-check/fund and retry instead of making the admin restart publication.
-      let lastError: unknown;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          return await irys.upload(data, options);
-        } catch (error) {
-          lastError = error;
-          const message = error instanceof Error ? error.message : String(error);
-          if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
-          await ensureUploadBalance(bytes);
-          await sleep(1200 * (attempt + 1));
-        }
+      // Do not ask the wallet to sign repeatedly. A successful funding signature
+      // is followed by one upload attempt; if Irys still rejects it, surface
+      // diagnostics instead of charging/funding again blindly.
+      try {
+        return await irys.upload(data, options);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
+        const price = await irys.getPrice(bytes);
+        const balance = await irys.getLoadedBalance();
+        throw new Error(
+          `Irys devnet rejected the upload after funding (402). uploadPrice=${price.toString()} loadedBalance=${balance.toString()} wallet=${wallet.publicKey!.toBase58()}`,
+        );
       }
-      throw lastError;
     },
   };
 }
