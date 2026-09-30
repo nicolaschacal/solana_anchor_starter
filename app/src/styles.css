@@ -1350,3 +1350,30 @@ select:disabled {
 .specimen-edit-modal-head h2{display:flex;align-items:center;gap:8px;margin:4px 0 0}
 .editor-flow-note{padding:10px 12px;border-left:2px solid #4c9b70;background:#202823;color:#a9b9af;font-size:12px}
 .specimen-edit-actions{position:sticky;bottom:-20px;display:flex;justify-content:flex-end;gap:8px;padding:14px 0 4px;margin-top:16px;background:#171d1a;border-top:1px solid #354039}
+
+/* Admin IA refresh: progressive disclosure over configuration density */
+.admin-workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 20px}
+.admin-workflow-step{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #dfe8e0;border-radius:7px;background:#f8faf8;color:#718078}
+.admin-workflow-step>span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e9efeb;font:700 10px "IBM Plex Mono",monospace}
+.admin-workflow-step div{min-width:0}
+.admin-workflow-step strong,.admin-workflow-step small{display:block}
+.admin-workflow-step strong{font-size:11px;color:#405249}
+.admin-workflow-step small{margin-top:2px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-workflow-step.is-active{border-color:#87a995;background:#edf5f0}
+.admin-workflow-step.is-active>span{background:#2e774c;color:#fff}
+.specimen-editor-shortcuts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;padding:10px;border:1px solid #354039;border-radius:6px;background:#202823}
+.specimen-editor-shortcuts a,.specimen-editor-shortcuts span{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border-radius:4px;font-size:10px}
+.specimen-editor-shortcuts a{background:#2b4435;color:#cce8d4;text-decoration:none;border:1px solid #426650}
+.specimen-editor-shortcuts span{color:#9eafa5;background:#1b211e}
+.specimen-edit-modal .evolution-editor{border-top:0}
+.specimen-edit-modal .evolution-editor>.section-heading{margin-top:8px}
+.specimen-edit-modal .path{padding:14px;border:1px solid #354039;border-radius:6px;margin-top:9px}
+.specimen-edit-modal .rule-summary{margin-top:8px}
+.design-target-note{max-width:700px;margin:8px 0 0;color:#829087;font-size:11px;line-height:1.5}
+.design-back{margin-bottom:9px}
+:root[data-theme="dark"] .admin-workflow-step{background:#1d2321;border-color:#354039;color:#91a198}
+:root[data-theme="dark"] .admin-workflow-step strong{color:#d4dfd8}
+:root[data-theme="dark"] .admin-workflow-step>span{background:#29332d}
+:root[data-theme="dark"] .admin-workflow-step.is-active{background:#213029;border-color:#4d745b}
+:root[data-theme="dark"] .admin-workflow-step.is-active>span{background:#3c7653}
+@media(max-width:850px){.admin-workflow{grid-template-columns:1fr}.admin-workflow-step small{white-space:normal}}
