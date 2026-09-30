@@ -89,13 +89,14 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       // Subtle brow/cheek volumes make the face dimensional without becoming a fox.
       faces.push(...ellipsoid([-.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
       faces.push(...ellipsoid([.39,.18+bob,.57],[.35,.39,.27],mistLight,12,6));
-      // Tapered animal ears: rounded bases narrowing into clear triangular tips.
-      faces.push(...ellipsoid([-.47,.76+bob,.01],[.25,.25,.20],mistDeep,12,6));
-      faces.push(...ellipsoid([.47,.76+bob,.01],[.25,.25,.20],mistDeep,12,6));
-      faces.push(...prism([-.49,.82+bob,.02],[-.60,1.22+bob,.04],.13,mistDeep));
-      faces.push(...prism([.49,.82+bob,.02],[.60,1.22+bob,.04],.13,mistDeep));
-      faces.push(...prism([-.49,.84+bob,.17],[-.58,1.13+bob,.14],.065,inner));
-      faces.push(...prism([.49,.84+bob,.17],[.58,1.13+bob,.14],.065,inner));
+      // Softer animal ears: layered tapered volumes instead of hard prisms.
+      // The narrow upper lobes visually converge to a point without a boxy outline.
+      faces.push(...ellipsoid([-.47,.79+bob,.00],[.24,.30,.19],mistDeep,16,8));
+      faces.push(...ellipsoid([.47,.79+bob,.00],[.24,.30,.19],mistDeep,16,8));
+      faces.push(...ellipsoid([-.55,1.03+bob,.01],[.145,.29,.12],mistDeep,14,7));
+      faces.push(...ellipsoid([.55,1.03+bob,.01],[.145,.29,.12],mistDeep,14,7));
+      faces.push(...ellipsoid([-.50,.88+bob,.17],[.105,.19,.055],inner,12,6));
+      faces.push(...ellipsoid([.50,.88+bob,.17],[.105,.19,.055],inner,12,6));
       // Wide simple eyes: readable at thumbnail scale and fully blinkable.
       const es=.275*recipe.proportions.eyeSpacing;
       faces.push(...ellipsoid([-es,.35+bob,.805],[.135,.205*blink,.052],ink,12,6));
@@ -128,7 +129,7 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
       ctx.lineJoin="round";
-      for(const {f,q} of sorted){ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath();ctx.fillStyle=f.color;ctx.fill();ctx.strokeStyle="rgba(20,35,27,.08)";ctx.lineWidth=.6;ctx.stroke()}
+      for(const {f,q} of sorted){ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath();ctx.fillStyle=f.color;ctx.fill()}
       raf=requestAnimationFrame(draw);
     };
     raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);
