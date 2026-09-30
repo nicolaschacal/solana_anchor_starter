@@ -20,7 +20,7 @@ export function EvolutionEditor({ tree, evolution: e, onChange, readOnly }: { tr
         <label className="wide">Image URI<input placeholder="Irys image / thumbnail URI" value={e.assets?.imageUri ?? ""} onChange={v=>update({assets:{...e.assets,imageUri:v.target.value}})}/></label>
         <label className="wide">Thumbnail URI<input placeholder="Optional atlas thumbnail URI" value={e.assets?.thumbnailUri ?? ""} onChange={v=>update({assets:{...e.assets,thumbnailUri:v.target.value}})}/></label>
       </div>
-      <div className="section-heading"><h3>Outgoing paths <span className="count">{e.paths.length}</span></h3><button type="button" disabled={!tree.balance || !available.length || e.paths.length>=16} onClick={()=>update({paths:[...e.paths,{target:available[0].id,rule:defaultRule()}]})}><Plus size={15}/>Add path</button></div>
+      <div className="section-heading"><h3>Outgoing paths <span className="count">{e.paths.length}</span></h3><button type="button" disabled={!available.length || e.paths.length>=16} onClick={()=>update({paths:[...e.paths,{target:available[0].id,rule:tree.balance?defaultRule():undefined}]})}><Plus size={15}/>Add path</button></div>
       {!e.paths.length && <div className="empty">Terminal evolution</div>}
       {e.paths.map((path,index)=>{
         const target=tree.evolutions.find(x=>x.id===path.target)!;
@@ -28,7 +28,10 @@ export function EvolutionEditor({ tree, evolution: e, onChange, readOnly }: { tr
         return <section className="path qualitative-path" key={path.target}>
           <div className="qualitative-path-heading"><label>Target<select value={path.target} onChange={v=>setPath({target:Number(v.target.value)})}>{[target,...available].map(x=><option key={x.id} value={x.id}>{x.name} / {STAGES[x.stage]}</option>)}</select></label><button type="button" className="icon danger" title="Remove path" aria-label="Remove path" onClick={()=>update({paths:e.paths.filter((_,i)=>i!==index)})}><Trash2 size={16}/></button></div>
           <RuleSummary path={path} balance={tree.balance} stage={target.stage}/>
-          {path.rule && tree.balance && !readOnly && <details className="rule-edit-details"><summary>Edit requirements for {target.name}</summary><RuleEditor rule={path.rule} balance={tree.balance} stage={target.stage} onChange={rule=>setPath({rule})}/></details>}
+          {path.designRule && <details className="design-rule-details" open={!path.rule || !tree.balance}><summary>Requirement design</summary><dl>{Object.entries(path.designRule).map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl></details>}
+          {path.rule && tree.balance && !readOnly && <details className="rule-edit-details"><summary>Edit numeric requirements for {target.name}</summary><RuleEditor rule={path.rule} balance={tree.balance} stage={target.stage} onChange={rule=>setPath({rule})}/></details>}
+          {!path.rule && tree.balance && !readOnly && <button type="button" className="text-button" onClick={()=>setPath({rule:defaultRule()})}><Plus size={14}/>Configure requirements</button>}
+          {!tree.balance && <p className="requirement-migration-note">This active version predates the editable balance profile. Its original design requirements are shown above; numeric rules can be edited after upgrading/publishing the workbook schema.</p>}
         </section>;
       })}
     </fieldset>
