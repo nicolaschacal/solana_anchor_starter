@@ -67,27 +67,30 @@ export function buildMammalWorkbookUpgrade(
  * the Mammal workbook. Publishing this creates the next immutable version and
  * makes it the only active ruleset used by the app/admin.
  */
-export function upgradeMammalRulesInPlace(previous: TreeJson, version: number): TreeJson {
+export function upgradeMammalRulesInPlace(
+  previous: TreeJson,
+  version: number,
+  start: number,
+): TreeJson {
   const seed = structuredClone(mammalSeed) as unknown as TreeJson;
   const previousByKey = new Map(previous.evolutions.map(e => [e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"), e]));
-  const seedById = new Map(seed.evolutions.map(e => [e.id, e]));
   const activeIdBySeedId = new Map<number, number>();
 
-  for (const authored of seed.evolutions) {
+  seed.evolutions.forEach((authored, index) => {
     const current = previousByKey.get(authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_"));
     if (!current) throw new Error(`Active atlas is missing workbook specimen: ${authored.name}`);
-    activeIdBySeedId.set(authored.id, current.id);
-  }
+    activeIdBySeedId.set(authored.id, start + index);
+  });
 
   return {
     ...seed,
     version,
     development: true,
-    evolutions: seed.evolutions.map(authored => {
+    evolutions: seed.evolutions.map((authored, index) => {
       const current = previousByKey.get(authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_"))!;
       return {
         ...authored,
-        id: current.id,
+        id: start + index,
         name: current.name || authored.name,
         enabled: current.enabled,
         position: current.position ?? authored.position,
