@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, RotateCcw, Save, Sparkles } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { WolfPrototype } from "./WolfPrototype";
+import { FangbitPrototype } from "./WolfPrototype";
 
 type Recipe = {
   schemaVersion: 1;
@@ -181,7 +181,7 @@ export function DesignLab(){
         <div className="lab-panel-title sub">PALETTE</div>
         {(["primary","secondary","dark"] as const).map(k=><label className="color-field" key={k}><span>{k}</span><input type="color" value={recipe.palette[k]} onChange={e=>setRecipe(r=>({...r,palette:{...r.palette,[k]:e.target.value}}))}/><code>{recipe.palette[k]}</code></label>)}
       </aside>
-      <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> THREE.JS LOW-POLY PIPELINE TEST</div><WolfPrototype paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · WHEEL TO ZOOM · REAL WEBGL MESH</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
+      <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> THREE.JS LOW-POLY PIPELINE TEST</div><FangbitPrototype paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · WHEEL TO ZOOM · REAL WEBGL MESH</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
       <aside className="lab-panel"><div className="lab-panel-title">PERSONALITY / IDLE</div><p className="lab-help">Fangbit has its own idle. The controls below tune personality only; they do not generate the character.</p>
         <Slider label="Bounce" value={recipe.personality.bounce} min={0} max={.24} onChange={v=>setAnim("bounce",v)}/>
         <Slider label="Head bob" value={recipe.personality.headBob} min={0} max={.18} onChange={v=>setAnim("headBob",v)}/>
