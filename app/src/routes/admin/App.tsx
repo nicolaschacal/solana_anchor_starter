@@ -308,6 +308,7 @@ function Family({ state }: { state: RegistryState }) {
     [journal, setJournal] = useState<PublishJournal | null>(null),
     [preview, setPreview] = useState(false),
     [editing, setEditing] = useState<Evolution | null>(null),
+    [assetFile, setAssetFile] = useState<File | null>(null),
     [storageError, setStorageError] = useState("");
   useEffect(() => {
     setDraft(null);
@@ -391,6 +392,27 @@ function Family({ state }: { state: RegistryState }) {
       save({ tree, baseVersion: active, replaceCollection: true });
     });
   }
+  async function publishLocalReferences() {
+    if (!tree) return;
+    const updated = await tx.publishLocalEvolutionAssets(tree.evolutions);
+    if (updated) edit({ ...tree, evolutions: updated });
+  }
+
+  async function publishEditingAsset() {
+    if (!tree || !editing || !assetFile) return;
+    const bytes = new Uint8Array(await assetFile.arrayBuffer());
+    const type = assetFile.type || (assetFile.name.toLowerCase().endsWith(".svg") ? "image/svg+xml" : "application/octet-stream");
+    const publication = await tx.publishEvolutionAsset(editing, bytes, type);
+    if (!publication) return;
+    const next = { ...editing, assets: publication.assets };
+    setEditing(next);
+    setAssetFile(null);
+    edit({
+      ...tree,
+      evolutions: tree.evolutions.map((e) => (e.id === next.id ? next : e)),
+    });
+  }
+
   async function publish() {
     if (!journal) return;
     const result = await tx.publish(structuredClone(journal), save);
@@ -472,6 +494,12 @@ function Family({ state }: { state: RegistryState }) {
                 ? `View active on-chain${active ? ` v${active}` : ""}`
                 : `Open workbook preview · ${MAMMAL_SEED_EVOLUTION_COUNT} forms`}
             </Link>
+          )}
+          {!sample && authorized && tree && tree.evolutions.some((e) => (e.assets?.imageUri ?? "").startsWith("/")) && (
+            <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
+              <Upload size={16} />
+              Push local assets to Irys
+            </button>
           )}
           {editable && tree && (
             <button disabled={tx.busy} onClick={() => void add()}>
@@ -607,7 +635,7 @@ function Family({ state }: { state: RegistryState }) {
           <EvolutionGraphEditor
             tree={tree}
             editable={editable && !tx.busy}
-            onEditEvolution={(id) => { const e=tree.evolutions.find(x=>x.id===id); if(e) setEditing(structuredClone(e)); }}
+            onEditEvolution={(id) => { const e=tree.evolutions.find(x=>x.id===id); if(e) { setAssetFile(null); setEditing(structuredClone(e)); } }}
             selectedId={selected?.id}
             onClearSelection={() =>
               navigate(`/admin/families/${family}${familyQuery}`)
@@ -682,6 +710,32 @@ function Family({ state }: { state: RegistryState }) {
               <Link to={`/admin/design-lab?species=${editing.id}&name=${encodeURIComponent(editing.name)}&stage=${STAGES[editing.stage]}`}><Palette size={15}/> Open in Design Lab</Link>
               <span>3D asset: {editing.assets?.modelUri || editing.modelUri ? "linked" : "not linked yet"}</span>
               <span>{editing.paths.length} outgoing evolution{editing.paths.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className="specimen-asset-publisher">
+              <div>
+                <strong>Reference artwork → Irys</strong>
+                <small>Choose an image once. Admin uploads the image and its metadata JSON, then stores both immutable URIs in this Rebyter.</small>
+              </div>
+              <input
+                type="file"
+                accept="image/*,.svg"
+                disabled={!editable || tx.busy}
+                onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                disabled={!editable || tx.busy || !assetFile}
+                onClick={() => void publishEditingAsset()}
+              >
+                <Upload size={15}/>
+                {tx.busy ? "Publishing..." : "Push image + metadata to Irys"}
+              </button>
+              {(editing.assets?.imageUri || editing.assets?.metadataUri) && (
+                <div className="specimen-asset-links">
+                  {editing.assets?.imageUri && <a href={editing.assets.imageUri} target="_blank" rel="noreferrer">Image URI <ExternalLink size={11}/></a>}
+                  {editing.assets?.metadataUri && <a href={editing.assets.metadataUri} target="_blank" rel="noreferrer">Metadata URI <ExternalLink size={11}/></a>}
+                </div>
+              )}
             </div>
             <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
             <div className="specimen-edit-actions">
