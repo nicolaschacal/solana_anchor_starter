@@ -20,6 +20,7 @@ import {
   ExternalLink,
   GitBranch,
   LayoutDashboard,
+  Palette,
   Network,
   Plus,
   RefreshCw,
@@ -55,6 +56,7 @@ import type { PublishJournal } from "../../lib/rebyters/publish";
 import { EvolutionEditor } from "../../components/admin/EvolutionEditor";
 import { EvolutionGraphEditor } from "../../components/admin/EvolutionGraphEditor";
 import { ThemeToggle } from "../../components/admin/ThemeToggle";
+import { DesignLab } from "../../components/admin/DesignLab";
 
 const short = (s: string) =>
   s ? `${s.slice(0, 6)}...${s.slice(-5)}` : "Not connected";
@@ -78,6 +80,10 @@ export default function App() {
           <NavLink title="Mammal graph" to="/admin/families/0">
             <Network size={18} />
             Evolution atlas
+          </NavLink>
+          <NavLink to="/admin/design-lab">
+            <Palette size={18} />
+            Design Lab
           </NavLink>
         </nav>
         <div className="sidebar-bottom">
@@ -109,6 +115,7 @@ export default function App() {
               element={<Navigate to="/admin/families/0" replace />}
             />
             <Route path="/admin/families" element={<Home state={state} />} />
+            <Route path="/admin/design-lab" element={<DesignLab />} />
             <Route
               path="/admin/families/:familyId"
               element={<Family state={state} />}
