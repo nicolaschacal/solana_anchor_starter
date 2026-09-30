@@ -1,4 +1,4 @@
-import { LockKeyhole } from "lucide-react";
+import { Activity, Apple, Clock3, Dna, Dumbbell, Flag, HelpCircle, LockKeyhole, Sparkles } from "lucide-react";
 import {
   GROUPS,
   METRICS,
@@ -7,6 +7,12 @@ import {
 } from "../../lib/rebyters/types";
 import type { BalanceProfile, RuleGroup } from "../../lib/rebyters/rule-types";
 import { conditionLabel, resolvedLabel } from "../../lib/rebyters/rules";
+
+const groupIcon = (group: number) => {
+  const icons = [Dna, Apple, Clock3, Activity, Dumbbell];
+  const Icon = icons[group] ?? HelpCircle;
+  return <Icon size={13} aria-hidden="true" />;
+};
 
 function summary(group: RuleGroup, balance: BalanceProfile) {
   const conditions = group.alternatives.flat();
@@ -157,9 +163,20 @@ export function RuleSummary({
   const rule = path.rule;
   return (
     <div className="rule-summary">
-      <strong className="rule-qualification">
-        At least {rule.requiredGroups} of {rule.groups.length} categories
-      </strong>
+      <div className="rule-summary-head">
+        <strong className="rule-qualification">
+          <Flag size={13} aria-hidden="true" />
+          At least {rule.requiredGroups} of {rule.groups.length} categories
+        </strong>
+        <span
+          className="rule-help"
+          tabIndex={0}
+          aria-label="How evolution requirements work"
+          title="Each category passes when one of its alternatives is satisfied. The Rebyter can evolve when at least the required number of categories pass, plus every Mandatory condition. Optional affinities help describe the route but are not required."
+        >
+          <HelpCircle size={14} />
+        </span>
+      </div>
       {rule.mandatory.length > 0 && (
         <div className="rule-gates">
           <strong>
@@ -176,7 +193,7 @@ export function RuleSummary({
       <dl>
         {rule.groups.map((g) => (
           <div key={g.group}>
-            <dt>{GROUPS[g.group]}</dt>
+            <dt><span className="rule-group-icon">{groupIcon(g.group)}</span>{GROUPS[g.group]}</dt>
             <dd
               title={g.alternatives
                 .map((a) =>
@@ -191,8 +208,8 @@ export function RuleSummary({
       </dl>
       {rule.bonuses.length > 0 && (
         <p className="rule-bonus">
-          Optional:{" "}
-          {rule.bonuses.map((c) => conditionLabel(c, balance)).join("; ")}
+          <Sparkles size={12} aria-hidden="true" />
+          Optional: {rule.bonuses.map((c) => conditionLabel(c, balance)).join("; ")}
         </p>
       )}
     </div>
