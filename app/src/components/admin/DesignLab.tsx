@@ -116,7 +116,7 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
           const a=bodyVerts[r*seg+i], b=bodyVerts[r*seg+n],
                 c=bodyVerts[(r+1)*seg+n], d=bodyVerts[(r+1)*seg+i];
           const light=((i+r)%3-1)*3;
-          faces.push({pts:[a,b,c,d],color:shade(orange,light)});
+          faces.push({p:[a,b,c,d],color:shade(orange,light)});
         }
       }
 
