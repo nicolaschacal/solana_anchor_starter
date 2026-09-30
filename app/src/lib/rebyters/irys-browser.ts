@@ -65,7 +65,7 @@ export async function browserUploader(wallet: WalletContextState) {
       // is followed by one upload attempt; if Irys still rejects it, surface
       // diagnostics instead of charging/funding again blindly.
       try {
-        return await irys.upload(data as string | Uint8Array, options);
+        return await irys.upload(data as any, options);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
