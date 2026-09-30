@@ -27,6 +27,7 @@ export function EvolutionOverview({
   onSelect,
   compact = false,
   selectedId,
+  horizontal = false,
 }: {
   tree: TreeJson;
   search: string;
@@ -35,6 +36,7 @@ export function EvolutionOverview({
   onSelect: (id: number) => void;
   compact?: boolean;
   selectedId?: number;
+  horizontal?: boolean;
 }) {
   const query = search.trim().toLowerCase();
   const counts = GRAPH_STAGE_ORDER.map(
@@ -70,7 +72,7 @@ export function EvolutionOverview({
         ))}
       </div>}
       <div
-        className={`collection-groups ${compact ? "is-lineage" : ""}  ${stage === "all" && !query ? "is-all" : ""}`}
+        className={`collection-groups ${compact ? "is-lineage" : ""} ${horizontal ? "is-horizontal-lineage" : ""}  ${stage === "all" && !query ? "is-all" : ""}`}
         aria-label="Specimens by stage"
       >
         {GRAPH_STAGE_ORDER.map((label, i) => {
