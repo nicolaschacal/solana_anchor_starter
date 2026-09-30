@@ -108,6 +108,7 @@ function Atlas({
   const [ready, setReady] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [view, setView] = useState<"grid" | "map">("grid");
+  const [lineageView, setLineageView] = useState<"grid" | "map">("grid");
   const [stageFilter, setStageFilter] = useState<number | "all">(() =>
     window.matchMedia("(max-width: 600px)").matches ? 0 : "all",
   );
@@ -198,7 +199,7 @@ function Atlas({
     return { nodes, edges };
   }, [visible, selected, selectedId, onSelectEvolution, tree.balance]);
   useEffect(() => {
-    if (!ready || (!selected && view === "grid")) return;
+    if (!ready || (!selected && view === "grid") || (selected && lineageView === "grid")) return;
     const frame = requestAnimationFrame(() => {
       if (window.innerWidth <= 800) {
         const focus = nodes.find(
@@ -224,7 +225,7 @@ function Atlas({
       });
     });
     return () => cancelAnimationFrame(frame);
-  }, [ready, selectedId, tree.evolutions.length, flow, selected, nodes, view]);
+  }, [ready, selectedId, tree.evolutions.length, flow, selected, nodes, view, lineageView]);
   const previous = selected
     ? tree.evolutions.filter((e) =>
         e.paths.some((p) => p.target === selected.id),
@@ -258,34 +259,38 @@ function Atlas({
           </div>
         </div>
         <div className="atlas-actions">
-          {!selected && (
-            <div
-              className="atlas-view-switch"
-              role="group"
-              aria-label="Collection view"
+          <div
+            className="atlas-view-switch"
+            role="group"
+            aria-label={selected ? "Lineage view" : "Collection view"}
+          >
+            <button
+              aria-pressed={selected ? lineageView === "grid" : view === "grid"}
+              title={selected ? "Grouped lineage" : "Grouped collection"}
+              aria-label={selected ? "Grouped lineage" : "Grouped collection"}
+              onClick={() => selected ? setLineageView("grid") : setView("grid")}
             >
-              <button
-                aria-pressed={view === "grid"}
-                title="Grouped collection"
-                aria-label="Grouped collection"
-                onClick={() => setView("grid")}
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                aria-pressed={view === "map"}
-                title="Connection map"
-                aria-label="Connection map"
-                onClick={() => {
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              aria-pressed={selected ? lineageView === "map" : view === "map"}
+              title={selected ? "Lineage map" : "Connection map"}
+              aria-label={selected ? "Lineage map" : "Connection map"}
+              onClick={() => {
+                if (selected) {
+                  if (lineageView === "map") return;
+                  setReady(false);
+                  setLineageView("map");
+                } else {
                   if (view === "map") return;
                   setReady(false);
                   setView("map");
-                }}
-              >
-                <Network size={16} />
-              </button>
-            </div>
-          )}
+                }
+              }}
+            >
+              <Network size={16} />
+            </button>
+          </div>
           <div className="atlas-search">
             <Search size={16} />
             <input
@@ -339,7 +344,17 @@ function Atlas({
           )}
         </div>
       )}
-      {!selected && view === "grid" ? (
+      {selected && lineageView === "grid" ? (
+        <EvolutionOverview
+          tree={{ ...tree, evolutions: visible }}
+          search={search}
+          stage="all"
+          onStageChange={() => undefined}
+          onSelect={onSelectEvolution}
+          compact
+          selectedId={selected.id}
+        />
+      ) : !selected && view === "grid" ? (
         <EvolutionOverview
           tree={tree}
           search={search}
