@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, RotateCcw, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw, Save, Sparkles } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 
 type Recipe = {
   schemaVersion: 1;
@@ -136,6 +137,9 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
 const Slider=({label,value,min,max,step=.01,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(v:number)=>void})=><label className="lab-slider"><span>{label}<code>{value.toFixed(2)}</code></span><input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>;
 
 export function DesignLab(){
+  const [params]=useSearchParams();
+  const targetName=params.get("name"), targetStage=params.get("stage"), targetId=params.get("species");
+  const linkedFromAtlas=!!targetId;
   const [recipe,setRecipe]=useState<Recipe>(()=>{try{return JSON.parse(localStorage.getItem("rebyters:design:fangbit")||"null")||DEFAULT}catch{return DEFAULT}});
   const [paused,setPaused]=useState(false),[saved,setSaved]=useState(false);
   const setProp=(k:keyof Recipe["proportions"],v:number)=>setRecipe(r=>({...r,proportions:{...r.proportions,[k]:v}}));
@@ -144,7 +148,7 @@ export function DesignLab(){
   function save(){localStorage.setItem("rebyters:design:fangbit",json);setSaved(true);setTimeout(()=>setSaved(false),1400)}
   function download(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download="fangbit.recipe.json";a.click();URL.revokeObjectURL(a.href)}
   return <section className="design-lab">
-    <div className="page-heading"><div><span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ Fangbit</span></h1></div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
+    <div className="page-heading"><div>{linkedFromAtlas && <Link className="back design-back" to="/admin/families/0"><ArrowLeft size={14}/> Atlas</Link>}<span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ {targetName || "Fangbit"}</span></h1>{linkedFromAtlas && targetName?.toLowerCase()!=="fangbit" && <p className="design-target-note">{targetName} / {targetStage} is selected from the Atlas. Its bespoke renderer has not been authored yet, so the canvas keeps Fangbit as the current reference instead of pretending it is the selected model.</p>}</div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
     <div className="design-grid">
       <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Bespoke specimen. Furry mammalian hatchling. Its cub-like ears, cheek tufts, chest ruff, paws and oversized fluffy tail foreshadow canine, feline and ursine branches.</p>
         <div className="design-signature"><span>SILHOUETTE</span><strong>FOX-CUB / ROUND</strong><span>SIGNATURE</span><strong>FANGS + FLUFFY TAIL</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
