@@ -45,6 +45,8 @@ import {
 import {
   buildMammalWorkbookUpgrade,
   containsMammalWorkbook,
+  hasStructuredMammalRules,
+  upgradeMammalRulesInPlace,
   MAMMAL_SEED_EVOLUTION_COUNT,
   sampleMammal,
 } from "../../lib/rebyters/sample";
@@ -374,13 +376,15 @@ function Family({ state }: { state: RegistryState }) {
   }
   async function prepare() {
     await tx.run(async () => {
+      const nextVersion = state.registry!.nextVersions[family];
+      if (family === 0 && data.tree && containsMammalWorkbook(data.tree) && !hasStructuredMammalRules(data.tree)) {
+        const tree = upgradeMammalRulesInPlace(data.tree, nextVersion);
+        save({ tree, baseVersion: active, replaceCollection: true });
+        return;
+      }
       const seed = sampleMammal();
       const start = await tx.writer().reserve(seed.evolutions.length);
-      const tree = buildMammalWorkbookUpgrade(
-        start,
-        state.registry!.nextVersions[family],
-        data.tree ?? undefined,
-      );
+      const tree = buildMammalWorkbookUpgrade(start, nextVersion, data.tree ?? undefined);
       save({ tree, baseVersion: active, replaceCollection: true });
     });
   }
@@ -439,14 +443,14 @@ function Family({ state }: { state: RegistryState }) {
             authorized &&
             tree &&
             !draft &&
-            !containsMammalWorkbook(tree) && (
+            (!containsMammalWorkbook(tree) || !hasStructuredMammalRules(tree)) && (
               <button
                 className="primary"
                 disabled={tx.busy || data.loading}
                 onClick={() => void prepare()}
               >
                 <Upload size={16} />
-                Prepare workbook v{state.registry?.nextVersions[family] ?? 2}
+                {containsMammalWorkbook(tree) ? "Unify evolution rules" : "Prepare workbook"}
               </button>
             )}
           {tree && (
