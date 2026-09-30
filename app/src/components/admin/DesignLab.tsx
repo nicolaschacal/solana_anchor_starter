@@ -19,7 +19,7 @@ const DEFAULT: Recipe = {
   speciesId: "fangbit",
   name: "Fangbit",
   stage: "BYTE",
-  palette: { primary: "#F28A62", secondary: "#FFE08A", dark: "#29304A" },
+  palette: { primary: "#E96F3C", secondary: "#FFF0C9", dark: "#3B2731" },
   proportions: { body: 1, head: 1, legs: 1, tail: 1, eyeSpacing: 1 },
   personality: { bounce: 0.12, headBob: 0.08, tailWag: 0.16, blinkRate: 3.4 },
   bodyPlan: "baby",
@@ -79,21 +79,21 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       // It should foreshadow caniform/feliform/ursiform branches before any adult species is obvious.
       const pulse=1+Math.sin(t*2.15)*.018;
       const coral=recipe.palette.primary, cream=recipe.palette.secondary, ink=recipe.palette.dark;
-      const furLight=shade(coral,28), furMid=shade(coral,8), furDeep=shade(coral,-34), gold="#F4B84B", blush="#F6A6A0";
+      const furLight=shade(coral,32), furMid=shade(coral,8), furDeep=shade(coral,-38), gold="#D94F32", blush="#F4A08D";
       // squat furry core: still BYTE-simple, but broader at the cheeks and chest
-      faces.push(...ellipsoid([0,.08+bob,0],[.92*pulse,1.00*pulse,.84*pulse],coral,10,6));
-      faces.push(...ellipsoid([0,-.20+bob,.57],[.70,.61,.38],furLight,8,5));
+      faces.push(...ellipsoid([0,.08+bob,0],[.92*pulse,1.00*pulse,.84*pulse],coral,14,8));
+      faces.push(...ellipsoid([0,-.20+bob,.57],[.70,.61,.38],furLight,11,6));
       // shaggy cheek tufts: angular clusters rather than a smooth mask
-      faces.push(...prism([-.55,.22+bob,.55],[-.88,.10+bob,.69],.16,furMid));
-      faces.push(...prism([-.58,-.02+bob,.53],[-.83,-.18+bob,.67],.14,furLight));
+      faces.push(...prism([-.55,.22+bob,.55],[-.88,.10+bob,.69],.115,furMid));
+      faces.push(...prism([-.58,-.02+bob,.53],[-.83,-.18+bob,.67],.105,furLight));
       faces.push(...prism([.55,.22+bob,.55],[.88,.10+bob,.69],.16,furMid));
       faces.push(...prism([.58,-.02+bob,.53],[.83,-.18+bob,.67],.14,furLight));
       // chest ruff makes the mammalian/furry lineage readable from the front
-      faces.push(...prism([-.28,-.42+bob,.63],[-.38,-.72+bob,.70],.14,cream));
-      faces.push(...prism([0,-.45+bob,.68],[0,-.78+bob,.76],.17,cream));
+      faces.push(...prism([-.28,-.42+bob,.63],[-.38,-.72+bob,.70],.10,cream));
+      faces.push(...prism([0,-.45+bob,.68],[0,-.78+bob,.76],.12,cream));
       faces.push(...prism([.28,-.42+bob,.63],[.38,-.72+bob,.70],.14,cream));
       const es=.275*recipe.proportions.eyeSpacing;
-      faces.push(...ellipsoid([-es,.36+bob,.805],[.18,.235*blink,.055],ink,7,3));
+      faces.push(...ellipsoid([-es,.36+bob,.805],[.18,.235*blink,.055],ink,9,4));
       faces.push(...ellipsoid([es,.36+bob,.805],[.18,.235*blink,.055],ink,7,3));
       if(blink>.5){
         faces.push(...ellipsoid([-es-.045,.435+bob,.856],[.046,.058,.014],cream,5,2));
@@ -104,23 +104,23 @@ function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
       faces.push(...prism([-.19,-.05+bob,.86],[-.18,-.34+bob,.91],.062,cream));
       faces.push(...prism([.19,-.05+bob,.86],[.18,-.34+bob,.91],.062,cream));
       // short rounded ear buds: ambiguous between cub, puppy and kitten
-      faces.push(...ellipsoid([-.48,.83+bob,.02],[.25,.29,.18],furDeep,6,3));
+      faces.push(...ellipsoid([-.48,.83+bob,.02],[.25,.29,.18],furDeep,8,4));
       faces.push(...ellipsoid([.48,.83+bob,.02],[.25,.29,.18],furDeep,6,3));
       faces.push(...ellipsoid([-.48,.84+bob,.16],[.12,.15,.07],blush,5,2));
       faces.push(...ellipsoid([.48,.84+bob,.16],[.12,.15,.07],blush,5,2));
       // broad paw-like feet
-      faces.push(...ellipsoid([-.39,-.88+bob,.23],[.34,.17,.40],gold,7,3));
+      faces.push(...ellipsoid([-.39,-.88+bob,.23],[.34,.17,.40],furDeep,9,4));
       faces.push(...ellipsoid([.39,-.88+bob,.23],[.34,.17,.40],gold,7,3));
       // tiny forepaws tucked into the fur
       const armWave=Math.sin(t*2.6)*.045;
-      faces.push(...ellipsoid([-.69,-.10+bob+armWave,.48],[.20,.25,.16],furLight,6,3));
+      faces.push(...ellipsoid([-.69,-.10+bob+armWave,.48],[.20,.25,.16],furLight,8,4));
       faces.push(...ellipsoid([.69,-.10+bob-armWave,.48],[.20,.25,.16],furLight,6,3));
       // oversized fluffy tail, visible beside the body; segmented tufts give it a low-poly fur read.
       const tw=Math.sin(t*2.25)*recipe.personality.tailWag;
-      faces.push(...prism([.68,-.28+bob,-.24],[1.08,-.12+bob+tw,-.34],.24,furDeep));
-      faces.push(...prism([1.02,-.12+bob+tw,-.34],[1.28,.18+bob+tw*1.4,-.22],.29,furMid));
-      faces.push(...ellipsoid([1.28,.25+bob+tw*1.55,-.12],[.35,.43,.32],furLight,7,4));
-      faces.push(...prism([1.28,.46+bob+tw*1.7,-.10],[1.16,.72+bob+tw*1.8,-.02],.17,cream));
+      faces.push(...prism([.68,-.28+bob,-.24],[1.08,-.12+bob+tw,-.34],.18,furDeep));
+      faces.push(...prism([1.02,-.12+bob+tw,-.34],[1.28,.18+bob+tw*1.4,-.22],.21,furMid));
+      faces.push(...ellipsoid([1.28,.25+bob+tw*1.55,-.12],[.35,.43,.32],furLight,10,6));
+      faces.push(...prism([1.28,.46+bob+tw*1.7,-.10],[1.16,.72+bob+tw*1.8,-.02],.12,cream));
       const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
       const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
       const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
@@ -147,7 +147,7 @@ export function DesignLab(){
     <div className="page-heading"><div><span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ Fangbit</span></h1></div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
     <div className="design-grid">
       <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Bespoke specimen. Furry mammalian hatchling. Its cub-like ears, cheek tufts, chest ruff, paws and oversized fluffy tail foreshadow canine, feline and ursine branches.</p>
-        <div className="design-signature"><span>SILHOUETTE</span><strong>FURRY CUB / ROUND</strong><span>SIGNATURE</span><strong>FANGS + FLUFFY TAIL</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
+        <div className="design-signature"><span>SILHOUETTE</span><strong>FOX-CUB / ROUND</strong><span>SIGNATURE</span><strong>FANGS + FLUFFY TAIL</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
         <div className="lab-panel-title sub">FINE TUNING</div>
         <Slider label="Eye spacing" value={recipe.proportions.eyeSpacing} min={.72} max={1.3} onChange={v=>setProp("eyeSpacing",v)}/>
         <div className="lab-panel-title sub">PALETTE</div>
