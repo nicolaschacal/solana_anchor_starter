@@ -26,7 +26,7 @@ import {
 } from "@xyflow/react";
 import {
   GRAPH_STAGE_ORDER,
-  immediateEvolutionNeighborhood,
+  fullEvolutionLineage,
 } from "../../lib/rebyters/graph";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
 import { CreatureSprite } from "./CreatureSprite";
@@ -117,7 +117,7 @@ function Atlas({
   const visible = useMemo(
     () =>
       selected
-        ? immediateEvolutionNeighborhood(tree, selected.id)
+        ? fullEvolutionLineage(tree, selected.id)
         : tree.evolutions,
     [tree, selected],
   );
@@ -253,7 +253,7 @@ function Atlas({
           <span className="lab-cross">+</span>
           <div>
             <span className="eyebrow">
-              {selected ? "DIRECT LINEAGE" : "MAMMAL CHART / V2"}
+              {selected ? "FULL LINEAGE" : "MAMMAL CHART / V2"}
             </span>
             <h2>{selected ? selected.name : "Evolution collection"}</h2>
           </div>
@@ -470,7 +470,7 @@ function Atlas({
               ))}
             </div>
             <span>
-              {selected ? "DIRECT CONNECTIONS" : "ONE ORIGIN / SIX STAGES"}
+              {selected ? "ANCESTORS + DESCENDANTS" : "ONE ORIGIN / SIX STAGES"}
             </span>
           </div>
         </>
