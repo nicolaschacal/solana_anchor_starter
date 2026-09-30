@@ -16,15 +16,50 @@ export async function browserUploader(wallet: WalletContextState) {
     .withProvider(wallet)
     .withRpc(RPC_URL)
     .devnet();
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function ensureUploadBalance(byteLength: number) {
+    const price = await irys.getPrice(byteLength);
+    let balance = await irys.getLoadedBalance();
+    if (balance.gte(price)) return;
+
+    // Devnet funding is asynchronous from the uploader's point of view.
+    // Fund a full upload price (rather than the exact deficit) so a stale
+    // loaded-balance response cannot leave the account a few atomic units short.
+    await irys.fund(price);
+
+    // Wait until the Irys node actually reports the deposit before uploading.
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await sleep(1000);
+      balance = await irys.getLoadedBalance();
+      if (balance.gte(price)) return;
+    }
+    throw new Error("Irys devnet funding was sent but the uploader balance did not update in time. Retry Publish.");
+  }
+
   return {
     async upload(
       data: string,
       options: { tags: { name: string; value: string }[] },
     ) {
-      const price = await irys.getPrice(new TextEncoder().encode(data).length);
-      const balance = await irys.getLoadedBalance();
-      if (balance.lt(price)) await irys.fund(price.minus(balance));
-      return irys.upload(data, options);
+      const bytes = new TextEncoder().encode(data).length;
+      await ensureUploadBalance(bytes);
+
+      // Irys devnet can briefly return 402 while a fresh deposit propagates.
+      // Re-check/fund and retry instead of making the admin restart publication.
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await irys.upload(data, options);
+        } catch (error) {
+          lastError = error;
+          const message = error instanceof Error ? error.message : String(error);
+          if (!message.includes("402") && !message.toLowerCase().includes("not enough balance")) throw error;
+          await ensureUploadBalance(bytes);
+          await sleep(1200 * (attempt + 1));
+        }
+      }
+      throw lastError;
     },
   };
 }
