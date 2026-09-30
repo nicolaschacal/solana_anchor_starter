@@ -384,6 +384,7 @@ export function FangbitPrototype({ paused = false }: { paused?: boolean }) {
     const center = box.getCenter(new THREE.Vector3());
     model.position.sub(center);
     model.scale.setScalar(1.95 / Math.max(size.x, size.y, size.z));
+    const baseModelPosition = model.position.clone();
 
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.78, 28),
@@ -507,6 +508,7 @@ export function FangbitPrototype({ paused = false }: { paused?: boolean }) {
       camera.position.z += (zoom - camera.position.z) * 0.15;
 
       // Deterministic pose from the approved 2D expression sheet.
+      model.position.copy(baseModelPosition);
       parts.headPivot.position.copy(base.headPos);
       parts.bodyPivot.position.copy(base.bodyPos);
       parts.headPivot.rotation.set(0, 0, 0);
