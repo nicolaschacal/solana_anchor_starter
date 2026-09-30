@@ -1,8 +1,22 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Activity, Apple, Clock3, Dna, Dumbbell, Flag, Info, LockKeyhole, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { STAGES, type Evolution, type EvolutionPath, type TreeJson } from "../../lib/rebyters/types";
 import { defaultRule } from "../../lib/rebyters/rules";
 import { RuleEditor } from "./RuleEditor";
 import { RuleSummary } from "./RuleSummary";
+
+
+const requirementIcon = (key: string) => {
+  const k = key.toLowerCase();
+  if (k.includes("genetic")) return <Dna size={14}/>;
+  if (k.includes("diet")) return <Apple size={14}/>;
+  if (k.includes("time")) return <Clock3 size={14}/>;
+  if (k.includes("activity")) return <Activity size={14}/>;
+  if (k.includes("physical")) return <Dumbbell size={14}/>;
+  if (k.includes("mandatory")) return <LockKeyhole size={14}/>;
+  if (k.includes("cycle")) return <RotateCcw size={14}/>;
+  if (k.includes("required")) return <Flag size={14}/>;
+  return <Info size={14}/>;
+};
 
 export function EvolutionEditor({ tree, evolution: e, onChange, readOnly }: { tree: TreeJson; evolution: Evolution; onChange: (e: Evolution) => void; readOnly: boolean }) {
   const update = (patch: Partial<Evolution>) => onChange({ ...e,...patch });
@@ -28,10 +42,10 @@ export function EvolutionEditor({ tree, evolution: e, onChange, readOnly }: { tr
         return <section className="path qualitative-path" key={path.target}>
           <div className="qualitative-path-heading"><label>Target<select value={path.target} onChange={v=>setPath({target:Number(v.target.value)})}>{[target,...available].map(x=><option key={x.id} value={x.id}>{x.name} / {STAGES[x.stage]}</option>)}</select></label><button type="button" className="icon danger" title="Remove path" aria-label="Remove path" onClick={()=>update({paths:e.paths.filter((_,i)=>i!==index)})}><Trash2 size={16}/></button></div>
           <RuleSummary path={path} balance={tree.balance} stage={target.stage}/>
-          {path.designRule && <details className="design-rule-details" open={!path.rule || !tree.balance}><summary>Requirement design</summary><dl>{Object.entries(path.designRule).map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl></details>}
+          {path.designRule && <details className="design-rule-details" open={!path.rule || !tree.balance}><summary>Requirement design</summary><dl>{Object.entries(path.designRule).map(([key,value])=><div key={key} className="design-rule-row"><dt><span className="requirement-icon">{requirementIcon(key)}</span>{key}</dt><dd>{value}</dd></div>)}</dl></details>}
           {path.rule && tree.balance && !readOnly && <details className="rule-edit-details"><summary>Edit numeric requirements for {target.name}</summary><RuleEditor rule={path.rule} balance={tree.balance} stage={target.stage} onChange={rule=>setPath({rule})}/></details>}
           {!path.rule && tree.balance && !readOnly && <button type="button" className="text-button" onClick={()=>setPath({rule:defaultRule()})}><Plus size={14}/>Configure requirements</button>}
-          {!tree.balance && <p className="requirement-migration-note">This active version predates the editable balance profile. Its original design requirements are shown above; numeric rules can be edited after upgrading/publishing the workbook schema.</p>}
+          {!tree.balance && <p className="requirement-migration-note"><Info size={14}/><span><strong>Legacy active version.</strong> The route logic above is readable, but this published v3 does not contain the newer numeric balance profile. Nothing is broken: publish the workbook upgrade before editing exact thresholds from the Admin.</span></p>}
         </section>;
       })}
     </fieldset>
