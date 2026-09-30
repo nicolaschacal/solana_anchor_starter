@@ -1267,3 +1267,16 @@ select:disabled {
 .title-suffix{color:#8a978e;font-weight:400}
 @media(max-width:1150px){.design-grid{grid-template-columns:210px minmax(360px,1fr)}.design-grid>.lab-panel:last-child{grid-column:1/-1}.lab-viewer{min-height:560px}}
 @media(max-width:760px){.design-grid{grid-template-columns:1fr}.design-grid>.lab-panel:last-child{grid-column:auto}.lab-viewer{min-height:480px;order:-1}.lab-note{flex-direction:column;gap:5px}}
+
+/* Design Lab follows the Admin dark visual system */
+:root[data-theme="dark"] .design-lab .lab-panel,
+:root[data-theme="dark"] .design-lab .lab-viewer{background:#1d2321;color:#e0e7e3;border-color:#36423b}
+:root[data-theme="dark"] .design-lab .lab-viewer{background:radial-gradient(circle at 50% 43%,#28322d 0,#1d2421 58%,#171b1a 100%)}
+:root[data-theme="dark"] .design-lab .lab-viewer:after{background:#3b4940}
+:root[data-theme="dark"] .design-lab :is(.lab-help,.viewer-footer span,.recipe-card span,.recipe-card small,.color-field code){color:#a2b3a9}
+:root[data-theme="dark"] .design-lab :is(.lab-panel-title,.lab-slider code){color:#b8d6c2}
+:root[data-theme="dark"] .design-lab :is(.viewer-badge,.recipe-card,.recipe-json pre){background:#222a26;color:#dce7df;border-color:#3b4940}
+:root[data-theme="dark"] .design-lab .lab-note{background:#223028;border-color:#64836e;color:#c6d5cb}
+.body-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:6px}
+.body-plan-grid button{text-transform:uppercase;font:700 9px "IBM Plex Mono",monospace;padding:9px 7px}
+.body-plan-grid button.active{background:#2d4036;border-color:#64836e;color:#c2e9ce}
