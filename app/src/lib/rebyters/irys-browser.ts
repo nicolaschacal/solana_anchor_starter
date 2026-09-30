@@ -26,21 +26,24 @@ export async function browserUploader(wallet: WalletContextState) {
   async function ensureUploadBalance(byteLength: number) {
     const price = await irys.getPrice(byteLength);
     let balance = await irys.getLoadedBalance();
-    if (balance.gte(price)) return;
+    // Keep headroom above the quoted payload price. The upload transaction has
+    // its own header/signature overhead, so equality is not sufficient.
+    const uploadTarget = price.multipliedBy(12).dividedToIntegerBy(10).plus(5_000);
+    if (balance.gte(uploadTarget)) return;
 
     // Irys devnet has an intermittent accounting issue for tiny deposits.
     // Keep a fixed 20,000-lamport floor: this is still devnet SOL, but is large
     // enough to avoid the tiny-deposit behaviour documented by Irys SDK users.
     const DEVNET_FLOOR_LAMPORTS = 20_000;
     const floor = price.constructor(DEVNET_FLOOR_LAMPORTS);
-    const target = floor.gt(price) ? floor : price;
+    const target = floor.gt(uploadTarget) ? floor : uploadTarget;
     const missing = target.minus(balance);
     if (missing.gt(0)) await irys.fund(missing);
 
     for (let attempt = 0; attempt < 30; attempt++) {
       await sleep(1000);
       balance = await irys.getLoadedBalance();
-      if (balance.gte(price)) return;
+      if (balance.gte(uploadTarget)) return;
     }
     throw new Error(
       `Irys devnet funding was signed but not credited after 30s (price=${price.toString()}, loaded=${balance.toString()}).`,
@@ -66,7 +69,7 @@ export async function browserUploader(wallet: WalletContextState) {
         const price = await irys.getPrice(bytes);
         const balance = await irys.getLoadedBalance();
         throw new Error(
-          `Irys devnet rejected the upload after funding (402). uploadPrice=${price.toString()} loadedBalance=${balance.toString()} wallet=${wallet.publicKey!.toBase58()}`,
+          `Irys devnet rejected the upload after funding (402). payloadPrice=${price.toString()} loadedBalance=${balance.toString()} wallet=${wallet.publicKey!.toBase58()}`,
         );
       }
     },
