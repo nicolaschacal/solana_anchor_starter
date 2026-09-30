@@ -93,7 +93,9 @@ export function upgradeMammalRulesInPlace(
         id: start + index,
         name: current.name || authored.name,
         enabled: current.enabled,
-        position: current.position ?? authored.position,
+        ...((current.position ?? authored.position) !== undefined
+          ? { position: current.position ?? authored.position }
+          : {}),
         initialWeight: current.initialWeight ?? authored.initialWeight,
         modelUri: current.modelUri || authored.modelUri,
         assets: { ...authored.assets, ...current.assets },
