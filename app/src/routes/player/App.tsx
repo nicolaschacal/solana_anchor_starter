@@ -3,8 +3,8 @@ import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
-  Activity, Apple, Atom, Bird, BookOpen, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, Fish, Heart, Home, LockKeyhole, MoonStar,
+  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronLeft, ChevronRight,
+  CircleUserRound, Dna, Droplets, Heart, Home, LockKeyhole, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -226,7 +226,7 @@ const ORIGIN_FAMILIES = [
   { id:2, name:"Avian", description:"Winged, aerial and high-mobility lineages.", icon:Bird, enabled:false },
   { id:3, name:"Reptile", description:"Scaled, resilient and ancient lineages.", icon:Zap, enabled:false },
   { id:1, name:"Aquatic", description:"Oceanic and deep-water lineages.", icon:Waves, enabled:false },
-  { id:4, name:"Insect", description:"Compact, specialized and swarm lineages.", icon:Fish, enabled:false },
+  { id:4, name:"Insect", description:"Compact, specialized and swarm lineages.", icon:Bug, enabled:false },
 ];
 
 export function PlayerAcquire() {
