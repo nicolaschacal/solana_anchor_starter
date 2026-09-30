@@ -59,3 +59,52 @@ export function buildMammalWorkbookUpgrade(
 
   return workbook;
 }
+
+
+/**
+ * Development migration: keep the active specimen identities/assets but replace
+ * the legacy path metadata with the single structured rule schema authored in
+ * the Mammal workbook. Publishing this creates the next immutable version and
+ * makes it the only active ruleset used by the app/admin.
+ */
+export function upgradeMammalRulesInPlace(previous: TreeJson, version: number): TreeJson {
+  const seed = structuredClone(mammalSeed) as unknown as TreeJson;
+  const previousByKey = new Map(previous.evolutions.map(e => [e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"), e]));
+  const seedById = new Map(seed.evolutions.map(e => [e.id, e]));
+  const activeIdBySeedId = new Map<number, number>();
+
+  for (const authored of seed.evolutions) {
+    const current = previousByKey.get(authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_"));
+    if (!current) throw new Error(`Active atlas is missing workbook specimen: ${authored.name}`);
+    activeIdBySeedId.set(authored.id, current.id);
+  }
+
+  return {
+    ...seed,
+    version,
+    development: true,
+    evolutions: seed.evolutions.map(authored => {
+      const current = previousByKey.get(authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_"))!;
+      return {
+        ...authored,
+        id: current.id,
+        name: current.name || authored.name,
+        enabled: current.enabled,
+        position: current.position ?? authored.position,
+        initialWeight: current.initialWeight ?? authored.initialWeight,
+        modelUri: current.modelUri || authored.modelUri,
+        assets: { ...authored.assets, ...current.assets },
+        paths: authored.paths.map(path => ({
+          ...path,
+          target: activeIdBySeedId.get(path.target) ?? path.target,
+        })),
+      };
+    }),
+  };
+}
+
+export function hasStructuredMammalRules(tree: TreeJson): boolean {
+  return tree.schema === 2 && !!tree.balance && tree.evolutions.every(e =>
+    e.paths.every(path => !!path.rule)
+  );
+}
