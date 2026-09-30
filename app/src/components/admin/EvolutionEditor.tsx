@@ -15,7 +15,10 @@ export function EvolutionEditor({ tree, evolution: e, onChange, readOnly }: { tr
         <label>Stage<select value={e.stage} onChange={v=>update({stage:Number(v.target.value)})}>{STAGES.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label>
         <label>Initial weight<input type="number" min={0} max={65535} value={e.initialWeight} onChange={v=>update({initialWeight:Number(v.target.value)})}/></label>
         <label className="checkbox"><input type="checkbox" checked={e.enabled} onChange={v=>update({enabled:v.target.checked})}/>Enabled</label>
-        <label className="wide">Model URI<input placeholder="https://..." value={e.modelUri} onChange={v=>update({modelUri:v.target.value})}/></label>
+        <label className="wide">Model URI<input placeholder="irys:// or https://..." value={e.assets?.modelUri ?? e.modelUri} onChange={v=>update({modelUri:v.target.value,assets:{...e.assets,modelUri:v.target.value}})}/></label>
+        <label className="wide">Metadata URI<input placeholder="Irys metadata JSON URI" value={e.assets?.metadataUri ?? ""} onChange={v=>update({assets:{...e.assets,metadataUri:v.target.value}})}/></label>
+        <label className="wide">Image URI<input placeholder="Irys image / thumbnail URI" value={e.assets?.imageUri ?? ""} onChange={v=>update({assets:{...e.assets,imageUri:v.target.value}})}/></label>
+        <label className="wide">Thumbnail URI<input placeholder="Optional atlas thumbnail URI" value={e.assets?.thumbnailUri ?? ""} onChange={v=>update({assets:{...e.assets,thumbnailUri:v.target.value}})}/></label>
       </div>
       <div className="section-heading"><h3>Outgoing paths <span className="count">{e.paths.length}</span></h3><button type="button" disabled={!tree.balance || !available.length || e.paths.length>=16} onClick={()=>update({paths:[...e.paths,{target:available[0].id,rule:defaultRule()}]})}><Plus size={15}/>Add path</button></div>
       {!e.paths.length && <div className="empty">Terminal evolution</div>}
