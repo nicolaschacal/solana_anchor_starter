@@ -25,12 +25,16 @@ export function EvolutionOverview({
   stage,
   onStageChange,
   onSelect,
+  compact = false,
+  selectedId,
 }: {
   tree: TreeJson;
   search: string;
   stage: number | "all";
   onStageChange: (stage: number | "all") => void;
   onSelect: (id: number) => void;
+  compact?: boolean;
+  selectedId?: number;
 }) {
   const query = search.trim().toLowerCase();
   const counts = GRAPH_STAGE_ORDER.map(
@@ -41,7 +45,7 @@ export function EvolutionOverview({
   );
   return (
     <div className="collection-overview">
-      <div
+      {!compact && <div
         className="collection-stage-tabs"
         role="group"
         aria-label="Filter by stage"
@@ -64,9 +68,9 @@ export function EvolutionOverview({
             <span>{counts[i]}</span>
           </button>
         ))}
-      </div>
+      </div>}
       <div
-        className={`collection-groups ${stage === "all" && !query ? "is-all" : ""}`}
+        className={`collection-groups ${compact ? "is-lineage" : ""}  ${stage === "all" && !query ? "is-all" : ""}`}
         aria-label="Specimens by stage"
       >
         {GRAPH_STAGE_ORDER.map((label, i) => {
@@ -96,7 +100,7 @@ export function EvolutionOverview({
                   ).length;
                   return (
                     <button
-                      className="specimen-tile"
+                      className={`specimen-tile ${e.id === selectedId ? "is-selected" : ""}`}
                       key={e.id}
                       aria-label={`${e.name}, ${label}`}
                       onClick={() => onSelect(e.id)}
@@ -133,7 +137,7 @@ export function EvolutionOverview({
           <p className="collection-empty">No matching specimens.</p>
         )}
       </div>
-      <div className="collection-total">
+      {!compact && <div className="collection-total">
         <span>{tree.evolutions.length} SPECIMENS</span>
         <span>
           {tree.evolutions.reduce((n, e) => n + e.paths.length, 0)} EVOLUTION
@@ -143,7 +147,7 @@ export function EvolutionOverview({
           ORIGIN /{" "}
           {tree.evolutions.find((e) => e.stage === 0)?.name ?? "Unassigned"}
         </span>
-      </div>
+      </div>}
     </div>
   );
 }
