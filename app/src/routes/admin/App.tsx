@@ -114,21 +114,15 @@ export default function App() {
         </header>
         <main>
           <Routes>
+            <Route index element={<Navigate to="families/0" replace />} />
+            <Route path="families" element={<Home state={state} />} />
+            <Route path="design-lab" element={<DesignLab />} />
+            <Route path="families/:familyId" element={<Family state={state} />} />
             <Route
-              path="/admin"
-              element={<Navigate to="/admin/families/0" replace />}
-            />
-            <Route path="/admin/families" element={<Home state={state} />} />
-            <Route path="/admin/design-lab" element={<DesignLab />} />
-            <Route
-              path="/admin/families/:familyId"
+              path="families/:familyId/evolutions/:evolutionId"
               element={<Family state={state} />}
             />
-            <Route
-              path="/admin/families/:familyId/evolutions/:evolutionId"
-              element={<Family state={state} />}
-            />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
+            <Route path="*" element={<Navigate to="families/0" replace />} />
           </Routes>
         </main>
         <footer>
