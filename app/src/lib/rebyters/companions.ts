@@ -2,8 +2,13 @@ import type { Wallet } from "@anchor-lang/core";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  ExtensionType,
   TOKEN_2022_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
+  createInitializeMetadataPointerInstruction,
+  createInitializeMint2Instruction,
   getAssociatedTokenAddressSync,
+  getMintLen,
 } from "@solana/spl-token";
 import {
   Connection,
@@ -139,6 +144,38 @@ export async function createRebyter(
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
 
+  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+  const mintRent = await connection.getMinimumBalanceForRentExemption(mintLen);
+
+  const createMintIx = SystemProgram.createAccount({
+    fromPubkey: wallet.publicKey,
+    newAccountPubkey: mint.publicKey,
+    space: mintLen,
+    lamports: mintRent,
+    programId: TOKEN_2022_PROGRAM_ID,
+  });
+  const metadataPointerIx = createInitializeMetadataPointerInstruction(
+    mint.publicKey,
+    rebyter,
+    mint.publicKey,
+    TOKEN_2022_PROGRAM_ID,
+  );
+  const initializeMintIx = createInitializeMint2Instruction(
+    mint.publicKey,
+    0,
+    rebyter,
+    null,
+    TOKEN_2022_PROGRAM_ID,
+  );
+  const createAtaIx = createAssociatedTokenAccountInstruction(
+    wallet.publicKey,
+    ownerTokenAccount,
+    wallet.publicKey,
+    mint.publicKey,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+
   const program = getProgram(connection, anchorWallet);
   const ix = await program.methods
     .createRebyter(
@@ -158,13 +195,18 @@ export async function createRebyter(
       mint: mint.publicKey,
       ownerTokenAccount,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
+    createMintIx,
+    metadataPointerIx,
+    initializeMintIx,
+    createAtaIx,
+    ix,
+  );
   tx.partialSign(mint);
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize(), {
