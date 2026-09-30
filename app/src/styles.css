@@ -1377,3 +1377,12 @@ select:disabled {
 :root[data-theme="dark"] .admin-workflow-step.is-active{background:#213029;border-color:#4d745b}
 :root[data-theme="dark"] .admin-workflow-step.is-active>span{background:#3c7653}
 @media(max-width:850px){.admin-workflow{grid-template-columns:1fr}.admin-workflow-step small{white-space:normal}}
+
+.design-rule-details{margin:10px 0 4px;padding:9px 11px;border:1px solid #354039;border-radius:5px;background:#1b211e}
+.design-rule-details summary{cursor:pointer;color:#b8d6c1;font-size:11px;font-weight:700}
+.design-rule-details dl{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin:10px 0 0}
+.design-rule-details dl>div{display:grid;grid-template-columns:115px 1fr;gap:8px;padding:6px 0;border-top:1px solid #2c3731}
+.design-rule-details dt{color:#7f9387;font-size:9px}
+.design-rule-details dd{margin:0;color:#c7d4cc;font-size:10px;line-height:1.45}
+.requirement-migration-note{margin:9px 0 0;padding:8px 10px;border-left:2px solid #9c7a3d;background:#27251d;color:#c7b88f;font-size:10px;line-height:1.45}
+@media(max-width:700px){.design-rule-details dl{grid-template-columns:1fr}.design-rule-details dl>div{grid-template-columns:100px 1fr}}
