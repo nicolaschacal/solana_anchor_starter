@@ -107,36 +107,56 @@ function EmptyCompanion({
   creating:boolean;
   status:string;
   error:string;
-  onCreate:()=>void;
+  onCreate:(familyId:number)=>void;
 }) {
   const { connected }=useWallet();
+  const [choosing,setChoosing]=useState(false);
+  const families=[
+    {id:0,name:"Mammal",description:"Terrestrial and aquatic mammal lineages.",icon:Shield,enabled:true},
+    {id:8,name:"Amphibian",description:"Wetland and metamorphic lineages.",icon:Droplets,enabled:false},
+    {id:2,name:"Avian",description:"Winged and aerial lineages.",icon:Bird,enabled:false},
+    {id:3,name:"Reptile",description:"Scaled and resilient lineages.",icon:Zap,enabled:false},
+  ];
   return <main className="player-main player-home-layout empty-layout">
-    <section className="empty-companion-card">
+    <section className="empty-companion-card game-empty-state">
       <div className="empty-orb"><Sparkles/></div>
       <small>{connected ? "YOUR DEN IS EMPTY" : "WELCOME TO REBYTERS"}</small>
-      <h1>{connected ? "Create your first Rebyter." : "Connect to meet your companion."}</h1>
+      <h1>{connected ? "Your first companion is waiting." : "Connect to begin your journey."}</h1>
       <p>{connected
-        ? "Mammal is the only origin family open in this first test. Creation price is 0 SOL; normal Solana network rent and transaction fees still apply."
-        : "Connect a wallet or, later, use passkey onboarding to access your Rebyters."}</p>
-      {connected ? <>
-        <div className="home-origin-choice">
-          <div className="home-origin-card selected">
-            <Shield/>
-            <span><strong>Mammal</strong><small>Available · BIT origin</small></span>
-          </div>
-          <div className="home-origin-card locked"><Bird/><span><strong>Avian</strong><small>Locked</small></span><LockKeyhole/></div>
-          <div className="home-origin-card locked"><Droplets/><span><strong>Amphibian</strong><small>Locked</small></span><LockKeyhole/></div>
-        </div>
-        <button className="create-rebyter-cta" disabled={creating} onClick={onCreate}>
-          <Dna/>
-          <span><strong>{creating ? "Creating Mammal…" : "Create Mammal"}</strong><small>0 SOL creation price</small></span>
-          <ChevronRight/>
-        </button>
-        {status&&<div className="create-status">{status}</div>}
-        {error&&<div className="create-error">{error}</div>}
-      </> : <WalletMultiButton>Connect wallet</WalletMultiButton>}
+        ? "Create your first Rebyter and start shaping its evolution through your choices."
+        : "Connect a wallet or, later, use passkey onboarding to access your companions."}</p>
+      {connected
+        ? <button className="first-companion-cta" onClick={()=>setChoosing(true)}>
+            <Sparkles/>
+            <span><strong>Mint your first companion</strong><small>Choose an origin family · 0 SOL creation price</small></span>
+            <ChevronRight/>
+          </button>
+        : <WalletMultiButton>Connect wallet</WalletMultiButton>}
+      {status&&<div className="create-status">{status}</div>}
+      {error&&<div className="create-error">{error}</div>}
     </section>
     <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter keeps the same Token-2022 mint while its on-chain evolution state changes.</p></div></aside>
+
+    {choosing&&<div className="origin-sheet-backdrop" onClick={()=>!creating&&setChoosing(false)}>
+      <section className="origin-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="origin-sheet-head">
+          <div><small>CHOOSE AN ORIGIN</small><h2>What kind of Rebyter do you want?</h2><p>Your origin determines the first BIT and its evolution atlas.</p></div>
+          <button className="origin-sheet-close" disabled={creating} onClick={()=>setChoosing(false)}>×</button>
+        </div>
+        <div className="origin-sheet-grid">
+          {families.map(item=>{const Icon=item.icon;return <button
+            key={item.name}
+            disabled={!item.enabled||creating}
+            className={item.enabled?"origin-pick available":"origin-pick locked"}
+            onClick={()=>item.enabled&&onCreate(item.id)}
+          >
+            <span className="origin-pick-icon"><Icon/></span>
+            <span><strong>{item.name}</strong><small>{item.description}</small></span>
+            {item.enabled?<b>{creating?"Minting…":"Choose"}</b>:<span className="origin-pick-lock"><LockKeyhole/> Coming soon</span>}
+          </button>})}
+        </div>
+      </section>
+    </div>}
   </main>;
 }
 
@@ -154,7 +174,7 @@ export function PlayerHome() {
     creating={player.creating}
     status={player.status}
     error={player.error || error}
-    onCreate={()=>{void player.create(0).catch(()=>undefined)}}
+    onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
   /></Shell>;
 
   return <Shell><Header/><main className="player-main player-home-layout">
