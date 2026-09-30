@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Activity, Apple, Atom, BookOpen, ChevronRight, CircleUserRound, Dna, Heart, Home, LockKeyhole, MoonStar, Sparkles, Zap } from "lucide-react";
@@ -33,6 +33,7 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
 }
 
 export function PlayerHome() {
+  const navigate = useNavigate();
   const [reaction,setReaction]=useState("Fangbit is curious today.");
   return <Shell><Header/><main className="player-main">
     <section className="pet-card">
@@ -49,6 +50,7 @@ export function PlayerHome() {
         <button onClick={()=>setReaction("Fangbit is resting...")}><MoonStar/><span>Rest</span></button>
       </div>
     </section>
+    <button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve Fangbit</strong></span><ChevronRight/></button>
     <section className="stats-section"><div className="section-title"><div><small>TODAY</small><h2>Fangbit's stats</h2></div><span>Healthy</span></div>
       <div className="stats-grid">
         <Stat icon={<Apple/>} label="Hunger" value="72%"/><Stat icon={<Heart/>} label="Bond" value="12"/><Stat icon={<Activity/>} label="Activity" value="38"/><Stat icon={<Zap/>} label="Energy" value="84%"/>
