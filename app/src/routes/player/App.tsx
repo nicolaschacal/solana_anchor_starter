@@ -3,17 +3,19 @@ import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
-  Activity, Apple, Atom, BookOpen, ChevronLeft, ChevronRight, CircleUserRound,
-  Dna, Heart, Home, LockKeyhole, MoonStar, Plus, ShoppingBag, Sparkles,
-  WalletCards, Zap,
+  Activity, Apple, Atom, Bird, BookOpen, ChevronLeft, ChevronRight,
+  CircleUserRound, Dna, Droplets, Fish, Heart, Home, LockKeyhole, MoonStar,
+  Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
+import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
-import type { Evolution } from "../../lib/rebyters/types";
+import type { Evolution, TreeJson } from "../../lib/rebyters/types";
+import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import "./player.css";
 
-const tree = sampleMammal();
+const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
 
 type OwnedRebyter = {
@@ -26,22 +28,28 @@ type OwnedRebyter = {
   energy: number;
 };
 
-// Temporary collection adapter. Production will replace this body with the
-// Token-2022 wallet scan. ?demo=1 exists only to preview multi-Rebyter UX.
-function useOwnedRebyters(): OwnedRebyter[] {
+function usePlayerCollection() {
+  const chain = usePlayerRebyters();
   const wallet = useWallet();
   const [params] = useSearchParams();
-  return useMemo(() => {
-    if (!wallet.connected) return [];
-    if (import.meta.env.DEV && params.get("demo") === "1") {
-      return [
-        { mint: "demo-fangbit", evolutionId: 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84 },
-        { mint: "demo-wolf", evolutionId: 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68 },
-        { mint: "demo-dire", evolutionId: 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59 },
-      ];
-    }
-    return [];
-  }, [wallet.connected, params]);
+  const tree = chain.mammalTree ?? fallbackTree;
+  let owned: OwnedRebyter[] = chain.owned.map((item) => ({
+    mint: item.mint,
+    evolutionId: item.evolutionId,
+    level: item.stage + 1,
+    bond: item.bond,
+    hunger: item.hunger,
+    activity: item.activity,
+    energy: item.energy,
+  }));
+  if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
+    owned = [
+      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84 },
+      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68 },
+      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59 },
+    ];
+  }
+  return { ...chain, tree, owned };
 }
 
 function Nav() {
@@ -61,7 +69,10 @@ function Header() {
   const { connected } = useWallet();
   return <header className="player-head">
     <div><span className="player-logo">REBYTERS</span><small>digital companions</small></div>
-    {connected ? <WalletMultiButton/> : <WalletMultiButton>Connect</WalletMultiButton>}
+    <div className="player-head-actions">
+      <ThemeToggle/>
+      {connected ? <WalletMultiButton/> : <WalletMultiButton>Connect</WalletMultiButton>}
+    </div>
   </header>;
 }
 
@@ -70,22 +81,16 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
 }
 
 function RebyterPicker({
-  owned,
-  activeMint,
-  onSelect,
-}:{owned:OwnedRebyter[];activeMint:string;onSelect:(mint:string)=>void}) {
+  owned, activeMint, onSelect, tree,
+}:{owned:OwnedRebyter[];activeMint:string;onSelect:(mint:string)=>void;tree:TreeJson}) {
   if (owned.length < 2) return null;
   return <section className="companion-picker">
     <div><small>YOUR REBYTERS</small><strong>{owned.length} companions</strong></div>
     <div className="companion-picker-row">
       {owned.map(item=>{
-        const evolution=tree.evolutions.find(e=>e.id===item.evolutionId)!;
-        return <button
-          key={item.mint}
-          className={item.mint===activeMint?"active":""}
-          onClick={()=>onSelect(item.mint)}
-          title={evolution.name}
-        >
+        const evolution=tree.evolutions.find(e=>e.id===item.evolutionId);
+        if (!evolution) return null;
+        return <button key={item.mint} className={item.mint===activeMint?"active":""} onClick={()=>onSelect(item.mint)} title={evolution.name}>
           <CreatureSprite evolution={evolution}/><span>{evolution.name}</span>
         </button>;
       })}
@@ -102,29 +107,30 @@ function EmptyCompanion() {
       <small>{connected ? "YOUR DEN IS EMPTY" : "WELCOME TO REBYTERS"}</small>
       <h1>{connected ? "Your first Rebyter is waiting." : "Connect to meet your companion."}</h1>
       <p>{connected
-        ? "You don't have a Rebyter in this wallet yet. Acquire one to start feeding, playing and discovering its evolution path."
+        ? "You don't have a Rebyter in this wallet yet. Create one to start training it and discovering its evolution path."
         : "Connect a wallet or, later, use passkey onboarding to access your Rebyters."}</p>
       {connected
-        ? <button className="acquire-cta" onClick={()=>navigate("/acquire")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Start your first evolution journey</small></span><ChevronRight/></button>
+        ? <button className="acquire-cta" onClick={()=>navigate("/acquire")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button>
         : <WalletMultiButton>Connect wallet</WalletMultiButton>}
     </section>
-    <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter keeps the same identity while its evolution state changes over time.</p></div></aside>
+    <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter keeps the same Token-2022 mint while its on-chain evolution state changes.</p></div></aside>
   </main>;
 }
 
 export function PlayerHome() {
   const navigate = useNavigate();
-  const owned = useOwnedRebyters();
-  const [activeMint,setActiveMint]=useState(owned[0]?.mint ?? "");
+  const { owned, tree, loading, error } = usePlayerCollection();
+  const [activeMint,setActiveMint]=useState("");
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
   const [reaction,setReaction]=useState("Your companion is watching you.");
 
-  if (!active || !evolution) return <Shell><Header/><EmptyCompanion/></Shell>;
+  if (loading && !owned.length) return <Shell><Header/><main className="player-main"><div className="player-loading"><Sparkles/><strong>Scanning your den…</strong></div></main></Shell>;
+  if (!active || !evolution) return <Shell><Header/><EmptyCompanion/>{error&&<div className="player-inline-error">{error}</div>}</Shell>;
 
   return <Shell><Header/><main className="player-main player-home-layout">
     <aside className="home-side home-side-left">
-      <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint}/>
+      <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
       <section className="stats-section desktop-stats">
         <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
         <div className="stats-grid">
@@ -168,8 +174,8 @@ export function PlayerHome() {
 
 export function PlayerLab() {
   const navigate=useNavigate();
-  const owned=useOwnedRebyters();
-  if (!owned.length) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/acquire")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Begin with your first companion</small></span><ChevronRight/></button></main></Shell>;
+  const { owned, tree }=usePlayerCollection();
+  if (!owned.length) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/acquire")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button></main></Shell>;
   const active=owned[0];
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId)!;
   return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>Potential detected</h1><p>Your choices shape what {evolution.name} becomes. Conditions stay hidden until your companion gets close to a path.</p></div>
@@ -178,7 +184,7 @@ export function PlayerLab() {
   </main></Shell>;
 }
 
-function AtlasLineage({ evolution, onBack }:{evolution:Evolution;onBack:()=>void}) {
+function AtlasLineage({ evolution, onBack, tree }:{evolution:Evolution;onBack:()=>void;tree:TreeJson}) {
   const lineage=fullEvolutionLineage(tree,evolution.id);
   const grouped=STAGE_NAMES.map((label,stage)=>({label,stage,items:lineage.filter(e=>e.stage===stage)})).filter(x=>x.items.length);
   return <>
@@ -197,12 +203,12 @@ function AtlasLineage({ evolution, onBack }:{evolution:Evolution;onBack:()=>void
 }
 
 export function PlayerAtlas() {
-  const owned=useOwnedRebyters();
+  const { owned, tree }=usePlayerCollection();
   const ownedEvolutionIds=new Set(owned.map(x=>x.evolutionId));
   const [selectedId,setSelectedId]=useState<number|null>(null);
-  const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[]);
+  const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
-  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)}/></main></Shell>;
+  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} tree={tree}/></main></Shell>;
   return <Shell><Header/><main className="player-main atlas-player"><div className="player-page-head"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Only forms your wallet has actually reached are revealed. Select one of your discovered Rebyters to inspect its complete lineage.</p></div>
     <div className="atlas-progress"><span><strong>{ownedEvolutionIds.size}</strong> / {tree.evolutions.length} discovered</span><div><i style={{width:`${ownedEvolutionIds.size/tree.evolutions.length*100}%`}}/></div></div>
     {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<CreatureSprite evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
@@ -210,11 +216,52 @@ export function PlayerAtlas() {
 }
 
 export function PlayerAccount() {
-  const owned=useOwnedRebyters();
+  const { owned }=usePlayerCollection();
   return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, identity and your Rebyters live here.</p></div><section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Solana wallet support is active. Passkey onboarding can connect to this same identity layer next.</p></div><WalletMultiButton/></section><section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Choose your active Rebyter from Home.":"No Rebyters found in this wallet."}</p></div></section></main></Shell>;
 }
 
+const ORIGIN_FAMILIES = [
+  { id:0, name:"Mammal", description:"Warm-blooded terrestrial and aquatic lineages.", icon:Shield, enabled:true },
+  { id:8, name:"Amphibian", description:"Adaptive wetland and metamorphic lineages.", icon:Droplets, enabled:false },
+  { id:2, name:"Avian", description:"Winged, aerial and high-mobility lineages.", icon:Bird, enabled:false },
+  { id:3, name:"Reptile", description:"Scaled, resilient and ancient lineages.", icon:Zap, enabled:false },
+  { id:1, name:"Aquatic", description:"Oceanic and deep-water lineages.", icon:Waves, enabled:false },
+  { id:4, name:"Insect", description:"Compact, specialized and swarm lineages.", icon:Fish, enabled:false },
+];
+
 export function PlayerAcquire() {
   const navigate=useNavigate();
-  return <Shell><Header/><main className="player-main acquire-page"><div className="player-page-head"><small>FIRST COMPANION</small><h1>Acquire a Rebyter</h1><p>This is the acquisition entry point. The mint flow will plug in here once the Token-2022 program is ready.</p></div><section className="acquire-preview"><div className="empty-orb"><Dna/></div><h2>Your journey starts at BIT</h2><p>One permanent mint will carry the Rebyter through every form it reaches.</p><button disabled><Plus/> Mint flow coming next</button><button className="text-back" onClick={()=>navigate("/")}><ChevronLeft/> Back home</button></section></main></Shell>;
+  const wallet=useWallet();
+  const player=usePlayerRebyters();
+  const [family,setFamily]=useState(0);
+
+  async function create() {
+    try {
+      await player.create(family);
+      navigate("/");
+    } catch {
+      // Hook exposes the useful message in the UI.
+    }
+  }
+
+  return <Shell><Header/><main className="player-main acquire-page">
+    <div className="player-page-head"><small>FIRST COMPANION</small><h1>Choose an origin</h1><p>Your origin family defines the first BIT and the atlas used to initialize its visual identity. More families will open later.</p></div>
+    <div className="origin-grid">
+      {ORIGIN_FAMILIES.map(item=>{const Icon=item.icon;return <button key={item.name} disabled={!item.enabled} className={family===item.id&&item.enabled?"origin-card selected":"origin-card"} onClick={()=>item.enabled&&setFamily(item.id)}>
+        <span className="origin-icon"><Icon/></span>
+        <span><strong>{item.name}</strong><small>{item.description}</small></span>
+        {!item.enabled?<span className="origin-lock"><LockKeyhole/> Locked</span>:<span className="origin-ready">Available</span>}
+      </button>})}
+    </div>
+    <section className="create-summary">
+      <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own on-chain DNA and randomized genetic predispositions.</p></div>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Unique on-chain seed</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      {!wallet.connected
+        ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
+        : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
+      {player.status&&<div className="create-status">{player.status}</div>}
+      {player.error&&<div className="create-error">{player.error}</div>}
+      <button className="text-back" onClick={()=>navigate("/")}><ChevronLeft/> Back home</button>
+    </section>
+  </main></Shell>;
 }
