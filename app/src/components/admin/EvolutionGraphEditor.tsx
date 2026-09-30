@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Columns3,
   Focus,
   GitBranch,
   LayoutGrid,
