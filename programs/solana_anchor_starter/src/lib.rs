@@ -226,7 +226,7 @@ pub mod solana_anchor_starter {
         if metadata_lamports > 0 {
             transfer(
                 CpiContext::new(
-                    ctx.accounts.system_program.to_account_info(),
+                    ctx.accounts.system_program.key(),
                     Transfer {
                         from: ctx.accounts.owner.to_account_info(),
                         to: ctx.accounts.mint.to_account_info(),
@@ -245,7 +245,7 @@ pub mod solana_anchor_starter {
 
         token_metadata_initialize(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program.key(),
                 TokenMetadataInitialize {
                     program_id: ctx.accounts.token_program.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
@@ -262,7 +262,7 @@ pub mod solana_anchor_starter {
 
         mint_to(
             CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.token_program.key(),
                 MintTo {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.owner_token_account.to_account_info(),
