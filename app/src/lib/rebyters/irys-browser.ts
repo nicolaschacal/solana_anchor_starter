@@ -23,18 +23,20 @@ export async function browserUploader(wallet: WalletContextState) {
     let balance = await irys.getLoadedBalance();
     if (balance.gte(price)) return;
 
-    // Devnet funding is asynchronous from the uploader's point of view.
-    // Fund a full upload price (rather than the exact deficit) so a stale
-    // loaded-balance response cannot leave the account a few atomic units short.
-    await irys.fund(price);
+    // Irys funding transactions have overhead/minimums that are larger than a
+    // tiny JSON upload price. Funding only `price` can produce a transaction
+    // that the devnet node rejects with HTTP 402 even when the wallet itself
+    // has plenty of devnet SOL. Keep a small devnet upload buffer instead.
+    const minimumBuffer = price.multipliedBy(20);
+    const target = minimumBuffer.gt(price) ? minimumBuffer : price;
+    await irys.fund(target);
 
-    // Wait until the Irys node actually reports the deposit before uploading.
-    for (let attempt = 0; attempt < 12; attempt++) {
+    for (let attempt = 0; attempt < 20; attempt++) {
       await sleep(1000);
       balance = await irys.getLoadedBalance();
       if (balance.gte(price)) return;
     }
-    throw new Error("Irys devnet funding was sent but the uploader balance did not update in time. Retry Publish.");
+    throw new Error("Irys devnet funding was signed, but its loaded balance did not update. Retry Publish.");
   }
 
   return {
