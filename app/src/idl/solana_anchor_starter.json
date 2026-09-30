@@ -354,6 +354,97 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "create_rebyter",
+      "discriminator": [
+        240,
+        89,
+        222,
+        140,
+        201,
+        45,
+        130,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "registry"
+        },
+        {
+          "name": "tree"
+        },
+        {
+          "name": "rebyter",
+          "writable": true
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "tree_version",
+          "type": "u32"
+        },
+        {
+          "name": "evolution_id",
+          "type": "u32"
+        },
+        {
+          "name": "evolution_leaf_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "proof",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -382,6 +473,19 @@
         221,
         79
       ]
+    },
+    {
+      "name": "Rebyter",
+      "discriminator": [
+        88,
+        230,
+        134,
+        156,
+        13,
+        212,
+        125,
+        164
+      ]
     }
   ],
   "events": [
@@ -396,6 +500,19 @@
         73,
         203,
         45
+      ]
+    },
+    {
+      "name": "RebyterCreated",
+      "discriminator": [
+        209,
+        144,
+        56,
+        82,
+        105,
+        245,
+        50,
+        14
       ]
     }
   ],
@@ -444,6 +561,26 @@
       "code": 6008,
       "name": "Authority",
       "msg": "Invalid authority"
+    },
+    {
+      "code": 6009,
+      "name": "FamilyLocked",
+      "msg": "This Rebyter family is not open for creation yet"
+    },
+    {
+      "code": 6010,
+      "name": "InactiveTree",
+      "msg": "The requested evolution tree is not the active family tree"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidEvolutionProof",
+      "msg": "The BIT reference could not be verified against the active atlas"
+    },
+    {
+      "code": 6012,
+      "name": "InvalidMetadata",
+      "msg": "Rebyter metadata is invalid"
     }
   ],
   "types": [
@@ -542,6 +679,132 @@
               "array": [
                 "u32",
                 16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Rebyter",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "tree_version",
+            "type": "u32"
+          },
+          {
+            "name": "evolution_id",
+            "type": "u32"
+          },
+          {
+            "name": "evolution_leaf_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "dna",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "genes",
+            "type": {
+              "array": [
+                "u8",
+                14
+              ]
+            }
+          },
+          {
+            "name": "weight",
+            "type": "u16"
+          },
+          {
+            "name": "bond",
+            "type": "u16"
+          },
+          {
+            "name": "activity",
+            "type": "u32"
+          },
+          {
+            "name": "hunger",
+            "type": "u16"
+          },
+          {
+            "name": "energy",
+            "type": "u16"
+          },
+          {
+            "name": "diet",
+            "type": {
+              "array": [
+                "u32",
+                4
+              ]
+            }
+          },
+          {
+            "name": "time_interactions",
+            "type": {
+              "array": [
+                "u32",
+                4
+              ]
+            }
+          },
+          {
+            "name": "total_interactions",
+            "type": "u32"
+          },
+          {
+            "name": "cycle",
+            "type": "u16"
+          },
+          {
+            "name": "last_interaction",
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "metadata_uri_len",
+            "type": "u16"
+          },
+          {
+            "name": "metadata_uri",
+            "type": {
+              "array": [
+                "u8",
+                128
               ]
             }
           }
