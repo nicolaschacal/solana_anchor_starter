@@ -1287,3 +1287,9 @@ select:disabled {
 :root[data-theme="dark"] .design-signature{background:#222a26;border-color:#3b4940}
 :root[data-theme="dark"] .design-signature span{color:#82998b}
 :root[data-theme="dark"] .design-signature strong{color:#c2e9ce}
+
+/* Focused lineage in grouped/block view */
+.collection-groups.is-lineage{padding-top:0}
+.collection-groups.is-lineage .collection-stage{min-height:72px}
+.collection-groups.is-lineage .specimen-tile.is-selected{border-color:var(--stage-color);box-shadow:inset 3px 0 0 var(--stage-color);background:color-mix(in srgb,var(--stage-color) 10%,transparent)}
+:root[data-theme="dark"] .collection-groups.is-lineage .specimen-tile.is-selected{background:color-mix(in srgb,var(--stage-color) 16%,#222a26)}
