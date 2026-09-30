@@ -10,6 +10,7 @@ import {
   Maximize2,
   Minus,
   Plus,
+  Pencil,
   Search,
   X,
 } from "lucide-react";
@@ -47,6 +48,7 @@ type CreatureNode = Node<
     active: boolean;
     compact: boolean;
     select: (id: number) => void;
+    edit?: (id: number) => void;
   },
   "creature"
 >;
@@ -55,22 +57,23 @@ function SpecimenNode({ data }: NodeProps<CreatureNode>) {
   return (
     <>
       <Handle type="target" position={Position.Left} isConnectable={false} />
-      <button
-        className={`creature-node ${data.compact ? "is-compact" : ""} ${data.active ? "is-selected" : ""}`}
-        aria-pressed={data.active}
-        aria-label={`${e.name}, ${GRAPH_STAGE_ORDER[e.stage]}`}
-        onClick={() => data.select(e.id)}
-        style={{ "--stage-color": COLORS[e.stage] } as React.CSSProperties}
-      >
-        <CreatureSprite evolution={e} />
-        <span>
-          <small>{e.stage === 0 ? "ORIGIN / BIT" : e.family}</small>
-          <strong>{e.name}</strong>
-          <span className="specimen-code">
-            {e.paths.length ? `${e.paths.length} routes` : "Final form"}
+      <div className="creature-node-wrap">
+        <button
+          className={`creature-node ${data.compact ? "is-compact" : ""} ${data.active ? "is-selected" : ""}`}
+          aria-pressed={data.active}
+          aria-label={`${e.name}, ${GRAPH_STAGE_ORDER[e.stage]}`}
+          onClick={() => data.select(e.id)}
+          style={{ "--stage-color": COLORS[e.stage] } as React.CSSProperties}
+        >
+          <CreatureSprite evolution={e} />
+          <span>
+            <small>{e.stage === 0 ? "ORIGIN / BIT" : e.family}</small>
+            <strong>{e.name}</strong>
+            <span className="specimen-code">{e.paths.length ? `${e.paths.length} routes` : "Final form"}</span>
           </span>
-        </span>
-      </button>
+        </button>
+        {data.edit && <button className="creature-node-edit" title={`Edit ${e.name}`} aria-label={`Edit ${e.name}`} onClick={() => data.edit?.(e.id)}><Pencil size={12}/></button>}
+      </div>
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </>
   );
@@ -91,6 +94,8 @@ interface Props {
   selectedId?: number | null;
   onSelectEvolution: (id: number) => void;
   onClearSelection: () => void;
+  editable?: boolean;
+  onEditEvolution?: (id: number) => void;
 }
 export function EvolutionGraphEditor(props: Props) {
   return (
@@ -104,11 +109,13 @@ function Atlas({
   selectedId,
   onSelectEvolution,
   onClearSelection,
+  editable = false,
+  onEditEvolution,
 }: Props) {
   const [search, setSearch] = useState("");
   const [ready, setReady] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [view, setView] = useState<"grid" | "map">("grid");
+  const [view, setView] = useState<"grid" | "columns" | "map">("grid");
   const [lineageView, setLineageView] = useState<"grid" | "columns" | "map">("grid");
   const [stageFilter, setStageFilter] = useState<number | "all">(() =>
     window.matchMedia("(max-width: 600px)").matches ? 0 : "all",
@@ -157,6 +164,7 @@ function Atlas({
           active: e.id === selectedId,
           compact: !selected,
           select: onSelectEvolution,
+          edit: editable ? onEditEvolution : undefined,
         },
         width: selected ? 300 : 210,
         height: cardHeight,
@@ -198,9 +206,9 @@ function Atlas({
         }),
     );
     return { nodes, edges };
-  }, [visible, selected, selectedId, onSelectEvolution, tree.balance]);
+  }, [visible, selected, selectedId, onSelectEvolution, tree.balance, editable, onEditEvolution]);
   useEffect(() => {
-    if (!ready || (!selected && view === "grid") || (selected && lineageView !== "map")) return;
+    if (!ready || (!selected && view !== "map") || (selected && lineageView !== "map")) return;
     const frame = requestAnimationFrame(() => {
       if (window.innerWidth <= 800) {
         const focus = nodes.find(
@@ -273,16 +281,14 @@ function Atlas({
             >
               <LayoutGrid size={16} />
             </button>
-            {selected && (
-              <button
-                aria-pressed={lineageView === "columns"}
-                title="Stage columns"
-                aria-label="Stage columns"
-                onClick={() => setLineageView("columns")}
-              >
-                <Columns3 size={16} />
-              </button>
-            )}
+            <button
+              aria-pressed={selected ? lineageView === "columns" : view === "columns"}
+              title="Stage columns"
+              aria-label="Stage columns"
+              onClick={() => selected ? setLineageView("columns") : setView("columns")}
+            >
+              <Columns3 size={16} />
+            </button>
             <button
               aria-pressed={selected ? lineageView === "map" : view === "map"}
               title={selected ? "Lineage map" : "Connection map"}
@@ -364,6 +370,8 @@ function Atlas({
           onSelect={onSelectEvolution}
           compact
           selectedId={selected.id}
+          editable={editable}
+          onEdit={onEditEvolution}
           horizontal
         />
       ) : selected && lineageView === "grid" ? (
@@ -375,6 +383,19 @@ function Atlas({
           onSelect={onSelectEvolution}
           compact
           selectedId={selected.id}
+          editable={editable}
+          onEdit={onEditEvolution}
+        />
+      ) : !selected && view === "columns" ? (
+        <EvolutionOverview
+          tree={tree}
+          search={search}
+          stage="all"
+          onStageChange={() => undefined}
+          onSelect={onSelectEvolution}
+          horizontal
+          editable={editable}
+          onEdit={onEditEvolution}
         />
       ) : !selected && view === "grid" ? (
         <EvolutionOverview
@@ -386,6 +407,8 @@ function Atlas({
             setStageFilter(stage);
           }}
           onSelect={onSelectEvolution}
+          editable={editable}
+          onEdit={onEditEvolution}
         />
       ) : (
         <>
