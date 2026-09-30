@@ -19,7 +19,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/mammal-exe.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/mammal-exe.svg"
+      },
       "paths": [
         {
           "target": 10,
@@ -107,7 +110,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/fangbit.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/fangbit.svg"
+      },
       "paths": [
         {
           "target": 20,
@@ -459,7 +465,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/caniform.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/caniform.svg"
+      },
       "paths": [
         {
           "target": 40,
@@ -1099,7 +1108,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/wolf.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/wolf.svg"
+      },
       "paths": [
         {
           "target": 71,
@@ -1953,7 +1965,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/dire-wolf.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/dire-wolf.svg"
+      },
       "paths": [
         {
           "target": 91,
@@ -2393,7 +2408,10 @@
       "enabled": true,
       "initialWeight": 10,
       "modelUri": "",
-      "assets": {},
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/fenrir.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/fenrir.svg"
+      },
       "paths": []
     },
     {

@@ -563,7 +563,10 @@
       "visualDescription": "Single abstract digital mammal seed; simple blob/orb with eyes",
       "description": "Universal origin for every mammal Rebyter",
       "rarity": "common",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/mammal-exe.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/mammal-exe.svg"
+      }
     },
     {
       "id": 10,
@@ -1113,7 +1116,10 @@
       "visualDescription": "Abstract blob with small fang and pointed ear nubs",
       "description": "Early predatory / carnivorous tendency",
       "rarity": "common",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/fangbit.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/fangbit.svg"
+      }
     },
     {
       "id": 11,
@@ -2955,7 +2961,10 @@
       "visualDescription": "Juvenile long-snouted quadruped",
       "description": "Canid-like body plan",
       "rarity": "common",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/caniform.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/caniform.svg"
+      }
     },
     {
       "id": 21,
@@ -5844,7 +5853,10 @@
       "visualDescription": "Wolf-inspired monster",
       "description": "Pack, strength, bond",
       "rarity": "common",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/wolf.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/wolf.svg"
+      }
     },
     {
       "id": 42,
@@ -9469,7 +9481,10 @@
       "visualDescription": "Massive armored wolf",
       "description": "Exclusive wolf specialization",
       "rarity": "rare",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/dire-wolf.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/dire-wolf.svg"
+      }
     },
     {
       "id": 72,
@@ -11246,7 +11261,10 @@
       "visualDescription": "World-wolf with rune/code chains",
       "description": "Wolf / lunar predator ascension",
       "rarity": "ultra",
-      "assets": {}
+      "assets": {
+        "imageUri": "/assets/rebyters/mammal/fenrir.svg",
+        "thumbnailUri": "/assets/rebyters/mammal/fenrir.svg"
+      }
     },
     {
       "id": 92,
