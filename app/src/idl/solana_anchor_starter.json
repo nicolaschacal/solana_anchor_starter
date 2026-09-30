@@ -810,6 +810,39 @@
           }
         ]
       }
+    },
+    {
+      "name": "RebyterCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
+            "name": "evolution_id",
+            "type": "u32"
+          },
+          {
+            "name": "dna",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
     }
   ]
 }
