@@ -17,6 +17,8 @@ function makePaintedTexture(){
   x.beginPath();x.moveTo(256,0);x.lineTo(198,0);x.lineTo(178,62);x.lineTo(208,105);x.lineTo(256,92);x.fill();
   x.fillStyle="#dd744d";
   x.beginPath();x.moveTo(76,18);x.lineTo(128,3);x.lineTo(180,18);x.lineTo(166,62);x.lineTo(128,50);x.lineTo(90,62);x.fill();
+  x.fillStyle="#f0d39a";
+  x.beginPath();x.moveTo(116,8);x.lineTo(140,8);x.lineTo(135,61);x.lineTo(128,73);x.lineTo(121,61);x.fill();
   // cream facial mask, deliberately irregular / hand-painted
   x.fillStyle="#e8c98f";
   x.beginPath();x.moveTo(42,91);x.quadraticCurveTo(68,60,112,79);x.lineTo(121,142);x.quadraticCurveTo(86,161,53,139);x.fill();
@@ -29,8 +31,8 @@ function makePaintedTexture(){
     x.fillStyle="#fff0c6";x.beginPath();x.arc(ex-5,99,3.5,0,Math.PI*2);x.fill();
   }
   // soft brows
-  x.strokeStyle="#8f3e31";x.lineWidth=10;x.lineCap="round";
-  x.beginPath();x.moveTo(67,76);x.lineTo(108,84);x.stroke();x.beginPath();x.moveTo(189,76);x.lineTo(148,84);x.stroke();
+  x.strokeStyle="#8f3e31";x.lineWidth=7;x.lineCap="round";
+  x.beginPath();x.moveTo(70,80);x.quadraticCurveTo(90,72,108,82);x.stroke();x.beginPath();x.moveTo(186,80);x.quadraticCurveTo(166,72,148,82);x.stroke();
   // muzzle patch / nose / mouth
   x.fillStyle="#f0d7a4";x.beginPath();x.ellipse(128,150,43,29,0,0,Math.PI*2);x.fill();
   x.fillStyle="#49353a";x.beginPath();x.ellipse(128,141,12,8,0,0,Math.PI*2);x.fill();
@@ -62,26 +64,26 @@ export function FangbitPrototype({ paused=false }:{ paused?:boolean }){
     const pos=bodyGeo.attributes.position,uv=bodyGeo.attributes.uv;
     for(let i=0;i<pos.count;i++){const px=pos.getX(i)/1.08,py=pos.getY(i)/1.08;uv.setXY(i,THREE.MathUtils.clamp(px*.5+.5,0,1),THREE.MathUtils.clamp(py*.5+.5,0,1))}
     uv.needsUpdate=true;
-    const body=new THREE.Mesh(bodyGeo,skin);body.scale.set(1.02,.92,.92);root.add(body);
+    const body=new THREE.Mesh(bodyGeo,skin);body.scale.set(.84,1.02,.78);body.position.y=.05;root.add(body);
 
     // Pointed mammal ears establish Fangbit's predator tendency.
     for(const sx of [-1,1]){
-      const e=new THREE.Mesh(new THREE.ConeGeometry(.28,.56,5),russet);e.position.set(.59*sx,.91,.02);e.rotation.z=-sx*.22;root.add(e);
-      const ei=new THREE.Mesh(new THREE.ConeGeometry(.135,.32,4),inner);ei.position.set(.59*sx,.94,.23);ei.rotation.z=-sx*.22;root.add(ei);
+      const e=new THREE.Mesh(new THREE.ConeGeometry(.28,.56,5),russet);e.position.set(.48*sx,.98,.00);e.rotation.z=-sx*.30;root.add(e);
+      const ei=new THREE.Mesh(new THREE.ConeGeometry(.135,.32,4),inner);ei.position.set(.48*sx,1.00,.20);ei.rotation.z=-sx*.30;root.add(ei);
     }
     // Small muzzle only adds projection; its character is mostly painted.
-    const muzzle=new THREE.Mesh(new THREE.SphereGeometry(.40,10,6),cream);muzzle.position.set(0,-.20,.92);muzzle.scale.set(1.15,.65,.50);root.add(muzzle);
-    const nose=new THREE.Mesh(new THREE.SphereGeometry(.105,8,5),dark);nose.position.set(0,-.11,1.15);nose.scale.set(1.25,.72,.60);root.add(nose);
+    const muzzle=new THREE.Mesh(new THREE.SphereGeometry(.32,10,6),cream);muzzle.position.set(0,-.18,.84);muzzle.scale.set(1.08,.58,.48);root.add(muzzle);
+    const nose=new THREE.Mesh(new THREE.SphereGeometry(.105,8,5),dark);nose.position.set(0,-.10,1.02);nose.scale.set(1.18,.68,.56);root.add(nose);
     // Signature baby fangs.
-    for(const sx of [-1,1]){const fang=new THREE.Mesh(new THREE.ConeGeometry(.038,.16,5),cream);fang.position.set(.145*sx,-.39,1.10);fang.rotation.z=Math.PI;root.add(fang)}
+    for(const sx of [-1,1]){const fang=new THREE.Mesh(new THREE.ConeGeometry(.038,.16,5),cream);fang.position.set(.115*sx,-.33,1.00);fang.rotation.z=Math.PI;root.add(fang)}
     // Tiny paws barely break the spherical silhouette.
-    for(const sx of [-1,1]){const paw=new THREE.Mesh(new THREE.SphereGeometry(.23,8,5),russet);paw.position.set(.70*sx,-.73,.16);paw.scale.set(.95,.54,1.05);root.add(paw)}
+    for(const sx of [-1,1]){const paw=new THREE.Mesh(new THREE.SphereGeometry(.23,8,5),russet);paw.position.set(.53*sx,-.82,.12);paw.scale.set(.78,.48,.88);root.add(paw)}
     // One short expressive tail, made from two cheap volumes.
-    const tail=new THREE.Group();tail.position.set(.86,-.36,-.22);root.add(tail);
-    const t1=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.40,3,6),russet);t1.rotation.z=-.72;t1.position.set(.12,.18,0);tail.add(t1);
-    const tip=new THREE.Mesh(new THREE.SphereGeometry(.18,7,4),cream);tip.position.set(.34,.43,0);tail.add(tip);
+    const tail=new THREE.Group();tail.position.set(.63,-.42,-.28);root.add(tail);
+    const t1=new THREE.Mesh(new THREE.CapsuleGeometry(.095,.34,3,6),russet);t1.rotation.z=-.80;t1.position.set(.10,.17,0);tail.add(t1);
+    const tip=new THREE.Mesh(new THREE.SphereGeometry(.14,7,4),cream);tip.position.set(.29,.38,0);tail.add(tip);
 
-    const shadow=new THREE.Mesh(new THREE.CircleGeometry(1.12,24),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.14,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-1.00;scene.add(shadow);
+    const shadow=new THREE.Mesh(new THREE.CircleGeometry(.92,24),new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.14,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-1.00;scene.add(shadow);
     let dragging=false,lastX=0,targetY=-.18,zoom=5.0,raf=0,start=performance.now();
     const down=(e:PointerEvent)=>{dragging=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)};
     const move=(e:PointerEvent)=>{if(!dragging)return;targetY+=(e.clientX-lastX)*.008;lastX=e.clientX};const up=()=>dragging=false;
