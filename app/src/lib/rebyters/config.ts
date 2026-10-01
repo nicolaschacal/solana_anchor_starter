@@ -2,6 +2,9 @@ import { PublicKey } from "@solana/web3.js";
 export const PROGRAM_ID = new PublicKey(
   "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
 );
+export const MPL_CORE_PROGRAM_ID = new PublicKey(
+  "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d",
+);
 export const RPC_URL =
   import.meta.env?.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 export const IRYS_GATEWAY =
