@@ -17,28 +17,25 @@ export function evolutionMetadata(
   imageUri: string,
   imageContentType: string,
 ) {
+  // Keep the off-chain document deliberately conventional. Wallets and NFT
+  // indexers have broad support for the Metaplex-style JSON shape even when
+  // the on-chain asset itself uses native Token-2022 MetadataPointer +
+  // TokenMetadata. Rebyter gameplay state/DNA stays exclusively on-chain.
   return {
     name: evolution.name,
+    symbol: "RBYT",
     description: evolution.description ?? evolution.visualDescription ?? "",
+    seller_fee_basis_points: 0,
     image: imageUri,
     attributes: [
       { trait_type: "Evolution ID", value: evolution.id },
-      { trait_type: "Key", value: evolution.key ?? evolution.name.toLowerCase().replace(/\s+/g, "_") },
       { trait_type: "Stage", value: evolution.stage },
       { trait_type: "Family", value: evolution.family ?? "" },
       { trait_type: "Rarity", value: evolution.rarity ?? "common" },
     ],
     properties: {
-      category: "image",
       files: [{ uri: imageUri, type: imageContentType }],
-      rebyters: {
-        evolutionId: evolution.id,
-        key: evolution.key ?? evolution.name.toLowerCase().replace(/\s+/g, "_"),
-        stage: evolution.stage,
-        family: evolution.family ?? "",
-        rarity: evolution.rarity ?? "common",
-        visualDescription: evolution.visualDescription ?? "",
-      },
+      category: "image",
     },
   };
 }
