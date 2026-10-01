@@ -380,8 +380,7 @@
           "name": "tree"
         },
         {
-          "name": "rebyter",
-          "writable": true
+          "name": "rebyter_authority"
         },
         {
           "name": "mint",
@@ -394,9 +393,6 @@
         },
         {
           "name": "token_program"
-        },
-        {
-          "name": "associated_token_program"
         },
         {
           "name": "system_program",
@@ -472,19 +468,6 @@
         58,
         221,
         79
-      ]
-    },
-    {
-      "name": "Rebyter",
-      "discriminator": [
-        88,
-        230,
-        134,
-        156,
-        13,
-        212,
-        125,
-        164
       ]
     }
   ],
@@ -679,132 +662,6 @@
               "array": [
                 "u32",
                 16
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "Rebyter",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "family_id",
-            "type": "u8"
-          },
-          {
-            "name": "stage",
-            "type": "u8"
-          },
-          {
-            "name": "tree_version",
-            "type": "u32"
-          },
-          {
-            "name": "evolution_id",
-            "type": "u32"
-          },
-          {
-            "name": "evolution_leaf_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "dna",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "genes",
-            "type": {
-              "array": [
-                "u8",
-                14
-              ]
-            }
-          },
-          {
-            "name": "weight",
-            "type": "u16"
-          },
-          {
-            "name": "bond",
-            "type": "u16"
-          },
-          {
-            "name": "activity",
-            "type": "u32"
-          },
-          {
-            "name": "hunger",
-            "type": "u16"
-          },
-          {
-            "name": "energy",
-            "type": "u16"
-          },
-          {
-            "name": "diet",
-            "type": {
-              "array": [
-                "u32",
-                4
-              ]
-            }
-          },
-          {
-            "name": "time_interactions",
-            "type": {
-              "array": [
-                "u32",
-                4
-              ]
-            }
-          },
-          {
-            "name": "total_interactions",
-            "type": "u32"
-          },
-          {
-            "name": "cycle",
-            "type": "u16"
-          },
-          {
-            "name": "last_interaction",
-            "type": "i64"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
-          },
-          {
-            "name": "metadata_uri_len",
-            "type": "u16"
-          },
-          {
-            "name": "metadata_uri",
-            "type": {
-              "array": [
-                "u8",
-                128
               ]
             }
           }
