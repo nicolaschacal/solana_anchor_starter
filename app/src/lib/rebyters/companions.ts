@@ -1,34 +1,28 @@
 import bs58 from "bs58";
-import type { Wallet } from "@anchor-lang/core";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
-import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  ExtensionType,
-  TOKEN_2022_PROGRAM_ID,
-  createAssociatedTokenAccountInstruction,
-  createInitializeMetadataPointerInstruction,
-  createInitializeMint2Instruction,
-  getAssociatedTokenAddressSync,
-  getMintLen,
-  getTokenMetadata,
-} from "@solana/spl-token";
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import { PROGRAM_ID, registryPda, treePda } from "./config";
-import { getProgram, fetchRegistry, fetchTree } from "./registry";
+import {
+  create,
+  fetchAssetsByOwner,
+  mplCore,
+} from "@metaplex-foundation/mpl-core";
+import {
+  generateSigner,
+  publicKey as umiPublicKey,
+} from "@metaplex-foundation/umi";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
+import { PROGRAM_ID } from "./config";
+import { fetchRegistry, fetchTree } from "./registry";
 import { fetchVerifiedTree } from "./tree";
-import { buildMerkleTree, leafHash } from "./merkle";
+import { leafHash } from "./merkle";
 import type { TreeJson } from "./types";
 
 export interface OnchainRebyter {
   address: string;
   owner: string;
+  // Kept as an alias while the UI migrates its terminology from mint -> asset.
   mint: string;
   familyId: number;
   stage: number;
@@ -52,27 +46,11 @@ export interface OnchainRebyter {
   metadataUri: string;
 }
 
-export function rebyterAuthorityPda(mint: PublicKey) {
+export function rebyterAuthorityPda(asset: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode("rebyter_authority"), mint.toBytes()],
+    [new TextEncoder().encode("rebyter_authority"), asset.toBytes()],
     PROGRAM_ID,
   )[0];
-}
-
-function metadataMap(
-  entries: unknown,
-): Map<string, string> {
-  if (!Array.isArray(entries)) return new Map();
-  return new Map(
-    entries
-      .filter(
-        (entry): entry is [string, string] =>
-          Array.isArray(entry) &&
-          entry.length === 2 &&
-          typeof entry[0] === "string" &&
-          typeof entry[1] === "string",
-      ),
-  );
 }
 
 function readU16(bytes: Uint8Array, offset: number) {
@@ -89,6 +67,53 @@ function readU32(bytes: Uint8Array, offset: number) {
 function readI64(bytes: Uint8Array, offset: number) {
   const view = new DataView(bytes.buffer, bytes.byteOffset + offset, 8);
   return Number(view.getBigInt64(0, true));
+}
+
+function writeU16(out: number[], value: number) {
+  out.push(value & 0xff, (value >>> 8) & 0xff);
+}
+function writeU32(out: number[], value: number) {
+  out.push(
+    value & 0xff,
+    (value >>> 8) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 24) & 0xff,
+  );
+}
+function writeI64(out: number[], value: number) {
+  const buffer = new ArrayBuffer(8);
+  new DataView(buffer).setBigInt64(0, BigInt(value), true);
+  out.push(...new Uint8Array(buffer));
+}
+
+function encodeDnaV1(args: {
+  familyId: number;
+  stage: number;
+  treeVersion: number;
+  evolutionId: number;
+  evolutionLeafHash: number[];
+  genomeSeed: number[];
+  genes: number[];
+  createdAt: number;
+}) {
+  const out: number[] = [1, args.familyId, args.stage];
+  writeU32(out, args.treeVersion);
+  writeU32(out, args.evolutionId);
+  out.push(...args.evolutionLeafHash);
+  out.push(...args.genomeSeed);
+  out.push(...args.genes);
+  writeU16(out, 10); // weight
+  writeU16(out, 0); // bond
+  writeU32(out, 0); // activity
+  writeU16(out, 100); // hunger
+  writeU16(out, 100); // energy
+  for (let i = 0; i < 4; i++) writeU16(out, 0); // diet
+  for (let i = 0; i < 4; i++) writeU16(out, 0); // time interactions
+  writeU32(out, 0); // total interactions
+  writeU16(out, 0); // cycle
+  writeI64(out, args.createdAt); // last interaction
+  writeI64(out, args.createdAt);
+  return bs58.encode(Uint8Array.from(out));
 }
 
 function decodeDnaV1(value: string) {
@@ -140,62 +165,56 @@ function decodeDnaV1(value: string) {
   };
 }
 
+function dnaFromCoreAsset(asset: any): string | null {
+  const candidates = [
+    asset?.attributes?.attributeList,
+    asset?.plugins?.attributes?.attributeList,
+    asset?.plugins?.Attributes?.attributeList,
+    asset?.plugins?.find?.((plugin: any) => plugin?.type === "Attributes")?.attributeList,
+  ];
+  for (const list of candidates) {
+    if (!Array.isArray(list)) continue;
+    const dna = list.find((item: any) => item?.key === "DNA")?.value;
+    if (typeof dna === "string" && dna.length) return dna;
+  }
+  return null;
+}
+
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
 ): Promise<OnchainRebyter[]> {
-  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-    owner,
-    { programId: TOKEN_2022_PROGRAM_ID },
-    "confirmed",
+  const umi = createUmi(connection.rpcEndpoint).use(mplCore());
+  const assets = await fetchAssetsByOwner(
+    umi,
+    umiPublicKey(owner.toBase58()),
+    { skipDerivePlugins: false },
   );
 
-  const mints = new Set<string>();
-  for (const record of tokenAccounts.value) {
-    const parsed = (record.account.data as any)?.parsed?.info;
-    const amount = parsed?.tokenAmount?.amount;
-    if (amount === "1" && parsed?.tokenAmount?.decimals === 0 && parsed?.mint)
-      mints.add(parsed.mint);
-  }
-
   const result: OnchainRebyter[] = [];
-  for (const mintString of mints) {
-    const mint = new PublicKey(mintString);
-    let metadata;
-    try {
-      metadata = await getTokenMetadata(
-        connection,
-        mint,
-        "confirmed",
-        TOKEN_2022_PROGRAM_ID,
-      );
-    } catch {
-      continue;
-    }
-    if (!metadata) continue;
-
-    const fields = metadataMap((metadata as any).additionalMetadata);
-    const dnaField = fields.get("DNA");
-    if (!dnaField) continue;
+  for (const asset of assets as any[]) {
+    const dnaBase58 = dnaFromCoreAsset(asset);
+    if (!dnaBase58) continue;
 
     let dnaState;
     try {
-      dnaState = decodeDnaV1(dnaField);
+      dnaState = decodeDnaV1(dnaBase58);
     } catch {
       continue;
     }
 
+    const address = String(asset.publicKey);
     result.push({
-      address: mintString,
-      owner: owner.toBase58(),
-      mint: mintString,
+      address,
+      owner: String(asset.owner),
+      mint: address,
       familyId: dnaState.familyId,
       stage: dnaState.stage,
       treeVersion: dnaState.treeVersion,
       evolutionId: dnaState.evolutionId,
       evolutionLeafHash: dnaState.evolutionLeafHash,
       dna: dnaState.genomeSeed,
-      dnaBase58: dnaField,
+      dnaBase58,
       genes: dnaState.genes,
       weight: dnaState.weight,
       bond: dnaState.bond,
@@ -208,7 +227,7 @@ export async function fetchOwnedRebyters(
       cycle: dnaState.cycle,
       lastInteraction: dnaState.lastInteraction,
       createdAt: dnaState.createdAt,
-      metadataUri: metadata.uri,
+      metadataUri: String(asset.uri ?? ""),
     });
   }
   return result;
@@ -229,118 +248,67 @@ export async function fetchActiveFamilyTree(
 
 export async function createRebyter(
   connection: Connection,
-  anchorWallet: Wallet,
   wallet: WalletContextState,
   familyId: number,
 ) {
   if (familyId !== 0) throw new Error("Only Mammal creation is enabled");
-  if (!wallet.publicKey || !wallet.signTransaction)
-    throw new Error("Connect a wallet that can sign transactions");
+  if (!wallet.publicKey)
+    throw new Error("Connect a wallet");
 
   const { tree, version } = await fetchActiveFamilyTree(connection, familyId);
   const origin = tree.evolutions.find((e) => e.stage === 0 && e.enabled);
   if (!origin) throw new Error("Active family has no enabled BIT origin");
+
   const metadataUri = origin.assets?.metadataUri;
   if (!metadataUri?.startsWith("https://"))
     throw new Error(
-      "The Mammal BIT reference has not been published to Irys yet. Push its image + metadata from Admin and publish the atlas first.",
+      "The Mammal BIT reference has not been published to Irys yet.",
     );
 
-  const proof = buildMerkleTree(tree).getEvolutionProof(origin.id);
-  const evolutionLeafHash = [...hexToBytes(leafHash(tree, origin))];
-  const siblings = proof.siblings.map((hash) => [...hexToBytes(hash)]);
-  const mint = Keypair.generate();
-  const rebyterAuthority = rebyterAuthorityPda(mint.publicKey);
-  const ownerTokenAccount = getAssociatedTokenAddressSync(
-    mint.publicKey,
-    wallet.publicKey,
-    false,
-    TOKEN_2022_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-  );
-
-  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-  const mintRent = await connection.getMinimumBalanceForRentExemption(mintLen);
-
-  const createMintIx = SystemProgram.createAccount({
-    fromPubkey: wallet.publicKey,
-    newAccountPubkey: mint.publicKey,
-    space: mintLen,
-    lamports: mintRent,
-    programId: TOKEN_2022_PROGRAM_ID,
+  const evolutionLeafHash = Array.from(hexToBytes(leafHash(tree, origin)));
+  const genomeSeed = new Uint8Array(32);
+  crypto.getRandomValues(genomeSeed);
+  const genes = Array.from(genomeSeed.slice(0, 14), (value) => value % 101);
+  const createdAt = Math.floor(Date.now() / 1000);
+  const dnaBase58 = encodeDnaV1({
+    familyId,
+    stage: 0,
+    treeVersion: version,
+    evolutionId: origin.id,
+    evolutionLeafHash,
+    genomeSeed: Array.from(genomeSeed),
+    genes,
+    createdAt,
   });
-  const metadataPointerIx = createInitializeMetadataPointerInstruction(
-    mint.publicKey,
-    rebyterAuthority,
-    mint.publicKey,
-    TOKEN_2022_PROGRAM_ID,
-  );
-  const initializeMintIx = createInitializeMint2Instruction(
-    mint.publicKey,
-    0,
-    rebyterAuthority,
-    null,
-    TOKEN_2022_PROGRAM_ID,
-  );
-  const createAtaIx = createAssociatedTokenAccountInstruction(
-    wallet.publicKey,
-    ownerTokenAccount,
-    wallet.publicKey,
-    mint.publicKey,
-    TOKEN_2022_PROGRAM_ID,
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-  );
 
-  const program = getProgram(connection, anchorWallet);
-  const ix = await program.methods
-    .createRebyter(
-      familyId,
-      version,
-      origin.id,
-      evolutionLeafHash,
-      siblings,
-      origin.name,
-      metadataUri,
-    )
-    .accountsStrict({
-      owner: wallet.publicKey,
-      registry: registryPda(),
-      tree: treePda(familyId, version),
-      rebyterAuthority,
-      mint: mint.publicKey,
-      ownerTokenAccount,
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .instruction();
+  const umi = createUmi(connection.rpcEndpoint)
+    .use(mplCore())
+    .use(walletAdapterIdentity(wallet as any));
 
-  const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
-    createMintIx,
-    metadataPointerIx,
-    initializeMintIx,
-    createAtaIx,
-    ix,
-  );
-  tx.partialSign(mint);
-  const signed = await wallet.signTransaction(tx);
-  const signature = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    maxRetries: 3,
-  });
-  const result = await connection.confirmTransaction(
-    { ...block, signature },
-    "confirmed",
-  );
-  if (result.value.err)
-    throw new Error(
-      `create_rebyter failed: ${JSON.stringify(result.value.err)}`,
-    );
+  const asset = generateSigner(umi);
+  const assetWeb3 = new PublicKey(asset.publicKey.toString());
+  const updateAuthority = rebyterAuthorityPda(assetWeb3);
+
+  const sent = await create(umi, {
+    asset,
+    owner: umiPublicKey(wallet.publicKey.toBase58()),
+    updateAuthority: umiPublicKey(updateAuthority.toBase58()),
+    name: origin.name,
+    uri: metadataUri,
+    plugins: [
+      {
+        type: "Attributes",
+        attributeList: [{ key: "DNA", value: dnaBase58 }],
+      },
+    ],
+  }).sendAndConfirm(umi);
 
   return {
-    signature,
-    mint: mint.publicKey.toBase58(),
+    signature: bs58.encode(sent.signature),
+    asset: asset.publicKey.toString(),
+    mint: asset.publicKey.toString(),
     evolutionId: origin.id,
+    dnaBase58,
     tree,
   };
 }
