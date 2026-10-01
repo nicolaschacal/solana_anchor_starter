@@ -61,6 +61,7 @@ import { EvolutionEditor } from "../../components/admin/EvolutionEditor";
 import { EvolutionGraphEditor } from "../../components/admin/EvolutionGraphEditor";
 import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { DesignLab } from "../../components/admin/DesignLab";
+import { CoreBenchmark } from "./CoreBenchmark";
 
 const short = (s: string) =>
   s ? `${s.slice(0, 6)}...${s.slice(-5)}` : "Not connected";
@@ -117,6 +118,7 @@ export default function App() {
             <Route index element={<Navigate to="families/0" replace />} />
             <Route path="families" element={<Home state={state} />} />
             <Route path="design-lab" element={<DesignLab />} />
+            <Route path="core-benchmark" element={<CoreBenchmark />} />
             <Route path="families/:familyId" element={<Family state={state} />} />
             <Route
               path="families/:familyId/evolutions/:evolutionId"
@@ -518,6 +520,12 @@ function Family({ state }: { state: RegistryState }) {
               <Code2 size={16} />
               Advanced / JSON
             </button>
+          )}
+          {family === 0 && !sample && (
+            <Link className="graph-mode-switch" to="/admin/core-benchmark">
+              <Blocks size={16} />
+              Core benchmark
+            </Link>
           )}
           {family === 0 && (
             <Link
