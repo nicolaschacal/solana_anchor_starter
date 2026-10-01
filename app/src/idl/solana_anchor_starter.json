@@ -688,15 +688,6 @@
           {
             "name": "evolution_id",
             "type": "u32"
-          },
-          {
-            "name": "dna",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
           }
         ]
       }
