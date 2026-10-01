@@ -1,3 +1,4 @@
+import bs58 from "bs58";
 import type { Wallet } from "@anchor-lang/core";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
 import {
@@ -57,11 +58,6 @@ export function rebyterAuthorityPda(mint: PublicKey) {
   )[0];
 }
 
-function parseHexBytes(value: string | undefined) {
-  if (!value || value.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(value)) return [];
-  return Array.from(hexToBytes(value));
-}
-
 function metadataMap(
   entries: unknown,
 ): Map<string, string> {
@@ -76,6 +72,71 @@ function metadataMap(
           typeof entry[1] === "string",
       ),
   );
+}
+
+function readU16(bytes: Uint8Array, offset: number) {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+function readU32(bytes: Uint8Array, offset: number) {
+  return (
+    bytes[offset] |
+    (bytes[offset + 1] << 8) |
+    (bytes[offset + 2] << 16) |
+    (bytes[offset + 3] << 24)
+  ) >>> 0;
+}
+function readI64(bytes: Uint8Array, offset: number) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset + offset, 8);
+  return Number(view.getBigInt64(0, true));
+}
+
+function decodeDnaV1(value: string) {
+  const bytes = Uint8Array.from(bs58.decode(value));
+  let o = 0;
+  const version = bytes[o++];
+  if (version !== 1) throw new Error(`Unsupported Rebyter DNA version ${version}`);
+  const familyId = bytes[o++];
+  const stage = bytes[o++];
+  const treeVersion = readU32(bytes, o); o += 4;
+  const evolutionId = readU32(bytes, o); o += 4;
+  const evolutionLeafHash = Array.from(bytes.slice(o, o + 32)); o += 32;
+  const genomeSeed = Array.from(bytes.slice(o, o + 32)); o += 32;
+  const genes = Array.from(bytes.slice(o, o + 14)); o += 14;
+  const weight = readU16(bytes, o); o += 2;
+  const bond = readU16(bytes, o); o += 2;
+  const activity = readU32(bytes, o); o += 4;
+  const hunger = readU16(bytes, o); o += 2;
+  const energy = readU16(bytes, o); o += 2;
+  const diet = [0, 0, 0, 0].map(() => {
+    const v = readU16(bytes, o); o += 2; return v;
+  });
+  const timeInteractions = [0, 0, 0, 0].map(() => {
+    const v = readU16(bytes, o); o += 2; return v;
+  });
+  const totalInteractions = readU32(bytes, o); o += 4;
+  const cycle = readU16(bytes, o); o += 2;
+  const lastInteraction = readI64(bytes, o); o += 8;
+  const createdAt = readI64(bytes, o);
+  return {
+    familyId,
+    stage,
+    treeVersion,
+    evolutionId,
+    evolutionLeafHash,
+    genomeSeed,
+    genes,
+    weight,
+    bond,
+    activity,
+    hunger,
+    energy,
+    diet,
+    timeInteractions,
+    totalInteractions,
+    cycle,
+    lastInteraction,
+    createdAt,
+  };
 }
 
 export async function fetchOwnedRebyters(
@@ -113,11 +174,12 @@ export async function fetchOwnedRebyters(
     if (!metadata) continue;
 
     const fields = metadataMap((metadata as any).additionalMetadata);
-    if (fields.get("schema") !== "rebyter-v1") continue;
+    const dnaField = fields.get("DNA");
+    if (!dnaField) continue;
 
-    let state: any;
+    let dnaState;
     try {
-      state = JSON.parse(fields.get("state") ?? "{}");
+      dnaState = decodeDnaV1(dnaField);
     } catch {
       continue;
     }
@@ -126,26 +188,24 @@ export async function fetchOwnedRebyters(
       address: mintString,
       owner: owner.toBase58(),
       mint: mintString,
-      familyId: Number(state.family ?? 0),
-      stage: Number(state.stage ?? 0),
-      treeVersion: Number(state.tree ?? 0),
-      evolutionId: Number(state.evolution ?? 0),
-      evolutionLeafHash: parseHexBytes(fields.get("atlas_leaf")),
-      dna: parseHexBytes(fields.get("dna")),
-      genes: parseHexBytes(fields.get("genes")),
-      weight: Number(state.weight ?? 10),
-      bond: Number(state.bond ?? 0),
-      activity: Number(state.activity ?? 0),
-      hunger: Number(state.hunger ?? 100),
-      energy: Number(state.energy ?? 100),
-      diet: Array.isArray(state.diet) ? state.diet.map(Number) : [0, 0, 0, 0],
-      timeInteractions: Array.isArray(state.time)
-        ? state.time.map(Number)
-        : [0, 0, 0, 0],
-      totalInteractions: Number(state.interactions ?? 0),
-      cycle: Number(state.cycle ?? 0),
-      lastInteraction: Number(state.last ?? 0),
-      createdAt: Number(state.created ?? 0),
+      familyId: dnaState.familyId,
+      stage: dnaState.stage,
+      treeVersion: dnaState.treeVersion,
+      evolutionId: dnaState.evolutionId,
+      evolutionLeafHash: dnaState.evolutionLeafHash,
+      dna: dnaState.genomeSeed,
+      genes: dnaState.genes,
+      weight: dnaState.weight,
+      bond: dnaState.bond,
+      activity: dnaState.activity,
+      hunger: dnaState.hunger,
+      energy: dnaState.energy,
+      diet: dnaState.diet,
+      timeInteractions: dnaState.timeInteractions,
+      totalInteractions: dnaState.totalInteractions,
+      cycle: dnaState.cycle,
+      lastInteraction: dnaState.lastInteraction,
+      createdAt: dnaState.createdAt,
       metadataUri: metadata.uri,
     });
   }
