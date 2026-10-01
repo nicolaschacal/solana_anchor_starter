@@ -401,11 +401,15 @@ function Family({ state }: { state: RegistryState }) {
       ]),
     );
     const candidates = tree.evolutions.map((e) => {
-      if (e.assets?.metadataUri) return e;
       const key = e.key ?? e.name.toLowerCase().replace(/\s+/g, "_");
       const reference = authoredByKey.get(key);
       const localImage = reference?.assets?.imageUri;
       if (!localImage?.startsWith("/")) return e;
+
+      // Always republish authored local references, even when this evolution
+      // already has an Irys metadata URI. Irys data is immutable, so changing
+      // the JSON schema requires creating a fresh image+metadata publication
+      // and replacing the atlas URIs in a new version.
       return {
         ...e,
         assets: {
