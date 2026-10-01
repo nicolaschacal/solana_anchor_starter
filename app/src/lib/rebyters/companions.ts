@@ -49,6 +49,10 @@ export interface OnchainRebyter {
   cycle: number;
   lastInteraction: number;
   createdAt: number;
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
   metadataUri: string;
 }
 
@@ -140,6 +144,58 @@ function decodeDnaV1(value: string) {
   };
 }
 
+
+function decodeDnaV2(value: string) {
+  const bytes = Uint8Array.from(bs58.decode(value));
+  if (bytes.length !== 62 || bytes[0] !== 2)
+    throw new Error("Invalid Rebyter DNA v2");
+  let o = 1;
+  const familyId = bytes[o++];
+  const stage = bytes[o++];
+  const treeVersion = readU16(bytes, o); o += 2;
+  const evolutionId = readU16(bytes, o); o += 2;
+  const genes = Array.from(bytes.slice(o, o + 14)); o += 14;
+  const weight = bytes[o++];
+  const bond = bytes[o++];
+  const activity = readU16(bytes, o); o += 2;
+  const hunger = bytes[o++];
+  const energy = bytes[o++];
+  const diet = [0, 0, 0, 0].map(() => {
+    const v = readU16(bytes, o); o += 2; return v;
+  });
+  const timeInteractions = [0, 0, 0, 0].map(() => {
+    const v = readU16(bytes, o); o += 2; return v;
+  });
+  const totalInteractions = readU16(bytes, o); o += 2;
+  const cycle = bytes[o++];
+  const hp = readU16(bytes, o); o += 2;
+  const atk = readU16(bytes, o); o += 2;
+  const def = readU16(bytes, o); o += 2;
+  const spd = readU16(bytes, o); o += 2;
+  const lastInteraction = readU32(bytes, o); o += 4;
+  const createdAt = readU32(bytes, o);
+  return {
+    familyId, stage, treeVersion, evolutionId, genes, weight, bond, activity,
+    hunger, energy, diet, timeInteractions, totalInteractions, cycle,
+    hp, atk, def, spd, lastInteraction, createdAt,
+    evolutionLeafHash: [] as number[],
+    genomeSeed: [] as number[],
+  };
+}
+
+function decodeDna(value: string) {
+  const bytes = Uint8Array.from(bs58.decode(value));
+  if (bytes[0] === 2) return decodeDnaV2(value);
+  const legacy = decodeDnaV1(value);
+  return {
+    ...legacy,
+    hp: 100 + (legacy.genes[11] ?? 0) * 2,
+    atk: 20 + (legacy.genes[9] ?? 0),
+    def: 20 + (legacy.genes[11] ?? 0),
+    spd: 20 + (legacy.genes[10] ?? 0),
+  };
+}
+
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
@@ -180,7 +236,7 @@ export async function fetchOwnedRebyters(
 
     let dnaState;
     try {
-      dnaState = decodeDnaV1(dnaField);
+      dnaState = decodeDna(dnaField);
     } catch {
       continue;
     }
@@ -208,6 +264,10 @@ export async function fetchOwnedRebyters(
       cycle: dnaState.cycle,
       lastInteraction: dnaState.lastInteraction,
       createdAt: dnaState.createdAt,
+      hp: dnaState.hp,
+      atk: dnaState.atk,
+      def: dnaState.def,
+      spd: dnaState.spd,
       metadataUri: metadata.uri,
     });
   }
