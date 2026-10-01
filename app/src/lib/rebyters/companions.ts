@@ -1,22 +1,20 @@
 import bs58 from "bs58";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import type { Wallet } from "@anchor-lang/core";
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
 import {
-  create,
   fetchAssetsByOwner,
   mplCore,
 } from "@metaplex-foundation/mpl-core";
 import {
-  generateSigner,
   publicKey as umiPublicKey,
 } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
-import { PROGRAM_ID } from "./config";
-import { fetchRegistry, fetchTree } from "./registry";
+import { MPL_CORE_PROGRAM_ID, PROGRAM_ID, registryPda, treePda } from "./config";
+import { fetchRegistry, fetchTree, getProgram } from "./registry";
 import { fetchVerifiedTree } from "./tree";
-import { leafHash } from "./merkle";
+import { buildMerkleTree, leafHash } from "./merkle";
 import type { TreeJson } from "./types";
 
 export interface OnchainRebyter {
@@ -248,12 +246,13 @@ export async function fetchActiveFamilyTree(
 
 export async function createRebyter(
   connection: Connection,
+  anchorWallet: Wallet,
   wallet: WalletContextState,
   familyId: number,
 ) {
   if (familyId !== 0) throw new Error("Only Mammal creation is enabled");
-  if (!wallet.publicKey)
-    throw new Error("Connect a wallet");
+  if (!wallet.publicKey || !wallet.signTransaction)
+    throw new Error("Connect a wallet that can sign transactions");
 
   const { tree, version } = await fetchActiveFamilyTree(connection, familyId);
   const origin = tree.evolutions.find((e) => e.stage === 0 && e.enabled);
@@ -265,50 +264,58 @@ export async function createRebyter(
       "The Mammal BIT reference has not been published to Irys yet.",
     );
 
+  const proof = buildMerkleTree(tree).getEvolutionProof(origin.id);
   const evolutionLeafHash = Array.from(hexToBytes(leafHash(tree, origin)));
-  const genomeSeed = new Uint8Array(32);
-  crypto.getRandomValues(genomeSeed);
-  const genes = Array.from(genomeSeed.slice(0, 14), (value) => value % 101);
-  const createdAt = Math.floor(Date.now() / 1000);
-  const dnaBase58 = encodeDnaV1({
-    familyId,
-    stage: 0,
-    treeVersion: version,
-    evolutionId: origin.id,
-    evolutionLeafHash,
-    genomeSeed: Array.from(genomeSeed),
-    genes,
-    createdAt,
+  const siblings = proof.siblings.map((hash) => Array.from(hexToBytes(hash)));
+
+  const asset = Keypair.generate();
+  const rebyterAuthority = rebyterAuthorityPda(asset.publicKey);
+  const program = getProgram(connection, anchorWallet);
+
+  const ix = await program.methods
+    .createRebyter(
+      familyId,
+      version,
+      origin.id,
+      evolutionLeafHash,
+      siblings,
+      origin.name,
+      metadataUri,
+    )
+    .accountsStrict({
+      owner: wallet.publicKey,
+      registry: registryPda(),
+      tree: treePda(familyId, version),
+      rebyterAuthority,
+      asset: asset.publicKey,
+      coreProgram: MPL_CORE_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+
+  const block = await connection.getLatestBlockhash("confirmed");
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  tx.partialSign(asset);
+
+  const signed = await wallet.signTransaction(tx);
+  const signature = await connection.sendRawTransaction(signed.serialize(), {
+    skipPreflight: false,
+    maxRetries: 3,
   });
-
-  const umi = createUmi(connection.rpcEndpoint)
-    .use(mplCore())
-    .use(walletAdapterIdentity(wallet as any));
-
-  const asset = generateSigner(umi);
-  const assetWeb3 = new PublicKey(asset.publicKey.toString());
-  const updateAuthority = rebyterAuthorityPda(assetWeb3);
-
-  const sent = await create(umi, {
-    asset,
-    owner: umiPublicKey(wallet.publicKey.toBase58()),
-    updateAuthority: umiPublicKey(updateAuthority.toBase58()),
-    name: origin.name,
-    uri: metadataUri,
-    plugins: [
-      {
-        type: "Attributes",
-        attributeList: [{ key: "DNA", value: dnaBase58 }],
-      },
-    ],
-  }).sendAndConfirm(umi);
+  const result = await connection.confirmTransaction(
+    { ...block, signature },
+    "confirmed",
+  );
+  if (result.value.err)
+    throw new Error(
+      `create_rebyter failed: ${JSON.stringify(result.value.err)}`,
+    );
 
   return {
-    signature: bs58.encode(sent.signature),
-    asset: asset.publicKey.toString(),
-    mint: asset.publicKey.toString(),
+    signature,
+    asset: asset.publicKey.toBase58(),
+    mint: asset.publicKey.toBase58(),
     evolutionId: origin.id,
-    dnaBase58,
     tree,
   };
 }
