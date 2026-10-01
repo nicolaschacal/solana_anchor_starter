@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  useAnchorWallet,
   useConnection,
   useWallet,
 } from "@solana/wallet-adapter-react";
@@ -15,8 +14,7 @@ import {
 export function usePlayerRebyters() {
   const { connection } = useConnection();
   const wallet = useWallet();
-  const anchorWallet = useAnchorWallet();
-  const [owned, setOwned] = useState<OnchainRebyter[]>([]);
+   const [owned, setOwned] = useState<OnchainRebyter[]>([]);
   const [mammalTree, setMammalTree] = useState<TreeJson | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -51,14 +49,13 @@ export function usePlayerRebyters() {
 
   const create = useCallback(
     async (familyId: number) => {
-      if (!anchorWallet) throw new Error("Connect a wallet");
+      if (!wallet.publicKey) throw new Error("Connect a wallet");
       setCreating(true);
       setError("");
       setStatus("Preparing your Rebyter...");
       try {
         const result = await createRebyter(
           connection,
-          anchorWallet,
           wallet,
           familyId,
         );
@@ -74,7 +71,7 @@ export function usePlayerRebyters() {
         setCreating(false);
       }
     },
-    [anchorWallet, connection, refresh, wallet],
+    [connection, refresh, wallet],
   );
 
   return {
