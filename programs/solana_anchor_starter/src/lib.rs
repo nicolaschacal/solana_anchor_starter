@@ -179,7 +179,7 @@ pub mod solana_anchor_starter {
         let owner_key = ctx.accounts.owner.key();
         let mint_key = ctx.accounts.mint.key();
         let dna = solana_sha256_hasher::hashv(&[
-            b"rebyter-dna-v1",
+            b"rebyter-dna-v2",
             owner_key.as_ref(),
             mint_key.as_ref(),
             &clock.slot.to_le_bytes(),
@@ -198,13 +198,21 @@ pub mod solana_anchor_starter {
         // The only custom TokenMetadata field is DNA.
         // DNA is a base58-encoded binary blob containing both immutable genes
         // and mutable gameplay state. Its first byte versions the layout.
-        let dna_blob = pack_rebyter_dna_v1(
+        require!(tree_version <= u16::MAX as u32, RegistryError::Version);
+        require!(evolution_id <= u16::MAX as u32, RegistryError::Exhausted);
+
+        // DNA v2 stores only information that cannot be reconstructed from the
+        // atlas. The creation hash is used as entropy, but is deliberately not
+        // stored: the 14 resulting genes are the permanent genetics.
+        let hp = 100u16 + u16::from(genes[11]) * 2;
+        let atk = 20u16 + u16::from(genes[9]);
+        let def = 20u16 + u16::from(genes[11]);
+        let spd = 20u16 + u16::from(genes[10]);
+        let dna_blob = pack_rebyter_dna_v2(
             family_id,
             0,
-            tree_version,
-            evolution_id,
-            &evolution_leaf_hash,
-            &dna,
+            tree_version as u16,
+            evolution_id as u16,
             &genes,
             10,
             0,
@@ -215,8 +223,12 @@ pub mod solana_anchor_starter {
             [0; 4],
             0,
             0,
-            clock.unix_timestamp,
-            clock.unix_timestamp,
+            hp,
+            atk,
+            def,
+            spd,
+            clock.unix_timestamp as u32,
+            clock.unix_timestamp as u32,
         );
         let additional_metadata = vec![
             ("DNA".to_string(), bs58::encode(dna_blob).into_string()),
@@ -324,40 +336,42 @@ pub mod solana_anchor_starter {
     }
 }
 
-fn pack_rebyter_dna_v1(
+fn pack_rebyter_dna_v2(
     family_id: u8,
     stage: u8,
-    tree_version: u32,
-    evolution_id: u32,
-    evolution_leaf_hash: &[u8; 32],
-    genome_seed: &[u8; 32],
+    tree_version: u16,
+    evolution_id: u16,
     genes: &[u8; REBYTER_GENE_COUNT],
-    weight: u16,
-    bond: u16,
-    activity: u32,
-    hunger: u16,
-    energy: u16,
+    weight: u8,
+    bond: u8,
+    activity: u16,
+    hunger: u8,
+    energy: u8,
     diet: [u16; 4],
     time_interactions: [u16; 4],
-    total_interactions: u32,
-    cycle: u16,
-    last_interaction: i64,
-    created_at: i64,
+    total_interactions: u16,
+    cycle: u8,
+    hp: u16,
+    atk: u16,
+    def: u16,
+    spd: u16,
+    last_interaction: u32,
+    created_at: u32,
 ) -> Vec<u8> {
-    let mut out = Vec::with_capacity(128);
-    out.push(1);
+    // 62 bytes total. Keep this explicit and boring: compact enough to save
+    // rent, simple enough that future gameplay instructions can mutate safely.
+    let mut out = Vec::with_capacity(62);
+    out.push(2);
     out.push(family_id);
     out.push(stage);
     out.extend_from_slice(&tree_version.to_le_bytes());
     out.extend_from_slice(&evolution_id.to_le_bytes());
-    out.extend_from_slice(evolution_leaf_hash);
-    out.extend_from_slice(genome_seed);
     out.extend_from_slice(genes);
-    out.extend_from_slice(&weight.to_le_bytes());
-    out.extend_from_slice(&bond.to_le_bytes());
+    out.push(weight);
+    out.push(bond);
     out.extend_from_slice(&activity.to_le_bytes());
-    out.extend_from_slice(&hunger.to_le_bytes());
-    out.extend_from_slice(&energy.to_le_bytes());
+    out.push(hunger);
+    out.push(energy);
     for value in diet {
         out.extend_from_slice(&value.to_le_bytes());
     }
@@ -365,7 +379,11 @@ fn pack_rebyter_dna_v1(
         out.extend_from_slice(&value.to_le_bytes());
     }
     out.extend_from_slice(&total_interactions.to_le_bytes());
-    out.extend_from_slice(&cycle.to_le_bytes());
+    out.push(cycle);
+    out.extend_from_slice(&hp.to_le_bytes());
+    out.extend_from_slice(&atk.to_le_bytes());
+    out.extend_from_slice(&def.to_le_bytes());
+    out.extend_from_slice(&spd.to_le_bytes());
     out.extend_from_slice(&last_interaction.to_le_bytes());
     out.extend_from_slice(&created_at.to_le_bytes());
     out
