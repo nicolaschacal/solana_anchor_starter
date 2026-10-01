@@ -19,6 +19,7 @@ declare_id!("7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp");
 pub const MAX_FAMILIES: usize = 16;
 pub const MAX_URI_LENGTH: usize = 128;
 pub const REBYTER_GENE_COUNT: usize = 14;
+pub const REBYTER_DNA_V2_BYTES: usize = 62;
 pub const CREATE_REBYTER_PRICE_LAMPORTS: u64 = 0;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
 
@@ -360,7 +361,7 @@ fn pack_rebyter_dna_v2(
 ) -> Vec<u8> {
     // 62 bytes total. Keep this explicit and boring: compact enough to save
     // rent, simple enough that future gameplay instructions can mutate safely.
-    let mut out = Vec::with_capacity(62);
+    let mut out = Vec::with_capacity(REBYTER_DNA_V2_BYTES);
     out.push(2);
     out.push(family_id);
     out.push(stage);
