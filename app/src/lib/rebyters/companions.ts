@@ -9,6 +9,7 @@ import {
   createInitializeMint2Instruction,
   getAssociatedTokenAddressSync,
   getMintLen,
+  getTokenMetadata,
 } from "@solana/spl-token";
 import {
   Connection,
@@ -49,16 +50,31 @@ export interface OnchainRebyter {
   metadataUri: string;
 }
 
-export function rebyterPda(mint: PublicKey) {
+export function rebyterAuthorityPda(mint: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode("rebyter"), mint.toBytes()],
+    [new TextEncoder().encode("rebyter_authority"), mint.toBytes()],
     PROGRAM_ID,
   )[0];
 }
 
-function decodeFixedUtf8(value: number[], len: number) {
-  return new TextDecoder("utf-8", { fatal: true }).decode(
-    Uint8Array.from(value.slice(0, len)),
+function parseHexBytes(value: string | undefined) {
+  if (!value || value.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(value)) return [];
+  return Array.from(hexToBytes(value));
+}
+
+function metadataMap(
+  entries: unknown,
+): Map<string, string> {
+  if (!Array.isArray(entries)) return new Map();
+  return new Map(
+    entries
+      .filter(
+        (entry): entry is [string, string] =>
+          Array.isArray(entry) &&
+          entry.length === 2 &&
+          typeof entry[0] === "string" &&
+          typeof entry[1] === "string",
+      ),
   );
 }
 
@@ -66,37 +82,74 @@ export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
 ): Promise<OnchainRebyter[]> {
-  const program = getProgram(connection);
-  const records = await (program.account as any).rebyter.all([
-    { memcmp: { offset: 8, bytes: owner.toBase58() } },
-  ]);
-  return records.map((record: any) => {
-    const a = record.account;
-    return {
-      address: record.publicKey.toBase58(),
-      owner: a.owner.toBase58(),
-      mint: a.mint.toBase58(),
-      familyId: a.familyId,
-      stage: a.stage,
-      treeVersion: a.treeVersion,
-      evolutionId: a.evolutionId,
-      evolutionLeafHash: Array.from(a.evolutionLeafHash),
-      dna: Array.from(a.dna),
-      genes: Array.from(a.genes),
-      weight: a.weight,
-      bond: a.bond,
-      activity: a.activity,
-      hunger: a.hunger,
-      energy: a.energy,
-      diet: a.diet,
-      timeInteractions: a.timeInteractions,
-      totalInteractions: a.totalInteractions,
-      cycle: a.cycle,
-      lastInteraction: a.lastInteraction.toNumber(),
-      createdAt: a.createdAt.toNumber(),
-      metadataUri: decodeFixedUtf8(a.metadataUri, a.metadataUriLen),
-    } satisfies OnchainRebyter;
-  });
+  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+    owner,
+    { programId: TOKEN_2022_PROGRAM_ID },
+    "confirmed",
+  );
+
+  const mints = new Set<string>();
+  for (const record of tokenAccounts.value) {
+    const parsed = (record.account.data as any)?.parsed?.info;
+    const amount = parsed?.tokenAmount?.amount;
+    if (amount === "1" && parsed?.tokenAmount?.decimals === 0 && parsed?.mint)
+      mints.add(parsed.mint);
+  }
+
+  const result: OnchainRebyter[] = [];
+  for (const mintString of mints) {
+    const mint = new PublicKey(mintString);
+    let metadata;
+    try {
+      metadata = await getTokenMetadata(
+        connection,
+        mint,
+        "confirmed",
+        TOKEN_2022_PROGRAM_ID,
+      );
+    } catch {
+      continue;
+    }
+    if (!metadata) continue;
+
+    const fields = metadataMap((metadata as any).additionalMetadata);
+    if (fields.get("schema") !== "rebyter-v1") continue;
+
+    let state: any;
+    try {
+      state = JSON.parse(fields.get("state") ?? "{}");
+    } catch {
+      continue;
+    }
+
+    result.push({
+      address: mintString,
+      owner: owner.toBase58(),
+      mint: mintString,
+      familyId: Number(state.family ?? 0),
+      stage: Number(state.stage ?? 0),
+      treeVersion: Number(state.tree ?? 0),
+      evolutionId: Number(state.evolution ?? 0),
+      evolutionLeafHash: parseHexBytes(fields.get("atlas_leaf")),
+      dna: parseHexBytes(fields.get("dna")),
+      genes: parseHexBytes(fields.get("genes")),
+      weight: Number(state.weight ?? 10),
+      bond: Number(state.bond ?? 0),
+      activity: Number(state.activity ?? 0),
+      hunger: Number(state.hunger ?? 100),
+      energy: Number(state.energy ?? 100),
+      diet: Array.isArray(state.diet) ? state.diet.map(Number) : [0, 0, 0, 0],
+      timeInteractions: Array.isArray(state.time)
+        ? state.time.map(Number)
+        : [0, 0, 0, 0],
+      totalInteractions: Number(state.interactions ?? 0),
+      cycle: Number(state.cycle ?? 0),
+      lastInteraction: Number(state.last ?? 0),
+      createdAt: Number(state.created ?? 0),
+      metadataUri: metadata.uri,
+    });
+  }
+  return result;
 }
 
 export async function fetchActiveFamilyTree(
@@ -135,7 +188,7 @@ export async function createRebyter(
   const evolutionLeafHash = [...hexToBytes(leafHash(tree, origin))];
   const siblings = proof.siblings.map((hash) => [...hexToBytes(hash)]);
   const mint = Keypair.generate();
-  const rebyter = rebyterPda(mint.publicKey);
+  const rebyterAuthority = rebyterAuthorityPda(mint.publicKey);
   const ownerTokenAccount = getAssociatedTokenAddressSync(
     mint.publicKey,
     wallet.publicKey,
@@ -156,14 +209,14 @@ export async function createRebyter(
   });
   const metadataPointerIx = createInitializeMetadataPointerInstruction(
     mint.publicKey,
-    rebyter,
+    rebyterAuthority,
     mint.publicKey,
     TOKEN_2022_PROGRAM_ID,
   );
   const initializeMintIx = createInitializeMint2Instruction(
     mint.publicKey,
     0,
-    rebyter,
+    rebyterAuthority,
     null,
     TOKEN_2022_PROGRAM_ID,
   );
@@ -191,7 +244,7 @@ export async function createRebyter(
       owner: wallet.publicKey,
       registry: registryPda(),
       tree: treePda(familyId, version),
-      rebyter,
+      rebyterAuthority,
       mint: mint.publicKey,
       ownerTokenAccount,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -225,7 +278,6 @@ export async function createRebyter(
   return {
     signature,
     mint: mint.publicKey.toBase58(),
-    rebyter: rebyter.toBase58(),
     evolutionId: origin.id,
     tree,
   };
