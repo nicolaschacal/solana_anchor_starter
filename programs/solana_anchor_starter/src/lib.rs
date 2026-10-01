@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::{
-    token_2022::{set_authority, spl_token_2022::instruction::AuthorityType, SetAuthority},
+    token_2022::{spl_token_2022::instruction::AuthorityType, SetAuthority},
     token_2022_extensions::{
         spl_token_metadata_interface::state::{Field, TokenMetadata},
         token_metadata::{token_metadata_update_field, TokenMetadataUpdateField},
@@ -300,7 +300,7 @@ pub mod solana_anchor_starter {
 
         // A Rebyter is permanently 1/1. Gameplay remains mutable through the
         // TokenMetadata update authority, but no additional supply can exist.
-        set_authority(
+        anchor_spl::token_2022::set_authority(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
                 SetAuthority {
