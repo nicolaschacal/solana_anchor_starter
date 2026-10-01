@@ -24,6 +24,7 @@ custom-panic = []
 anchor-lang = "1.2.0"
 anchor-spl = { version = "1.2.0", features = ["associated_token", "token_2022", "token_2022_extensions"] }
 solana-sha256-hasher = "3.1.0"
+bs58 = "0.5.1"
 
 [dev-dependencies]
 serde_json = "1.0.151"
