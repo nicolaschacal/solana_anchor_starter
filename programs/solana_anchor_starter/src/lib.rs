@@ -1,15 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer, Transfer};
-use anchor_spl::{
-    token_2022::{spl_token_2022::instruction::AuthorityType, SetAuthority},
-    token_2022_extensions::{
-        spl_token_metadata_interface::state::{Field, TokenMetadata},
-        token_metadata::{token_metadata_update_field, TokenMetadataUpdateField},
-    },
-    token_interface::{
-        mint_to, token_metadata_initialize, MintTo, Token2022,
-        TokenMetadataInitialize,
-    },
+use mpl_core::{
+    instructions::CreateV1CpiBuilder,
+    types::{Attribute, Attributes, Plugin, PluginAuthorityPair},
 };
 
 pub mod merkle;
@@ -132,11 +124,12 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Creates a 1/1 Token-2022 Rebyter whose complete persistent game
-    /// state lives inside the mint account's TokenMetadata extension.
+    /// Creates one Metaplex Core Asset whose complete Rebyter state lives
+    /// in a single on-chain Attributes plugin field named DNA.
     ///
-    /// No per-Rebyter PDA account is created. The only asset/state account is
-    /// the mint itself, matching Rebyters' single-account design.
+    /// The Core Asset is the Rebyter. There is no mint account and no ATA.
+    /// A PDA address is used only as update authority; no account is created
+    /// at that PDA and no state is stored there.
     pub fn create_rebyter(
         ctx: Context<CreateRebyter>,
         family_id: u8,
@@ -177,11 +170,11 @@ pub mod solana_anchor_starter {
 
         let clock = Clock::get()?;
         let owner_key = ctx.accounts.owner.key();
-        let mint_key = ctx.accounts.mint.key();
-        let dna = solana_sha256_hasher::hashv(&[
+        let asset_key = ctx.accounts.asset.key();
+        let genome_seed = solana_sha256_hasher::hashv(&[
             b"rebyter-dna-v1",
             owner_key.as_ref(),
-            mint_key.as_ref(),
+            asset_key.as_ref(),
             &clock.slot.to_le_bytes(),
             &clock.unix_timestamp.to_le_bytes(),
         ])
@@ -192,19 +185,16 @@ pub mod solana_anchor_starter {
         // piscivore, frugivore, size, strength, speed, resilience, mutation, rarity.
         let mut genes = [0u8; REBYTER_GENE_COUNT];
         for (index, gene) in genes.iter_mut().enumerate() {
-            *gene = dna[index] % 101;
+            *gene = genome_seed[index] % 101;
         }
 
-        // The only custom TokenMetadata field is DNA.
-        // DNA is a base58-encoded binary blob containing both immutable genes
-        // and mutable gameplay state. Its first byte versions the layout.
         let dna_blob = pack_rebyter_dna_v1(
             family_id,
             0,
             tree_version,
             evolution_id,
             &evolution_leaf_hash,
-            &dna,
+            &genome_seed,
             &genes,
             10,
             0,
@@ -218,110 +208,41 @@ pub mod solana_anchor_starter {
             clock.unix_timestamp,
             clock.unix_timestamp,
         );
-        let additional_metadata = vec![
-            ("DNA".to_string(), bs58::encode(dna_blob).into_string()),
-        ];
+        let dna_base58 = bs58::encode(dna_blob).into_string();
 
-        // Pre-fund the mint for the complete final TLV metadata size before
-        // Token-2022 reallocates it while adding the custom fields.
-        let final_metadata = TokenMetadata {
-            name: name.clone(),
-            symbol: "RBYT".to_string(),
-            uri: metadata_uri.clone(),
-            additional_metadata: additional_metadata.clone(),
-            ..Default::default()
-        };
-        let metadata_lamports = Rent::get()?.minimum_balance(final_metadata.tlv_size_of()?);
-        if metadata_lamports > 0 {
-            transfer(
-                CpiContext::new(
-                    ctx.accounts.system_program.key(),
-                    Transfer {
-                        from: ctx.accounts.owner.to_account_info(),
-                        to: ctx.accounts.mint.to_account_info(),
-                    },
-                ),
-                metadata_lamports,
-            )?;
-        }
+        let plugins = vec![PluginAuthorityPair {
+            plugin: Plugin::Attributes(Attributes {
+                attribute_list: vec![Attribute {
+                    key: "DNA".to_string(),
+                    value: dna_base58,
+                }],
+            }),
+            authority: None,
+        }];
 
-        let bump = ctx.bumps.rebyter_authority;
-        let signer_seeds: &[&[&[u8]]] = &[&[
-            b"rebyter_authority",
-            mint_key.as_ref(),
-            &[bump],
-        ]];
-
-        token_metadata_initialize(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                TokenMetadataInitialize {
-                    program_id: ctx.accounts.token_program.to_account_info(),
-                    mint: ctx.accounts.mint.to_account_info(),
-                    metadata: ctx.accounts.mint.to_account_info(),
-                    mint_authority: ctx.accounts.rebyter_authority.to_account_info(),
-                    update_authority: ctx.accounts.rebyter_authority.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            name,
-            "RBYT".to_string(),
-            metadata_uri,
-        )?;
-
-        for (key, value) in additional_metadata {
-            token_metadata_update_field(
-                CpiContext::new(
-                    ctx.accounts.token_program.key(),
-                    TokenMetadataUpdateField {
-                        program_id: ctx.accounts.token_program.to_account_info(),
-                        metadata: ctx.accounts.mint.to_account_info(),
-                        update_authority: ctx.accounts.rebyter_authority.to_account_info(),
-                    },
-                )
-                .with_signer(signer_seeds),
-                Field::Key(key),
-                value,
-            )?;
-        }
-
-        mint_to(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                MintTo {
-                    mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.owner_token_account.to_account_info(),
-                    authority: ctx.accounts.rebyter_authority.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            1,
-        )?;
-
-        // A Rebyter is permanently 1/1. Gameplay remains mutable through the
-        // TokenMetadata update authority, but no additional supply can exist.
-        anchor_spl::token_2022::set_authority(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                SetAuthority {
-                    current_authority: ctx.accounts.rebyter_authority.to_account_info(),
-                    account_or_mint: ctx.accounts.mint.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            AuthorityType::MintTokens,
-            None,
-        )?;
+        let mut create = CreateV1CpiBuilder::new(&ctx.accounts.core_program.to_account_info());
+        create
+            .asset(&ctx.accounts.asset.to_account_info())
+            .authority(Some(&ctx.accounts.owner.to_account_info()))
+            .payer(&ctx.accounts.owner.to_account_info())
+            .owner(Some(&ctx.accounts.owner.to_account_info()))
+            .update_authority(Some(&ctx.accounts.rebyter_authority.to_account_info()))
+            .system_program(&ctx.accounts.system_program.to_account_info())
+            .name(name)
+            .uri(metadata_uri)
+            .plugins(plugins);
+        create.invoke()?;
 
         emit!(RebyterCreated {
             owner: owner_key,
-            mint: mint_key,
+            asset: asset_key,
             family_id,
             evolution_id,
         });
 
         Ok(())
-    }
+    }}
+
 }
 
 fn pack_rebyter_dna_v1(
@@ -462,24 +383,21 @@ pub struct CreateRebyter<'info> {
         bump
     )]
     pub tree: Account<'info, EvolutionTree>,
-    /// CHECK: Program-derived authority only; it stores no data and is not a
-    /// second Rebyter account. It exists solely to sign Token-2022 metadata CPIs.
+    /// CHECK: PDA address only. No account is created here; Core stores all
+    /// Rebyter data in the Asset account and uses this address as update authority.
     #[account(
-        seeds = [b"rebyter_authority", mint.key().as_ref()],
+        seeds = [b"rebyter_authority", asset.key().as_ref()],
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    /// CHECK: Token-2022 mint is initialized by the client in the same
-    /// transaction and is the single account that stores Rebyter state.
-    #[account(mut, owner = token_program.key())]
-    pub mint: UncheckedAccount<'info>,
-    /// CHECK: Owner ATA is initialized by the client in the same transaction.
-    #[account(mut, owner = token_program.key())]
-    pub owner_token_account: UncheckedAccount<'info>,
-    pub token_program: Program<'info, Token2022>,
+    /// The Core Asset keypair signs creation. The account is created by MPL Core.
+    #[account(mut)]
+    pub asset: Signer<'info>,
+    /// CHECK: constrained to the canonical MPL Core program id.
+    #[account(address = mpl_core::ID)]
+    pub core_program: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
-}
-#[event]
+}#[event]
 pub struct IdsReserved {
     pub start: u32,
     pub count: u16,
@@ -488,7 +406,7 @@ pub struct IdsReserved {
 #[event]
 pub struct RebyterCreated {
     pub owner: Pubkey,
-    pub mint: Pubkey,
+    pub asset: Pubkey,
     pub family_id: u8,
     pub evolution_id: u32,
 }
