@@ -241,8 +241,7 @@ pub mod solana_anchor_starter {
         });
 
         Ok(())
-    }}
-
+    }
 }
 
 fn pack_rebyter_dna_v1(
@@ -397,7 +396,9 @@ pub struct CreateRebyter<'info> {
     #[account(address = mpl_core::ID)]
     pub core_program: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
-}#[event]
+}
+
+#[event]
 pub struct IdsReserved {
     pub start: u32,
     pub count: u16,
