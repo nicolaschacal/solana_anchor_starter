@@ -315,8 +315,7 @@ pub mod solana_anchor_starter {
         });
 
         Ok(())
-    }}
-
+    }
 }
 
 fn bytes_hex(bytes: &[u8]) -> String {
