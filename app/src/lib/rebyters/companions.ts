@@ -36,6 +36,7 @@ export interface OnchainRebyter {
   evolutionId: number;
   evolutionLeafHash: number[];
   dna: number[];
+  dnaBase58: string;
   genes: number[];
   weight: number;
   bond: number;
@@ -194,6 +195,7 @@ export async function fetchOwnedRebyters(
       evolutionId: dnaState.evolutionId,
       evolutionLeafHash: dnaState.evolutionLeafHash,
       dna: dnaState.genomeSeed,
+      dnaBase58: dnaField,
       genes: dnaState.genes,
       weight: dnaState.weight,
       bond: dnaState.bond,
