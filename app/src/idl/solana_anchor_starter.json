@@ -383,16 +383,13 @@
           "name": "rebyter_authority"
         },
         {
-          "name": "mint",
+          "name": "asset",
           "writable": true,
           "signer": true
         },
         {
-          "name": "owner_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program"
+          "name": "core_program",
+          "address": "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
         },
         {
           "name": "system_program",
@@ -678,7 +675,7 @@
             "type": "pubkey"
           },
           {
-            "name": "mint",
+            "name": "asset",
             "type": "pubkey"
           },
           {
