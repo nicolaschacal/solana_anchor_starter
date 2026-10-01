@@ -135,7 +135,7 @@ function EmptyCompanion({
       {status&&<div className="create-status">{status}</div>}
       {error&&<div className="create-error">{error}</div>}
     </section>
-    <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter keeps the same Token-2022 mint while its on-chain evolution state changes.</p></div></aside>
+    <aside className="empty-side-note"><Dna/><div><strong>One mint. Many forms.</strong><p>Your Rebyter stays the same Core asset while its on-chain evolution state changes.</p></div></aside>
 
     {choosing&&<div className="origin-sheet-backdrop" onClick={()=>!creating&&setChoosing(false)}>
       <section className="origin-sheet" onClick={e=>e.stopPropagation()}>
@@ -271,7 +271,7 @@ export function PlayerAccount() {
     <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Solana wallet support is active. Passkey onboarding can connect to this same identity layer next.</p></div><WalletMultiButton/></section>
     <section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Your on-chain Rebyters are listed below.":"No Rebyters found in this wallet."}</p></div></section>
     {owned.length>0&&<section className="onchain-companions">
-      <div className="section-title"><div><small>ON-CHAIN ASSETS</small><h2>Your mints</h2></div><span>Devnet</span></div>
+      <div className="section-title"><div><small>ON-CHAIN ASSETS</small><h2>Your Core assets</h2></div><span>Devnet</span></div>
       {owned.map(item=>{
         const evolution=tree.evolutions.find(e=>e.id===item.evolutionId);
         return <div className="onchain-companion" key={item.mint}>
@@ -319,7 +319,7 @@ export function PlayerAcquire() {
     </div>
     <section className="create-summary">
       <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own on-chain DNA and randomized genetic predispositions.</p></div>
-      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Unique on-chain seed</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Asset standard</dt><dd>Metaplex Core · 1 account</dd></div><div><dt>DNA</dt><dd>Unique on-chain seed</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
