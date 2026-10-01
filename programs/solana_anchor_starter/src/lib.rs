@@ -318,7 +318,6 @@ pub mod solana_anchor_starter {
             mint: mint_key,
             family_id,
             evolution_id,
-            dna,
         });
 
         Ok(())
@@ -492,7 +491,6 @@ pub struct RebyterCreated {
     pub mint: Pubkey,
     pub family_id: u8,
     pub evolution_id: u32,
-    pub dna: [u8; 32],
 }
 
 #[error_code]
