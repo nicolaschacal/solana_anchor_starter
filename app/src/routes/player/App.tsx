@@ -160,11 +160,58 @@ function EmptyCompanion({
   </main>;
 }
 
+function MintCompanionSheet({
+  open,
+  creating,
+  status,
+  error,
+  onClose,
+  onCreate,
+}:{
+  open:boolean;
+  creating:boolean;
+  status:string;
+  error:string;
+  onClose:()=>void;
+  onCreate:(familyId:number)=>void;
+}) {
+  if (!open) return null;
+  const families=[
+    {id:0,name:"Mammal",description:"Terrestrial and aquatic mammal lineages.",icon:Shield,enabled:true},
+    {id:8,name:"Amphibian",description:"Wetland and metamorphic lineages.",icon:Droplets,enabled:false},
+    {id:2,name:"Avian",description:"Winged and aerial lineages.",icon:Bird,enabled:false},
+    {id:3,name:"Reptile",description:"Scaled and resilient lineages.",icon:Zap,enabled:false},
+  ];
+  return <div className="origin-sheet-backdrop" onClick={()=>!creating&&onClose()}>
+    <section className="origin-sheet mint-sheet" onClick={e=>e.stopPropagation()}>
+      <div className="origin-sheet-head">
+        <div><small>NEW COMPANION</small><h2>Mint another Rebyter</h2><p>Every Rebyter gets unique on-chain DNA. There is no one-companion limit per wallet.</p></div>
+        <button className="origin-sheet-close" disabled={creating} onClick={onClose}>×</button>
+      </div>
+      <div className="origin-sheet-grid">
+        {families.map(item=>{const Icon=item.icon;return <button
+          key={item.name}
+          disabled={!item.enabled||creating}
+          className={item.enabled?"origin-pick available":"origin-pick locked"}
+          onClick={()=>item.enabled&&onCreate(item.id)}
+        >
+          <span className="origin-pick-icon"><Icon/></span>
+          <span><strong>{item.name}</strong><small>{item.description}</small></span>
+          {item.enabled?<b>{creating?"Minting…":"Mint"}</b>:<span className="origin-pick-lock"><LockKeyhole/> Coming soon</span>}
+        </button>})}
+      </div>
+      {status&&<div className="create-status">{status}</div>}
+      {error&&<div className="create-error">{error}</div>}
+    </section>
+  </div>;
+}
+
 export function PlayerHome() {
   const navigate = useNavigate();
   const player = usePlayerCollection();
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useState("");
+  const [minting,setMinting]=useState(false);
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
   const [reaction,setReaction]=useState("Your companion is watching you.");
@@ -178,6 +225,10 @@ export function PlayerHome() {
   /></Shell>;
 
   return <Shell><Header/><main className="player-main player-home-layout">
+    <section className="den-toolbar">
+      <div><small>YOUR DEN</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong></div>
+      <button className="mint-another" onClick={()=>setMinting(true)}><Plus/><span>Mint Rebyter</span></button>
+    </section>
     <aside className="home-side home-side-left">
       <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
       <section className="stats-section desktop-stats">
@@ -218,6 +269,14 @@ export function PlayerHome() {
       </div>
     </section>
     <div className="mobile-home-cta"><button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button></div>
+    <MintCompanionSheet
+      open={minting}
+      creating={player.creating}
+      status={player.status}
+      error={player.error}
+      onClose={()=>setMinting(false)}
+      onCreate={(familyId)=>{void player.create(familyId).then(()=>setMinting(false)).catch(()=>undefined)}}
+    />
   </main></Shell>;
 }
 
