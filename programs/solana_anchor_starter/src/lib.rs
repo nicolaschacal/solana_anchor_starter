@@ -195,24 +195,31 @@ pub mod solana_anchor_starter {
             *gene = dna[index] % 101;
         }
 
-        let dna_hex = bytes_hex(&dna);
-        let genes_hex = bytes_hex(&genes);
-        let leaf_hex = bytes_hex(&evolution_leaf_hash);
-        let state = format!(
-            "{{\"family\":{},\"stage\":0,\"tree\":{},\"evolution\":{},\"weight\":10,\"bond\":0,\"activity\":0,\"hunger\":100,\"energy\":100,\"diet\":[0,0,0,0],\"time\":[0,0,0,0],\"interactions\":0,\"cycle\":0,\"last\":{},\"created\":{}}}",
+        // The only custom TokenMetadata field is DNA.
+        // DNA is a base58-encoded binary blob containing both immutable genes
+        // and mutable gameplay state. Its first byte versions the layout.
+        let dna_blob = pack_rebyter_dna_v1(
             family_id,
+            0,
             tree_version,
             evolution_id,
+            &evolution_leaf_hash,
+            &dna,
+            &genes,
+            10,
+            0,
+            0,
+            100,
+            100,
+            [0; 4],
+            [0; 4],
+            0,
+            0,
             clock.unix_timestamp,
             clock.unix_timestamp,
         );
-
         let additional_metadata = vec![
-            ("schema".to_string(), "rebyter-v1".to_string()),
-            ("dna".to_string(), dna_hex.clone()),
-            ("genes".to_string(), genes_hex),
-            ("state".to_string(), state.clone()),
-            ("atlas_leaf".to_string(), leaf_hex),
+            ("DNA".to_string(), bs58::encode(dna_blob).into_string()),
         ];
 
         // Pre-fund the mint for the complete final TLV metadata size before
@@ -318,13 +325,50 @@ pub mod solana_anchor_starter {
     }
 }
 
-fn bytes_hex(bytes: &[u8]) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        out.push(HEX[(byte >> 4) as usize] as char);
-        out.push(HEX[(byte & 0x0f) as usize] as char);
+fn pack_rebyter_dna_v1(
+    family_id: u8,
+    stage: u8,
+    tree_version: u32,
+    evolution_id: u32,
+    evolution_leaf_hash: &[u8; 32],
+    genome_seed: &[u8; 32],
+    genes: &[u8; REBYTER_GENE_COUNT],
+    weight: u16,
+    bond: u16,
+    activity: u32,
+    hunger: u16,
+    energy: u16,
+    diet: [u16; 4],
+    time_interactions: [u16; 4],
+    total_interactions: u32,
+    cycle: u16,
+    last_interaction: i64,
+    created_at: i64,
+) -> Vec<u8> {
+    let mut out = Vec::with_capacity(128);
+    out.push(1);
+    out.push(family_id);
+    out.push(stage);
+    out.extend_from_slice(&tree_version.to_le_bytes());
+    out.extend_from_slice(&evolution_id.to_le_bytes());
+    out.extend_from_slice(evolution_leaf_hash);
+    out.extend_from_slice(genome_seed);
+    out.extend_from_slice(genes);
+    out.extend_from_slice(&weight.to_le_bytes());
+    out.extend_from_slice(&bond.to_le_bytes());
+    out.extend_from_slice(&activity.to_le_bytes());
+    out.extend_from_slice(&hunger.to_le_bytes());
+    out.extend_from_slice(&energy.to_le_bytes());
+    for value in diet {
+        out.extend_from_slice(&value.to_le_bytes());
     }
+    for value in time_interactions {
+        out.extend_from_slice(&value.to_le_bytes());
+    }
+    out.extend_from_slice(&total_interactions.to_le_bytes());
+    out.extend_from_slice(&cycle.to_le_bytes());
+    out.extend_from_slice(&last_interaction.to_le_bytes());
+    out.extend_from_slice(&created_at.to_le_bytes());
     out
 }
 
