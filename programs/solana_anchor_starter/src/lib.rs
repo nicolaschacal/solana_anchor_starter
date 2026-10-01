@@ -1,11 +1,15 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::{
+    token_2022::{set_authority, spl_token_2022::instruction::AuthorityType, SetAuthority},
+    token_2022_extensions::{
+        spl_token_metadata_interface::state::{Field, TokenMetadata},
+        token_metadata::{token_metadata_update_field, TokenMetadataUpdateField},
+    },
     token_interface::{
         mint_to, token_metadata_initialize, MintTo, Token2022,
         TokenMetadataInitialize,
     },
-    token_2022_extensions::spl_token_metadata_interface::state::TokenMetadata,
 };
 
 pub mod merkle;
@@ -128,11 +132,11 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Creates the user's first on-chain companion state and its 1/1 Token-2022 NFT.
+    /// Creates a 1/1 Token-2022 Rebyter whose complete persistent game
+    /// state lives inside the mint account's TokenMetadata extension.
     ///
-    /// Creation is free at the protocol level for now. The user only pays normal
-    /// Solana transaction/rent costs. Family 0 (Mammal) is the only enabled
-    /// origin family in this MVP.
+    /// No per-Rebyter PDA account is created. The only asset/state account is
+    /// the mint itself, matching Rebyters' single-account design.
     pub fn create_rebyter(
         ctx: Context<CreateRebyter>,
         family_id: u8,
@@ -183,7 +187,7 @@ pub mod solana_anchor_starter {
         ])
         .to_bytes();
 
-        // Fixed gene order:
+        // Permanent gene order:
         // activity, sociability, independence, nocturnal, carnivore, herbivore,
         // piscivore, frugivore, size, strength, speed, resilience, mutation, rarity.
         let mut genes = [0u8; REBYTER_GENE_COUNT];
@@ -191,37 +195,36 @@ pub mod solana_anchor_starter {
             *gene = dna[index] % 101;
         }
 
-        let rebyter = &mut ctx.accounts.rebyter;
-        rebyter.owner = owner_key;
-        rebyter.mint = mint_key;
-        rebyter.family_id = family_id;
-        rebyter.stage = 0;
-        rebyter.tree_version = tree_version;
-        rebyter.evolution_id = evolution_id;
-        rebyter.evolution_leaf_hash = evolution_leaf_hash;
-        rebyter.dna = dna;
-        rebyter.genes = genes;
-        rebyter.weight = 10;
-        rebyter.bond = 0;
-        rebyter.activity = 0;
-        rebyter.hunger = 100;
-        rebyter.energy = 100;
-        rebyter.diet = [0; 4];
-        rebyter.time_interactions = [0; 4];
-        rebyter.total_interactions = 0;
-        rebyter.cycle = 0;
-        rebyter.last_interaction = clock.unix_timestamp;
-        rebyter.created_at = clock.unix_timestamp;
-        rebyter.metadata_uri_len = metadata_uri.len() as u16;
-        rebyter.metadata_uri[..metadata_uri.len()].copy_from_slice(metadata_uri.as_bytes());
+        let dna_hex = bytes_hex(&dna);
+        let genes_hex = bytes_hex(&genes);
+        let leaf_hex = bytes_hex(&evolution_leaf_hash);
+        let state = format!(
+            "{{\"family\":{},\"stage\":0,\"tree\":{},\"evolution\":{},\"weight\":10,\"bond\":0,\"activity\":0,\"hunger\":100,\"energy\":100,\"diet\":[0,0,0,0],\"time\":[0,0,0,0],\"interactions\":0,\"cycle\":0,\"last\":{},\"created\":{}}}",
+            family_id,
+            tree_version,
+            evolution_id,
+            clock.unix_timestamp,
+            clock.unix_timestamp,
+        );
 
-        let metadata = TokenMetadata {
+        let additional_metadata = vec![
+            ("schema".to_string(), "rebyter-v1".to_string()),
+            ("dna".to_string(), dna_hex.clone()),
+            ("genes".to_string(), genes_hex),
+            ("state".to_string(), state.clone()),
+            ("atlas_leaf".to_string(), leaf_hex),
+        ];
+
+        // Pre-fund the mint for the complete final TLV metadata size before
+        // Token-2022 reallocates it while adding the custom fields.
+        let final_metadata = TokenMetadata {
             name: name.clone(),
             symbol: "RBYT".to_string(),
             uri: metadata_uri.clone(),
+            additional_metadata: additional_metadata.clone(),
             ..Default::default()
         };
-        let metadata_lamports = Rent::get()?.minimum_balance(metadata.tlv_size_of()?);
+        let metadata_lamports = Rent::get()?.minimum_balance(final_metadata.tlv_size_of()?);
         if metadata_lamports > 0 {
             transfer(
                 CpiContext::new(
@@ -235,9 +238,9 @@ pub mod solana_anchor_starter {
             )?;
         }
 
-        let bump = ctx.bumps.rebyter;
+        let bump = ctx.bumps.rebyter_authority;
         let signer_seeds: &[&[&[u8]]] = &[&[
-            b"rebyter",
+            b"rebyter_authority",
             mint_key.as_ref(),
             &[bump],
         ]];
@@ -249,8 +252,8 @@ pub mod solana_anchor_starter {
                     program_id: ctx.accounts.token_program.to_account_info(),
                     mint: ctx.accounts.mint.to_account_info(),
                     metadata: ctx.accounts.mint.to_account_info(),
-                    mint_authority: ctx.accounts.rebyter.to_account_info(),
-                    update_authority: ctx.accounts.rebyter.to_account_info(),
+                    mint_authority: ctx.accounts.rebyter_authority.to_account_info(),
+                    update_authority: ctx.accounts.rebyter_authority.to_account_info(),
                 },
             )
             .with_signer(signer_seeds),
@@ -259,17 +262,48 @@ pub mod solana_anchor_starter {
             metadata_uri,
         )?;
 
+        for (key, value) in additional_metadata {
+            token_metadata_update_field(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    TokenMetadataUpdateField {
+                        program_id: ctx.accounts.token_program.to_account_info(),
+                        metadata: ctx.accounts.mint.to_account_info(),
+                        update_authority: ctx.accounts.rebyter_authority.to_account_info(),
+                    },
+                )
+                .with_signer(signer_seeds),
+                Field::Key(key),
+                value,
+            )?;
+        }
+
         mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
                 MintTo {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.owner_token_account.to_account_info(),
-                    authority: ctx.accounts.rebyter.to_account_info(),
+                    authority: ctx.accounts.rebyter_authority.to_account_info(),
                 },
             )
             .with_signer(signer_seeds),
             1,
+        )?;
+
+        // A Rebyter is permanently 1/1. Gameplay remains mutable through the
+        // TokenMetadata update authority, but no additional supply can exist.
+        set_authority(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                SetAuthority {
+                    current_authority: ctx.accounts.rebyter_authority.to_account_info(),
+                    account_or_mint: ctx.accounts.mint.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            AuthorityType::MintTokens,
+            None,
         )?;
 
         emit!(RebyterCreated {
@@ -281,7 +315,18 @@ pub mod solana_anchor_starter {
         });
 
         Ok(())
+    }}
+
+}
+
+fn bytes_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        out.push(HEX[(byte >> 4) as usize] as char);
+        out.push(HEX[(byte & 0x0f) as usize] as char);
     }
+    out
 }
 
 fn family_index(id: u8) -> Result<usize> {
@@ -310,32 +355,6 @@ pub struct EvolutionTree {
     pub created_at: i64,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct Rebyter {
-    pub owner: Pubkey,
-    pub mint: Pubkey,
-    pub family_id: u8,
-    pub stage: u8,
-    pub tree_version: u32,
-    pub evolution_id: u32,
-    pub evolution_leaf_hash: [u8; 32],
-    pub dna: [u8; 32],
-    pub genes: [u8; REBYTER_GENE_COUNT],
-    pub weight: u16,
-    pub bond: u16,
-    pub activity: u32,
-    pub hunger: u16,
-    pub energy: u16,
-    pub diet: [u32; 4],
-    pub time_interactions: [u32; 4],
-    pub total_interactions: u32,
-    pub cycle: u16,
-    pub last_interaction: i64,
-    pub created_at: i64,
-    pub metadata_uri_len: u16,
-    pub metadata_uri: [u8; MAX_URI_LENGTH],
-}
 
 #[derive(Accounts)]
 pub struct InitializeRegistry<'info> {
@@ -401,26 +420,23 @@ pub struct CreateRebyter<'info> {
         bump
     )]
     pub tree: Account<'info, EvolutionTree>,
+    /// CHECK: Program-derived authority only; it stores no data and is not a
+    /// second Rebyter account. It exists solely to sign Token-2022 metadata CPIs.
     #[account(
-        init,
-        payer = owner,
-        space = 8 + Rebyter::INIT_SPACE,
-        seeds = [b"rebyter", mint.key().as_ref()],
+        seeds = [b"rebyter_authority", mint.key().as_ref()],
         bump
     )]
-    pub rebyter: Account<'info, Rebyter>,
-    /// CHECK: The client creates and initializes this Token-2022 mint in the
-    /// same transaction. The program only uses it through Token-2022 CPI.
+    pub rebyter_authority: UncheckedAccount<'info>,
+    /// CHECK: Token-2022 mint is initialized by the client in the same
+    /// transaction and is the single account that stores Rebyter state.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
-    /// CHECK: The client creates the owner's Token-2022 ATA in the same
-    /// transaction. The program only uses it as the mint_to destination.
+    /// CHECK: Owner ATA is initialized by the client in the same transaction.
     #[account(mut, owner = token_program.key())]
     pub owner_token_account: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
-
 #[event]
 pub struct IdsReserved {
     pub start: u32,
