@@ -48,13 +48,14 @@ function conditionBytes(
   condition: RuleCondition,
 ) {
   if (!tree.balance) throw new Error("Structured balance is required");
-  if (condition.metrics.length !== 1)
-    throw new Error(
-      `On-chain evolution currently requires one metric per condition; found ${condition.metrics.join("+")}`,
-    );
-  const metric = METRIC_IDS[condition.metrics[0]];
-  if (metric === undefined)
-    throw new Error(`Unsupported on-chain metric: ${condition.metrics[0]}`);
+  const metrics = condition.metrics.map((name) => {
+    const metric = METRIC_IDS[name];
+    if (metric === undefined)
+      throw new Error(`Unsupported on-chain metric: ${name}`);
+    return metric;
+  });
+  if (!metrics.length || metrics.length > 16)
+    throw new Error("Evolution condition metric count is invalid");
   const [lo, hi] = conditionBounds(condition, tree.balance, targetStage);
   const test = condition.test === "min" ? 0
     : condition.test === "range" ? 1
@@ -62,7 +63,13 @@ function conditionBytes(
     : 3;
   if (lo < 0 || hi < 0 || lo > 65535 || hi > 65535)
     throw new Error("Evolution threshold exceeds u16");
-  return concatBytes(Uint8Array.of(metric, test), u16(lo), u16(hi));
+  return concatBytes(
+    Uint8Array.of(metrics.length),
+    Uint8Array.from(metrics),
+    Uint8Array.of(test),
+    u16(lo),
+    u16(hi),
+  );
 }
 
 export function encodeRule(
