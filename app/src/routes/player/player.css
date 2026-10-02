@@ -1008,3 +1008,55 @@ html,body,#root{min-height:100%;background:#060b1a}
   .user-menu-popover{right:0;width:180px}
   .atlas-family-tabs button{min-width:116px}
 }
+
+
+/* Account UX: direct navigation in header; logout is intentionally secondary. */
+.account-direct-link{min-width:104px!important}
+.account-wallet-id{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid var(--rb-line);
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+}
+.account-wallet-id small{
+  margin:0!important;
+  font-size:7px!important;
+  letter-spacing:.11em!important;
+  color:var(--rb-muted)!important;
+}
+.account-wallet-id code{
+  color:var(--rb-text);
+  font:500 10px 'Sora',sans-serif;
+}
+.account-logout{
+  display:flex;
+  justify-content:center;
+  padding:6px 0 18px;
+}
+.account-logout button{
+  min-height:34px;
+  padding:6px 10px;
+  border:0;
+  background:transparent;
+  color:#ff7f8d;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font:500 9px 'Sora',sans-serif;
+  cursor:pointer;
+  opacity:.82;
+}
+.account-logout button:hover{
+  background:rgba(255,127,141,.07);
+  color:#ff9aa6;
+  opacity:1;
+}
+.account-logout button svg{width:12px;height:12px}
+@media(max-width:420px){
+  .account-direct-link{min-width:98px!important}
+}
