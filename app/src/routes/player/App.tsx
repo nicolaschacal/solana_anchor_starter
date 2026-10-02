@@ -26,6 +26,12 @@ type OwnedRebyter = {
   hunger: number;
   activity: number;
   energy: number;
+  hp: number;
+  atk: number;
+  def: number;
+  spd: number;
+  timeInteractions: number[];
+  totalInteractions: number;
 };
 
 function usePlayerCollection() {
@@ -41,12 +47,18 @@ function usePlayerCollection() {
     hunger: item.hunger,
     activity: item.activity,
     energy: item.energy,
+    hp: item.hp,
+    atk: item.atk,
+    def: item.def,
+    spd: item.spd,
+    timeInteractions: item.timeInteractions,
+    totalInteractions: item.totalInteractions,
   }));
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     owned = [
-      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84 },
-      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68 },
-      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59 },
+      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11 },
+      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28 },
+      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43 },
     ];
   }
   return { ...chain, tree, owned };
@@ -78,6 +90,14 @@ function Header() {
 
 function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string}) {
   return <div className="pet-stat"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>;
+}
+
+function rhythmLabel(values:number[]) {
+  const labels=["Dawn","Morning","Afternoon","Night"];
+  if (!values.length || values.every(v=>v===0)) return "No pattern yet";
+  let best=0;
+  for (let i=1;i<values.length;i++) if ((values[i]??0)>(values[best]??0)) best=i;
+  return labels[best] ?? "Unknown";
 }
 
 function RebyterPicker({
@@ -212,6 +232,7 @@ export function PlayerHome() {
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useState("");
   const [minting,setMinting]=useState(false);
+  const [feeding,setFeeding]=useState(false);
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
   const [reaction,setReaction]=useState("Your companion is watching you.");
@@ -234,7 +255,7 @@ export function PlayerHome() {
       <section className="stats-section desktop-stats">
         <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
         <div className="stats-grid">
-          <Stat icon={<Apple/>} label="Hunger" value={active.hunger+"%"}/>
+          <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/>
           <Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/>
           <Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/>
           <Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
@@ -250,10 +271,18 @@ export function PlayerHome() {
         <p>{reaction}</p>
       </div>
       <div className="pet-actions">
-        <button onClick={()=>setReaction(evolution.name+" loved that meal!")}><Apple/><span>Feed</span></button>
-        <button onClick={()=>setReaction(evolution.name+" wants to play!")}><Sparkles/><span>Play</span></button>
-        <button onClick={()=>setReaction(evolution.name+" feels cared for.")}><Heart/><span>Care</span></button>
-        <button onClick={()=>setReaction(evolution.name+" is resting...")}><MoonStar/><span>Rest</span></button>
+        <button disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
+        <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" had a great play session.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
+        <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
+        <button disabled title="Rest will be added with recovery rules"><MoonStar/><span>Rest</span></button>
+      </div>
+      <div className="dna-feedback">
+        <span><small>RHYTHM</small><strong>{rhythmLabel(active.timeInteractions)}</strong></span>
+        <span><small>INTERACTIONS</small><strong>{active.totalInteractions}</strong></span>
+        <span><small>HP</small><strong>{active.hp}</strong></span>
+        <span><small>ATK</small><strong>{active.atk}</strong></span>
+        <span><small>DEF</small><strong>{active.def}</strong></span>
+        <span><small>SPD</small><strong>{active.spd}</strong></span>
       </div>
     </section>
 
@@ -265,10 +294,30 @@ export function PlayerHome() {
     <section className="stats-section mobile-stats">
       <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
       <div className="stats-grid">
-        <Stat icon={<Apple/>} label="Hunger" value={active.hunger+"%"}/><Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/><Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/><Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
+        <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/><Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/><Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/><Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
       </div>
     </section>
     <div className="mobile-home-cta"><button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button></div>
+    {feeding&&<div className="origin-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
+      <section className="origin-sheet feed-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="origin-sheet-head">
+          <div><small>FEED</small><h2>Choose a meal</h2><p>Food preference is recorded permanently in this Rebyter's DNA.</p></div>
+          <button className="origin-sheet-close" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>×</button>
+        </div>
+        <div className="food-grid">
+          {[
+            ["Meat","Builds carnivore history",0],
+            ["Plants","Builds herbivore history",1],
+            ["Fish","Builds piscivore history",2],
+            ["Fruit","Builds frugivore history",3],
+          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"feed",Number(id)).then(()=>{setReaction(evolution.name+" enjoyed the meal.");setFeeding(false)}).catch(()=>undefined)}>
+            <Apple/><span><strong>{String(name)}</strong><small>{String(desc)}</small></span>
+          </button>)}
+        </div>
+        {player.status&&<div className="create-status">{player.status}</div>}
+        {player.error&&<div className="create-error">{player.error}</div>}
+      </section>
+    </div>}
     <MintCompanionSheet
       open={minting}
       creating={player.creating}
@@ -292,17 +341,17 @@ export function PlayerLab() {
   </main></Shell>;
 }
 
-function AtlasLineage({ evolution, onBack, tree }:{evolution:Evolution;onBack:()=>void;tree:TreeJson}) {
+function AtlasLineage({ evolution, onBack, tree, discoveredIds }:{evolution:Evolution;onBack:()=>void;tree:TreeJson;discoveredIds:Set<number>}) {
   const lineage=fullEvolutionLineage(tree,evolution.id);
   const grouped=STAGE_NAMES.map((label,stage)=>({label,stage,items:lineage.filter(e=>e.stage===stage)})).filter(x=>x.items.length);
   return <>
     <button className="atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
-    <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Known ancestors and every possible descendant in this evolutionary branch.</p></div>
+    <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Your discovered branch stays visible. Unknown forms remain hidden until one of your Rebyters actually reaches them.</p></div>
     <div className="player-lineage-map">
       {grouped.map((group,index)=><section key={group.stage} className="lineage-stage">
         <div className="lineage-stage-label"><small>0{group.stage+1}</small><strong>{group.label}</strong></div>
         <div className="lineage-stage-cards">
-          {group.items.map(item=><div className={item.id===evolution.id?"lineage-card active":"lineage-card"} key={item.id}><CreatureSprite evolution={item}/><strong>{item.name}</strong><small>{item.family}</small></div>)}
+          {group.items.map(item=>{const open=discoveredIds.has(item.id);return <div className={`lineage-card${item.id===evolution.id?" active":""}${open?"":" locked"}`} key={item.id}>{open?<CreatureSprite evolution={item}/>:<LockKeyhole/>}<strong>{open?item.name:"???"}</strong><small>{open?item.family:"Undiscovered"}</small></div>})}
         </div>
         {index<grouped.length-1&&<div className="lineage-arrow"><ChevronRight/></div>}
       </section>)}
@@ -316,7 +365,7 @@ export function PlayerAtlas() {
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
-  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} tree={tree}/></main></Shell>;
+  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
   return <Shell><Header/><main className="player-main atlas-player"><div className="player-page-head"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Only forms your wallet has actually reached are revealed. Select one of your discovered Rebyters to inspect its complete lineage.</p></div>
     <div className="atlas-progress"><span><strong>{ownedEvolutionIds.size}</strong> / {tree.evolutions.length} discovered</span><div><i style={{width:`${ownedEvolutionIds.size/tree.evolutions.length*100}%`}}/></div></div>
     {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<CreatureSprite evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
