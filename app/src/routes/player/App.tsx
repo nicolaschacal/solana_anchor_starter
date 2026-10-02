@@ -489,8 +489,11 @@ function AtlasLineage({ evolution, onBack, tree, discoveredIds }:{evolution:Evol
 }
 
 export function PlayerAtlas() {
-  const { owned, tree }=usePlayerCollection();
-  const ownedEvolutionIds=new Set(owned.map(x=>x.evolutionId));
+  const { owned, tree, playerProfile }=usePlayerCollection();
+  const ownedEvolutionIds=new Set([
+    ...(playerProfile?.discoveries ?? []),
+    ...owned.map(x=>x.evolutionId),
+  ]);
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
@@ -502,10 +505,21 @@ export function PlayerAtlas() {
 }
 
 export function PlayerAccount() {
-  const { owned, tree }=usePlayerCollection();
+  const { owned, tree, playerProfile }=usePlayerCollection();
+  const xpIntoLevel=playerProfile ? playerProfile.trainerXp%100 : 0;
   return <Shell><Header/><main className="player-main">
-    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, identity and your Rebyters live here.</p></div>
-    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Solana wallet support is active. Passkey onboarding can connect to this same identity layer next.</p></div><WalletMultiButton/></section>
+    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, trainer progression and your Rebyters live here.</p></div>
+    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent trainer profile.</p></div><WalletMultiButton/></section>
+    {playerProfile&&<section className="trainer-profile-card">
+      <div className="trainer-profile-head"><span><Sparkles/></span><div><small>TRAINER PROFILE</small><h2>Level {playerProfile.trainerLevel}</h2><p>Your discoveries stay with this wallet even after a Rebyter evolves.</p></div></div>
+      <div className="trainer-profile-stats">
+        <div><small>DISCOVERED</small><strong>{playerProfile.discoveries.length}</strong></div>
+        <div><small>INTERACTIONS</small><strong>{playerProfile.totalInteractions}</strong></div>
+        <div><small>EVOLUTIONS</small><strong>{playerProfile.totalEvolutions}</strong></div>
+        <div><small>XP</small><strong>{playerProfile.trainerXp}</strong></div>
+      </div>
+      <div className="trainer-xp"><span><i style={{width:`${xpIntoLevel}%`}}/></span><small>{xpIntoLevel} / 100 XP to next level</small></div>
+    </section>}
     <section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Your on-chain Rebyters are listed below.":"No Rebyters found in this wallet."}</p></div></section>
     {owned.length>0&&<section className="onchain-companions">
       <div className="section-title"><div><small>ON-CHAIN ASSETS</small><h2>Your mints</h2></div><span>Devnet</span></div>
