@@ -27,6 +27,7 @@ pub const MAX_FAMILIES: usize = 16;
 pub const MAX_URI_LENGTH: usize = 128;
 pub const REBYTER_GENE_COUNT: usize = 14;
 pub const REBYTER_DNA_V2_BYTES: usize = 62;
+pub const MAX_RULE_BYTES: usize = 1024;
 pub const CREATE_REBYTER_PRICE_LAMPORTS: u64 = 0;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
 
@@ -108,6 +109,26 @@ pub mod solana_anchor_starter {
         tree.uri_len = uri.len() as u16;
         tree.uri[..uri.len()].copy_from_slice(uri.as_bytes());
         tree.created_at = Clock::get()?.unix_timestamp;
+        Ok(())
+    }
+
+    pub fn create_rule_set(
+        ctx: Context<CreateRuleSet>,
+        family_id: u8,
+        tree_version: u32,
+        rules_root: [u8; 32],
+    ) -> Result<()> {
+        require!(rules_root != [0; 32], RegistryError::Hash);
+        require!(
+            ctx.accounts.tree.family_id == family_id
+                && ctx.accounts.tree.version == tree_version,
+            RegistryError::Version
+        );
+        let rule_set = &mut ctx.accounts.rule_set;
+        rule_set.family_id = family_id;
+        rule_set.tree_version = tree_version;
+        rule_set.rules_root = rules_root;
+        rule_set.created_at = Clock::get()?.unix_timestamp;
         Ok(())
     }
 
@@ -358,6 +379,97 @@ pub mod solana_anchor_starter {
     pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
         apply_interaction(&ctx.accounts, InteractionKind::Care)
     }
+
+    pub fn evolve(
+        ctx: Context<EvolveRebyter>,
+        target_id: u16,
+        target_stage: u8,
+        target_name: String,
+        target_uri: String,
+        rule_bytes: Vec<u8>,
+        proof: Vec<[u8; 32]>,
+    ) -> Result<()> {
+        require!(!target_name.is_empty() && target_name.len() <= 32, RegistryError::InvalidMetadata);
+        require!(target_uri.is_empty() || (target_uri.starts_with("https://") && target_uri.len() <= MAX_URI_LENGTH), RegistryError::InvalidMetadata);
+        require!(!rule_bytes.is_empty() && rule_bytes.len() <= MAX_RULE_BYTES, RegistryError::InvalidRule);
+
+        let mut dna = read_rebyter_dna(&ctx.accounts.mint.to_account_info())?;
+        require!(target_stage == dna.stage.saturating_add(1), RegistryError::InvalidEvolution);
+        require!(ctx.accounts.rule_set.family_id == dna.family_id, RegistryError::InvalidRule);
+        require!(ctx.accounts.rule_set.tree_version == u32::from(dna.tree_version), RegistryError::InvalidRule);
+
+        let leaf = rule_leaf_hash(
+            dna.family_id,
+            u32::from(dna.tree_version),
+            dna.evolution_id,
+            target_id,
+            target_stage,
+            target_name.as_bytes(),
+            target_uri.as_bytes(),
+            &rule_bytes,
+        )?;
+        require!(
+            merkle::verify_evolution_hash_proof(leaf, &proof, &ctx.accounts.rule_set.rules_root),
+            RegistryError::InvalidEvolutionProof
+        );
+        require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
+
+        let source_id = dna.evolution_id;
+        dna.evolution_id = target_id;
+        dna.stage = target_stage;
+        let dna_base58 = bs58::encode(dna.encode()).into_string();
+
+        let mint_key = ctx.accounts.mint.key();
+        let bump = ctx.bumps.rebyter_authority;
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"rebyter_authority",
+            mint_key.as_ref(),
+            &[bump],
+        ]];
+
+        for (field, value) in [
+            (Field::Key("DNA".to_string()), dna_base58),
+            (Field::Name, target_name.clone()),
+        ] {
+            token_metadata_update_field(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    TokenMetadataUpdateField {
+                        program_id: ctx.accounts.token_program.to_account_info(),
+                        metadata: ctx.accounts.mint.to_account_info(),
+                        update_authority: ctx.accounts.rebyter_authority.to_account_info(),
+                    },
+                )
+                .with_signer(signer_seeds),
+                field,
+                value,
+            )?;
+        }
+        if !target_uri.is_empty() {
+            token_metadata_update_field(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    TokenMetadataUpdateField {
+                        program_id: ctx.accounts.token_program.to_account_info(),
+                        metadata: ctx.accounts.mint.to_account_info(),
+                        update_authority: ctx.accounts.rebyter_authority.to_account_info(),
+                    },
+                )
+                .with_signer(signer_seeds),
+                Field::Uri,
+                target_uri,
+            )?;
+        }
+
+        emit!(RebyterEvolved {
+            owner: ctx.accounts.owner.key(),
+            mint: mint_key,
+            source_id,
+            target_id,
+            stage: target_stage,
+        });
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -485,10 +597,10 @@ impl RebyterDnaV2 {
 fn utc_time_bucket(unix_timestamp: i64) -> usize {
     let hour = (unix_timestamp.rem_euclid(86_400) / 3_600) as u8;
     match hour {
-        0..=5 => 0,   // dawn / madrugada
+        0..=5 => 0,   // night
         6..=11 => 1,  // morning
-        12..=17 => 2, // afternoon
-        _ => 3,       // night
+        12..=17 => 2, // day
+        _ => 3,       // evening
     }
 }
 
@@ -676,6 +788,130 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
     Ok(())
 }
 
+fn rule_leaf_hash(
+    family_id: u8,
+    tree_version: u32,
+    source_id: u16,
+    target_id: u16,
+    target_stage: u8,
+    target_name: &[u8],
+    target_uri: &[u8],
+    rule_bytes: &[u8],
+) -> Result<[u8; 32]> {
+    require!(target_name.len() <= u8::MAX as usize, RegistryError::InvalidRule);
+    require!(target_uri.len() <= u16::MAX as usize, RegistryError::InvalidRule);
+    require!(rule_bytes.len() <= u16::MAX as usize, RegistryError::InvalidRule);
+    Ok(solana_sha256_hasher::hashv(&[
+        &[2],
+        &[family_id],
+        &tree_version.to_le_bytes(),
+        &source_id.to_le_bytes(),
+        &target_id.to_le_bytes(),
+        &[target_stage],
+        &[target_name.len() as u8],
+        target_name,
+        &(target_uri.len() as u16).to_le_bytes(),
+        target_uri,
+        &(rule_bytes.len() as u16).to_le_bytes(),
+        rule_bytes,
+    ]).to_bytes())
+}
+
+struct RuleCursor<'a> {
+    data: &'a [u8],
+    offset: usize,
+}
+impl<'a> RuleCursor<'a> {
+    fn new(data: &'a [u8]) -> Self { Self { data, offset: 0 } }
+    fn u8(&mut self) -> Result<u8> {
+        require!(self.offset < self.data.len(), RegistryError::InvalidRule);
+        let v = self.data[self.offset];
+        self.offset += 1;
+        Ok(v)
+    }
+    fn u16(&mut self) -> Result<u16> {
+        require!(self.offset + 2 <= self.data.len(), RegistryError::InvalidRule);
+        let v = u16::from_le_bytes([self.data[self.offset], self.data[self.offset + 1]]);
+        self.offset += 2;
+        Ok(v)
+    }
+}
+
+fn percentage(value: u16, total: u32) -> u16 {
+    if total == 0 { 0 } else { ((u32::from(value) * 100) / total).min(100) as u16 }
+}
+
+fn metric_value(metric: u8, dna: &RebyterDnaV2) -> Result<u16> {
+    let value = match metric {
+        0..=13 => u16::from(dna.genes[usize::from(metric)]),
+        14 => percentage(dna.diet[0], dna.diet.iter().map(|v| u32::from(*v)).sum()),
+        15 => percentage(dna.diet[2], dna.diet.iter().map(|v| u32::from(*v)).sum()),
+        16 => percentage(dna.diet[1], dna.diet.iter().map(|v| u32::from(*v)).sum()),
+        17 => percentage(dna.diet[3], dna.diet.iter().map(|v| u32::from(*v)).sum()),
+        // Time buckets are stored as [night, morning, day, evening] UTC.
+        18 => percentage(dna.time_interactions[1], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
+        19 => percentage(dna.time_interactions[2], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
+        20 => percentage(dna.time_interactions[3], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
+        21 => percentage(dna.time_interactions[0], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
+        22 => dna.activity / 10,
+        23 => u16::from(dna.weight),
+        24 => u16::from(dna.cycle),
+        _ => return err!(RegistryError::InvalidRule),
+    };
+    Ok(value)
+}
+
+fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV2) -> Result<bool> {
+    let metric = cursor.u8()?;
+    let test = cursor.u8()?;
+    let lo = cursor.u16()?;
+    let hi = cursor.u16()?;
+    let value = metric_value(metric, dna)?;
+    Ok(match test {
+        0 => value >= lo,
+        1 => value >= lo && value <= hi,
+        2 => value <= hi,
+        3 => value == lo,
+        _ => return err!(RegistryError::InvalidRule),
+    })
+}
+
+fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
+    let mut cursor = RuleCursor::new(bytes);
+    require!(cursor.u8()? == 1, RegistryError::InvalidRule);
+    let required_groups = cursor.u8()?;
+    let group_count = cursor.u8()?;
+    require!(group_count <= 7 && required_groups <= group_count, RegistryError::InvalidRule);
+
+    let mut passed_groups = 0u8;
+    for _ in 0..group_count {
+        let _group_id = cursor.u8()?;
+        let alt_count = cursor.u8()?;
+        require!(alt_count > 0 && alt_count <= 16, RegistryError::InvalidRule);
+        let mut group_passed = false;
+        for _ in 0..alt_count {
+            let condition_count = cursor.u8()?;
+            require!(condition_count > 0 && condition_count <= 16, RegistryError::InvalidRule);
+            let mut alt_passed = true;
+            for _ in 0..condition_count {
+                let passed = condition_passes(&mut cursor, dna)?;
+                alt_passed &= passed;
+            }
+            group_passed |= alt_passed;
+        }
+        if group_passed { passed_groups = passed_groups.saturating_add(1); }
+    }
+
+    let mandatory_count = cursor.u8()?;
+    require!(mandatory_count <= 32, RegistryError::InvalidRule);
+    let mut mandatory_passed = true;
+    for _ in 0..mandatory_count {
+        mandatory_passed &= condition_passes(&mut cursor, dna)?;
+    }
+    require!(cursor.offset == bytes.len(), RegistryError::InvalidRule);
+    Ok(mandatory_passed && passed_groups >= required_groups)
+}
+
 fn pack_rebyter_dna_v2(
     family_id: u8,
     stage: u8,
@@ -755,6 +991,15 @@ pub struct EvolutionTree {
     pub created_at: i64,
 }
 
+#[account]
+#[derive(InitSpace)]
+pub struct RuleSet {
+    pub family_id: u8,
+    pub tree_version: u32,
+    pub rules_root: [u8; 32],
+    pub created_at: i64,
+}
+
 
 #[derive(Accounts)]
 pub struct InitializeRegistry<'info> {
@@ -784,6 +1029,29 @@ pub struct CreateTree<'info> {
     pub registry: Account<'info, RegistryRoot>,
     #[account(init, payer = authority, space = 8 + EvolutionTree::INIT_SPACE, seeds = [b"tree".as_ref(), &[family_id], &version.to_le_bytes()], bump)]
     pub tree: Account<'info, EvolutionTree>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(family_id: u8, tree_version: u32)]
+pub struct CreateRuleSet<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(
+        seeds = [b"tree", &[family_id], &tree_version.to_le_bytes()],
+        bump
+    )]
+    pub tree: Account<'info, EvolutionTree>,
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + RuleSet::INIT_SPACE,
+        seeds = [b"rules", &[family_id], &tree_version.to_le_bytes()],
+        bump
+    )]
+    pub rule_set: Account<'info, RuleSet>,
     pub system_program: Program<'info, System>,
 }
 
@@ -858,6 +1126,28 @@ pub struct InteractRebyter<'info> {
     pub token_program: Program<'info, Token2022>,
 }
 
+#[derive(Accounts)]
+pub struct EvolveRebyter<'info> {
+    pub owner: Signer<'info>,
+    /// CHECK: Token-2022 mint; ownership and DNA are validated in the handler.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    #[account(
+        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+    )]
+    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: PDA signs TokenMetadata updates and stores no account state.
+    #[account(
+        seeds = [b"rebyter_authority", mint.key().as_ref()],
+        bump
+    )]
+    pub rebyter_authority: UncheckedAccount<'info>,
+    pub rule_set: Account<'info, RuleSet>,
+    pub token_program: Program<'info, Token2022>,
+}
+
 #[event]
 pub struct RebyterInteraction {
     pub owner: Pubkey,
@@ -867,6 +1157,15 @@ pub struct RebyterInteraction {
     /// 0 dawn, 1 morning, 2 afternoon, 3 night (UTC).
     pub time_bucket: u8,
     pub total_interactions: u16,
+}
+
+#[event]
+pub struct RebyterEvolved {
+    pub owner: Pubkey,
+    pub mint: Pubkey,
+    pub source_id: u16,
+    pub target_id: u16,
+    pub stage: u8,
 }
 
 #[event]
@@ -917,4 +1216,10 @@ pub enum RegistryError {
     NotOwner,
     #[msg("Food type must be meat, plant, fish, or fruit")]
     InvalidFood,
+    #[msg("Evolution rule proof or encoding is invalid")]
+    InvalidRule,
+    #[msg("Evolution target is invalid")]
+    InvalidEvolution,
+    #[msg("This Rebyter does not yet satisfy the evolution requirements")]
+    EvolutionRequirements,
 }
