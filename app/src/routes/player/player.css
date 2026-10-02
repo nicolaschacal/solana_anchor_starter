@@ -186,3 +186,12 @@
   .pet-card.home-center{min-height:0}
   .pet-viewer{width:100%;aspect-ratio:1.08/1;max-height:520px}
 }
+
+.interaction-status{margin-top:9px;border-radius:12px;background:#edf7ff;color:#3276aa;padding:8px 10px;font-size:9px;font-weight:750;display:flex;align-items:center;gap:7px}
+.interaction-status svg{width:13px;height:13px}
+.rhythm-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:7px}
+.rhythm-strip>span{border-radius:11px;background:#eef5f9;padding:7px 5px;text-align:center}
+.rhythm-strip small{display:block;font-size:6px;letter-spacing:.06em;color:#8ba0b0}
+.rhythm-strip strong{display:block;font-size:10px;margin-top:2px}
+:root[data-theme="dark"] .interaction-status{background:#17344b;color:#8bc9f5}
+:root[data-theme="dark"] .rhythm-strip>span{background:#192d3c}
