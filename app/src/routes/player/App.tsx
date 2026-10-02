@@ -140,16 +140,6 @@ function careProfile(bond:number,fullness:number,energy:number) {
   if(score>=30) return "Needs attention";
   return "Neglected";
 }
-function lifecycleMinInteractions(stage:number) {
-  return [4,10,20,35,55,0][stage] ?? 0;
-}
-function gameplayEligibility(stage:number,totalInteractions:number,result:ReturnType<typeof evaluatePath>) {
-  const playerShaped = result.groups.some(g=>[1,2,3].includes(g.group) && g.passed);
-  return result.eligible
-    && totalInteractions >= lifecycleMinInteractions(stage)
-    && playerShaped;
-}
-
 function evolutionState(rebyter:OwnedRebyter) {
   const geneNames=["activity","sociability","independence","nocturnal","carnivore","herbivore","piscivore","frugivore","size","strength","speed","resilience","mutation","rarity"];
   const state:Record<string,number>={};
@@ -428,8 +418,7 @@ export function PlayerLab() {
   const candidates=evolution.paths.map(path=>{
     const target=tree.evolutions.find(e=>e.id===path.target);
     if(!target||!path.rule||tree.schema!==2||!tree.balance) return null;
-    const base=evaluatePath(tree,path,state);
-    const result={...base,eligible:gameplayEligibility(evolution.stage,active.totalInteractions,base)};
+    const result=evaluatePath(tree,path,state);
     return {path,target,result};
   }).filter(Boolean) as {path:any;target:Evolution;result:ReturnType<typeof evaluatePath>}[];
   const eligible=candidates.filter(c=>c.result.eligible);
@@ -450,7 +439,7 @@ export function PlayerLab() {
         <div className="evolution-option-copy">
           <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
           <strong>{result.eligible?target.name:"Unknown form"}</strong>
-          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} groups match · minimum {lifecycleMinInteractions(evolution.stage)} interactions.</p>
+          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} rule groups match.</p>
         </div>
         {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree,active.treeVersion).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
       </article>)}
@@ -506,19 +495,11 @@ export function PlayerAtlas() {
 
 export function PlayerAccount() {
   const { owned, tree, playerProfile }=usePlayerCollection();
-  const xpIntoLevel=playerProfile ? playerProfile.trainerXp%100 : 0;
   return <Shell><Header/><main className="player-main">
-    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, trainer progression and your Rebyters live here.</p></div>
-    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent trainer profile.</p></div><WalletMultiButton/></section>
+    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, discovery history and your Rebyters live here.</p></div>
+    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div><WalletMultiButton/></section>
     {playerProfile&&<section className="trainer-profile-card">
-      <div className="trainer-profile-head"><span><Sparkles/></span><div><small>TRAINER PROFILE</small><h2>Level {playerProfile.trainerLevel}</h2><p>Your discoveries stay with this wallet even after a Rebyter evolves.</p></div></div>
-      <div className="trainer-profile-stats">
-        <div><small>DISCOVERED</small><strong>{playerProfile.discoveries.length}</strong></div>
-        <div><small>INTERACTIONS</small><strong>{playerProfile.totalInteractions}</strong></div>
-        <div><small>EVOLUTIONS</small><strong>{playerProfile.totalEvolutions}</strong></div>
-        <div><small>XP</small><strong>{playerProfile.trainerXp}</strong></div>
-      </div>
-      <div className="trainer-xp"><span><i style={{width:`${xpIntoLevel}%`}}/></span><small>{xpIntoLevel} / 100 XP to next level</small></div>
+      <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{playerProfile.discoveries.length} discovered</h2><p>Your discovered forms stay with this wallet even after a Rebyter evolves.</p></div></div>
     </section>}
     <section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Your on-chain Rebyters are listed below.":"No Rebyters found in this wallet."}</p></div></section>
     {owned.length>0&&<section className="onchain-companions">
