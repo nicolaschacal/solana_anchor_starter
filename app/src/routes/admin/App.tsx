@@ -544,7 +544,7 @@ function Family({ state }: { state: RegistryState }) {
                 <Upload size={16} />
                 Publish reference assets
               </button>
-              <button
+              {tree.proofMode !== "unified-v1" && <button
                 disabled={tx.busy || tree.schema !== 2 || !active}
                 onClick={() =>
                   void tx.run(async () => {
@@ -556,7 +556,7 @@ function Family({ state }: { state: RegistryState }) {
               >
                 <ShieldCheck size={16} />
                 Publish gameplay rules
-              </button>
+              </button>}
             </>
           )}
           {editable && tree && (
