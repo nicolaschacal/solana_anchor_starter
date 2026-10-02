@@ -395,8 +395,20 @@ pub mod solana_anchor_starter {
 
         let mut dna = read_rebyter_dna(&ctx.accounts.mint.to_account_info())?;
         require!(target_stage == dna.stage.saturating_add(1), RegistryError::InvalidEvolution);
-        require!(ctx.accounts.rule_set.family_id == dna.family_id, RegistryError::InvalidRule);
-        require!(ctx.accounts.rule_set.tree_version == u32::from(dna.tree_version), RegistryError::InvalidRule);
+        require!(
+            ctx.accounts.tree.family_id == dna.family_id
+                && ctx.accounts.tree.version == u32::from(dna.tree_version),
+            RegistryError::InvalidRule
+        );
+        let expected_tree = Pubkey::find_program_address(
+            &[
+                b"tree",
+                &[dna.family_id],
+                &u32::from(dna.tree_version).to_le_bytes(),
+            ],
+            &crate::ID,
+        ).0;
+        require!(ctx.accounts.tree.key() == expected_tree, RegistryError::InvalidRule);
 
         let leaf = rule_leaf_hash(
             dna.family_id,
@@ -408,8 +420,30 @@ pub mod solana_anchor_starter {
             target_uri.as_bytes(),
             &rule_bytes,
         )?;
+
+        let rules_root = if let Some(rule_set) = ctx.accounts.rule_set.as_ref() {
+            require!(
+                rule_set.family_id == dna.family_id
+                    && rule_set.tree_version == u32::from(dna.tree_version),
+                RegistryError::InvalidRule
+            );
+            let expected_rules = Pubkey::find_program_address(
+                &[
+                    b"rules",
+                    &[dna.family_id],
+                    &u32::from(dna.tree_version).to_le_bytes(),
+                ],
+                &crate::ID,
+            ).0;
+            require!(rule_set.key() == expected_rules, RegistryError::InvalidRule);
+            rule_set.rules_root
+        } else {
+            // Unified atlas versions commit evolution identities and gameplay
+            // rule leaves into the same EvolutionTree Merkle root.
+            ctx.accounts.tree.merkle_root
+        };
         require!(
-            merkle::verify_evolution_hash_proof(leaf, &proof, &ctx.accounts.rule_set.rules_root),
+            merkle::verify_evolution_hash_proof(leaf, &proof, &rules_root),
             RegistryError::InvalidEvolutionProof
         );
         require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
@@ -1207,7 +1241,10 @@ pub struct EvolveRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    pub rule_set: Account<'info, RuleSet>,
+    pub tree: Account<'info, EvolutionTree>,
+    /// Legacy compatibility only. New unified atlas versions omit this account
+    /// and verify gameplay rules against EvolutionTree.merkle_root.
+    pub rule_set: Option<Account<'info, RuleSet>>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
