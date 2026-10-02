@@ -266,3 +266,41 @@
 }
 
 .behavior-bars{display:none!important}
+
+
+/* Evolution lab */
+.evolution-player{max-width:900px;margin:0 auto}
+.evolution-signals{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.evolution-signals>div{background:white;border:1px solid var(--line);border-radius:15px;padding:11px 12px}
+.evolution-signals small{display:block;font-size:7px;letter-spacing:.09em;color:#8ba1b1}
+.evolution-signals strong{display:block;margin-top:3px;font-size:11px}
+.evolution-options{display:grid;gap:10px}
+.evolution-option{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:13px;background:white;border:1px solid var(--line);border-radius:20px;padding:12px;opacity:.72}
+.evolution-option.unlocked{opacity:1;border-color:#72baf0;box-shadow:0 8px 24px #287db214}
+.evolution-option-art{width:72px;height:72px;border-radius:16px;background:#eef5f9;display:grid;place-items:center;color:#93a7b5}
+.evolution-option-art .creature-sprite{width:62px;height:62px}
+.evolution-option-art>svg{width:22px;height:22px}
+.evolution-option-copy{min-width:0}
+.evolution-option-copy>small{display:block;font-size:7px;letter-spacing:.1em;color:#7f98aa;font-weight:850}
+.evolution-option-copy>strong{display:block;font-size:15px;margin-top:2px}
+.evolution-option-copy p{font-size:9px;line-height:1.4;color:#7e93a3;margin:4px 0 0}
+.evolution-option>button{border:0;border-radius:14px;background:#102a46;color:white;padding:10px 12px;display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:850}
+.evolution-option>button svg{width:14px}
+.route-lock{font-size:8px;color:#8ca0af;display:inline-flex;align-items:center;gap:5px}
+.route-lock svg{width:12px}
+.evolution-empty{padding:24px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:#72899a}
+.evolution-empty>svg{width:28px;margin-bottom:8px}
+.evolution-empty strong{display:block;font-size:12px}
+.evolution-empty p{font-size:9px;margin:4px 0 0}
+:root[data-theme="dark"] .evolution-signals>div,
+:root[data-theme="dark"] .evolution-option{background:#142431;border-color:#2a4355}
+:root[data-theme="dark"] .evolution-option.unlocked{border-color:#3f8fcf}
+:root[data-theme="dark"] .evolution-option-art{background:#192d3c}
+:root[data-theme="dark"] .evolution-option-copy p{color:#91a8b8}
+@media(max-width:700px){
+  .evolution-signals{grid-template-columns:1fr 1fr}
+  .evolution-option{grid-template-columns:62px minmax(0,1fr)}
+  .evolution-option-art{width:62px;height:62px}
+  .evolution-option-art .creature-sprite{width:54px;height:54px}
+  .evolution-option>button,.route-lock{grid-column:1/-1;width:100%;justify-content:center}
+}
