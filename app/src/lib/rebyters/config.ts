@@ -19,3 +19,12 @@ export function treePda(family: number, version: number) {
     PROGRAM_ID,
   )[0];
 }
+
+export function ruleSetPda(family: number, version: number) {
+  const bytes = new Uint8Array(4);
+  new DataView(bytes.buffer).setUint32(0, version, true);
+  return PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode("rules"), Uint8Array.of(family), bytes],
+    PROGRAM_ID,
+  )[0];
+}
