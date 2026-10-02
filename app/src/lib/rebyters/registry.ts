@@ -11,9 +11,10 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import idl from "../../idl/solana_anchor_starter.json";
-import { PROGRAM_ID, registryPda, treePda } from "./config";
-import type { Registry, TreeMetadata, Publication } from "./types";
+import { PROGRAM_ID, registryPda, ruleSetPda, treePda } from "./config";
+import type { Registry, TreeMetadata, Publication, TreeJson } from "./types";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { buildRuleMerkleTree } from "./rule-merkle";
 export function getProgram(connection: Connection, wallet?: Wallet) {
   return new Program(
     idl as Idl,
@@ -64,6 +65,22 @@ export async function fetchTree(
   if (a.familyId !== family || a.version !== version)
     throw new Error("Tree identity mismatch");
   return metadata(address, a);
+}
+export async function fetchRuleSet(
+  connection: Connection,
+  family: number,
+  version: number,
+) {
+  const address = ruleSetPda(family, version);
+  const a = await (getProgram(connection).account as any).ruleSet.fetchNullable(address);
+  return a
+    ? {
+        address: address.toBase58(),
+        familyId: a.familyId as number,
+        treeVersion: a.treeVersion as number,
+        rulesRoot: bytesToHex(Uint8Array.from(a.rulesRoot)),
+      }
+    : null;
 }
 export async function fetchVersions(
   connection: Connection,
@@ -135,6 +152,20 @@ export class RegistryWriter {
         .accountsStrict({
           ...this.common,
           tree: treePda(family, version),
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction(),
+    );
+  }
+  async createRuleSet(tree: TreeJson) {
+    const root = buildRuleMerkleTree(tree).root;
+    return this.send(
+      await this.program.methods
+        .createRuleSet(tree.family.id, tree.version, [...hexToBytes(root)])
+        .accountsStrict({
+          ...this.common,
+          tree: treePda(tree.family.id, tree.version),
+          ruleSet: ruleSetPda(tree.family.id, tree.version),
           systemProgram: SystemProgram.programId,
         })
         .instruction(),
