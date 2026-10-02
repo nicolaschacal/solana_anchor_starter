@@ -20,10 +20,11 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import { PROGRAM_ID, registryPda, treePda } from "./config";
+import { PROGRAM_ID, registryPda, ruleSetPda, treePda } from "./config";
 import { getProgram, fetchRegistry, fetchTree } from "./registry";
 import { fetchVerifiedTree } from "./tree";
 import { buildMerkleTree, leafHash } from "./merkle";
+import { buildRuleMerkleTree } from "./rule-merkle";
 import type { TreeJson } from "./types";
 
 export interface OnchainRebyter {
@@ -461,5 +462,74 @@ export async function interactWithRebyter(
       `${action} failed: ${JSON.stringify(result.value.err)}`,
     );
 
+  return signature;
+}
+
+
+export async function evolveRebyter(
+  connection: Connection,
+  anchorWallet: Wallet,
+  wallet: WalletContextState,
+  mintString: string,
+  tree: TreeJson,
+  sourceId: number,
+  targetId: number,
+) {
+  if (!wallet.publicKey || !wallet.signTransaction)
+    throw new Error("Connect a wallet that can sign transactions");
+  const source = tree.evolutions.find((e) => e.id === sourceId);
+  const path = source?.paths.find((p) => p.target === targetId);
+  const target = tree.evolutions.find((e) => e.id === targetId);
+  if (!source || !path || !target)
+    throw new Error("Evolution path is not part of this atlas");
+  if (!path.rule)
+    throw new Error("This path has no structured gameplay rule");
+
+  const proof = buildRuleMerkleTree(tree).getProof(sourceId, targetId);
+  const mint = new PublicKey(mintString);
+  const ownerTokenAccount = getAssociatedTokenAddressSync(
+    mint,
+    wallet.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const rebyterAuthority = rebyterAuthorityPda(mint);
+  const program = getProgram(connection, anchorWallet);
+
+  const ix = await program.methods
+    .evolve(
+      target.id,
+      target.stage,
+      target.name,
+      target.assets?.metadataUri ?? "",
+      [...proof.ruleBytes],
+      proof.siblings.map((hash) => [...hexToBytes(hash)]),
+    )
+    .accountsStrict({
+      owner: wallet.publicKey,
+      mint,
+      ownerTokenAccount,
+      rebyterAuthority,
+      ruleSet: ruleSetPda(tree.family.id, tree.version),
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+    })
+    .instruction();
+
+  const block = await connection.getLatestBlockhash("confirmed");
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  const signed = await wallet.signTransaction(tx);
+  const signature = await connection.sendRawTransaction(signed.serialize(), {
+    skipPreflight: false,
+    maxRetries: 3,
+  });
+  const result = await connection.confirmTransaction(
+    { ...block, signature },
+    "confirmed",
+  );
+  if (result.value.err)
+    throw new Error(
+      `evolve failed: ${JSON.stringify(result.value.err)}`,
+    );
   return signature;
 }
