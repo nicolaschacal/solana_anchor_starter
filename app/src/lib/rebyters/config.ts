@@ -28,3 +28,10 @@ export function ruleSetPda(family: number, version: number) {
     PROGRAM_ID,
   )[0];
 }
+
+export function playerProfilePda(owner: PublicKey) {
+  return PublicKey.findProgramAddressSync(
+    [new TextEncoder().encode("player"), owner.toBytes()],
+    PROGRAM_ID,
+  )[0];
+}
