@@ -1078,7 +1078,7 @@ pub struct CreateRuleSet<'info> {
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
     #[account(
-        seeds = [b"tree", &[family_id], &tree_version.to_le_bytes()],
+        seeds = [b"tree".as_ref(), &[family_id], &tree_version.to_le_bytes()],
         bump
     )]
     pub tree: Account<'info, EvolutionTree>,
@@ -1086,7 +1086,7 @@ pub struct CreateRuleSet<'info> {
         init,
         payer = authority,
         space = 8 + RuleSet::INIT_SPACE,
-        seeds = [b"rules", &[family_id], &tree_version.to_le_bytes()],
+        seeds = [b"rules".as_ref(), &[family_id], &tree_version.to_le_bytes()],
         bump
     )]
     pub rule_set: Account<'info, RuleSet>,
