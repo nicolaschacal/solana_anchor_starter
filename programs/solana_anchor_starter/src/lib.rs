@@ -29,6 +29,10 @@ pub const REBYTER_GENE_COUNT: usize = 14;
 pub const REBYTER_DNA_V2_BYTES: usize = 62;
 pub const MAX_RULE_BYTES: usize = 1024;
 pub const CREATE_REBYTER_PRICE_LAMPORTS: u64 = 0;
+pub const PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY: usize = 8;
+pub const TRAINER_XP_PER_INTERACTION: u32 = 1;
+pub const TRAINER_XP_PER_EVOLUTION: u32 = 25;
+pub const TRAINER_XP_PER_LEVEL: u32 = 100;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
 
 #[program]
@@ -50,6 +54,23 @@ pub mod solana_anchor_starter {
         root.authority = ctx.accounts.authority.key();
         root.next_evolution_id = 1;
         root.next_versions = [1; MAX_FAMILIES];
+        Ok(())
+    }
+
+    pub fn initialize_player(ctx: Context<InitializePlayer>) -> Result<()> {
+        let profile = &mut ctx.accounts.player_profile;
+        profile.owner = ctx.accounts.owner.key();
+        profile.created_at = Clock::get()?.unix_timestamp;
+        profile.total_interactions = 0;
+        profile.total_evolutions = 0;
+        profile.trainer_level = 1;
+        profile.trainer_xp = 0;
+        profile.discoveries = Vec::new();
+
+        emit!(PlayerProfileInitialized {
+            owner: profile.owner,
+            created_at: profile.created_at,
+        });
         Ok(())
     }
 
@@ -230,6 +251,13 @@ pub mod solana_anchor_starter {
         require!(tree_version <= u16::MAX as u32, RegistryError::Version);
         require!(evolution_id <= u16::MAX as u32, RegistryError::Exhausted);
 
+        record_discovery(
+            &mut ctx.accounts.player_profile,
+            &ctx.accounts.owner,
+            &ctx.accounts.system_program,
+            evolution_id as u16,
+        )?;
+
         // DNA v2 stores only information that cannot be reconstructed from the
         // atlas. The creation hash is used as entropy, but is deliberately not
         // stored: the 14 resulting genes are the permanent genetics.
@@ -365,19 +393,19 @@ pub mod solana_anchor_starter {
     }
 
     /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
-    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
+    pub fn feed(mut ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
-        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))
+        apply_interaction(&mut ctx.accounts, InteractionKind::Feed(food_type))
     }
 
     /// Play increases activity and bond while consuming energy/fullness.
-    pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Play)
+    pub fn play(mut ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&mut ctx.accounts, InteractionKind::Play)
     }
 
     /// Care focuses on bond and restores a small amount of energy.
-    pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Care)
+    pub fn care(mut ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&mut ctx.accounts, InteractionKind::Care)
     }
 
     pub fn evolve(
@@ -453,6 +481,16 @@ pub mod solana_anchor_starter {
             RegistryError::InvalidEvolutionProof
         );
         require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
+
+        ctx.accounts.player_profile.total_evolutions =
+            ctx.accounts.player_profile.total_evolutions.saturating_add(1);
+        award_trainer_xp(&mut ctx.accounts.player_profile, TRAINER_XP_PER_EVOLUTION);
+        record_discovery(
+            &mut ctx.accounts.player_profile,
+            &ctx.accounts.owner,
+            &ctx.accounts.system_program,
+            target_id,
+        )?;
 
         let source_id = dna.evolution_id;
         dna.evolution_id = target_id;
@@ -791,7 +829,7 @@ fn decode_legacy_dna_v1(bytes: &[u8]) -> Result<RebyterDnaV2> {
     })
 }
 
-fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
+fn apply_interaction(accounts: &mut InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
     let mut dna = read_rebyter_dna(&accounts.mint.to_account_info())?;
     let clock = Clock::get()?;
 
@@ -820,6 +858,9 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
     dna.time_interactions[bucket] = dna.time_interactions[bucket].saturating_add(1);
     dna.total_interactions = dna.total_interactions.saturating_add(1);
     dna.last_interaction = clock.unix_timestamp.max(0) as u32;
+    accounts.player_profile.total_interactions =
+        accounts.player_profile.total_interactions.saturating_add(1);
+    award_trainer_xp(&mut accounts.player_profile, TRAINER_XP_PER_INTERACTION);
 
     let dna_base58 = bs58::encode(dna.encode()).into_string();
     let mint_key = accounts.mint.key();
@@ -1014,6 +1055,53 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     )
 }
 
+fn award_trainer_xp(profile: &mut PlayerProfile, amount: u32) {
+    profile.trainer_xp = profile.trainer_xp.saturating_add(amount);
+    let computed = 1u32.saturating_add(profile.trainer_xp / TRAINER_XP_PER_LEVEL);
+    profile.trainer_level = computed.min(u16::MAX as u32) as u16;
+}
+
+fn record_discovery<'info>(
+    profile: &mut Account<'info, PlayerProfile>,
+    payer: &Signer<'info>,
+    system_program: &Program<'info, System>,
+    evolution_id: u16,
+) -> Result<()> {
+    if profile.discoveries.contains(&evolution_id) {
+        return Ok(());
+    }
+
+    let next_len = profile.discoveries.len().saturating_add(1);
+    let required_space = PlayerProfile::space_for(next_len);
+    let profile_info = profile.to_account_info();
+
+    if profile_info.data_len() < required_space {
+        let required_lamports = Rent::get()?.minimum_balance(required_space);
+        let current_lamports = profile_info.lamports();
+        if required_lamports > current_lamports {
+            transfer(
+                CpiContext::new(
+                    system_program.key(),
+                    Transfer {
+                        from: payer.to_account_info(),
+                        to: profile_info.clone(),
+                    },
+                ),
+                required_lamports - current_lamports,
+            )?;
+        }
+        profile_info.realloc(required_space, false)?;
+    }
+
+    profile.discoveries.push(evolution_id);
+    emit!(PlayerDiscovery {
+        owner: profile.owner,
+        evolution_id,
+        discoveries: profile.discoveries.len() as u32,
+    });
+    Ok(())
+}
+
 fn pack_rebyter_dna_v2(
     family_id: u8,
     stage: u8,
@@ -1073,6 +1161,25 @@ fn family_index(id: u8) -> Result<usize> {
 }
 
 #[account]
+pub struct PlayerProfile {
+    pub owner: Pubkey,
+    pub created_at: i64,
+    pub total_interactions: u32,
+    pub total_evolutions: u16,
+    pub trainer_level: u16,
+    pub trainer_xp: u32,
+    pub discoveries: Vec<u16>,
+}
+
+impl PlayerProfile {
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 2 + 2 + 4 + 4;
+
+    pub fn space_for(discoveries: usize) -> usize {
+        Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
+    }
+}
+
+#[account]
 #[derive(InitSpace)]
 pub struct RegistryRoot {
     pub authority: Pubkey,
@@ -1102,6 +1209,21 @@ pub struct RuleSet {
     pub created_at: i64,
 }
 
+
+#[derive(Accounts)]
+pub struct InitializePlayer<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(
+        init,
+        payer = owner,
+        space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
+        seeds = [b"player", owner.key().as_ref()],
+        bump
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
+    pub system_program: Program<'info, System>,
+}
 
 #[derive(Accounts)]
 pub struct InitializeRegistry<'info> {
@@ -1183,6 +1305,13 @@ pub struct CloseTree<'info> {
 pub struct CreateRebyter<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player", owner.key().as_ref()],
+        bump,
+        has_one = owner
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
     #[account(seeds = [b"registry"], bump)]
     pub registry: Account<'info, RegistryRoot>,
     #[account(
@@ -1210,6 +1339,13 @@ pub struct CreateRebyter<'info> {
 #[derive(Accounts)]
 pub struct InteractRebyter<'info> {
     pub owner: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player", owner.key().as_ref()],
+        bump,
+        has_one = owner
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
     /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
@@ -1232,6 +1368,13 @@ pub struct InteractRebyter<'info> {
 pub struct EvolveRebyter<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [b"player", owner.key().as_ref()],
+        bump,
+        has_one = owner
+    )]
+    pub player_profile: Account<'info, PlayerProfile>,
     /// CHECK: Token-2022 mint; ownership and DNA are validated in the handler.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
@@ -1253,6 +1396,19 @@ pub struct EvolveRebyter<'info> {
     pub rule_set: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
+}
+
+#[event]
+pub struct PlayerProfileInitialized {
+    pub owner: Pubkey,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct PlayerDiscovery {
+    pub owner: Pubkey,
+    pub evolution_id: u16,
+    pub discoveries: u32,
 }
 
 #[event]
