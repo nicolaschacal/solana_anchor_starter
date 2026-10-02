@@ -87,6 +87,7 @@ export interface Evolution {
 }
 export interface TreeJson {
   schema: 1 | 2;
+  proofMode?: "evolution-only" | "unified-v1";
   balance?: BalanceProfile;
   family: { id: number; name: string };
   version: number;
