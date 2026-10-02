@@ -464,10 +464,6 @@
           "signer": true
         },
         {
-          "name": "player_profile",
-          "writable": true
-        },
-        {
           "name": "mint",
           "writable": true
         },
@@ -506,10 +502,6 @@
           "signer": true
         },
         {
-          "name": "player_profile",
-          "writable": true
-        },
-        {
           "name": "mint",
           "writable": true
         },
@@ -541,10 +533,6 @@
         {
           "name": "owner",
           "signer": true
-        },
-        {
-          "name": "player_profile",
-          "writable": true
         },
         {
           "name": "mint",
@@ -1201,22 +1189,6 @@
           {
             "name": "created_at",
             "type": "i64"
-          },
-          {
-            "name": "total_interactions",
-            "type": "u32"
-          },
-          {
-            "name": "total_evolutions",
-            "type": "u16"
-          },
-          {
-            "name": "trainer_level",
-            "type": "u16"
-          },
-          {
-            "name": "trainer_xp",
-            "type": "u32"
           },
           {
             "name": "discoveries",
