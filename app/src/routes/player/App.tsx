@@ -138,6 +138,16 @@ function careProfile(bond:number,fullness:number,energy:number) {
   if(score>=30) return "Needs attention";
   return "Neglected";
 }
+function lifecycleMinInteractions(stage:number) {
+  return [4,10,20,35,55,0][stage] ?? 0;
+}
+function gameplayEligibility(stage:number,totalInteractions:number,result:ReturnType<typeof evaluatePath>) {
+  const playerShaped = result.groups.some(g=>[1,2,3].includes(g.group) && g.passed);
+  return result.eligible
+    && totalInteractions >= lifecycleMinInteractions(stage)
+    && playerShaped;
+}
+
 function evolutionState(rebyter:OwnedRebyter) {
   const geneNames=["activity","sociability","independence","nocturnal","carnivore","herbivore","piscivore","frugivore","size","strength","speed","resilience","mutation","rarity"];
   const state:Record<string,number>={};
@@ -416,7 +426,8 @@ export function PlayerLab() {
   const candidates=evolution.paths.map(path=>{
     const target=tree.evolutions.find(e=>e.id===path.target);
     if(!target||!path.rule||tree.schema!==2||!tree.balance) return null;
-    const result=evaluatePath(tree,path,state);
+    const base=evaluatePath(tree,path,state);
+    const result={...base,eligible:gameplayEligibility(evolution.stage,active.totalInteractions,base)};
     return {path,target,result};
   }).filter(Boolean) as {path:any;target:Evolution;result:ReturnType<typeof evaluatePath>}[];
   const eligible=candidates.filter(c=>c.result.eligible);
@@ -437,7 +448,7 @@ export function PlayerLab() {
         <div className="evolution-option-copy">
           <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
           <strong>{result.eligible?target.name:"Unknown form"}</strong>
-          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} behavior groups currently match.</p>
+          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} groups match · minimum {lifecycleMinInteractions(evolution.stage)} interactions.</p>
         </div>
         {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
       </article>)}
