@@ -9,7 +9,9 @@ import {
   createRebyter,
   fetchActiveFamilyTree,
   fetchOwnedRebyters,
+  interactWithRebyter,
   type OnchainRebyter,
+  type RebyterInteraction,
 } from "../lib/rebyters/companions";
 
 export function usePlayerRebyters() {
@@ -22,6 +24,7 @@ export function usePlayerRebyters() {
   const [creating, setCreating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [interactingMint, setInteractingMint] = useState("");
 
   const refresh = useCallback(async () => {
     setError("");
@@ -77,14 +80,51 @@ export function usePlayerRebyters() {
     [anchorWallet, connection, refresh, wallet],
   );
 
+
+  const interact = useCallback(
+    async (
+      mint: string,
+      action: RebyterInteraction,
+      foodType = 0,
+    ) => {
+      if (!anchorWallet) throw new Error("Connect a wallet");
+      setInteractingMint(mint);
+      setError("");
+      setStatus(action === "feed" ? "Feeding..." : action === "play" ? "Playing..." : "Caring...");
+      try {
+        const signature = await interactWithRebyter(
+          connection,
+          anchorWallet,
+          wallet,
+          mint,
+          action,
+          foodType,
+        );
+        await refresh();
+        setStatus(action === "feed" ? "Meal complete" : action === "play" ? "Play complete" : "Care complete");
+        return signature;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        setError(message);
+        setStatus("");
+        throw e;
+      } finally {
+        setInteractingMint("");
+      }
+    },
+    [anchorWallet, connection, refresh, wallet],
+  );
+
   return {
     owned,
     mammalTree,
     loading,
     creating,
+    interactingMint,
     status,
     error,
     refresh,
     create,
+    interact,
   };
 }
