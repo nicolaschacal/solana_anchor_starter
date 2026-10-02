@@ -503,8 +503,8 @@ export async function evolveRebyter(
       target.stage,
       target.name,
       target.assets?.metadataUri ?? "",
-      [...proof.ruleBytes],
-      proof.siblings.map((hash) => [...hexToBytes(hash)]),
+      proof.ruleBytes,
+      proof.siblings.map((hash) => Uint8Array.from(hexToBytes(hash))),
     )
     .accountsStrict({
       owner: wallet.publicKey,
