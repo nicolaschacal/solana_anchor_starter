@@ -501,9 +501,18 @@ pub mod solana_anchor_starter {
         );
         require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
 
+        let source_id = dna.evolution_id;
         ctx.accounts.player_profile.total_evolutions =
             ctx.accounts.player_profile.total_evolutions.saturating_add(1);
         award_trainer_xp(&mut ctx.accounts.player_profile, TRAINER_XP_PER_EVOLUTION);
+        // Also record the current form. This safely backfills a player who
+        // starts using profiles after owning an older Rebyter.
+        record_discovery(
+            &mut ctx.accounts.player_profile,
+            &ctx.accounts.owner,
+            &ctx.accounts.system_program,
+            source_id,
+        )?;
         record_discovery(
             &mut ctx.accounts.player_profile,
             &ctx.accounts.owner,
@@ -511,7 +520,6 @@ pub mod solana_anchor_starter {
             target_id,
         )?;
 
-        let source_id = dna.evolution_id;
         dna.evolution_id = target_id;
         dna.stage = target_stage;
         let dna_base58 = bs58::encode(dna.encode()).into_string();
