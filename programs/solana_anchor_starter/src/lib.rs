@@ -488,7 +488,9 @@ pub mod solana_anchor_starter {
             merkle::verify_evolution_hash_proof(leaf, &proof, &rules_root),
             RegistryError::InvalidEvolutionProof
         );
+        msg!("evolve: rule proof verified");
         require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
+        msg!("evolve: rule requirements verified");
 
         let source_id = dna.evolution_id;
         // Also record the current form. This safely backfills a player who
@@ -505,6 +507,7 @@ pub mod solana_anchor_starter {
             &ctx.accounts.system_program,
             target_id,
         )?;
+        msg!("evolve: player discoveries updated");
 
         dna.evolution_id = target_id;
         dna.stage = target_stage;
@@ -962,7 +965,11 @@ impl<'a> RuleCursor<'a> {
 }
 
 fn percentage(value: u16, total: u32) -> u16 {
-    if total == 0 { 0 } else { ((u32::from(value) * 100) / total).min(100) as u16 }
+    u32::from(value)
+        .saturating_mul(100)
+        .checked_div(total)
+        .unwrap_or(0)
+        .min(100) as u16
 }
 
 fn metric_value(metric: u8, dna: &RebyterDnaV2) -> Result<u16> {
@@ -977,7 +984,7 @@ fn metric_value(metric: u8, dna: &RebyterDnaV2) -> Result<u16> {
         19 => percentage(dna.time_interactions[2], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
         20 => percentage(dna.time_interactions[3], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
         21 => percentage(dna.time_interactions[0], dna.time_interactions.iter().map(|v| u32::from(*v)).sum()),
-        22 => dna.activity / 10,
+        22 => dna.activity.checked_div(10).unwrap_or(0),
         23 => u16::from(dna.weight),
         24 => u16::from(dna.cycle),
         _ => return err!(RegistryError::InvalidRule),
