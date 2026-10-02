@@ -1,4 +1,5 @@
 import bs58 from "bs58";
+import { Buffer } from "buffer";
 import type { Wallet } from "@anchor-lang/core";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
 import {
@@ -503,8 +504,8 @@ export async function evolveRebyter(
       target.stage,
       target.name,
       target.assets?.metadataUri ?? "",
-      proof.ruleBytes,
-      proof.siblings.map((hash) => Uint8Array.from(hexToBytes(hash))),
+      Buffer.from(proof.ruleBytes),
+      proof.siblings.map((hash) => Buffer.from(hexToBytes(hash))),
     )
     .accountsStrict({
       owner: wallet.publicKey,
