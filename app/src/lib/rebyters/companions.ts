@@ -475,21 +475,30 @@ export async function evolveRebyter(
   tree: TreeJson,
   sourceId: number,
   targetId: number,
+  treeVersion?: number,
 ) {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
-  const source = tree.evolutions.find((e) => e.id === sourceId);
+  let evolutionTree = tree;
+  if (treeVersion !== undefined && tree.version !== treeVersion) {
+    const metadata = await fetchTree(connection, tree.family.id, treeVersion);
+    if (!metadata)
+      throw new Error(`Rebyter atlas v${treeVersion} is no longer available`);
+    evolutionTree = await fetchVerifiedTree(metadata);
+  }
+
+  const source = evolutionTree.evolutions.find((e) => e.id === sourceId);
   const path = source?.paths.find((p) => p.target === targetId);
-  const target = tree.evolutions.find((e) => e.id === targetId);
+  const target = evolutionTree.evolutions.find((e) => e.id === targetId);
   if (!source || !path || !target)
     throw new Error("Evolution path is not part of this atlas");
   if (!path.rule)
     throw new Error("This path has no structured gameplay rule");
 
   const proof =
-    tree.proofMode === "unified-v1"
-      ? buildMerkleTree(tree).getRuleProof(sourceId, targetId)
-      : buildRuleMerkleTree(tree).getProof(sourceId, targetId);
+    evolutionTree.proofMode === "unified-v1"
+      ? buildMerkleTree(evolutionTree).getRuleProof(sourceId, targetId)
+      : buildRuleMerkleTree(evolutionTree).getProof(sourceId, targetId);
   const mint = new PublicKey(mintString);
   const ownerTokenAccount = getAssociatedTokenAddressSync(
     mint,
@@ -515,11 +524,11 @@ export async function evolveRebyter(
       mint,
       ownerTokenAccount,
       rebyterAuthority,
-      tree: treePda(tree.family.id, tree.version),
+      tree: treePda(evolutionTree.family.id, evolutionTree.version),
       ruleSet:
-        tree.proofMode === "unified-v1"
-          ? treePda(tree.family.id, tree.version)
-          : ruleSetPda(tree.family.id, tree.version),
+        evolutionTree.proofMode === "unified-v1"
+          ? treePda(evolutionTree.family.id, evolutionTree.version)
+          : ruleSetPda(evolutionTree.family.id, evolutionTree.version),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
