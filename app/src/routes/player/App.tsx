@@ -4,7 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
-  CircleUserRound, Copy, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, LogOut, MoonStar,
+  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, LogOut, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -89,31 +89,15 @@ function Shell({children}:{children:React.ReactNode}) {
 function Header() {
   const wallet = useWallet();
   const navigate = useNavigate();
-  const [menuOpen,setMenuOpen]=useState(false);
-  const shortAddress = wallet.publicKey ? `${wallet.publicKey.toBase58().slice(0,4)}…${wallet.publicKey.toBase58().slice(-4)}` : "";
-
-  async function copyAddress() {
-    if (!wallet.publicKey) return;
-    await navigator.clipboard.writeText(wallet.publicKey.toBase58());
-    setMenuOpen(false);
-  }
 
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
       {!wallet.connected
         ? <WalletMultiButton><><CircleUserRound/><span>Login</span><ChevronDown className="account-chevron"/></></WalletMultiButton>
-        : <div className="user-menu-wrap">
-            <button className="user-menu-trigger" onClick={()=>setMenuOpen(v=>!v)} aria-expanded={menuOpen}>
-              <CircleUserRound/><span>Account</span><ChevronDown className="account-chevron"/>
-            </button>
-            {menuOpen&&<div className="user-menu-popover">
-              <div className="user-menu-identity"><CircleUserRound/><span><small>CONNECTED</small><strong>{shortAddress}</strong></span></div>
-              <button onClick={()=>{setMenuOpen(false);navigate("/account")}}><CircleUserRound/> Account</button>
-              <button onClick={()=>void copyAddress()}><Copy/> Copy address</button>
-              <button className="danger" onClick={()=>void wallet.disconnect().then(()=>setMenuOpen(false))}><LogOut/> Disconnect</button>
-            </div>}
-          </div>}
+        : <button className="user-menu-trigger account-direct-link" onClick={()=>navigate("/account")} aria-label="Open account">
+            <CircleUserRound/><span>Account</span>
+          </button>}
     </div>
   </header>;
 }
@@ -535,11 +519,24 @@ export function PlayerAtlas() {
 
 export function PlayerAccount() {
   const player=usePlayerCollection();
+  const wallet=useWallet();
+  const navigate=useNavigate();
   const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
+  const shortAddress=wallet.publicKey?`${wallet.publicKey.toBase58().slice(0,6)}…${wallet.publicKey.toBase58().slice(-6)}`:"";
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
-  return <Shell><Header/><main className="player-main">
+
+  async function logOut() {
+    await wallet.disconnect();
+    navigate("/");
+  }
+
+  return <Shell><Header/><main className="player-main account-page">
     <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, discovery history and your Rebyters live here.</p></div>
-    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div><WalletMultiButton/></section>
+    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div>
+      {wallet.connected
+        ? <div className="account-wallet-id"><small>CONNECTED WALLET</small><code>{shortAddress}</code></div>
+        : <WalletMultiButton><><CircleUserRound/> Login</></WalletMultiButton>}
+    </section>
     {playerProfile&&<section className="trainer-profile-card">
       <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{playerProfile.discoveries.length} discovered</h2><p>Your discovered forms stay with this wallet even after a Rebyter evolves.</p></div></div>
     </section>}
@@ -555,6 +552,9 @@ export function PlayerAccount() {
         </div>;
       })}
     </section>}
+    {wallet.connected&&<div className="account-logout">
+      <button onClick={()=>void logOut()}><LogOut/> Log out</button>
+    </div>}
   </main></Shell>;
 }
 
