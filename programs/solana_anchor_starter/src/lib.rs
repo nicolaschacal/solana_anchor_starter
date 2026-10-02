@@ -199,6 +199,25 @@ pub mod solana_anchor_starter {
     ) -> Result<()> {
         let family = family_index(family_id)?;
         require!(family_id == 0, RegistryError::FamilyLocked);
+
+        if ctx.accounts.player_profile.owner == Pubkey::default() {
+            ctx.accounts.player_profile.owner = ctx.accounts.owner.key();
+            ctx.accounts.player_profile.created_at = Clock::get()?.unix_timestamp;
+            ctx.accounts.player_profile.total_interactions = 0;
+            ctx.accounts.player_profile.total_evolutions = 0;
+            ctx.accounts.player_profile.trainer_level = 1;
+            ctx.accounts.player_profile.trainer_xp = 0;
+            ctx.accounts.player_profile.discoveries = Vec::new();
+            emit!(PlayerProfileInitialized {
+                owner: ctx.accounts.owner.key(),
+                created_at: ctx.accounts.player_profile.created_at,
+            });
+        } else {
+            require!(
+                ctx.accounts.player_profile.owner == ctx.accounts.owner.key(),
+                RegistryError::NotOwner
+            );
+        }
         require!(
             ctx.accounts.registry.active_versions[family] == tree_version
                 && ctx.accounts.tree.family_id == family_id
@@ -1306,10 +1325,11 @@ pub struct CreateRebyter<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(
-        mut,
+        init_if_needed,
+        payer = owner,
+        space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
         seeds = [b"player", owner.key().as_ref()],
-        bump,
-        has_one = owner
+        bump
     )]
     pub player_profile: Account<'info, PlayerProfile>,
     #[account(seeds = [b"registry"], bump)]
