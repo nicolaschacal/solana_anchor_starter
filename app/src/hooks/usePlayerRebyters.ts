@@ -118,7 +118,13 @@ export function usePlayerRebyters() {
 
 
   const evolve = useCallback(
-    async (mint: string, sourceId: number, targetId: number, tree: TreeJson) => {
+    async (
+      mint: string,
+      sourceId: number,
+      targetId: number,
+      tree: TreeJson,
+      treeVersion?: number,
+    ) => {
       if (!anchorWallet) throw new Error("Connect a wallet");
       setInteractingMint(mint);
       setError("");
@@ -132,6 +138,7 @@ export function usePlayerRebyters() {
           tree,
           sourceId,
           targetId,
+          treeVersion,
         );
         await refresh();
         setStatus("Evolution complete");
