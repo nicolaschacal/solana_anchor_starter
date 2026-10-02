@@ -37,10 +37,6 @@ import type { TreeJson } from "./types";
 export interface PlayerProfile {
   owner: string;
   createdAt: number;
-  totalInteractions: number;
-  totalEvolutions: number;
-  trainerLevel: number;
-  trainerXp: number;
   discoveries: number[];
 }
 
@@ -225,10 +221,6 @@ export async function fetchPlayerProfile(
   return {
     owner: account.owner.toBase58(),
     createdAt: Number(account.createdAt),
-    totalInteractions: account.totalInteractions,
-    totalEvolutions: account.totalEvolutions,
-    trainerLevel: account.trainerLevel,
-    trainerXp: account.trainerXp,
     discoveries: Array.from(account.discoveries as number[]),
   };
 }
@@ -478,7 +470,6 @@ export async function interactWithRebyter(
   const ix = await builder
     .accountsStrict({
       owner: wallet.publicKey,
-      playerProfile: playerProfilePda(wallet.publicKey),
       mint,
       ownerTokenAccount,
       rebyterAuthority,
