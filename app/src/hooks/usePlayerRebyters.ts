@@ -9,9 +9,11 @@ import {
   createRebyter,
   fetchActiveFamilyTree,
   fetchOwnedRebyters,
+  fetchPlayerProfile,
   interactWithRebyter,
   evolveRebyter,
   type OnchainRebyter,
+  type PlayerProfile,
   type RebyterInteraction,
 } from "../lib/rebyters/companions";
 
@@ -20,6 +22,7 @@ export function usePlayerRebyters() {
   const wallet = useWallet();
   const anchorWallet = useAnchorWallet();
   const [owned, setOwned] = useState<OnchainRebyter[]>([]);
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null);
   const [mammalTree, setMammalTree] = useState<TreeJson | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -31,15 +34,18 @@ export function usePlayerRebyters() {
     setError("");
     if (!wallet.publicKey) {
       setOwned([]);
+      setPlayerProfile(null);
       return;
     }
     setLoading(true);
     try {
-      const [records, family] = await Promise.all([
+      const [records, profile, family] = await Promise.all([
         fetchOwnedRebyters(connection, wallet.publicKey),
+        fetchPlayerProfile(connection, wallet.publicKey).catch(() => null),
         fetchActiveFamilyTree(connection, 0).catch(() => null),
       ]);
       setOwned(records);
+      setPlayerProfile(profile);
       if (family) setMammalTree(family.tree);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -157,6 +163,7 @@ export function usePlayerRebyters() {
 
   return {
     owned,
+    playerProfile,
     mammalTree,
     loading,
     creating,
