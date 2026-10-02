@@ -225,6 +225,84 @@ export async function fetchPlayerProfile(
   };
 }
 
+export async function fetchFirstOwnedRebyter(
+  connection: Connection,
+  owner: PublicKey,
+): Promise<OnchainRebyter | null> {
+  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+    owner,
+    { programId: TOKEN_2022_PROGRAM_ID },
+    "confirmed",
+  );
+
+  for (const record of tokenAccounts.value) {
+    const parsed = (record.account.data as any)?.parsed?.info;
+    if (
+      parsed?.tokenAmount?.amount !== "1" ||
+      parsed?.tokenAmount?.decimals !== 0 ||
+      !parsed?.mint
+    ) continue;
+
+    const mintString = parsed.mint as string;
+    const mint = new PublicKey(mintString);
+    let metadata;
+    try {
+      metadata = await getTokenMetadata(
+        connection,
+        mint,
+        "confirmed",
+        TOKEN_2022_PROGRAM_ID,
+      );
+    } catch {
+      continue;
+    }
+    if (!metadata) continue;
+
+    const fields = metadataMap((metadata as any).additionalMetadata);
+    const dnaField = fields.get("DNA");
+    if (!dnaField) continue;
+
+    let dnaState;
+    try {
+      dnaState = decodeDna(dnaField);
+    } catch {
+      continue;
+    }
+
+    return {
+      address: mintString,
+      owner: owner.toBase58(),
+      mint: mintString,
+      familyId: dnaState.familyId,
+      stage: dnaState.stage,
+      treeVersion: dnaState.treeVersion,
+      evolutionId: dnaState.evolutionId,
+      evolutionLeafHash: dnaState.evolutionLeafHash,
+      dna: dnaState.genomeSeed,
+      dnaBase58: dnaField,
+      genes: dnaState.genes,
+      weight: dnaState.weight,
+      bond: dnaState.bond,
+      activity: dnaState.activity,
+      hunger: dnaState.hunger,
+      energy: dnaState.energy,
+      diet: dnaState.diet,
+      timeInteractions: dnaState.timeInteractions,
+      totalInteractions: dnaState.totalInteractions,
+      cycle: dnaState.cycle,
+      lastInteraction: dnaState.lastInteraction,
+      createdAt: dnaState.createdAt,
+      hp: dnaState.hp,
+      atk: dnaState.atk,
+      def: dnaState.def,
+      spd: dnaState.spd,
+      metadataUri: metadata.uri,
+    };
+  }
+
+  return null;
+}
+
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
