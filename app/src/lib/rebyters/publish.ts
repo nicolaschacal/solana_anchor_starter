@@ -1,5 +1,5 @@
 import type { RegistryWriter } from "./registry";
-import { fetchRegistry, fetchTree } from "./registry";
+import { fetchRegistry, fetchRuleSet, fetchTree } from "./registry";
 import { fetchVerifiedTree } from "./tree";
 import { validateTree, assertCompatible } from "./validation";
 import { contentHash } from "./canonical";
@@ -96,6 +96,13 @@ export async function publishTree(
     progress("Creating tree PDA...");
     await writer.create(family, tree.version, journal.publication);
     existing = await fetchTree(writer.connection, family, tree.version);
+  }
+  if (tree.schema === 2) {
+    const rules = await fetchRuleSet(writer.connection, family, tree.version);
+    if (!rules) {
+      progress("Publishing gameplay rule root...");
+      await writer.createRuleSet(tree);
+    }
   }
   root = await fetchRegistry(writer.connection);
   if (root?.activeVersions[family] !== tree.version) {
