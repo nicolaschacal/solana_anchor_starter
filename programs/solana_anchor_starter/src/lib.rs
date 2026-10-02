@@ -508,7 +508,101 @@ fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV2> {
     let bytes = bs58::decode(dna_base58)
         .into_vec()
         .map_err(|_| error!(RegistryError::UnsupportedDna))?;
-    RebyterDnaV2::decode(&bytes)
+
+    match bytes.first().copied() {
+        Some(2) => RebyterDnaV2::decode(&bytes),
+        Some(1) => decode_legacy_dna_v1(&bytes),
+        _ => err!(RegistryError::UnsupportedDna),
+    }
+}
+
+fn decode_legacy_dna_v1(bytes: &[u8]) -> Result<RebyterDnaV2> {
+    // Legacy DNA v1 is 139 bytes. We migrate it in-memory on the first
+    // gameplay interaction and write it back as compact DNA v2.
+    require!(bytes.len() == 139 && bytes[0] == 1, RegistryError::UnsupportedDna);
+
+    let read_u16 = |offset: usize| -> u16 {
+        u16::from_le_bytes([bytes[offset], bytes[offset + 1]])
+    };
+    let read_u32 = |offset: usize| -> u32 {
+        u32::from_le_bytes([
+            bytes[offset],
+            bytes[offset + 1],
+            bytes[offset + 2],
+            bytes[offset + 3],
+        ])
+    };
+    let read_i64 = |offset: usize| -> i64 {
+        i64::from_le_bytes([
+            bytes[offset],
+            bytes[offset + 1],
+            bytes[offset + 2],
+            bytes[offset + 3],
+            bytes[offset + 4],
+            bytes[offset + 5],
+            bytes[offset + 6],
+            bytes[offset + 7],
+        ])
+    };
+
+    let family_id = bytes[1];
+    let stage = bytes[2];
+    let tree_version_u32 = read_u32(3);
+    let evolution_id_u32 = read_u32(7);
+    require!(tree_version_u32 <= u16::MAX as u32, RegistryError::Version);
+    require!(evolution_id_u32 <= u16::MAX as u32, RegistryError::Exhausted);
+
+    // v1 offsets:
+    // 11..43 leaf hash, 43..75 genome seed, 75..89 genes.
+    let mut genes = [0u8; REBYTER_GENE_COUNT];
+    genes.copy_from_slice(&bytes[75..89]);
+
+    let weight = read_u16(89).min(u8::MAX as u16) as u8;
+    let bond = read_u16(91).min(100) as u8;
+    let activity = read_u32(93).min(u16::MAX as u32) as u16;
+    let hunger = read_u16(97).min(100) as u8;
+    let energy = read_u16(99).min(100) as u8;
+
+    let mut diet = [0u16; 4];
+    let mut o = 101usize;
+    for value in diet.iter_mut() {
+        *value = read_u16(o);
+        o += 2;
+    }
+
+    let mut time_interactions = [0u16; 4];
+    for value in time_interactions.iter_mut() {
+        *value = read_u16(o);
+        o += 2;
+    }
+
+    let total_interactions = read_u32(117).min(u16::MAX as u32) as u16;
+    let cycle = read_u16(121).min(u8::MAX as u16) as u8;
+    let last_interaction = read_i64(123).max(0).min(u32::MAX as i64) as u32;
+    let created_at = read_i64(131).max(0).min(u32::MAX as i64) as u32;
+
+    Ok(RebyterDnaV2 {
+        family_id,
+        stage,
+        tree_version: tree_version_u32 as u16,
+        evolution_id: evolution_id_u32 as u16,
+        genes,
+        weight,
+        bond,
+        activity,
+        hunger,
+        energy,
+        diet,
+        time_interactions,
+        total_interactions,
+        cycle,
+        hp: 100u16 + u16::from(genes[11]) * 2,
+        atk: 20u16 + u16::from(genes[9]),
+        def: 20u16 + u16::from(genes[11]),
+        spd: 20u16 + u16::from(genes[10]),
+        last_interaction,
+        created_at,
+    })
 }
 
 fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
