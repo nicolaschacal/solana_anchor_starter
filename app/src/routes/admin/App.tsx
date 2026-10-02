@@ -388,6 +388,50 @@ function Family({ state }: { state: RegistryState }) {
       save({ tree, baseVersion: active, replaceCollection: true });
     });
   }
+  async function prepareUnifiedAtlas() {
+    if (!data.tree || family !== 0) return;
+    await tx.run(async () => {
+      const nextVersion = state.registry!.nextVersions[family];
+      const authored = sampleMammal();
+      const start = await tx.writer().reserve(authored.evolutions.length);
+      const currentByKey = new Map(
+        data.tree!.evolutions.map((e) => [
+          e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"),
+          e,
+        ]),
+      );
+      const idMap = new Map<number, number>();
+      authored.evolutions.forEach((e, index) => idMap.set(e.id, start + index));
+      const tree: TreeJson = {
+        ...authored,
+        version: nextVersion,
+        proofMode: "unified-v1",
+        development: true,
+        evolutions: authored.evolutions.map((e, index) => {
+          const key = e.key ?? e.name.toLowerCase().replace(/\s+/g, "_");
+          const current = currentByKey.get(key);
+          return {
+            ...e,
+            id: start + index,
+            enabled: current?.enabled ?? e.enabled,
+            initialWeight: current?.initialWeight ?? e.initialWeight,
+            modelUri: current?.modelUri || e.modelUri,
+            assets: { ...e.assets, ...current?.assets },
+            paths: e.paths.map((path) => ({
+              ...path,
+              target: idMap.get(path.target) ?? path.target,
+            })),
+          };
+        }),
+      };
+      save({
+        tree,
+        baseVersion: active,
+        replaceCollection: true,
+      });
+    });
+  }
+
   async function publishLocalReferences() {
     if (!tree) return;
 
@@ -540,6 +584,16 @@ function Family({ state }: { state: RegistryState }) {
           )}
           {!sample && authorized && tree && family === 0 && (
             <>
+              {tree.proofMode !== "unified-v1" && !draft && (
+                <button
+                  className="primary"
+                  disabled={tx.busy || data.loading}
+                  onClick={() => void prepareUnifiedAtlas()}
+                >
+                  <GitBranch size={16} />
+                  Prepare unified atlas
+                </button>
+              )}
               <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
                 <Upload size={16} />
                 Publish reference assets
