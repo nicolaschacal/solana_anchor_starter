@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha256";
 import { bytesToHex, hexToBytes, concatBytes } from "@noble/hashes/utils";
-import { leafBytes } from "./canonical";
+import { leafBytes, normalizeTree } from "./canonical";
 import { validateTree } from "./validation";
 import type { Evolution, TreeJson } from "./types";
 import { encodeRule, ruleLeafHash } from "./rule-merkle";
@@ -17,7 +17,10 @@ function parent(a: string, b: string) {
   );
 }
 export function buildMerkleTree(input: TreeJson) {
-  const tree = validateTree(input);
+  // Irys stores canonicalTree(), which normalizes rule/path ordering.
+  // Build proofs from that exact normalized representation as well so the
+  // pre-upload root and the root recomputed from immutable JSON are identical.
+  const tree = normalizeTree(validateTree(input));
   const evolutionEntries = [...tree.evolutions]
     .sort((a, b) => a.id - b.id)
     .map((e) => ({
