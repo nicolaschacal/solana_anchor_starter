@@ -78,7 +78,6 @@ function usePlayerCollection() {
 function Nav() {
   return <nav className="player-nav">
     <NavLink end to="/"><Home/><span>Home</span></NavLink>
-    <NavLink to="/account"><CircleUserRound/><span>Account</span></NavLink>
     <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
     <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>
   </nav>;
@@ -91,9 +90,10 @@ function Shell({children}:{children:React.ReactNode}) {
 function Header() {
   const { connected } = useWallet();
   return <header className="player-head">
-    <div><span className="player-logo">REBYTERS</span><small>digital companions</small></div>
+    <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
       <ThemeToggle/>
+      <NavLink to="/account" className="player-account-link" aria-label="Player account"><CircleUserRound/></NavLink>
       {connected ? <WalletMultiButton/> : <WalletMultiButton>Connect</WalletMultiButton>}
     </div>
   </header>;
@@ -334,7 +334,6 @@ export function PlayerHome() {
         <button disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
         <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" had a great play session.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
         <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
-        <button disabled title="Rest will be added with recovery rules"><MoonStar/><span>Rest</span></button>
       </div>
       {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
       {player.error&&<div className="interaction-error">{player.error}</div>}
