@@ -16,9 +16,10 @@
   .player-main{padding:12px 28px 110px}
   .player-home-layout{grid-template-columns:minmax(220px,.7fr) minmax(420px,1.3fr) minmax(220px,.7fr);align-items:start}
   .home-side{display:grid;gap:14px;position:sticky;top:96px}
-  .home-center{grid-column:2}
-  .home-side-left{grid-column:1;grid-row:1}
-  .home-side-right{grid-column:3;grid-row:1}
+  .den-toolbar{grid-column:1/-1;grid-row:1}
+  .home-center{grid-column:2;grid-row:2;align-self:start}
+  .home-side-left{grid-column:1;grid-row:2}
+  .home-side-right{grid-column:3;grid-row:2}
   .mobile-stats,.mobile-home-cta{display:none}
   .desktop-stats{display:block}
   .pet-viewer{max-height:none}
@@ -147,4 +148,41 @@
   .den-toolbar strong{font-size:15px}
   .mint-another{min-height:40px;padding:0 11px}
   .mint-another span{display:none}
+}
+
+
+/* Gameplay feedback */
+.dna-feedback{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.dna-feedback>span{background:#f6fafc;border:1px solid #e4eef5;border-radius:13px;padding:9px 10px;min-width:0}
+.dna-feedback small{display:block;font-size:7px;letter-spacing:.1em;color:#8ca1b1;font-weight:850}
+.dna-feedback strong{display:block;margin-top:2px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pet-actions button:disabled{opacity:.46;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.feed-sheet{width:min(520px,100%)}
+.food-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:17px}
+.food-grid button{min-height:84px;border:1px solid #dbe9f3;border-radius:17px;background:white;padding:12px;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;text-align:left;color:#28465d}
+.food-grid button>svg{width:20px;color:#2f88d7}
+.food-grid button strong,.food-grid button small{display:block}
+.food-grid button strong{font-size:12px}
+.food-grid button small{font-size:8px;line-height:1.35;color:#8096a7;margin-top:3px}
+.food-grid button:hover:not(:disabled){background:#edf7ff;border-color:#7db9eb;transform:translateY(-1px)}
+.food-grid button:disabled{opacity:.5;cursor:wait}
+.lineage-card.locked{background:#f1f5f7;color:#9eafbb;border-style:dashed;box-shadow:none}
+.lineage-card.locked>svg{width:27px;height:27px;margin:17px 0 19px;color:#a5b5c0}
+.lineage-card.locked strong{letter-spacing:.08em}
+:root[data-theme="dark"] .dna-feedback>span{background:#192d3c;border-color:#2b4558}
+:root[data-theme="dark"] .food-grid button{background:#152633;border-color:#2b4356;color:#e7f3fa}
+:root[data-theme="dark"] .food-grid button:hover:not(:disabled){background:#19364f;border-color:#4387b8}
+:root[data-theme="dark"] .food-grid button small{color:#91a8b9}
+:root[data-theme="dark"] .lineage-card.locked{background:#101c25;color:#607583;border-color:#2a3c49}
+@media(max-width:520px){
+  .dna-feedback{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .food-grid{grid-template-columns:1fr}
+}
+
+/* Keep the companion stage vertically anchored on wide screens. */
+@media(min-width:1000px){
+  .player-home-layout{grid-auto-rows:max-content}
+  .home-center{margin-top:0}
+  .pet-card.home-center{min-height:0}
+  .pet-viewer{width:100%;aspect-ratio:1.08/1;max-height:520px}
 }
