@@ -30,9 +30,6 @@ pub const REBYTER_DNA_V2_BYTES: usize = 62;
 pub const MAX_RULE_BYTES: usize = 1024;
 pub const CREATE_REBYTER_PRICE_LAMPORTS: u64 = 0;
 pub const PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY: usize = 8;
-pub const TRAINER_XP_PER_INTERACTION: u32 = 1;
-pub const TRAINER_XP_PER_EVOLUTION: u32 = 25;
-pub const TRAINER_XP_PER_LEVEL: u32 = 100;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
 
 #[program]
@@ -61,10 +58,6 @@ pub mod solana_anchor_starter {
         let profile = &mut ctx.accounts.player_profile;
         profile.owner = ctx.accounts.owner.key();
         profile.created_at = Clock::get()?.unix_timestamp;
-        profile.total_interactions = 0;
-        profile.total_evolutions = 0;
-        profile.trainer_level = 1;
-        profile.trainer_xp = 0;
         profile.discoveries = Vec::new();
 
         emit!(PlayerProfileInitialized {
@@ -203,10 +196,6 @@ pub mod solana_anchor_starter {
         if ctx.accounts.player_profile.owner == Pubkey::default() {
             ctx.accounts.player_profile.owner = ctx.accounts.owner.key();
             ctx.accounts.player_profile.created_at = Clock::get()?.unix_timestamp;
-            ctx.accounts.player_profile.total_interactions = 0;
-            ctx.accounts.player_profile.total_evolutions = 0;
-            ctx.accounts.player_profile.trainer_level = 1;
-            ctx.accounts.player_profile.trainer_xp = 0;
             ctx.accounts.player_profile.discoveries = Vec::new();
             emit!(PlayerProfileInitialized {
                 owner: ctx.accounts.owner.key(),
@@ -412,19 +401,19 @@ pub mod solana_anchor_starter {
     }
 
     /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
-    pub fn feed(mut ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
+    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
-        apply_interaction(&mut ctx.accounts, InteractionKind::Feed(food_type))
+        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))
     }
 
     /// Play increases activity and bond while consuming energy/fullness.
-    pub fn play(mut ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&mut ctx.accounts, InteractionKind::Play)
+    pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&ctx.accounts, InteractionKind::Play)
     }
 
     /// Care focuses on bond and restores a small amount of energy.
-    pub fn care(mut ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&mut ctx.accounts, InteractionKind::Care)
+    pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&ctx.accounts, InteractionKind::Care)
     }
 
     pub fn evolve(
@@ -502,9 +491,6 @@ pub mod solana_anchor_starter {
         require!(evaluate_compact_rule(&rule_bytes, &dna)?, RegistryError::EvolutionRequirements);
 
         let source_id = dna.evolution_id;
-        ctx.accounts.player_profile.total_evolutions =
-            ctx.accounts.player_profile.total_evolutions.saturating_add(1);
-        award_trainer_xp(&mut ctx.accounts.player_profile, TRAINER_XP_PER_EVOLUTION);
         // Also record the current form. This safely backfills a player who
         // starts using profiles after owning an older Rebyter.
         record_discovery(
@@ -856,7 +842,7 @@ fn decode_legacy_dna_v1(bytes: &[u8]) -> Result<RebyterDnaV2> {
     })
 }
 
-fn apply_interaction(accounts: &mut InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
+fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
     let mut dna = read_rebyter_dna(&accounts.mint.to_account_info())?;
     let clock = Clock::get()?;
 
@@ -885,10 +871,6 @@ fn apply_interaction(accounts: &mut InteractRebyter<'_>, kind: InteractionKind) 
     dna.time_interactions[bucket] = dna.time_interactions[bucket].saturating_add(1);
     dna.total_interactions = dna.total_interactions.saturating_add(1);
     dna.last_interaction = clock.unix_timestamp.max(0) as u32;
-    accounts.player_profile.total_interactions =
-        accounts.player_profile.total_interactions.saturating_add(1);
-    award_trainer_xp(&mut accounts.player_profile, TRAINER_XP_PER_INTERACTION);
-
     let dna_base58 = bs58::encode(dna.encode()).into_string();
     let mint_key = accounts.mint.key();
     let (_, bump) = Pubkey::find_program_address(
@@ -1022,17 +1004,6 @@ fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV2) -> Result<b
     })
 }
 
-fn lifecycle_min_interactions(stage: u8) -> u16 {
-    match stage {
-        0 => 4,
-        1 => 10,
-        2 => 20,
-        3 => 35,
-        4 => 55,
-        _ => 0,
-    }
-}
-
 fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     let mut cursor = RuleCursor::new(bytes);
     require!(cursor.u8()? == 1, RegistryError::InvalidRule);
@@ -1041,9 +1012,8 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     require!(group_count <= 7 && required_groups <= group_count, RegistryError::InvalidRule);
 
     let mut passed_groups = 0u8;
-    let mut player_shaped_group_passed = false;
     for _ in 0..group_count {
-        let group_id = cursor.u8()?;
+        let _group_id = cursor.u8()?;
         let alt_count = cursor.u8()?;
         require!(alt_count > 0 && alt_count <= 16, RegistryError::InvalidRule);
         let mut group_passed = false;
@@ -1052,16 +1022,12 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
             require!(condition_count > 0 && condition_count <= 16, RegistryError::InvalidRule);
             let mut alt_passed = true;
             for _ in 0..condition_count {
-                let passed = condition_passes(&mut cursor, dna)?;
-                alt_passed &= passed;
+                alt_passed &= condition_passes(&mut cursor, dna)?;
             }
             group_passed |= alt_passed;
         }
         if group_passed {
             passed_groups = passed_groups.saturating_add(1);
-            if matches!(group_id, 1 | 2 | 3) {
-                player_shaped_group_passed = true;
-            }
         }
     }
 
@@ -1073,19 +1039,9 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     }
     require!(cursor.offset == bytes.len(), RegistryError::InvalidRule);
 
-    let progression_ready = dna.total_interactions >= lifecycle_min_interactions(dna.stage);
-    Ok(
-        mandatory_passed
-            && progression_ready
-            && player_shaped_group_passed
-            && passed_groups >= required_groups
-    )
-}
-
-fn award_trainer_xp(profile: &mut PlayerProfile, amount: u32) {
-    profile.trainer_xp = profile.trainer_xp.saturating_add(amount);
-    let computed = 1u32.saturating_add(profile.trainer_xp / TRAINER_XP_PER_LEVEL);
-    profile.trainer_level = computed.min(u16::MAX as u32) as u16;
+    // No generic interaction-count or "player-shaped group" gate.
+    // Eligibility is defined only by the verified atlas rule.
+    Ok(mandatory_passed && passed_groups >= required_groups)
 }
 
 fn record_discovery<'info>(
@@ -1191,15 +1147,12 @@ fn family_index(id: u8) -> Result<usize> {
 pub struct PlayerProfile {
     pub owner: Pubkey,
     pub created_at: i64,
-    pub total_interactions: u32,
-    pub total_evolutions: u16,
-    pub trainer_level: u16,
-    pub trainer_xp: u32,
     pub discoveries: Vec<u16>,
 }
 
 impl PlayerProfile {
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 2 + 2 + 4 + 4;
+    // Anchor discriminator + owner + created_at + Vec length prefix.
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
@@ -1367,13 +1320,6 @@ pub struct CreateRebyter<'info> {
 #[derive(Accounts)]
 pub struct InteractRebyter<'info> {
     pub owner: Signer<'info>,
-    #[account(
-        mut,
-        seeds = [b"player", owner.key().as_ref()],
-        bump,
-        has_one = owner
-    )]
-    pub player_profile: Account<'info, PlayerProfile>,
     /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
