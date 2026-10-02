@@ -10,6 +10,7 @@ import {
   fetchActiveFamilyTree,
   fetchOwnedRebyters,
   interactWithRebyter,
+  evolveRebyter,
   type OnchainRebyter,
   type RebyterInteraction,
 } from "../lib/rebyters/companions";
@@ -115,6 +116,38 @@ export function usePlayerRebyters() {
     [anchorWallet, connection, refresh, wallet],
   );
 
+
+  const evolve = useCallback(
+    async (mint: string, sourceId: number, targetId: number, tree: TreeJson) => {
+      if (!anchorWallet) throw new Error("Connect a wallet");
+      setInteractingMint(mint);
+      setError("");
+      setStatus("Evolving...");
+      try {
+        const signature = await evolveRebyter(
+          connection,
+          anchorWallet,
+          wallet,
+          mint,
+          tree,
+          sourceId,
+          targetId,
+        );
+        await refresh();
+        setStatus("Evolution complete");
+        return signature;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        setError(message);
+        setStatus("");
+        throw e;
+      } finally {
+        setInteractingMint("");
+      }
+    },
+    [anchorWallet, connection, refresh, wallet],
+  );
+
   return {
     owned,
     mammalTree,
@@ -126,5 +159,6 @@ export function usePlayerRebyters() {
     refresh,
     create,
     interact,
+    evolve,
   };
 }
