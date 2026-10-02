@@ -97,10 +97,10 @@ export async function publishTree(
     await writer.create(family, tree.version, journal.publication);
     existing = await fetchTree(writer.connection, family, tree.version);
   }
-  if (tree.schema === 2) {
+  if (tree.schema === 2 && tree.proofMode !== "unified-v1") {
     const rules = await fetchRuleSet(writer.connection, family, tree.version);
     if (!rules) {
-      progress("Publishing gameplay rule root...");
+      progress("Publishing legacy gameplay rule root...");
       await writer.createRuleSet(tree);
     }
   }
