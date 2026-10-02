@@ -1,13 +1,20 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::{
-    token_2022::{spl_token_2022::instruction::AuthorityType, SetAuthority},
+    token_2022::{
+        spl_token_2022::{
+            extension::{BaseStateWithExtensions, PodStateWithExtensions},
+            instruction::AuthorityType,
+            pod::PodMint,
+        },
+        SetAuthority,
+    },
     token_2022_extensions::{
         spl_token_metadata_interface::state::{Field, TokenMetadata},
         token_metadata::{token_metadata_update_field, TokenMetadataUpdateField},
     },
     token_interface::{
-        mint_to, token_metadata_initialize, MintTo, Token2022,
+        mint_to, token_metadata_initialize, MintTo, Token2022, TokenAccount,
         TokenMetadataInitialize,
     },
 };
@@ -335,6 +342,244 @@ pub mod solana_anchor_starter {
 
         Ok(())
     }
+
+    /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
+    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
+        require!(food_type < 4, RegistryError::InvalidFood);
+        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))
+    }
+
+    /// Play increases activity and bond while consuming energy/fullness.
+    pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&ctx.accounts, InteractionKind::Play)
+    }
+
+    /// Care focuses on bond and restores a small amount of energy.
+    pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
+        apply_interaction(&ctx.accounts, InteractionKind::Care)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum InteractionKind {
+    Feed(u8),
+    Play,
+    Care,
+}
+
+#[derive(Clone)]
+struct RebyterDnaV2 {
+    family_id: u8,
+    stage: u8,
+    tree_version: u16,
+    evolution_id: u16,
+    genes: [u8; REBYTER_GENE_COUNT],
+    weight: u8,
+    bond: u8,
+    activity: u16,
+    hunger: u8,
+    energy: u8,
+    diet: [u16; 4],
+    time_interactions: [u16; 4],
+    total_interactions: u16,
+    cycle: u8,
+    hp: u16,
+    atk: u16,
+    def: u16,
+    spd: u16,
+    last_interaction: u32,
+    created_at: u32,
+}
+
+impl RebyterDnaV2 {
+    fn decode(bytes: &[u8]) -> Result<Self> {
+        require!(
+            bytes.len() == REBYTER_DNA_V2_BYTES && bytes[0] == 2,
+            RegistryError::UnsupportedDna
+        );
+        let mut o = 1usize;
+        let take_u8 = |data: &[u8], offset: &mut usize| -> u8 {
+            let value = data[*offset];
+            *offset += 1;
+            value
+        };
+        let take_u16 = |data: &[u8], offset: &mut usize| -> u16 {
+            let value = u16::from_le_bytes([data[*offset], data[*offset + 1]]);
+            *offset += 2;
+            value
+        };
+        let take_u32 = |data: &[u8], offset: &mut usize| -> u32 {
+            let value = u32::from_le_bytes([
+                data[*offset],
+                data[*offset + 1],
+                data[*offset + 2],
+                data[*offset + 3],
+            ]);
+            *offset += 4;
+            value
+        };
+
+        let family_id = take_u8(bytes, &mut o);
+        let stage = take_u8(bytes, &mut o);
+        let tree_version = take_u16(bytes, &mut o);
+        let evolution_id = take_u16(bytes, &mut o);
+        let mut genes = [0u8; REBYTER_GENE_COUNT];
+        genes.copy_from_slice(&bytes[o..o + REBYTER_GENE_COUNT]);
+        o += REBYTER_GENE_COUNT;
+        let weight = take_u8(bytes, &mut o);
+        let bond = take_u8(bytes, &mut o);
+        let activity = take_u16(bytes, &mut o);
+        let hunger = take_u8(bytes, &mut o);
+        let energy = take_u8(bytes, &mut o);
+        let mut diet = [0u16; 4];
+        for value in diet.iter_mut() {
+            *value = take_u16(bytes, &mut o);
+        }
+        let mut time_interactions = [0u16; 4];
+        for value in time_interactions.iter_mut() {
+            *value = take_u16(bytes, &mut o);
+        }
+        let total_interactions = take_u16(bytes, &mut o);
+        let cycle = take_u8(bytes, &mut o);
+        let hp = take_u16(bytes, &mut o);
+        let atk = take_u16(bytes, &mut o);
+        let def = take_u16(bytes, &mut o);
+        let spd = take_u16(bytes, &mut o);
+        let last_interaction = take_u32(bytes, &mut o);
+        let created_at = take_u32(bytes, &mut o);
+
+        Ok(Self {
+            family_id, stage, tree_version, evolution_id, genes, weight, bond,
+            activity, hunger, energy, diet, time_interactions,
+            total_interactions, cycle, hp, atk, def, spd,
+            last_interaction, created_at,
+        })
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        pack_rebyter_dna_v2(
+            self.family_id,
+            self.stage,
+            self.tree_version,
+            self.evolution_id,
+            &self.genes,
+            self.weight,
+            self.bond,
+            self.activity,
+            self.hunger,
+            self.energy,
+            self.diet,
+            self.time_interactions,
+            self.total_interactions,
+            self.cycle,
+            self.hp,
+            self.atk,
+            self.def,
+            self.spd,
+            self.last_interaction,
+            self.created_at,
+        )
+    }
+}
+
+fn utc_time_bucket(unix_timestamp: i64) -> usize {
+    let hour = (unix_timestamp.rem_euclid(86_400) / 3_600) as u8;
+    match hour {
+        0..=5 => 0,   // dawn / madrugada
+        6..=11 => 1,  // morning
+        12..=17 => 2, // afternoon
+        _ => 3,       // night
+    }
+}
+
+fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV2> {
+    let data = mint.try_borrow_data()?;
+    let mint_state = PodStateWithExtensions::<PodMint>::unpack(&data)
+        .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+    let metadata = mint_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+    let dna_base58 = metadata
+        .additional_metadata
+        .iter()
+        .find(|(key, _)| key == "DNA")
+        .map(|(_, value)| value)
+        .ok_or_else(|| error!(RegistryError::UnsupportedDna))?;
+    let bytes = bs58::decode(dna_base58)
+        .into_vec()
+        .map_err(|_| error!(RegistryError::UnsupportedDna))?;
+    RebyterDnaV2::decode(&bytes)
+}
+
+fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
+    let mut dna = read_rebyter_dna(&accounts.mint.to_account_info())?;
+    let clock = Clock::get()?;
+
+    match kind {
+        InteractionKind::Feed(food_type) => {
+            let i = usize::from(food_type);
+            dna.diet[i] = dna.diet[i].saturating_add(1);
+            dna.weight = dna.weight.saturating_add(1);
+            dna.hunger = dna.hunger.saturating_add(20).min(100);
+            dna.energy = dna.energy.saturating_add(4).min(100);
+            dna.bond = dna.bond.saturating_add(1).min(100);
+        }
+        InteractionKind::Play => {
+            dna.activity = dna.activity.saturating_add(10);
+            dna.bond = dna.bond.saturating_add(3).min(100);
+            dna.energy = dna.energy.saturating_sub(10);
+            dna.hunger = dna.hunger.saturating_sub(5);
+        }
+        InteractionKind::Care => {
+            dna.bond = dna.bond.saturating_add(5).min(100);
+            dna.energy = dna.energy.saturating_add(6).min(100);
+        }
+    }
+
+    let bucket = utc_time_bucket(clock.unix_timestamp);
+    dna.time_interactions[bucket] = dna.time_interactions[bucket].saturating_add(1);
+    dna.total_interactions = dna.total_interactions.saturating_add(1);
+    dna.last_interaction = clock.unix_timestamp.max(0) as u32;
+
+    let dna_base58 = bs58::encode(dna.encode()).into_string();
+    let mint_key = accounts.mint.key();
+    let (_, bump) = Pubkey::find_program_address(
+        &[b"rebyter_authority", mint_key.as_ref()],
+        &crate::ID,
+    );
+    let signer_seeds: &[&[&[u8]]] = &[&[
+        b"rebyter_authority",
+        mint_key.as_ref(),
+        &[bump],
+    ]];
+
+    token_metadata_update_field(
+        CpiContext::new(
+            accounts.token_program.key(),
+            TokenMetadataUpdateField {
+                program_id: accounts.token_program.to_account_info(),
+                metadata: accounts.mint.to_account_info(),
+                update_authority: accounts.rebyter_authority.to_account_info(),
+            },
+        )
+        .with_signer(signer_seeds),
+        Field::Key("DNA".to_string()),
+        dna_base58,
+    )?;
+
+    emit!(RebyterInteraction {
+        owner: accounts.owner.key(),
+        mint: mint_key,
+        action: match kind {
+            InteractionKind::Feed(_) => 0,
+            InteractionKind::Play => 1,
+            InteractionKind::Care => 2,
+        },
+        time_bucket: bucket as u8,
+        total_interactions: dna.total_interactions,
+    });
+
+    Ok(())
 }
 
 fn pack_rebyter_dna_v2(
@@ -498,6 +743,38 @@ pub struct CreateRebyter<'info> {
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
+#[derive(Accounts)]
+pub struct InteractRebyter<'info> {
+    pub owner: Signer<'info>,
+    /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    #[account(
+        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+    )]
+    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: PDA signs TokenMetadata updates and stores no account state.
+    #[account(
+        seeds = [b"rebyter_authority", mint.key().as_ref()],
+        bump
+    )]
+    pub rebyter_authority: UncheckedAccount<'info>,
+    pub token_program: Program<'info, Token2022>,
+}
+
+#[event]
+pub struct RebyterInteraction {
+    pub owner: Pubkey,
+    pub mint: Pubkey,
+    /// 0 feed, 1 play, 2 care.
+    pub action: u8,
+    /// 0 dawn, 1 morning, 2 afternoon, 3 night (UTC).
+    pub time_bucket: u8,
+    pub total_interactions: u16,
+}
+
 #[event]
 pub struct IdsReserved {
     pub start: u32,
@@ -540,4 +817,10 @@ pub enum RegistryError {
     InvalidEvolutionProof,
     #[msg("Rebyter metadata is invalid")]
     InvalidMetadata,
+    #[msg("This interaction requires compact DNA v2")]
+    UnsupportedDna,
+    #[msg("Wallet does not own this Rebyter")]
+    NotOwner,
+    #[msg("Food type must be meat, plant, fish, or fruit")]
+    InvalidFood,
 }
