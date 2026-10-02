@@ -518,7 +518,7 @@ export async function evolveRebyter(
       tree: treePda(tree.family.id, tree.version),
       ruleSet:
         tree.proofMode === "unified-v1"
-          ? null
+          ? treePda(tree.family.id, tree.version)
           : ruleSetPda(tree.family.id, tree.version),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
