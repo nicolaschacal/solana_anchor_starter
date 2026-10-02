@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -8,7 +8,6 @@ import {
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
-import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
@@ -92,9 +91,9 @@ function Header() {
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
-      <ThemeToggle/>
-      <NavLink to="/account" className="player-account-link" aria-label="Player account"><CircleUserRound/></NavLink>
-      {connected ? <WalletMultiButton/> : <WalletMultiButton>Connect</WalletMultiButton>}
+      {connected
+        ? <WalletMultiButton><><CircleUserRound/> User</></WalletMultiButton>
+        : <WalletMultiButton><><CircleUserRound/> Connect</></WalletMultiButton>}
     </div>
   </header>;
 }
@@ -287,17 +286,25 @@ function MintCompanionSheet({
 }
 
 export function PlayerHome() {
-  const navigate = useNavigate();
   const player = usePlayerCollection();
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useState("");
   const [minting,setMinting]=useState(false);
   const [feeding,setFeeding]=useState(false);
+  const [denOpen,setDenOpen]=useState(false);
+  const [detailOpen,setDetailOpen]=useState(false);
+  const [reaction,setReaction]=useState("Your companion is watching you.");
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
-  const [reaction,setReaction]=useState("Your companion is watching you.");
 
-  if (loading && !owned.length) return <Shell><Header/><main className="player-main"><div className="player-loading"><Sparkles/><strong>Scanning your den…</strong></div></main></Shell>;
+  async function openDen() {
+    setDenOpen(true);
+    if (!player.ownedLoadedAll) {
+      try { await player.loadAll(); } catch { /* hook exposes error */ }
+    }
+  }
+
+  if (loading && !owned.length) return <Shell><Header/><main className="player-main game-home-empty"><div className="player-loading"><Sparkles/><strong>Scanning your den…</strong></div></main></Shell>;
   if (!active || !evolution) return <Shell><Header/><EmptyCompanion
     creating={player.creating}
     status={player.status}
@@ -305,80 +312,84 @@ export function PlayerHome() {
     onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
   /></Shell>;
 
-  return <Shell><Header/><main className="player-main player-home-layout">
-    <section className="den-toolbar">
-      <div><small>YOUR DEN</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong></div>
-      <button className="mint-another" onClick={()=>setMinting(true)}><Plus/><span>Mint Rebyter</span></button>
+  return <Shell><Header/><main className="game-home">
+    <section className="game-viewer">
+      <div className="viewer-glow"/>
+      <CreatureSprite evolution={evolution}/>
+
+      <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
+        <strong>{evolution.name}</strong>
+        <span>{STAGE_NAMES[evolution.stage]} · Lv. {String(active.level).padStart(2,"0")}</span>
+      </button>
+
+      <div className="monster-hud-right">
+        <button className="hud-square gl-panel" onClick={()=>void openDen()} aria-label="Open den">
+          <span className="den-grid-icon"><i/><i/><i/><i/></span>
+        </button>
+        <div className="bond-mini gl-panel"><Heart/><strong>{active.bond}</strong></div>
+      </div>
+
+      <div className="monster-speech gl-panel">{reaction}</div>
+
+      <div className="game-controls">
+        <div className="growth-card gl-panel">
+          <div><span>Growth</span><strong>Not tracked yet</strong></div>
+          <div className="growth-track"><i/></div>
+        </div>
+        <div className="care-actions">
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" wants to play again.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
+          <button className="gl-panel locked-action" disabled title="Training will be enabled with the battle system"><Shield/><span>Training</span><LockKeyhole/></button>
+        </div>
+        {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
+        {player.error&&<div className="interaction-error">{player.error}</div>}
+      </div>
     </section>
-    <aside className="home-side home-side-left">
-      <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
-      <section className="stats-section desktop-stats">
-        <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
-        <div className="stats-grid">
-          <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/>
-          <Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/>
-          <Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/>
-          <Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
+
+    {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
+      <section className="game-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button onClick={()=>setDetailOpen(false)}>×</button></div>
+        <div className="sheet-section-label">Personality</div>
+        <div className="trait-pills">
+          <span>{rhythmProfile(active.timeInteractions).label}</span>
+          <span>{dietProfile(active.diet).label}</span>
+          <span>{activityProfile(active.activity).label}</span>
+          <span>{bodyProfile(active.weight).label}</span>
+        </div>
+        <div className="sheet-section-label">How it feels</div>
+        <div className="state-bars">
+          <div><span>Fullness</span><i><b style={{width:`${active.hunger}%`}}/></i><strong>{active.hunger}%</strong></div>
+          <div><span>Energy</span><i><b style={{width:`${active.energy}%`}}/></i><strong>{active.energy}%</strong></div>
+          <div><span>Bond</span><i><b style={{width:`${Math.min(active.bond,100)}%`}}/></i><strong>{active.bond}</strong></div>
+        </div>
+        <div className="sheet-section-label">Core stats</div>
+        <div className="sheet-stat-grid">
+          <div><small>HP</small><strong>{active.hp}</strong></div><div><small>ATK</small><strong>{active.atk}</strong></div>
+          <div><small>DEF</small><strong>{active.def}</strong></div><div><small>SPD</small><strong>{active.spd}</strong></div>
         </div>
       </section>
-    </aside>
+    </div>}
 
-    <section className="pet-card home-center">
-      <div className="pet-card-top"><div><small>YOUR COMPANION</small><h1>{evolution.name} <span>Lv. {String(active.level).padStart(2,"0")}</span></h1></div><span className="bond-pill"><Heart size={14}/> Bond {active.bond}</span></div>
-      <div className="pet-viewer">
-        <div className="viewer-glow"/><CreatureSprite evolution={evolution}/>
-        <span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span>
-        <p>{reaction}</p>
-      </div>
-      <div className="pet-actions">
-        <button disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
-        <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" had a great play session.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
-        <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
-      </div>
-      {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
-      {player.error&&<div className="interaction-error">{player.error}</div>}
-    </section>
-
-    <aside className="home-side home-side-right">
-      <section className="behavior-card evolution-profile">
-        <div className="behavior-head"><div><small>EVOLUTION PROFILE</small><h2>{careProfile(active.bond,active.hunger,active.energy)}</h2></div><span>{active.totalInteractions} actions</span></div>
-        <div className="trait-list">
-          {[
-            {icon:MoonStar,title:"Activity rhythm",...rhythmProfile(active.timeInteractions)},
-            {icon:Apple,title:"Diet",...dietProfile(active.diet)},
-            {icon:Zap,title:"Activity",...activityProfile(active.activity)},
-            {icon:Shield,title:"Body",...bodyProfile(active.weight)},
-          ].map(item=>{const Icon=item.icon;return <div className="trait-row" key={item.title}><span className="trait-icon"><Icon/></span><span><small>{item.title}</small><strong>{item.label}</strong><em>{item.detail}</em></span></div>})}
-        </div>
+    {denOpen&&<div className="game-sheet-backdrop" onClick={()=>setDenOpen(false)}>
+      <section className="game-sheet den-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button onClick={()=>setDenOpen(false)}>×</button></div>
+        {player.loading&&!player.ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
+          {owned.map(item=>{
+            const form=tree.evolutions.find(e=>e.id===item.evolutionId);
+            if(!form) return null;
+            return <button key={item.mint} className={item.mint===active.mint?"active":""} onClick={()=>{setActiveMint(item.mint);setDenOpen(false)}}>
+              <CreatureSprite evolution={form}/><strong>{form.name}</strong><small>{STAGE_NAMES[form.stage]}</small>
+            </button>;
+          })}
+        </div>}
+        <button className="den-mint-cta" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><span><strong>Mint another Rebyter</strong><small>Add a new companion to your den</small></span><ChevronRight/></button>
       </section>
-      <button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>EVOLUTION</small><strong>Open evolution lab</strong></span><ChevronRight/></button>
-      <button className="evolution-hint" onClick={()=>navigate("/atlas")}><span className="hint-icon"><BookOpen/></span><span><small>DISCOVERY</small><strong>Open atlas</strong></span><ChevronRight/></button>
-    </aside>
+    </div>}
 
-    <section className="stats-section mobile-stats">
-      <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
-      <div className="stats-grid">
-        <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/><Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/><Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/><Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
-      </div>
-    </section>
-    <section className="behavior-card mobile-behavior evolution-profile">
-      <div className="behavior-head"><div><small>EVOLUTION PROFILE</small><h2>{careProfile(active.bond,active.hunger,active.energy)}</h2></div><span>{active.totalInteractions} actions</span></div>
-      <div className="trait-list compact">
-        {[
-          {icon:MoonStar,title:"Rhythm",...rhythmProfile(active.timeInteractions)},
-          {icon:Apple,title:"Diet",...dietProfile(active.diet)},
-          {icon:Zap,title:"Activity",...activityProfile(active.activity)},
-          {icon:Shield,title:"Body",...bodyProfile(active.weight)},
-        ].map(item=>{const Icon=item.icon;return <div className="trait-row" key={item.title}><span className="trait-icon"><Icon/></span><span><small>{item.title}</small><strong>{item.label}</strong></span></div>})}
-      </div>
-    </section>
-    <div className="mobile-home-cta"><button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button></div>
-    {feeding&&<div className="origin-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
-      <section className="origin-sheet feed-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="origin-sheet-head">
-          <div><small>FEED</small><h2>Choose a meal</h2><p>Food preference is recorded permanently in this Rebyter's DNA.</p></div>
-          <button className="origin-sheet-close" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>×</button>
-        </div>
+    {feeding&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
+      <section className="game-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>×</button></div>
         <div className="food-grid">
           {[
             ["Meat","Builds carnivore history",0],
@@ -393,6 +404,7 @@ export function PlayerHome() {
         {player.error&&<div className="create-error">{player.error}</div>}
       </section>
     </div>}
+
     <MintCompanionSheet
       open={minting}
       creating={player.creating}
@@ -407,7 +419,8 @@ export function PlayerHome() {
 export function PlayerLab() {
   const navigate=useNavigate();
   const player=usePlayerCollection();
-  const { owned, tree }=player;
+  const { owned, tree, ownedLoadedAll, loadAll, playerProfile }=player;
+  useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   const [activeMint,setActiveMint]=useState("");
   const active=owned.find(x=>x.mint===activeMint)??owned[0];
   if (!active) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button></main></Shell>;
@@ -421,6 +434,7 @@ export function PlayerLab() {
     return {path,target,result};
   }).filter(Boolean) as {path:any;target:Evolution;result:ReturnType<typeof evaluatePath>}[];
   const eligible=candidates.filter(c=>c.result.eligible);
+  const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
   return <Shell><Header/><main className="player-main evolution-player">
     <div className="player-page-head"><small>EVOLUTION LAB</small><h1>{eligible.length?"Evolution signal detected":"Potential developing"}</h1><p>{eligible.length?"Your Rebyter currently satisfies at least one verified evolution route.":"Keep shaping diet, activity, body and routine. The lab evaluates the same rules the on-chain program will verify."}</p></div>
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
@@ -433,28 +447,20 @@ export function PlayerLab() {
     </section>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
-      {candidates.map(({target,result})=><article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
-        <div className="evolution-option-art">{result.eligible?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
+      {candidates.map(({target,result})=>{const known=discoveredIds.has(target.id);return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
+        <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
         <div className="evolution-option-copy">
           <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
-          <strong>{result.eligible?target.name:"Unknown form"}</strong>
+          <strong>{known?target.name:"Unknown form"}</strong>
           <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} rule groups match.</p>
         </div>
-        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree,active.treeVersion).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
-      </article>)}
+        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree,active.treeVersion).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
+      </article>})}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
     </section>
     {player.status&&<div className="create-status">{player.status}</div>}
     {player.error&&<div className="create-error">{player.error}</div>}
-    <section className="combat-card">
-      <div className="section-title"><div><small>CORE STATS</small><h2>Battle profile</h2></div><span>DNA</span></div>
-      <div className="combat-grid">
-        <div><small>HP</small><strong>{active.hp}</strong></div>
-        <div><small>ATK</small><strong>{active.atk}</strong></div>
-        <div><small>DEF</small><strong>{active.def}</strong></div>
-        <div><small>SPD</small><strong>{active.spd}</strong></div>
-      </div>
-    </section>
+
   </main></Shell>;
 }
 
