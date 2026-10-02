@@ -486,7 +486,10 @@ export async function evolveRebyter(
   if (!path.rule)
     throw new Error("This path has no structured gameplay rule");
 
-  const proof = buildRuleMerkleTree(tree).getProof(sourceId, targetId);
+  const proof =
+    tree.proofMode === "unified-v1"
+      ? buildMerkleTree(tree).getRuleProof(sourceId, targetId)
+      : buildRuleMerkleTree(tree).getProof(sourceId, targetId);
   const mint = new PublicKey(mintString);
   const ownerTokenAccount = getAssociatedTokenAddressSync(
     mint,
@@ -512,7 +515,11 @@ export async function evolveRebyter(
       mint,
       ownerTokenAccount,
       rebyterAuthority,
-      ruleSet: ruleSetPda(tree.family.id, tree.version),
+      tree: treePda(tree.family.id, tree.version),
+      ruleSet:
+        tree.proofMode === "unified-v1"
+          ? null
+          : ruleSetPda(tree.family.id, tree.version),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
