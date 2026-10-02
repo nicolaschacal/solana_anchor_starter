@@ -914,6 +914,17 @@ fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV2) -> Result<b
     })
 }
 
+fn lifecycle_min_interactions(stage: u8) -> u16 {
+    match stage {
+        0 => 4,
+        1 => 10,
+        2 => 20,
+        3 => 35,
+        4 => 55,
+        _ => 0,
+    }
+}
+
 fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     let mut cursor = RuleCursor::new(bytes);
     require!(cursor.u8()? == 1, RegistryError::InvalidRule);
@@ -922,8 +933,9 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
     require!(group_count <= 7 && required_groups <= group_count, RegistryError::InvalidRule);
 
     let mut passed_groups = 0u8;
+    let mut player_shaped_group_passed = false;
     for _ in 0..group_count {
-        let _group_id = cursor.u8()?;
+        let group_id = cursor.u8()?;
         let alt_count = cursor.u8()?;
         require!(alt_count > 0 && alt_count <= 16, RegistryError::InvalidRule);
         let mut group_passed = false;
@@ -937,7 +949,12 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
             }
             group_passed |= alt_passed;
         }
-        if group_passed { passed_groups = passed_groups.saturating_add(1); }
+        if group_passed {
+            passed_groups = passed_groups.saturating_add(1);
+            if matches!(group_id, 1 | 2 | 3) {
+                player_shaped_group_passed = true;
+            }
+        }
     }
 
     let mandatory_count = cursor.u8()?;
@@ -947,7 +964,14 @@ fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV2) -> Result<bool> {
         mandatory_passed &= condition_passes(&mut cursor, dna)?;
     }
     require!(cursor.offset == bytes.len(), RegistryError::InvalidRule);
-    Ok(mandatory_passed && passed_groups >= required_groups)
+
+    let progression_ready = dna.total_interactions >= lifecycle_min_interactions(dna.stage);
+    Ok(
+        mandatory_passed
+            && progression_ready
+            && player_shaped_group_passed
+            && passed_groups >= required_groups
+    )
 }
 
 fn pack_rebyter_dna_v2(
