@@ -374,6 +374,10 @@
           "signer": true
         },
         {
+          "name": "player_profile",
+          "writable": true
+        },
+        {
           "name": "registry"
         },
         {
@@ -460,6 +464,10 @@
           "signer": true
         },
         {
+          "name": "player_profile",
+          "writable": true
+        },
+        {
           "name": "mint",
           "writable": true
         },
@@ -498,6 +506,10 @@
           "signer": true
         },
         {
+          "name": "player_profile",
+          "writable": true
+        },
+        {
           "name": "mint",
           "writable": true
         },
@@ -529,6 +541,10 @@
         {
           "name": "owner",
           "signer": true
+        },
+        {
+          "name": "player_profile",
+          "writable": true
         },
         {
           "name": "mint",
@@ -638,6 +654,10 @@
           "signer": true
         },
         {
+          "name": "player_profile",
+          "writable": true
+        },
+        {
           "name": "mint",
           "writable": true
         },
@@ -696,6 +716,35 @@
           }
         }
       ]
+    },
+    {
+      "name": "initialize_player",
+      "discriminator": [
+        79,
+        249,
+        88,
+        177,
+        220,
+        62,
+        56,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "player_profile",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -736,6 +785,19 @@
         151,
         170,
         243
+      ]
+    },
+    {
+      "name": "PlayerProfile",
+      "discriminator": [
+        82,
+        226,
+        99,
+        87,
+        164,
+        130,
+        181,
+        80
       ]
     }
   ],
@@ -790,6 +852,32 @@
         162,
         106,
         240
+      ]
+    },
+    {
+      "name": "PlayerProfileInitialized",
+      "discriminator": [
+        147,
+        10,
+        170,
+        5,
+        164,
+        37,
+        88,
+        133
+      ]
+    },
+    {
+      "name": "PlayerDiscovery",
+      "discriminator": [
+        234,
+        164,
+        47,
+        176,
+        49,
+        207,
+        95,
+        4
       ]
     }
   ],
@@ -1097,6 +1185,80 @@
           {
             "name": "stage",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "total_interactions",
+            "type": "u32"
+          },
+          {
+            "name": "total_evolutions",
+            "type": "u16"
+          },
+          {
+            "name": "trainer_level",
+            "type": "u16"
+          },
+          {
+            "name": "trainer_xp",
+            "type": "u32"
+          },
+          {
+            "name": "discoveries",
+            "type": {
+              "vec": "u16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerProfileInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerDiscovery",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "evolution_id",
+            "type": "u16"
+          },
+          {
+            "name": "discoveries",
+            "type": "u32"
           }
         ]
       }
