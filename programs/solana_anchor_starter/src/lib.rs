@@ -965,11 +965,11 @@ impl<'a> RuleCursor<'a> {
 }
 
 fn percentage(value: u16, total: u32) -> u16 {
-    u32::from(value)
-        .saturating_mul(100)
-        .checked_div(total)
-        .unwrap_or(0)
-        .min(100) as u16
+    // BPF integer division must never receive a zero denominator. Using
+    // max(1) is equivalent to returning 0 when value/total are both zero,
+    // while making the divisor non-zero at the instruction level.
+    let denominator = total.max(1);
+    ((u32::from(value).saturating_mul(100)) / denominator).min(100) as u16
 }
 
 fn metric_value(metric: u8, dna: &RebyterDnaV2) -> Result<u16> {
@@ -997,7 +997,9 @@ fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV2) -> Result<b
     require!(metric_count > 0 && metric_count <= 16, RegistryError::InvalidRule);
     let mut value = 0u32;
     for _ in 0..metric_count {
-        value = value.saturating_add(u32::from(metric_value(cursor.u8()?, dna)?));
+        let metric = cursor.u8()?;
+        msg!("evolve: evaluating metric {}", metric);
+        value = value.saturating_add(u32::from(metric_value(metric, dna)?));
     }
     let test = cursor.u8()?;
     let lo = u32::from(cursor.u16()?);
