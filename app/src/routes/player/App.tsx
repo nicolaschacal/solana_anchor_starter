@@ -32,6 +32,9 @@ type OwnedRebyter = {
   spd: number;
   timeInteractions: number[];
   totalInteractions: number;
+  genes: number[];
+  diet: number[];
+  weight: number;
 };
 
 function usePlayerCollection() {
@@ -53,12 +56,15 @@ function usePlayerCollection() {
     spd: item.spd,
     timeInteractions: item.timeInteractions,
     totalInteractions: item.totalInteractions,
+    genes: item.genes,
+    diet: item.diet,
+    weight: item.weight,
   }));
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     owned = [
-      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11 },
-      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28 },
-      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43 },
+      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13 },
+      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18 },
+      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24 },
     ];
   }
   return { ...chain, tree, owned };
@@ -92,12 +98,43 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
   return <div className="pet-stat"><span>{icon}</span><div><small>{label}</small><strong>{value}</strong></div></div>;
 }
 
-function rhythmLabel(values:number[]) {
-  const labels=["Dawn","Morning","Afternoon","Night"];
-  if (!values.length || values.every(v=>v===0)) return "No pattern yet";
+function rhythmProfile(values:number[]) {
+  const total=values.reduce((n,v)=>n+(v??0),0);
+  if (!total) return {label:"Undetermined",detail:"Interact at different times to reveal a rhythm."};
+  const [dawn=0,morning=0,afternoon=0,night=0]=values;
+  const day=morning+afternoon;
+  if (night/total>=.45) return {label:"Nocturnal",detail:"Most active after sunset."};
+  if (day/total>=.6) return {label:"Diurnal",detail:"Most active during daylight hours."};
+  if (dawn===Math.max(...values)) return {label:"Dawn-active",detail:"Often active around first light."};
+  return {label:"Flexible",detail:"Activity is spread across the day."};
+}
+function dietProfile(values:number[]) {
+  const labels=["Meat leaning","Plant leaning","Fish leaning","Fruit leaning"];
+  const details=["Prefers meat-based meals.","Leans toward plants.","Shows a preference for fish.","Frequently chooses fruit."];
+  const total=values.reduce((n,v)=>n+(v??0),0);
+  if (!total) return {label:"Undetermined",detail:"Feed different foods to reveal a preference."};
   let best=0;
-  for (let i=1;i<values.length;i++) if ((values[i]??0)>(values[best]??0)) best=i;
-  return labels[best] ?? "Unknown";
+  for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
+  return {label:labels[best]??"Mixed",detail:details[best]??"Has a mixed diet."};
+}
+function activityProfile(value:number) {
+  if(value<20) return {label:"Calm",detail:"Low play activity so far."};
+  if(value<70) return {label:"Active",detail:"Regular play is shaping its development."};
+  if(value<150) return {label:"Energetic",detail:"Highly active and play-driven."};
+  return {label:"Hyperactive",detail:"Exceptional accumulated activity."};
+}
+function bodyProfile(weight:number) {
+  if(weight<=10) return {label:"Light build",detail:"A compact, lightweight body."};
+  if(weight<=18) return {label:"Medium build",detail:"Balanced body mass."};
+  if(weight<=28) return {label:"Heavy build",detail:"A noticeably heavier frame."};
+  return {label:"Very heavy",detail:"Exceptional body mass."};
+}
+function careProfile(bond:number,fullness:number,energy:number) {
+  const score=(bond+fullness+energy)/3;
+  if(score>=75) return "Thriving";
+  if(score>=50) return "Well cared";
+  if(score>=30) return "Needs attention";
+  return "Neglected";
 }
 
 function RebyterPicker({
@@ -281,15 +318,15 @@ export function PlayerHome() {
     </section>
 
     <aside className="home-side home-side-right">
-      <section className="behavior-card">
-        <div className="behavior-head"><div><small>BEHAVIOR</small><h2>{rhythmLabel(active.timeInteractions)}</h2></div><span>{active.totalInteractions} actions</span></div>
-        <p>Your interaction times are becoming part of this Rebyter's evolution profile.</p>
-        <div className="behavior-bars">
-          {["Dawn","Morning","Afternoon","Night"].map((label,index)=>{
-            const value=active.timeInteractions[index]??0;
-            const max=Math.max(1,...active.timeInteractions);
-            return <div key={label}><span><small>{label}</small><strong>{value}</strong></span><i><b style={{width:`${Math.max(value?12:0,value/max*100)}%`}}/></i></div>
-          })}
+      <section className="behavior-card evolution-profile">
+        <div className="behavior-head"><div><small>EVOLUTION PROFILE</small><h2>{careProfile(active.bond,active.hunger,active.energy)}</h2></div><span>{active.totalInteractions} actions</span></div>
+        <div className="trait-list">
+          {[
+            {icon:MoonStar,title:"Activity rhythm",...rhythmProfile(active.timeInteractions)},
+            {icon:Apple,title:"Diet",...dietProfile(active.diet)},
+            {icon:Zap,title:"Activity",...activityProfile(active.activity)},
+            {icon:Shield,title:"Body",...bodyProfile(active.weight)},
+          ].map(item=>{const Icon=item.icon;return <div className="trait-row" key={item.title}><span className="trait-icon"><Icon/></span><span><small>{item.title}</small><strong>{item.label}</strong><em>{item.detail}</em></span></div>})}
         </div>
       </section>
       <button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>EVOLUTION</small><strong>Open evolution lab</strong></span><ChevronRight/></button>
@@ -302,14 +339,15 @@ export function PlayerHome() {
         <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/><Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/><Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/><Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
       </div>
     </section>
-    <section className="behavior-card mobile-behavior">
-      <div className="behavior-head"><div><small>BEHAVIOR</small><h2>{rhythmLabel(active.timeInteractions)}</h2></div><span>{active.totalInteractions} actions</span></div>
-      <div className="behavior-bars">
-        {["Dawn","Morning","Afternoon","Night"].map((label,index)=>{
-          const value=active.timeInteractions[index]??0;
-          const max=Math.max(1,...active.timeInteractions);
-          return <div key={label}><span><small>{label}</small><strong>{value}</strong></span><i><b style={{width:`${Math.max(value?12:0,value/max*100)}%`}}/></i></div>
-        })}
+    <section className="behavior-card mobile-behavior evolution-profile">
+      <div className="behavior-head"><div><small>EVOLUTION PROFILE</small><h2>{careProfile(active.bond,active.hunger,active.energy)}</h2></div><span>{active.totalInteractions} actions</span></div>
+      <div className="trait-list compact">
+        {[
+          {icon:MoonStar,title:"Rhythm",...rhythmProfile(active.timeInteractions)},
+          {icon:Apple,title:"Diet",...dietProfile(active.diet)},
+          {icon:Zap,title:"Activity",...activityProfile(active.activity)},
+          {icon:Shield,title:"Body",...bodyProfile(active.weight)},
+        ].map(item=>{const Icon=item.icon;return <div className="trait-row" key={item.title}><span className="trait-icon"><Icon/></span><span><small>{item.title}</small><strong>{item.label}</strong></span></div>})}
       </div>
     </section>
     <div className="mobile-home-cta"><button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button></div>
@@ -352,7 +390,7 @@ export function PlayerLab() {
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId)!;
   return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>Potential detected</h1><p>Your choices shape what {evolution.name} becomes. Conditions stay hidden until your companion gets close to a path.</p></div>
     <section className="lab-focus"><div className="lab-creature"><CreatureSprite evolution={evolution}/></div><div><span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span><h2>{evolution.name}</h2><p>{evolution.paths.length} possible evolutionary signals detected.</p></div></section>
-    <div className="signal-list"><div><Dna/><span><strong>Genetics</strong><small>Natural tendency recorded</small></span><b>Stable</b></div><div><Activity/><span><strong>Activity</strong><small>Your recent behavior matters</small></span><b>{active.activity}</b></div><div><Apple/><span><strong>Diet & rhythm</strong><small>{rhythmLabel(active.timeInteractions)} · {active.totalInteractions} interactions</small></span><b>Live</b></div></div>
+    <div className="signal-list"><div><Dna/><span><strong>Genetics</strong><small>Natural tendency recorded</small></span><b>Stable</b></div><div><Activity/><span><strong>Activity</strong><small>Your recent behavior matters</small></span><b>{active.activity}</b></div><div><Apple/><span><strong>Diet & rhythm</strong><small>{rhythmProfile(active.timeInteractions).label} · {active.totalInteractions} interactions</small></span><b>Live</b></div></div>
     <section className="combat-card">
       <div className="section-title"><div><small>CORE STATS</small><h2>Battle profile</h2></div><span>DNA</span></div>
       <div className="combat-grid">
