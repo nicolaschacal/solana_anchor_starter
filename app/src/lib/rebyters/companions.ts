@@ -390,20 +390,6 @@ export async function createRebyter(
 
   const program = getProgram(connection, anchorWallet);
   const playerProfile = playerProfilePda(wallet.publicKey);
-  const existingPlayerProfile = await connection.getAccountInfo(
-    playerProfile,
-    "confirmed",
-  );
-  const initializePlayerIx = existingPlayerProfile
-    ? null
-    : await program.methods
-        .initializePlayer()
-        .accountsStrict({
-          owner: wallet.publicKey,
-          playerProfile,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
 
   const ix = await program.methods
     .createRebyter(
@@ -429,9 +415,7 @@ export async function createRebyter(
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey });
-  if (initializePlayerIx) tx.add(initializePlayerIx);
-  tx.add(
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
     createMintIx,
     metadataPointerIx,
     initializeMintIx,
