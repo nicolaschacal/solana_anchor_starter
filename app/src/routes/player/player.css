@@ -240,3 +240,29 @@
 @media(max-width:520px){
   .combat-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* Evolution profile: player-facing interpretation, not raw analytics */
+.evolution-profile{gap:13px}
+.evolution-profile .behavior-head h2{font-size:17px}
+.trait-list{display:grid;gap:8px}
+.trait-row{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;padding:9px 10px;border-radius:14px;background:#f6fafc;border:1px solid #e5eef4}
+.trait-icon{width:36px;height:36px;border-radius:12px;background:white;display:grid;place-items:center;color:#2d86d3}
+.trait-icon svg{width:17px;height:17px}
+.trait-row>span:last-child{min-width:0}
+.trait-row small{display:block;font-size:7px;letter-spacing:.09em;text-transform:uppercase;color:#8ca1b1;font-style:normal}
+.trait-row strong{display:block;font-size:11px;margin-top:1px;color:var(--ink)}
+.trait-row em{display:block;font-size:8px;line-height:1.35;margin-top:2px;color:#7d93a4;font-style:normal}
+.trait-list.compact{grid-template-columns:1fr 1fr}
+.trait-list.compact .trait-row{min-height:62px}
+.trait-list.compact .trait-row em{display:none}
+:root[data-theme="dark"] .trait-row{background:#192d3c;border-color:#2b4558}
+:root[data-theme="dark"] .trait-icon{background:#213a4b;color:#82c7f7}
+:root[data-theme="dark"] .trait-row strong{color:#edf7fc}
+:root[data-theme="dark"] .trait-row em,
+:root[data-theme="dark"] .trait-row small{color:#91a8b8}
+@media(max-width:420px){
+  .trait-list.compact{grid-template-columns:1fr}
+}
+
+.behavior-bars{display:none!important}
