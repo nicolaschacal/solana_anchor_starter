@@ -441,6 +441,110 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "feed",
+      "discriminator": [
+        46,
+        213,
+        237,
+        176,
+        190,
+        113,
+        182,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "food_type",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "discriminator": [
+        213,
+        157,
+        193,
+        142,
+        228,
+        56,
+        248,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "care",
+      "discriminator": [
+        110,
+        222,
+        254,
+        89,
+        135,
+        196,
+        90,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -496,6 +600,19 @@
         245,
         50,
         14
+      ]
+    },
+    {
+      "name": "RebyterInteraction",
+      "discriminator": [
+        13,
+        100,
+        40,
+        41,
+        164,
+        57,
+        136,
+        49
       ]
     }
   ],
@@ -564,6 +681,21 @@
       "code": 6012,
       "name": "InvalidMetadata",
       "msg": "Rebyter metadata is invalid"
+    },
+    {
+      "code": 6013,
+      "name": "UnsupportedDna",
+      "msg": "This interaction requires compact DNA v2"
+    },
+    {
+      "code": 6014,
+      "name": "NotOwner",
+      "msg": "Wallet does not own this Rebyter"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidFood",
+      "msg": "Food type must be meat, plant, fish, or fruit"
     }
   ],
   "types": [
@@ -688,6 +820,34 @@
           {
             "name": "evolution_id",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebyterInteraction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "action",
+            "type": "u8"
+          },
+          {
+            "name": "time_bucket",
+            "type": "u8"
+          },
+          {
+            "name": "total_interactions",
+            "type": "u16"
           }
         ]
       }
