@@ -419,6 +419,40 @@ pub mod solana_anchor_starter {
         dna.stage = target_stage;
         let dna_base58 = bs58::encode(dna.encode()).into_string();
 
+        // TokenMetadata is variable length. Pre-fund the mint if a new form has
+        // a longer name/URI before Token-2022 reallocates the extension.
+        let required_lamports = {
+            let mint_info = ctx.accounts.mint.to_account_info();
+            let data = mint_info.try_borrow_data()?;
+            let state = PodStateWithExtensions::<PodMint>::unpack(&data)
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            let mut metadata = state
+                .get_variable_len_extension::<TokenMetadata>()
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            metadata.update(Field::Key("DNA".to_string()), dna_base58.clone());
+            metadata.update(Field::Name, target_name.clone());
+            if !target_uri.is_empty() {
+                metadata.update(Field::Uri, target_uri.clone());
+            }
+            let new_len = state
+                .try_get_new_account_len_for_variable_len_extension(&metadata)
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            Rent::get()?.minimum_balance(new_len)
+        };
+        let current_lamports = ctx.accounts.mint.to_account_info().lamports();
+        if required_lamports > current_lamports {
+            transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.key(),
+                    Transfer {
+                        from: ctx.accounts.owner.to_account_info(),
+                        to: ctx.accounts.mint.to_account_info(),
+                    },
+                ),
+                required_lamports - current_lamports,
+            )?;
+        }
+
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.bumps.rebyter_authority;
         let signer_seeds: &[&[&[u8]]] = &[&[
@@ -1132,6 +1166,7 @@ pub struct InteractRebyter<'info> {
 
 #[derive(Accounts)]
 pub struct EvolveRebyter<'info> {
+    #[account(mut)]
     pub owner: Signer<'info>,
     /// CHECK: Token-2022 mint; ownership and DNA are validated in the handler.
     #[account(mut, owner = token_program.key())]
@@ -1150,6 +1185,7 @@ pub struct EvolveRebyter<'info> {
     pub rebyter_authority: UncheckedAccount<'info>,
     pub rule_set: Account<'info, RuleSet>,
     pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
 }
 
 #[event]
@@ -1158,7 +1194,7 @@ pub struct RebyterInteraction {
     pub mint: Pubkey,
     /// 0 feed, 1 play, 2 care.
     pub action: u8,
-    /// 0 dawn, 1 morning, 2 afternoon, 3 night (UTC).
+    /// 0 night, 1 morning, 2 day, 3 evening (UTC).
     pub time_bucket: u8,
     pub total_interactions: u16,
 }
