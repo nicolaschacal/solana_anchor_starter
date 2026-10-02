@@ -513,6 +513,7 @@ export async function evolveRebyter(
       rebyterAuthority,
       ruleSet: ruleSetPda(tree.family.id, tree.version),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
     })
     .instruction();
 
