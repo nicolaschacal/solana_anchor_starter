@@ -53,7 +53,7 @@ import {
 import { contentHash } from "../../lib/rebyters/canonical";
 import { buildMerkleTree } from "../../lib/rebyters/merkle";
 import { warnings } from "../../lib/rebyters/validation";
-import { fetchTree } from "../../lib/rebyters/registry";
+import { fetchRuleSet, fetchTree } from "../../lib/rebyters/registry";
 import { fetchVerifiedTree } from "../../lib/rebyters/tree";
 import { PROGRAM_ID, RPC_URL, registryPda } from "../../lib/rebyters/config";
 import type { PublishJournal } from "../../lib/rebyters/publish";
@@ -539,10 +539,25 @@ function Family({ state }: { state: RegistryState }) {
             </Link>
           )}
           {!sample && authorized && tree && family === 0 && (
-            <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
-              <Upload size={16} />
-              Publish reference assets
-            </button>
+            <>
+              <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
+                <Upload size={16} />
+                Publish reference assets
+              </button>
+              <button
+                disabled={tx.busy || tree.schema !== 2 || !active}
+                onClick={() =>
+                  void tx.run(async () => {
+                    const existing = await fetchRuleSet(tx.writer().connection, family, tree.version);
+                    if (existing) throw new Error("Gameplay rules are already published for this atlas version");
+                    await tx.writer().createRuleSet(tree);
+                  })
+                }
+              >
+                <ShieldCheck size={16} />
+                Publish gameplay rules
+              </button>
+            </>
           )}
           {editable && tree && (
             <button disabled={tx.busy} onClick={() => void add()}>
