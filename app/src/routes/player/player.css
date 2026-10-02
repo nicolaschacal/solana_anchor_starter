@@ -849,3 +849,162 @@ html,body,#root{min-height:100%;background:#060b1a}
   .game-controls{left:10px;right:10px}
   .care-actions button span{font-size:8px}
 }
+
+
+/* UX refinement v3 — account, loading, modal/nav spacing, Lab and Atlas */
+.player-head-actions{position:relative}
+.player-head-actions .wallet-adapter-button,
+.user-menu-trigger{
+  height:38px!important;
+  min-width:104px!important;
+  padding:0 12px!important;
+  border-radius:15px!important;
+  background:rgba(16,28,52,.62)!important;
+  border:1px solid var(--rb-line)!important;
+  color:var(--rb-text)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  font:600 10px 'Sora',sans-serif!important;
+  box-shadow:none!important;
+  cursor:pointer;
+}
+.player-head-actions .wallet-adapter-button-start-icon{display:none!important}
+.player-head-actions .wallet-adapter-button svg,
+.user-menu-trigger svg{width:15px!important;height:15px!important;margin:0!important;flex:0 0 auto}
+.player-head-actions .account-chevron,
+.user-menu-trigger .account-chevron{width:12px!important;height:12px!important;opacity:.7}
+.user-menu-wrap{position:relative}
+.user-menu-popover{
+  position:absolute;z-index:110;right:0;top:46px;width:190px;padding:8px;
+  border:1px solid var(--rb-line);border-radius:16px;
+  background:rgba(11,18,31,.98);box-shadow:0 18px 45px rgba(0,0,0,.35);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+.user-menu-identity{
+  display:flex;align-items:center;gap:9px;padding:9px 9px 11px;margin-bottom:5px;
+  border-bottom:1px solid rgba(160,200,255,.1);color:var(--rb-text)
+}
+.user-menu-identity>svg{width:20px;height:20px;color:var(--rb-accent)}
+.user-menu-identity span{min-width:0}
+.user-menu-identity small,.user-menu-identity strong{display:block}
+.user-menu-identity small{font-size:7px;letter-spacing:.12em;color:var(--rb-muted)}
+.user-menu-identity strong{margin-top:2px;font-size:10px}
+.user-menu-popover>button{
+  width:100%;min-height:38px;padding:0 9px;border:0;border-radius:10px;
+  background:transparent;color:var(--rb-text);display:flex;align-items:center;gap:9px;
+  font:500 10px 'Sora',sans-serif;text-align:left;cursor:pointer
+}
+.user-menu-popover>button:hover{background:rgba(255,255,255,.06)}
+.user-menu-popover>button svg{width:15px;height:15px;color:var(--rb-muted)}
+.user-menu-popover>button.danger{color:#ff9aa7}
+.user-menu-popover>button.danger svg{color:#ff9aa7}
+
+/* Render the viewer immediately while chain data arrives. */
+.game-viewer-empty{background:
+  radial-gradient(68% 55% at 50% 45%,rgba(60,142,210,.20),transparent 68%),
+  radial-gradient(100% 65% at 50% 92%,rgba(9,29,58,.48),transparent 62%)}
+.viewer-loading-indicator{
+  position:relative;z-index:4;display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border:1px solid rgba(160,200,255,.12);border-radius:999px;
+  background:rgba(16,28,52,.45);color:var(--rb-muted);font-size:9px;
+  backdrop-filter:blur(12px)
+}
+.viewer-loading-indicator svg{width:14px;height:14px;color:var(--rb-accent);animation:rb-pulse 1.2s ease-in-out infinite}
+@keyframes rb-pulse{50%{opacity:.35;transform:scale(.9)}}
+
+/* Keep actions visually detached from the sticky navigation. */
+.game-controls{bottom:98px!important}
+
+/* Every sheet ends before the floating nav instead of sitting behind it. */
+.game-sheet-backdrop{
+  inset:72px 0 88px!important;
+  padding:10px 14px 0!important;
+  overflow:hidden!important
+}
+.game-sheet{
+  top:0!important;bottom:0!important;
+  max-height:100%!important;
+  padding-bottom:18px!important
+}
+.origin-sheet-backdrop{
+  inset:72px 0 88px!important;
+  padding:10px 14px 0!important;
+  align-items:flex-end!important;
+  overflow:hidden!important
+}
+.origin-sheet{
+  max-height:100%!important;
+  overflow:auto!important;
+  border-radius:22px 22px 0 0!important;
+  margin:0 auto!important
+}
+.den-sheet{display:flex;flex-direction:column;overflow:hidden!important}
+.den-grid{overflow:auto;padding-bottom:10px}
+.den-mint-cta{
+  position:sticky!important;bottom:0!important;z-index:5;
+  margin-top:auto!important;margin-bottom:0!important;
+  box-shadow:0 -14px 30px rgba(8,14,30,.92)!important;
+  flex:0 0 auto
+}
+
+/* Lab: companion picker -> evolution choices, without a duplicated hero/stats block. */
+.evolution-player{gap:14px!important}
+.evolution-player .player-page-head{margin-bottom:2px!important}
+.evolution-player .companion-picker{margin-bottom:2px}
+.evolution-options{display:grid;gap:9px}
+.lab-empty-screen{
+  min-height:calc(100dvh - 72px)!important;
+  padding-bottom:102px!important;
+  display:flex!important;flex-direction:column!important
+}
+.lab-empty-spacer{flex:1}
+.lab-bottom-cta,
+.lab-empty-screen>.wallet-adapter-button{
+  width:100%!important;max-width:520px!important;margin:14px auto 0!important;
+  min-height:52px!important;border-radius:16px!important
+}
+.lab-bottom-cta{
+  border:0;background:var(--rb-accent);color:#06203d;padding:10px 13px;
+  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;cursor:pointer
+}
+.lab-bottom-cta>svg{width:18px;height:18px}
+.lab-bottom-cta span{min-width:0}
+.lab-bottom-cta strong,.lab-bottom-cta small{display:block}
+.lab-bottom-cta strong{font-size:11px}
+.lab-bottom-cta small{font-size:8px;color:#315b72;margin-top:2px}
+
+/* Atlas family selector: Mammal is the current atlas; future families stay visible but locked. */
+.atlas-family-tabs{
+  display:flex;gap:8px;overflow-x:auto;padding:2px 1px 8px;margin:0 0 10px;
+  scrollbar-width:none
+}
+.atlas-family-tabs::-webkit-scrollbar{display:none}
+.atlas-family-tabs button{
+  flex:0 0 auto;min-width:126px;min-height:48px;padding:8px 10px;
+  border:1px solid var(--rb-line);border-radius:15px;background:rgba(255,255,255,.035);
+  color:var(--rb-muted);display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;text-align:left
+}
+.atlas-family-tabs button>svg:first-child{width:16px;height:16px}
+.atlas-family-tabs button>svg:last-child{width:11px;height:11px;opacity:.55}
+.atlas-family-tabs span{min-width:0}
+.atlas-family-tabs strong,.atlas-family-tabs small{display:block}
+.atlas-family-tabs strong{font-size:9px;color:inherit}
+.atlas-family-tabs small{font-size:7px;margin-top:2px;color:#607895}
+.atlas-family-tabs button.active{
+  border-color:rgba(92,214,255,.65);background:rgba(92,214,255,.10);color:var(--rb-text)
+}
+.atlas-family-tabs button.active>svg{color:var(--rb-accent)}
+.atlas-family-tabs button:disabled{opacity:.5;cursor:not-allowed}
+
+@media(max-width:700px){
+  .game-controls{bottom:94px!important}
+  .game-sheet-backdrop,.origin-sheet-backdrop{inset:66px 0 86px!important}
+  .lab-empty-screen{min-height:calc(100dvh - 66px)!important}
+}
+@media(max-width:420px){
+  .player-head-actions .wallet-adapter-button,.user-menu-trigger{min-width:98px!important;max-width:118px!important;padding:0 9px!important}
+  .user-menu-popover{right:0;width:180px}
+  .atlas-family-tabs button{min-width:116px}
+}
