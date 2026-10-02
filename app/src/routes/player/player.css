@@ -304,3 +304,30 @@
   .evolution-option-art .creature-sprite{width:54px;height:54px}
   .evolution-option>button,.route-lock{grid-column:1/-1;width:100%;justify-content:center}
 }
+
+
+/* Trainer profile */
+.trainer-profile-card{background:white;border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:14px}
+.trainer-profile-head{display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:center}
+.trainer-profile-head>span{width:42px;height:42px;border-radius:14px;background:#eef7ff;display:grid;place-items:center;color:#2f8cda}
+.trainer-profile-head>span svg{width:19px}
+.trainer-profile-head small{font-size:8px;letter-spacing:.1em;color:#87a0b2;font-weight:850}
+.trainer-profile-head h2{margin:2px 0 0;font-size:18px}
+.trainer-profile-head p{margin:3px 0 0;font-size:9px;line-height:1.4;color:#7d94a5}
+.trainer-profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.trainer-profile-stats>div{background:#f6fafc;border-radius:14px;padding:11px;text-align:center}
+.trainer-profile-stats small{display:block;font-size:7px;letter-spacing:.08em;color:#8da2b1}
+.trainer-profile-stats strong{display:block;font-size:16px;margin-top:3px}
+.trainer-xp{display:grid;gap:6px}
+.trainer-xp>span{height:7px;background:#e7eff5;border-radius:999px;overflow:hidden}
+.trainer-xp i{display:block;height:100%;background:#48a2e9;border-radius:999px}
+.trainer-xp small{font-size:8px;color:#8196a6}
+:root[data-theme="dark"] .trainer-profile-card{background:#142431;border-color:#2a4355}
+:root[data-theme="dark"] .trainer-profile-head>span{background:#1d3445;color:#87cbfa}
+:root[data-theme="dark"] .trainer-profile-head p,
+:root[data-theme="dark"] .trainer-xp small{color:#91a8b8}
+:root[data-theme="dark"] .trainer-profile-stats>div{background:#192d3c}
+:root[data-theme="dark"] .trainer-xp>span{background:#1d3140}
+@media(max-width:600px){
+  .trainer-profile-stats{grid-template-columns:1fr 1fr}
+}
