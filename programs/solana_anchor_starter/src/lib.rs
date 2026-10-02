@@ -862,11 +862,15 @@ fn metric_value(metric: u8, dna: &RebyterDnaV2) -> Result<u16> {
 }
 
 fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV2) -> Result<bool> {
-    let metric = cursor.u8()?;
+    let metric_count = cursor.u8()?;
+    require!(metric_count > 0 && metric_count <= 16, RegistryError::InvalidRule);
+    let mut value = 0u32;
+    for _ in 0..metric_count {
+        value = value.saturating_add(u32::from(metric_value(cursor.u8()?, dna)?));
+    }
     let test = cursor.u8()?;
-    let lo = cursor.u16()?;
-    let hi = cursor.u16()?;
-    let value = metric_value(metric, dna)?;
+    let lo = u32::from(cursor.u16()?);
+    let hi = u32::from(cursor.u16()?);
     Ok(match test {
         0 => value >= lo,
         1 => value >= lo && value <= hi,
