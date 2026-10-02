@@ -421,12 +421,13 @@ pub mod solana_anchor_starter {
             &rule_bytes,
         )?;
 
-        let rules_root = if let Some(rule_set) = ctx.accounts.rule_set.as_ref() {
-            require!(
-                rule_set.family_id == dna.family_id
-                    && rule_set.tree_version == u32::from(dna.tree_version),
-                RegistryError::InvalidRule
-            );
+        let rules_root = if ctx.accounts.rule_set.key() == ctx.accounts.tree.key() {
+            // Unified atlas versions pass the same EvolutionTree PDA in both
+            // account slots. No second PDA exists or is read.
+            ctx.accounts.tree.merkle_root
+        } else {
+            // Legacy compatibility for already-published atlas versions that
+            // stored a separate gameplay rule root.
             let expected_rules = Pubkey::find_program_address(
                 &[
                     b"rules",
@@ -435,12 +436,17 @@ pub mod solana_anchor_starter {
                 ],
                 &crate::ID,
             ).0;
-            require!(rule_set.key() == expected_rules, RegistryError::InvalidRule);
-            rule_set.rules_root
-        } else {
-            // Unified atlas versions commit evolution identities and gameplay
-            // rule leaves into the same EvolutionTree Merkle root.
-            ctx.accounts.tree.merkle_root
+            require!(ctx.accounts.rule_set.key() == expected_rules, RegistryError::InvalidRule);
+            require!(ctx.accounts.rule_set.owner == &crate::ID, RegistryError::InvalidRule);
+            let mut data: &[u8] = &ctx.accounts.rule_set.try_borrow_data()?;
+            let legacy = RuleSet::try_deserialize(&mut data)
+                .map_err(|_| error!(RegistryError::InvalidRule))?;
+            require!(
+                legacy.family_id == dna.family_id
+                    && legacy.tree_version == u32::from(dna.tree_version),
+                RegistryError::InvalidRule
+            );
+            legacy.rules_root
         };
         require!(
             merkle::verify_evolution_hash_proof(leaf, &proof, &rules_root),
@@ -1242,9 +1248,9 @@ pub struct EvolveRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     pub tree: Account<'info, EvolutionTree>,
-    /// Legacy compatibility only. New unified atlas versions omit this account
-    /// and verify gameplay rules against EvolutionTree.merkle_root.
-    pub rule_set: Option<Account<'info, RuleSet>>,
+    /// CHECK: For unified atlases this is the same address as `tree`.
+    /// Legacy atlas versions may pass their historical RuleSet PDA instead.
+    pub rule_set: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
