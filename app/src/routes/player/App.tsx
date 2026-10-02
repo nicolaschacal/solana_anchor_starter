@@ -276,6 +276,7 @@ export function PlayerHome() {
         <button disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
         <button disabled title="Rest will be added with recovery rules"><MoonStar/><span>Rest</span></button>
       </div>
+      {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
       <div className="dna-feedback">
         <span><small>RHYTHM</small><strong>{rhythmLabel(active.timeInteractions)}</strong></span>
         <span><small>INTERACTIONS</small><strong>{active.totalInteractions}</strong></span>
@@ -283,6 +284,9 @@ export function PlayerHome() {
         <span><small>ATK</small><strong>{active.atk}</strong></span>
         <span><small>DEF</small><strong>{active.def}</strong></span>
         <span><small>SPD</small><strong>{active.spd}</strong></span>
+      </div>
+      <div className="rhythm-strip">
+        {["Dawn","Morning","Afternoon","Night"].map((label,index)=><span key={label}><small>{label}</small><strong>{active.timeInteractions[index]??0}</strong></span>)}
       </div>
     </section>
 
@@ -427,7 +431,7 @@ export function PlayerAcquire() {
     </div>
     <section className="create-summary">
       <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own on-chain DNA and randomized genetic predispositions.</p></div>
-      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Unique on-chain seed</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 62-byte DNA</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
