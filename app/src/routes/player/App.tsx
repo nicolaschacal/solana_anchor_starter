@@ -277,28 +277,39 @@ export function PlayerHome() {
         <button disabled title="Rest will be added with recovery rules"><MoonStar/><span>Rest</span></button>
       </div>
       {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
-      <div className="dna-feedback">
-        <span><small>RHYTHM</small><strong>{rhythmLabel(active.timeInteractions)}</strong></span>
-        <span><small>INTERACTIONS</small><strong>{active.totalInteractions}</strong></span>
-        <span><small>HP</small><strong>{active.hp}</strong></span>
-        <span><small>ATK</small><strong>{active.atk}</strong></span>
-        <span><small>DEF</small><strong>{active.def}</strong></span>
-        <span><small>SPD</small><strong>{active.spd}</strong></span>
-      </div>
-      <div className="rhythm-strip">
-        {["Dawn","Morning","Afternoon","Night"].map((label,index)=><span key={label}><small>{label}</small><strong>{active.timeInteractions[index]??0}</strong></span>)}
-      </div>
+      {player.error&&<div className="interaction-error">{player.error}</div>}
     </section>
 
     <aside className="home-side home-side-right">
-      <button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button>
-      <button className="evolution-hint" onClick={()=>navigate("/atlas")}><span className="hint-icon"><BookOpen/></span><span><small>EVOLUTION PATH</small><strong>See discovered lineage</strong></span><ChevronRight/></button>
+      <section className="behavior-card">
+        <div className="behavior-head"><div><small>BEHAVIOR</small><h2>{rhythmLabel(active.timeInteractions)}</h2></div><span>{active.totalInteractions} actions</span></div>
+        <p>Your interaction times are becoming part of this Rebyter's evolution profile.</p>
+        <div className="behavior-bars">
+          {["Dawn","Morning","Afternoon","Night"].map((label,index)=>{
+            const value=active.timeInteractions[index]??0;
+            const max=Math.max(1,...active.timeInteractions);
+            return <div key={label}><span><small>{label}</small><strong>{value}</strong></span><i><b style={{width:`${Math.max(value?12:0,value/max*100)}%`}}/></i></div>
+          })}
+        </div>
+      </section>
+      <button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>EVOLUTION</small><strong>Open evolution lab</strong></span><ChevronRight/></button>
+      <button className="evolution-hint" onClick={()=>navigate("/atlas")}><span className="hint-icon"><BookOpen/></span><span><small>DISCOVERY</small><strong>Open atlas</strong></span><ChevronRight/></button>
     </aside>
 
     <section className="stats-section mobile-stats">
       <div className="section-title"><div><small>TODAY</small><h2>{evolution.name}'s stats</h2></div><span>Healthy</span></div>
       <div className="stats-grid">
         <Stat icon={<Apple/>} label="Fullness" value={active.hunger+"%"}/><Stat icon={<Heart/>} label="Bond" value={String(active.bond)}/><Stat icon={<Activity/>} label="Activity" value={String(active.activity)}/><Stat icon={<Zap/>} label="Energy" value={active.energy+"%"}/>
+      </div>
+    </section>
+    <section className="behavior-card mobile-behavior">
+      <div className="behavior-head"><div><small>BEHAVIOR</small><h2>{rhythmLabel(active.timeInteractions)}</h2></div><span>{active.totalInteractions} actions</span></div>
+      <div className="behavior-bars">
+        {["Dawn","Morning","Afternoon","Night"].map((label,index)=>{
+          const value=active.timeInteractions[index]??0;
+          const max=Math.max(1,...active.timeInteractions);
+          return <div key={label}><span><small>{label}</small><strong>{value}</strong></span><i><b style={{width:`${Math.max(value?12:0,value/max*100)}%`}}/></i></div>
+        })}
       </div>
     </section>
     <div className="mobile-home-cta"><button className="evolve-cta" onClick={()=>navigate("/lab")}><Dna/><span><small>READY FOR THE NEXT STEP?</small><strong>Evolve {evolution.name}</strong></span><ChevronRight/></button></div>
@@ -341,7 +352,16 @@ export function PlayerLab() {
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId)!;
   return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>Potential detected</h1><p>Your choices shape what {evolution.name} becomes. Conditions stay hidden until your companion gets close to a path.</p></div>
     <section className="lab-focus"><div className="lab-creature"><CreatureSprite evolution={evolution}/></div><div><span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span><h2>{evolution.name}</h2><p>{evolution.paths.length} possible evolutionary signals detected.</p></div></section>
-    <div className="signal-list"><div><Dna/><span><strong>Genetics</strong><small>Natural tendency recorded</small></span><b>Stable</b></div><div><Activity/><span><strong>Activity</strong><small>Your recent behavior matters</small></span><b>Growing</b></div><div><Apple/><span><strong>Diet</strong><small>Keep discovering preferences</small></span><b>Unknown</b></div></div>
+    <div className="signal-list"><div><Dna/><span><strong>Genetics</strong><small>Natural tendency recorded</small></span><b>Stable</b></div><div><Activity/><span><strong>Activity</strong><small>Your recent behavior matters</small></span><b>{active.activity}</b></div><div><Apple/><span><strong>Diet & rhythm</strong><small>{rhythmLabel(active.timeInteractions)} · {active.totalInteractions} interactions</small></span><b>Live</b></div></div>
+    <section className="combat-card">
+      <div className="section-title"><div><small>CORE STATS</small><h2>Battle profile</h2></div><span>DNA</span></div>
+      <div className="combat-grid">
+        <div><small>HP</small><strong>{active.hp}</strong></div>
+        <div><small>ATK</small><strong>{active.atk}</strong></div>
+        <div><small>DEF</small><strong>{active.def}</strong></div>
+        <div><small>SPD</small><strong>{active.spd}</strong></div>
+      </div>
+    </section>
   </main></Shell>;
 }
 
