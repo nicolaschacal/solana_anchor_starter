@@ -499,7 +499,9 @@ export function PlayerAtlas() {
 }
 
 export function PlayerAccount() {
-  const { owned, tree, playerProfile }=usePlayerCollection();
+  const player=usePlayerCollection();
+  const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
+  useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   return <Shell><Header/><main className="player-main">
     <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, discovery history and your Rebyters live here.</p></div>
     <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div><WalletMultiButton/></section>
