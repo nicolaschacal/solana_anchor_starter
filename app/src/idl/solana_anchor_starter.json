@@ -545,6 +545,149 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "create_rule_set",
+      "discriminator": [
+        104,
+        122,
+        13,
+        57,
+        180,
+        210,
+        121,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree"
+        },
+        {
+          "name": "rule_set",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "tree_version",
+          "type": "u32"
+        },
+        {
+          "name": "rules_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "evolve",
+      "discriminator": [
+        139,
+        139,
+        160,
+        98,
+        252,
+        226,
+        106,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "rule_set"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "target_id",
+          "type": "u16"
+        },
+        {
+          "name": "target_stage",
+          "type": "u8"
+        },
+        {
+          "name": "target_name",
+          "type": "string"
+        },
+        {
+          "name": "target_uri",
+          "type": "string"
+        },
+        {
+          "name": "rule_bytes",
+          "type": {
+            "vec": "u8"
+          }
+        },
+        {
+          "name": "proof",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -572,6 +715,19 @@
         58,
         221,
         79
+      ]
+    },
+    {
+      "name": "RuleSet",
+      "discriminator": [
+        57,
+        66,
+        204,
+        128,
+        106,
+        151,
+        170,
+        243
       ]
     }
   ],
@@ -613,6 +769,19 @@
         57,
         136,
         49
+      ]
+    },
+    {
+      "name": "RebyterEvolved",
+      "discriminator": [
+        137,
+        108,
+        11,
+        78,
+        250,
+        162,
+        106,
+        240
       ]
     }
   ],
@@ -696,6 +865,21 @@
       "code": 6015,
       "name": "InvalidFood",
       "msg": "Food type must be meat, plant, fish, or fruit"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidRule",
+      "msg": "Evolution rule proof or encoding is invalid"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidEvolution",
+      "msg": "Evolution target is invalid"
+    },
+    {
+      "code": 6018,
+      "name": "EvolutionRequirements",
+      "msg": "This Rebyter does not yet satisfy the evolution requirements"
     }
   ],
   "types": [
@@ -848,6 +1032,63 @@
           {
             "name": "total_interactions",
             "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RuleSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
+            "name": "tree_version",
+            "type": "u32"
+          },
+          {
+            "name": "rules_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebyterEvolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "source_id",
+            "type": "u16"
+          },
+          {
+            "name": "target_id",
+            "type": "u16"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
           }
         ]
       }
