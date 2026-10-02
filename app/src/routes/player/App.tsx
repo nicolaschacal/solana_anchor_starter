@@ -3,8 +3,8 @@ import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
-  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, MoonStar,
+  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
+  CircleUserRound, Copy, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, LogOut, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -87,13 +87,33 @@ function Shell({children}:{children:React.ReactNode}) {
 }
 
 function Header() {
-  const { connected } = useWallet();
+  const wallet = useWallet();
+  const navigate = useNavigate();
+  const [menuOpen,setMenuOpen]=useState(false);
+  const shortAddress = wallet.publicKey ? `${wallet.publicKey.toBase58().slice(0,4)}…${wallet.publicKey.toBase58().slice(-4)}` : "";
+
+  async function copyAddress() {
+    if (!wallet.publicKey) return;
+    await navigator.clipboard.writeText(wallet.publicKey.toBase58());
+    setMenuOpen(false);
+  }
+
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
-      {connected
-        ? <WalletMultiButton><><CircleUserRound/> User</></WalletMultiButton>
-        : <WalletMultiButton><><CircleUserRound/> Connect</></WalletMultiButton>}
+      {!wallet.connected
+        ? <WalletMultiButton><><CircleUserRound/><span>Login</span><ChevronDown className="account-chevron"/></></WalletMultiButton>
+        : <div className="user-menu-wrap">
+            <button className="user-menu-trigger" onClick={()=>setMenuOpen(v=>!v)} aria-expanded={menuOpen}>
+              <CircleUserRound/><span>Account</span><ChevronDown className="account-chevron"/>
+            </button>
+            {menuOpen&&<div className="user-menu-popover">
+              <div className="user-menu-identity"><CircleUserRound/><span><small>CONNECTED</small><strong>{shortAddress}</strong></span></div>
+              <button onClick={()=>{setMenuOpen(false);navigate("/account")}}><CircleUserRound/> Account</button>
+              <button onClick={()=>void copyAddress()}><Copy/> Copy address</button>
+              <button className="danger" onClick={()=>void wallet.disconnect().then(()=>setMenuOpen(false))}><LogOut/> Disconnect</button>
+            </div>}
+          </div>}
     </div>
   </header>;
 }
@@ -304,7 +324,15 @@ export function PlayerHome() {
     }
   }
 
-  if (loading && !owned.length) return <Shell><Header/><main className="player-main game-home-empty"><div className="player-loading"><Sparkles/><strong>Scanning your den…</strong></div></main></Shell>;
+  const { connected } = useWallet();
+
+  if (!connected || (loading && !owned.length)) return <Shell><Header/><main className="game-home">
+    <section className="game-viewer game-viewer-empty">
+      <div className="viewer-glow"/>
+      {connected&&<div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div>}
+    </section>
+  </main></Shell>;
+
   if (!active || !evolution) return <Shell><Header/><EmptyCompanion
     creating={player.creating}
     status={player.status}
@@ -418,12 +446,19 @@ export function PlayerHome() {
 
 export function PlayerLab() {
   const navigate=useNavigate();
+  const { connected }=useWallet();
   const player=usePlayerCollection();
   const { owned, tree, ownedLoadedAll, loadAll, playerProfile }=player;
-  useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
+  useEffect(()=>{ if(connected&&!ownedLoadedAll) void loadAll().catch(()=>undefined); },[connected,ownedLoadedAll,loadAll]);
   const [activeMint,setActiveMint]=useState("");
   const active=owned.find(x=>x.mint===activeMint)??owned[0];
-  if (!active) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button></main></Shell>;
+  if (!active) return <Shell><Header/><main className="player-main lab-empty-screen">
+    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>{connected?"Mint a companion before the Lab can evaluate evolution routes.":"Login to analyze the evolution routes of your companions."}</p></div>
+    <div className="lab-empty-spacer"/>
+    {connected
+      ? <button className="lab-bottom-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Mint a Rebyter</strong><small>Start from the Home viewer</small></span><ChevronRight/></button>
+      : <WalletMultiButton><><CircleUserRound/> Login <ChevronDown/></></WalletMultiButton>}
+  </main></Shell>;
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId);
   if(!evolution) return <Shell><Header/><main className="player-main"><div className="create-error">Current evolution is missing from the active atlas.</div></main></Shell>;
   const state=evolutionState(active);
@@ -436,15 +471,8 @@ export function PlayerLab() {
   const eligible=candidates.filter(c=>c.result.eligible);
   const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
   return <Shell><Header/><main className="player-main evolution-player">
-    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>{eligible.length?"Evolution signal detected":"Potential developing"}</h1><p>{eligible.length?"Your Rebyter currently satisfies at least one verified evolution route.":"Keep shaping diet, activity, body and routine. The lab evaluates the same rules the on-chain program will verify."}</p></div>
+    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>Available evolutions</h1><p>{eligible.length?"Choose among the verified routes currently unlocked for this Rebyter.":"No route is unlocked yet. Keep shaping its routine, diet, activity and body."}</p></div>
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
-    <section className="lab-focus"><div className="lab-creature"><CreatureSprite evolution={evolution}/></div><div><span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span><h2>{evolution.name}</h2><p>{evolution.paths.length} possible route{evolution.paths.length===1?"":"s"} · {eligible.length} currently unlocked.</p></div></section>
-    <section className="evolution-signals">
-      <div><small>RHYTHM</small><strong>{rhythmProfile(active.timeInteractions).label}</strong></div>
-      <div><small>DIET</small><strong>{dietProfile(active.diet).label}</strong></div>
-      <div><small>ACTIVITY</small><strong>{activityProfile(active.activity).label}</strong></div>
-      <div><small>BODY</small><strong>{bodyProfile(active.weight).label}</strong></div>
-    </section>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
       {candidates.map(({target,result})=>{const known=discoveredIds.has(target.id);return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
@@ -492,7 +520,14 @@ export function PlayerAtlas() {
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
   if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
-  return <Shell><Header/><main className="player-main atlas-player"><div className="player-page-head"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Every form your trainer has ever reached stays revealed here, even after that Rebyter evolves again.</p></div>
+  return <Shell><Header/><main className="player-main atlas-player">
+    <div className="atlas-family-tabs" aria-label="Evolution families">
+      <button className="active"><Shield/><span><strong>Mammal</strong><small>Active atlas</small></span></button>
+      <button disabled><Droplets/><span><strong>Amphibian</strong><small>Locked</small></span><LockKeyhole/></button>
+      <button disabled><Bird/><span><strong>Avian</strong><small>Locked</small></span><LockKeyhole/></button>
+      <button disabled><Zap/><span><strong>Reptile</strong><small>Locked</small></span><LockKeyhole/></button>
+    </div>
+    <div className="player-page-head"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Every form your trainer has ever reached stays revealed here, even after that Rebyter evolves again.</p></div>
     <div className="atlas-progress"><span><strong>{ownedEvolutionIds.size}</strong> / {tree.evolutions.length} discovered</span><div><i style={{width:`${ownedEvolutionIds.size/tree.evolutions.length*100}%`}}/></div></div>
     {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<CreatureSprite evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
   </main></Shell>;
