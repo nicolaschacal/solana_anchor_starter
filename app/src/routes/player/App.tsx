@@ -37,6 +37,7 @@ type OwnedRebyter = {
   diet: number[];
   weight: number;
   cycle: number;
+  treeVersion: number;
 };
 
 function usePlayerCollection() {
@@ -62,12 +63,13 @@ function usePlayerCollection() {
     diet: item.diet,
     weight: item.weight,
     cycle: item.cycle,
+    treeVersion: item.treeVersion,
   }));
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     owned = [
-      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13, cycle:0 },
-      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18, cycle:0 },
-      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24, cycle:0 },
+      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13, cycle:0, treeVersion:tree.version },
+      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18, cycle:0, treeVersion:tree.version },
+      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24, cycle:0, treeVersion:tree.version },
     ];
   }
   return { ...chain, tree, owned };
@@ -450,7 +452,7 @@ export function PlayerLab() {
           <strong>{result.eligible?target.name:"Unknown form"}</strong>
           <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} groups match · minimum {lifecycleMinInteractions(evolution.stage)} interactions.</p>
         </div>
-        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
+        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree,active.treeVersion).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
       </article>)}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
     </section>
