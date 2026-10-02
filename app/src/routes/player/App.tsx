@@ -12,6 +12,7 @@ import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
+import { evaluatePath } from "../../lib/rebyters/rules";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import "./player.css";
 
@@ -35,6 +36,7 @@ type OwnedRebyter = {
   genes: number[];
   diet: number[];
   weight: number;
+  cycle: number;
 };
 
 function usePlayerCollection() {
@@ -59,12 +61,13 @@ function usePlayerCollection() {
     genes: item.genes,
     diet: item.diet,
     weight: item.weight,
+    cycle: item.cycle,
   }));
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     owned = [
-      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13 },
-      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18 },
-      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24 },
+      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13, cycle:0 },
+      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18, cycle:0 },
+      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24, cycle:0 },
     ];
   }
   return { ...chain, tree, owned };
@@ -101,12 +104,11 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
 function rhythmProfile(values:number[]) {
   const total=values.reduce((n,v)=>n+(v??0),0);
   if (!total) return {label:"Undetermined",detail:"Interact at different times to reveal a rhythm."};
-  const [dawn=0,morning=0,afternoon=0,night=0]=values;
-  const day=morning+afternoon;
-  if (night/total>=.45) return {label:"Nocturnal",detail:"Most active after sunset."};
-  if (day/total>=.6) return {label:"Diurnal",detail:"Most active during daylight hours."};
-  if (dawn===Math.max(...values)) return {label:"Dawn-active",detail:"Often active around first light."};
-  return {label:"Flexible",detail:"Activity is spread across the day."};
+  const [night=0,morning=0,day=0,evening=0]=values;
+  if ((night+evening)/total>=.6) return {label:"Nocturnal",detail:"Most activity happens after daylight."};
+  if ((morning+day)/total>=.6) return {label:"Diurnal",detail:"Most activity happens during daylight."};
+  if (evening===Math.max(...values)) return {label:"Crepuscular",detail:"Activity peaks around the evening."};
+  return {label:"Flexible",detail:"Activity is spread across different times."};
 }
 function dietProfile(values:number[]) {
   const labels=["Meat leaning","Plant leaning","Fish leaning","Fruit leaning"];
@@ -135,6 +137,25 @@ function careProfile(bond:number,fullness:number,energy:number) {
   if(score>=50) return "Well cared";
   if(score>=30) return "Needs attention";
   return "Neglected";
+}
+function evolutionState(rebyter:OwnedRebyter) {
+  const geneNames=["activity","sociability","independence","nocturnal","carnivore","herbivore","piscivore","frugivore","size","strength","speed","resilience","mutation","rarity"];
+  const state:Record<string,number>={};
+  geneNames.forEach((name,index)=>state[`genetics.${name}`]=rebyter.genes[index]??0);
+  const dietTotal=Math.max(1,rebyter.diet.reduce((n,v)=>n+(v??0),0));
+  state["diet.meat"]=Math.floor((rebyter.diet[0]??0)*100/dietTotal);
+  state["diet.fish"]=Math.floor((rebyter.diet[2]??0)*100/dietTotal);
+  state["diet.plant"]=Math.floor((rebyter.diet[1]??0)*100/dietTotal);
+  state["diet.fruit"]=Math.floor((rebyter.diet[3]??0)*100/dietTotal);
+  const timeTotal=Math.max(1,rebyter.timeInteractions.reduce((n,v)=>n+(v??0),0));
+  state["time.night"]=Math.floor((rebyter.timeInteractions[0]??0)*100/timeTotal);
+  state["time.morning"]=Math.floor((rebyter.timeInteractions[1]??0)*100/timeTotal);
+  state["time.day"]=Math.floor((rebyter.timeInteractions[2]??0)*100/timeTotal);
+  state["time.evening"]=Math.floor((rebyter.timeInteractions[3]??0)*100/timeTotal);
+  state["activity.play"]=Math.floor(rebyter.activity/10);
+  state["physical.weight"]=rebyter.weight;
+  state["progression.cycle"]=rebyter.cycle;
+  return state;
 }
 
 function RebyterPicker({
@@ -384,13 +405,46 @@ export function PlayerHome() {
 
 export function PlayerLab() {
   const navigate=useNavigate();
-  const { owned, tree }=usePlayerCollection();
-  if (!owned.length) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button></main></Shell>;
-  const active=owned[0];
-  const evolution=tree.evolutions.find(e=>e.id===active.evolutionId)!;
-  return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>Potential detected</h1><p>Your choices shape what {evolution.name} becomes. Conditions stay hidden until your companion gets close to a path.</p></div>
-    <section className="lab-focus"><div className="lab-creature"><CreatureSprite evolution={evolution}/></div><div><span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span><h2>{evolution.name}</h2><p>{evolution.paths.length} possible evolutionary signals detected.</p></div></section>
-    <div className="signal-list"><div><Dna/><span><strong>Genetics</strong><small>Natural tendency recorded</small></span><b>Stable</b></div><div><Activity/><span><strong>Activity</strong><small>Your recent behavior matters</small></span><b>{active.activity}</b></div><div><Apple/><span><strong>Diet & rhythm</strong><small>{rhythmProfile(active.timeInteractions).label} · {active.totalInteractions} interactions</small></span><b>Live</b></div></div>
+  const player=usePlayerCollection();
+  const { owned, tree }=player;
+  const [activeMint,setActiveMint]=useState("");
+  const active=owned.find(x=>x.mint===activeMint)??owned[0];
+  if (!active) return <Shell><Header/><main className="player-main"><div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>You need a companion before the lab can analyze an evolution path.</p></div><button className="acquire-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Acquire your Rebyter</strong><small>Creation cost: 0 SOL</small></span><ChevronRight/></button></main></Shell>;
+  const evolution=tree.evolutions.find(e=>e.id===active.evolutionId);
+  if(!evolution) return <Shell><Header/><main className="player-main"><div className="create-error">Current evolution is missing from the active atlas.</div></main></Shell>;
+  const state=evolutionState(active);
+  const candidates=evolution.paths.map(path=>{
+    const target=tree.evolutions.find(e=>e.id===path.target);
+    if(!target||!path.rule||tree.schema!==2||!tree.balance) return null;
+    const result=evaluatePath(tree,path,state);
+    return {path,target,result};
+  }).filter(Boolean) as {path:any;target:Evolution;result:ReturnType<typeof evaluatePath>}[];
+  const eligible=candidates.filter(c=>c.result.eligible);
+  return <Shell><Header/><main className="player-main evolution-player">
+    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>{eligible.length?"Evolution signal detected":"Potential developing"}</h1><p>{eligible.length?"Your Rebyter currently satisfies at least one verified evolution route.":"Keep shaping diet, activity, body and routine. The lab evaluates the same rules the on-chain program will verify."}</p></div>
+    <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
+    <section className="lab-focus"><div className="lab-creature"><CreatureSprite evolution={evolution}/></div><div><span className="stage-chip">{STAGE_NAMES[evolution.stage]}</span><h2>{evolution.name}</h2><p>{evolution.paths.length} possible route{evolution.paths.length===1?"":"s"} · {eligible.length} currently unlocked.</p></div></section>
+    <section className="evolution-signals">
+      <div><small>RHYTHM</small><strong>{rhythmProfile(active.timeInteractions).label}</strong></div>
+      <div><small>DIET</small><strong>{dietProfile(active.diet).label}</strong></div>
+      <div><small>ACTIVITY</small><strong>{activityProfile(active.activity).label}</strong></div>
+      <div><small>BODY</small><strong>{bodyProfile(active.weight).label}</strong></div>
+    </section>
+    <section className="evolution-options">
+      <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
+      {candidates.map(({target,result})=><article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
+        <div className="evolution-option-art">{result.eligible?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
+        <div className="evolution-option-copy">
+          <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
+          <strong>{result.eligible?target.name:"Unknown form"}</strong>
+          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} behavior groups currently match.</p>
+        </div>
+        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":"Evolve"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
+      </article>)}
+      {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
+    </section>
+    {player.status&&<div className="create-status">{player.status}</div>}
+    {player.error&&<div className="create-error">{player.error}</div>}
     <section className="combat-card">
       <div className="section-title"><div><small>CORE STATS</small><h2>Battle profile</h2></div><span>DNA</span></div>
       <div className="combat-grid">
