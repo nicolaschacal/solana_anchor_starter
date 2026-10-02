@@ -404,3 +404,62 @@ export async function createRebyter(
     tree,
   };
 }
+
+
+export type RebyterInteraction = "feed" | "play" | "care";
+
+export async function interactWithRebyter(
+  connection: Connection,
+  anchorWallet: Wallet,
+  wallet: WalletContextState,
+  mintString: string,
+  action: RebyterInteraction,
+  foodType = 0,
+) {
+  if (!wallet.publicKey || !wallet.signTransaction)
+    throw new Error("Connect a wallet that can sign transactions");
+
+  const mint = new PublicKey(mintString);
+  const ownerTokenAccount = getAssociatedTokenAddressSync(
+    mint,
+    wallet.publicKey,
+    false,
+    TOKEN_2022_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  );
+  const rebyterAuthority = rebyterAuthorityPda(mint);
+  const program = getProgram(connection, anchorWallet);
+
+  let builder;
+  if (action === "feed") builder = program.methods.feed(foodType);
+  else if (action === "play") builder = program.methods.play();
+  else builder = program.methods.care();
+
+  const ix = await builder
+    .accountsStrict({
+      owner: wallet.publicKey,
+      mint,
+      ownerTokenAccount,
+      rebyterAuthority,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+    })
+    .instruction();
+
+  const block = await connection.getLatestBlockhash("confirmed");
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  const signed = await wallet.signTransaction(tx);
+  const signature = await connection.sendRawTransaction(signed.serialize(), {
+    skipPreflight: false,
+    maxRetries: 3,
+  });
+  const result = await connection.confirmTransaction(
+    { ...block, signature },
+    "confirmed",
+  );
+  if (result.value.err)
+    throw new Error(
+      `${action} failed: ${JSON.stringify(result.value.err)}`,
+    );
+
+  return signature;
+}
