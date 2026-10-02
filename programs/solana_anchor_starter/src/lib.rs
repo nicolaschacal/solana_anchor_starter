@@ -1073,7 +1073,7 @@ fn record_discovery<'info>(
                 required_lamports - current_lamports,
             )?;
         }
-        profile_info.realloc(required_space, false)?;
+        profile_info.resize(required_space)?;
     }
 
     profile.discoveries.push(evolution_id);
