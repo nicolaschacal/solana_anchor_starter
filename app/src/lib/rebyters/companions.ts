@@ -21,12 +21,28 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import { PROGRAM_ID, registryPda, ruleSetPda, treePda } from "./config";
+import {
+  PROGRAM_ID,
+  playerProfilePda,
+  registryPda,
+  ruleSetPda,
+  treePda,
+} from "./config";
 import { getProgram, fetchRegistry, fetchTree } from "./registry";
 import { fetchVerifiedTree } from "./tree";
 import { buildMerkleTree, leafHash } from "./merkle";
 import { buildRuleMerkleTree } from "./rule-merkle";
 import type { TreeJson } from "./types";
+
+export interface PlayerProfile {
+  owner: string;
+  createdAt: number;
+  totalInteractions: number;
+  totalEvolutions: number;
+  trainerLevel: number;
+  trainerXp: number;
+  discoveries: number[];
+}
 
 export interface OnchainRebyter {
   address: string;
@@ -198,6 +214,25 @@ function decodeDna(value: string) {
   };
 }
 
+export async function fetchPlayerProfile(
+  connection: Connection,
+  owner: PublicKey,
+): Promise<PlayerProfile | null> {
+  const account = await (getProgram(connection).account as any).playerProfile.fetchNullable(
+    playerProfilePda(owner),
+  );
+  if (!account) return null;
+  return {
+    owner: account.owner.toBase58(),
+    createdAt: Number(account.createdAt),
+    totalInteractions: account.totalInteractions,
+    totalEvolutions: account.totalEvolutions,
+    trainerLevel: account.trainerLevel,
+    trainerXp: account.trainerXp,
+    discoveries: Array.from(account.discoveries as number[]),
+  };
+}
+
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
@@ -354,6 +389,22 @@ export async function createRebyter(
   );
 
   const program = getProgram(connection, anchorWallet);
+  const playerProfile = playerProfilePda(wallet.publicKey);
+  const existingPlayerProfile = await connection.getAccountInfo(
+    playerProfile,
+    "confirmed",
+  );
+  const initializePlayerIx = existingPlayerProfile
+    ? null
+    : await program.methods
+        .initializePlayer()
+        .accountsStrict({
+          owner: wallet.publicKey,
+          playerProfile,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
   const ix = await program.methods
     .createRebyter(
       familyId,
@@ -366,6 +417,7 @@ export async function createRebyter(
     )
     .accountsStrict({
       owner: wallet.publicKey,
+      playerProfile,
       registry: registryPda(),
       tree: treePda(familyId, version),
       rebyterAuthority,
@@ -377,7 +429,9 @@ export async function createRebyter(
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey });
+  if (initializePlayerIx) tx.add(initializePlayerIx);
+  tx.add(
     createMintIx,
     metadataPointerIx,
     initializeMintIx,
@@ -440,6 +494,7 @@ export async function interactWithRebyter(
   const ix = await builder
     .accountsStrict({
       owner: wallet.publicKey,
+      playerProfile: playerProfilePda(wallet.publicKey),
       mint,
       ownerTokenAccount,
       rebyterAuthority,
@@ -521,6 +576,7 @@ export async function evolveRebyter(
     )
     .accountsStrict({
       owner: wallet.publicKey,
+      playerProfile: playerProfilePda(wallet.publicKey),
       mint,
       ownerTokenAccount,
       rebyterAuthority,
