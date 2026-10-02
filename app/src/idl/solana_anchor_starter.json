@@ -648,6 +648,9 @@
           "name": "rebyter_authority"
         },
         {
+          "name": "tree"
+        },
+        {
           "name": "rule_set"
         },
         {
