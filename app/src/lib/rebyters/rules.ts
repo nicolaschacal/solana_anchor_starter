@@ -43,7 +43,6 @@ export function defaultRule(): EvolutionRule {
       { metrics: ["physical.weight"], test: "range", level: "medium" },
       { metrics: ["battle.attack"], test: "min", level: "medium" },
       { metrics: ["care.bond"], test: "min", level: "medium" },
-      { metrics: ["progression.interactions"], test: "min", value: 3 },
       { metrics: ["progression.stageAgeMinutes"], test: "min", value: 1 },
     ],
     bonuses: [],
