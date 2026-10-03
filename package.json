@@ -1,1 +1,11 @@
-{"name":"rebyters","private":true,"scripts":{"dev":"npm --prefix app run dev","build:app":"npm --prefix app run build","test:app":"npm --prefix app test","publish:sample":"npm --prefix app run publish:sample"}}
+{
+  "name": "rebyters",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "build:app": "npm --prefix app run build",
+    "test:app": "npm --prefix app test",
+    "publish:sample": "npm --prefix app run publish:sample",
+    "publish:dna-v3": "npm --prefix app run publish:dna-v3"
+  }
+}
