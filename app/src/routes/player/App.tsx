@@ -5,7 +5,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, Mountain, MoonStar,
+  CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, LockKeyhole, Mountain, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -442,8 +442,45 @@ export function PlayerHome() {
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [habitat,setHabitat]=useState(0);
   const [reaction,setReaction]=useState("Your companion is watching you.");
+  const [localNow,setLocalNow]=useState(()=>Date.now());
+  const navigate=useNavigate();
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
+
+  useEffect(()=>{
+    const timer=window.setInterval(()=>setLocalNow(Date.now()),1000);
+    return()=>window.clearInterval(timer);
+  },[]);
+
+  const tired=!!active&&(((active.condition&REBYTER_CONDITION.tired)!==0)||active.energy<20);
+  const needsCare=!!active&&(((active.condition&REBYTER_CONDITION.sick)!==0)||((active.condition&REBYTER_CONDITION.injured)!==0));
+  const needMessage=!active?""
+    :(active.condition&REBYTER_CONDITION.sick)?"I don’t feel well. I need care."
+    :(active.condition&REBYTER_CONDITION.injured)?"I’m hurt. Please take care of me."
+    :tired?"I’m tired. I need to rest."
+    :"";
+
+  const stageTimer=(()=>{
+    if(!active||!evolution||!tree.balance||!evolution.paths.length) return null;
+    for(const path of evolution.paths){
+      const target=tree.evolutions.find(e=>e.id===path.target);
+      const condition=path.rule?.mandatory.find(item=>item.metrics.includes("progression.stageAgeMinutes"));
+      if(!target||!condition) continue;
+      const [minutes]=conditionBounds(condition,tree.balance,target.stage);
+      return Math.max(0,minutes);
+    }
+    return null;
+  })();
+  const elapsedStageSeconds=active?Math.max(0,Math.floor(localNow/1000)-active.stageEnteredAt):0;
+  const growthProgress=stageTimer===null
+    ? 100
+    :stageTimer<=0
+      ?100
+      :Math.min(100,(elapsedStageSeconds/(stageTimer*60))*100);
+  const growthReady=stageTimer===null||growthProgress>=100;
+  const anyEvolutionReady=!!active&&!!evolution&&evolution.paths.some(path=>{
+    try{return evaluatePath(tree,path,evolutionState(active)).eligible}catch{return false}
+  });
 
   async function openDen() {
     setDenOpen(true);
@@ -488,19 +525,27 @@ export function PlayerHome() {
         <div className="bond-mini gl-panel"><Heart/><strong>{active.bond}</strong></div>
       </div>
 
-      <div className="monster-speech gl-panel">{reaction}</div>
+      <div className={`monster-speech gl-panel${needMessage?" needs-attention":""}`}>{needMessage||reaction}</div>
 
       <div className="game-controls">
-        <div className="growth-card gl-panel">
-          <div><span>Growth</span><strong>Not tracked yet</strong></div>
-          <div className="growth-track"><i/></div>
+        <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
+          <div>
+            <span>Growth</span>
+            <strong>{stageTimer===null?"Fully grown":growthReady?"Time requirement met":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
+          </div>
+          <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
         </div>
+        {anyEvolutionReady&&<button className="home-evolve-cta" onClick={()=>navigate("/lab")}>
+          <Atom/>
+          <span><small>EVOLUTION READY</small><strong>Choose your next form</strong></span>
+          <ChevronRight/>
+        </button>}
         <div className="care-actions">
           <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
           <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" wants to play again.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Activity/><span>Train</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels cared for.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>undefined)}><MoonStar/><span>Rest</span></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
+          <button className={`gl-panel${needsCare?" recommended-action":""}`} disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels cared for.")).catch(()=>undefined)}><Heart/><span>{needsCare?"Care now":"Care"}</span>{needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${tired&&!needsCare?" recommended-action":""}`} disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>undefined)}><MoonStar/><span>{tired&&!needsCare?"Rest now":"Rest"}</span>{tired&&!needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
         {player.error&&<div className="interaction-error">{player.error}</div>}
