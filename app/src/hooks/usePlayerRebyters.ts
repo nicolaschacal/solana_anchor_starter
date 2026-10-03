@@ -164,12 +164,18 @@ export function usePlayerRebyters() {
     async (
       mint: string,
       action: RebyterInteraction,
-      foodType = 0,
+      option = 0,
     ) => {
       if (!anchorWallet) throw new Error("Connect a wallet");
       setInteractingMint(mint);
       setError("");
-      setStatus(action === "feed" ? "Feeding..." : action === "play" ? "Playing..." : "Caring...");
+      setStatus(
+        action === "feed" ? "Feeding..."
+        : action === "play" ? "Playing..."
+        : action === "care" ? "Caring..."
+        : action === "rest" ? "Resting..."
+        : "Training..."
+      );
       try {
         const signature = await interactWithRebyter(
           connection,
@@ -177,11 +183,17 @@ export function usePlayerRebyters() {
           wallet,
           mint,
           action,
-          foodType,
+          option,
         );
         invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
         await refresh(true);
-        setStatus(action === "feed" ? "Meal complete" : action === "play" ? "Play complete" : "Care complete");
+        setStatus(
+          action === "feed" ? "Meal complete"
+          : action === "play" ? "Play complete"
+          : action === "care" ? "Care complete"
+          : action === "rest" ? "Rest complete"
+          : "Training complete"
+        );
         return signature;
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -202,7 +214,6 @@ export function usePlayerRebyters() {
       sourceId: number,
       targetId: number,
       tree: TreeJson,
-      treeVersion?: number,
     ) => {
       if (!anchorWallet) throw new Error("Connect a wallet");
       setInteractingMint(mint);
@@ -217,7 +228,6 @@ export function usePlayerRebyters() {
           tree,
           sourceId,
           targetId,
-          treeVersion,
         );
         invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
         await refresh(true);
