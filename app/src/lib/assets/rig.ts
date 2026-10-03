@@ -5,7 +5,14 @@ import { MeshoptDecoder } from "meshoptimizer";
 import dracoWrapper from "three/examples/jsm/libs/draco/gltf/draco_wasm_wrapper.js?url";
 import dracoWasm from "three/examples/jsm/libs/draco/gltf/draco_decoder.wasm?url";
 
-export const ACTIONS = ["idle", "feed", "play", "train", "care"] as const;
+export const ACTIONS = [
+  "idle",
+  "feed",
+  "play",
+  "train",
+  "care",
+  "touch",
+] as const;
 export type Action = (typeof ACTIONS)[number];
 export const ROLES = [
   "body",
@@ -179,7 +186,12 @@ export function makeClips(
           angle =
             action === "idle"
               ? wave * 0.025
-              : pulse * (action === "train" ? 0.13 : 0.045);
+              : pulse *
+                (action === "train"
+                  ? 0.13
+                  : action === "touch"
+                    ? -0.07
+                    : 0.045);
         if (role === "head")
           angle =
             action === "feed"

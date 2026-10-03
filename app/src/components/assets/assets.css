@@ -521,3 +521,5 @@
 .asset-lab .back {
   color: #81dfff;
 }
+
+.asset-touch { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); border: 1px solid #406684; border-radius: 18px; color: #c5e9fc; background: #0e2039dd; padding: 7px 12px; font-size: 11px; cursor: pointer; white-space: nowrap; }

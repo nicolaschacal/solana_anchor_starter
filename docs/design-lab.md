@@ -45,3 +45,36 @@ Rest is a presentation effect: lights go out, the monster is concealed and a sle
 ## Next iteration
 
 Use the actual Caniform to calibrate body/head/tail axes, movement amplitudes and camera. Add anatomy-specific presets only after testing additional real rigs. Facial controls, retargeting, gait/foot IK and animated food remain future work.
+
+## Reviewed mammal.exe pilot (2026-10-03)
+
+The owner assigned the supplied `Meshy_AI_Character_output.glb` to **mammal.exe**, not Caniform. The bundled pilot is `app/public/assets/rebyters/mesh-pilot/companion.glb`:
+
+- Original: 21,902,392 bytes. Animated export: **172,320 bytes**, below a strict 300,000-byte budget.
+- 1,039 triangles, 22 skin joints, one material. Both original maps were 4096×4096.
+- Color: 512px opaque JPEG, quality 88, 4:4:4. Metallic/roughness: 128px lossless PNG. Meshopt geometry and animation compression.
+- Embedded clips: `idle` (4s), `feed`, `play`, `train`, `care` (2.4s), `touch` (1.2s). All return to their starting pose.
+- The imported rig has no useful jaw or eyelid weights. Feeding uses a body nod; no chewing or blinking is claimed. Ear and leg motions use the reviewed joints. Rest remains a screen overlay.
+
+`modelUriFor` selects the published model URI first, with a bundled fallback only for the exact mammal.exe origin. This fallback makes the viewer usable before publication without rewriting the verified atlas or Merkle proofs. Atlas thumbnails use the reviewed image in place of the old bundled mammal placeholder. Other species are unchanged.
+
+A pointer tap must hit the creature. Dragging the camera, tapping empty space, or touching while asleep does not trigger the reaction. The touch clip plays once and returns to idle; it does not create a blockchain transaction. A keyboard-accessible Pet button performs the same action. Existing feed/play/train/care transaction success handlers trigger their matching clips.
+
+### Publish this prepared asset
+
+1. Update the running checkout (`git pull --ff-only origin main`, then restart `npm run dev`).
+2. Connect the registry admin wallet. Open `/admin/design-lab`, select **mammal.exe**, and click **Load animated mammal · 172 KB**.
+3. Review the clips, check the review box, then **Upload & attach to atlas draft**. Sign the requested wallet operations. The prepared GLB and thumbnail are already included; do not remap or regenerate them.
+4. Open the family Atlas and publish its draft. That activates the Irys model/image/metadata URIs for the exact current species ID.
+
+No Irys receipt or on-chain publication is included in this change: the execution environment has no publishing wallet. The browser flow preserves upload checkpoints and rejects stale atlas drafts.
+
+### Reproduce the asset
+
+From `app`, with `sharp` available, run:
+
+```sh
+node scripts/assets/prepare-meshy-pilot.mjs /path/to/Meshy_AI_Character_output.glb public/assets/rebyters/mesh-pilot/companion.glb
+```
+
+This script is specific to the reviewed rig; it is not a generic auto-rigger. It preserves the source file and aborts if the output exceeds 300,000 bytes. The original upload is not stored in Git.

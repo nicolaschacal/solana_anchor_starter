@@ -1,3 +1,4 @@
+import { modelUriFor } from "../../lib/assets/catalog";
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
   Link,
@@ -835,8 +836,8 @@ function Family({ state }: { state: RegistryState }) {
             </div>
             <div className="specimen-editor-shortcuts">
               <Link to={`/admin/design-lab?family=${family}&species=${editing.id}&name=${encodeURIComponent(editing.name)}&stage=${STAGES[editing.stage]}`}><Palette size={15}/> Open in Design Lab</Link>
-              {(editing.assets?.modelUri||editing.modelUri)&&<div className="atlas-model-preview"><EvolutionModel evolution={editing}/></div>}
-              <span>3D asset: {editing.assets?.modelUri || editing.modelUri ? "linked" : "not linked yet"}</span>
+              {modelUriFor(editing)&&<div className="atlas-model-preview"><EvolutionModel evolution={editing}/></div>}
+              <span>3D asset: {editing.assets?.modelUri || editing.modelUri ? "linked" : modelUriFor(editing) ? "bundled preview · awaiting Irys publication" : "not linked yet"}</span>
               <span>{editing.paths.length} outgoing evolution{editing.paths.length === 1 ? "" : "s"}</span>
             </div>
             <div className="specimen-asset-publisher">

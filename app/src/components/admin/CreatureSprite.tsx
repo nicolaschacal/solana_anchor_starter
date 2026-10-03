@@ -1,10 +1,16 @@
+import { isMammalPilot, MAMMAL_PILOT } from "../../lib/assets/catalog";
 import { useEffect, useState } from "react";
 import type { Evolution } from "../../lib/rebyters/types";
 
 // Local concept sprites follow workbook body plans until production art is supplied.
 export function CreatureSprite({ evolution: e }: { evolution: Evolution }) {
   const [failed, setFailed] = useState(false);
-  const uri = e.assets?.thumbnailUri || e.assets?.imageUri;
+  const current = e.assets?.thumbnailUri || e.assets?.imageUri;
+  const uri =
+    isMammalPilot(e) &&
+    (!current || current === "/assets/rebyters/mammal/mammal-exe.svg")
+      ? MAMMAL_PILOT.thumbnailUri
+      : current;
   useEffect(() => setFailed(false), [uri]);
   if (uri && !failed)
     return (

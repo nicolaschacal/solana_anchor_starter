@@ -1,3 +1,4 @@
+import { modelUriFor } from "../../lib/assets/catalog";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -823,7 +824,7 @@ function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evol
   return <>
     <button className="atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
     <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Your discovered branch stays visible. Unknown forms remain hidden until one of your Rebyters actually reaches them.</p></div>
-    {(evolution.assets?.modelUri||evolution.modelUri)&&<div className="atlas-model-preview"><EvolutionModel evolution={evolution}/></div>}
+    {modelUriFor(evolution)&&<div className="atlas-model-preview"><EvolutionModel evolution={evolution}/></div>}
     <div className="player-lineage-map">
       {grouped.map((group,index)=><section key={group.stage} className="lineage-stage">
         <div className="lineage-stage-label"><small>0{group.stage+1}</small><strong>{group.label}</strong></div>

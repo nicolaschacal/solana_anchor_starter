@@ -53,6 +53,7 @@ describe("asset pipeline", () => {
       "play",
       "train",
       "care",
+      "touch",
     ]);
     for (const clip of clips) {
       const values = clip.tracks[0].values;

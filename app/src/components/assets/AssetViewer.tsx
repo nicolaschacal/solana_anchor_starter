@@ -14,6 +14,7 @@ import {
   inspectModel,
   type AssetModel,
 } from "../../lib/assets/rig";
+import { modelUriFor } from "../../lib/assets/catalog";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
@@ -43,6 +44,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       Promise.reject(new Error("Viewer not ready")),
     );
   const [error, setError] = useState("");
+  const reactToTouch = useRef<() => void>(() => {});
   const viewState = useRef<{
     position: THREE.Vector3;
     target: THREE.Vector3;
@@ -112,6 +114,89 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       clips.find((c) => c.name === action) ??
       clips.find((c) => c.name === "idle");
     if (clip) mixer.clipAction(clip).play();
+    let touching = false;
+    const touchClip = clips.find((c) => c.name === "touch");
+    const returnToIdle = () => {
+      touching = false;
+      mixer.stopAllAction();
+      if (clip) mixer.clipAction(clip).reset().play();
+    };
+    mixer.addEventListener("finished", returnToIdle);
+    reactToTouch.current = () => {
+      if (sleeping || action !== "idle" || touching || !touchClip) return;
+      touching = true;
+      mixer.stopAllAction();
+      const reaction = mixer.clipAction(touchClip);
+      reaction.reset().setLoop(THREE.LoopOnce, 1);
+      reaction.clampWhenFinished = true;
+      reaction.play();
+    };
+    let pointer: {
+      id: number;
+      x: number;
+      y: number;
+      time: number;
+      moved: boolean;
+    } | null = null;
+    const down = (e: PointerEvent) => {
+      if (!e.isPrimary || e.button !== 0) {
+        pointer = null;
+        return;
+      }
+      pointer = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        time: performance.now(),
+        moved: false,
+      };
+    };
+    const move = (e: PointerEvent) => {
+      if (
+        pointer &&
+        Math.hypot(e.clientX - pointer.x, e.clientY - pointer.y) > 8
+      )
+        pointer.moved = true;
+    };
+    const up = (e: PointerEvent) => {
+      const start = pointer;
+      pointer = null;
+      if (
+        !start ||
+        start.id !== e.pointerId ||
+        start.moved ||
+        performance.now() - start.time > 600
+      )
+        return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(
+        new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          (-(e.clientY - rect.top) / rect.height) * 2 + 1,
+        ),
+        camera,
+      );
+      root.updateMatrixWorld(true);
+      // Animated skinned bounds must be refreshed before hit testing.
+      root.traverse((n) => {
+        if ((n as THREE.SkinnedMesh).isSkinnedMesh)
+          (n as THREE.SkinnedMesh).computeBoundingSphere();
+      });
+      if (
+        ray
+          .intersectObject(root, true)
+          .some((hit) => (hit.object as THREE.Mesh).isMesh)
+      )
+        reactToTouch.current();
+    };
+    const cancel = () => {
+      pointer = null;
+    };
+    renderer.domElement.addEventListener("pointerdown", down);
+    renderer.domElement.addEventListener("pointermove", move);
+    renderer.domElement.addEventListener("pointerup", up);
+    renderer.domElement.addEventListener("pointercancel", cancel);
     const resize = () => {
       const w = host.clientWidth,
         h = host.clientHeight;
@@ -149,6 +234,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         axesVisible = axes.visible;
       helper.visible = false;
       axes.visible = false;
+      touching = false;
       // Thumbnail uses rest pose and exactly the same camera orientation as the viewport.
       mixer.stopAllAction();
       renderer.setPixelRatio(1);
@@ -183,6 +269,12 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       cancelAnimationFrame(raf);
       observer.disconnect();
       intersection.disconnect();
+      reactToTouch.current = () => {};
+      renderer.domElement.removeEventListener("pointerdown", down);
+      renderer.domElement.removeEventListener("pointermove", move);
+      renderer.domElement.removeEventListener("pointerup", up);
+      renderer.domElement.removeEventListener("pointercancel", cancel);
+      mixer.removeEventListener("finished", returnToIdle);
       controls.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(root);
@@ -202,6 +294,17 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   return (
     <div className="asset-viewport">
       <div ref={mount} className="asset-canvas" />
+      {!sleeping &&
+        action === "idle" &&
+        clips.some((c) => c.name === "touch") && (
+          <button
+            className="asset-touch"
+            onClick={() => reactToTouch.current()}
+            aria-label="Pet your Rebyter"
+          >
+            Pet · tap your Rebyter
+          </button>
+        )}
       {error && <div className="asset-viewer-message">{error}</div>}
       {sleeping && (
         <div className="asset-sleep" role="status">
@@ -224,7 +327,7 @@ export function EvolutionModel({
   action?: string;
   sleeping?: boolean;
 }) {
-  const uri = evolution.assets?.modelUri || evolution.modelUri;
+  const uri = modelUriFor(evolution);
   const [loaded, setLoaded] = useState<{
       uri: string;
       model: AssetModel;

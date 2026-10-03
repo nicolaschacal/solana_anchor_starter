@@ -1,3 +1,4 @@
+import { isMammalPilot, MAMMAL_PILOT } from "../../lib/assets/catalog";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -170,11 +171,15 @@ export function DesignLab({ registry }: { registry: Registry }) {
             ...model.clips.filter(
               (c) => !ACTIONS.includes(c.name as (typeof ACTIONS)[number]),
             ),
-            ...generated,
+            ...generated.filter(
+              (c) => !model.clips.some((original) => original.name === c.name),
+            ),
           ]
         : [],
     [model, generated],
   );
+  const authored =
+    !!model && ACTIONS.every((a) => model.clips.some((c) => c.name === a));
   const selected = ROLES.map((r) => rig[r].bone).filter(Boolean),
     duplicate = new Set(selected).size !== selected.length;
   const invalidate = () => {
@@ -202,7 +207,7 @@ export function DesignLab({ registry }: { registry: Registry }) {
     if (!project) throw new Error("Import a GLB first.");
     return { ...project, rig, intensity, speed, textureSize };
   }
-  async function importFile(file: File) {
+  async function importFile(file: File, thumbnail?: Blob) {
     await run(async () => {
       if (!evolution)
         throw new Error("Choose a species from the active atlas first.");
@@ -220,7 +225,8 @@ export function DesignLab({ registry }: { registry: Registry }) {
       }
       const mapping = suggestRig(next.bones);
       setModel(next);
-      setPreparedModel(null);
+      const ready = ACTIONS.every((a) => next.clips.some((c) => c.name === a));
+      setPreparedModel(ready ? await parseModel(source.slice(0)) : null);
       setRig(mapping);
       setConfirmed(false);
       setAction("idle");
@@ -229,6 +235,8 @@ export function DesignLab({ registry }: { registry: Registry }) {
         species,
         source,
         filename: file.name,
+        prepared: ready ? source : undefined,
+        thumbnail: ready ? thumbnail : undefined,
         rig: mapping,
         intensity: 1,
         speed: 1,
@@ -241,7 +249,9 @@ export function DesignLab({ registry }: { registry: Registry }) {
       setProject(p);
       await saveProject(projectKey, p);
       setStatus(
-        "Imported and saved locally. Confirm the bone mapping before preparing.",
+        ready
+          ? "Animated GLB ready. Review the clips, then upload to Irys and attach to the atlas."
+          : "Imported and saved locally. Confirm the bone mapping before preparing.",
       );
     });
   }
@@ -277,7 +287,7 @@ export function DesignLab({ registry }: { registry: Registry }) {
   async function prepare() {
     await run(async () => {
       if (!model || !project) return;
-      if (!selected.length || duplicate)
+      if (!authored && (!selected.length || duplicate))
         throw new Error(
           "Map at least one joint; each role must use a different bone.",
         );
@@ -398,7 +408,9 @@ export function DesignLab({ registry }: { registry: Registry }) {
       </header>
       <div className="asset-workflow">
         <span className={model ? "done" : ""}>01 Import</span>
-        <span className={selected.length ? "done" : ""}>02 Rig & motion</span>
+        <span className={selected.length || authored ? "done" : ""}>
+          02 Rig & motion
+        </span>
         <span className={preparedModel ? "done" : ""}>03 Prepare</span>
         <span className={project?.receipts.metadataUri ? "done" : ""}>
           04 Attach to atlas
@@ -455,6 +467,33 @@ export function DesignLab({ registry }: { registry: Registry }) {
             }}
           />
         </label>
+        {evolution && isMammalPilot(evolution) && (
+          <button
+            disabled={busy}
+            onClick={() =>
+              void (async () => {
+                try {
+                  const [glb, image] = await Promise.all([
+                    fetch(MAMMAL_PILOT.modelUri),
+                    fetch(MAMMAL_PILOT.thumbnailUri),
+                  ]);
+                  if (!glb.ok || !image.ok)
+                    throw new Error(
+                      "Prepared mammal assets could not be loaded.",
+                    );
+                  await importFile(
+                    new File([await glb.blob()], "mammal-animated.glb"),
+                    await image.blob(),
+                  );
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                }
+              })()
+            }
+          >
+            Load animated mammal · 172 KB
+          </button>
+        )}
         <button disabled={busy || !evolution} onClick={() => void restore()}>
           Restore project
         </button>
@@ -572,105 +611,117 @@ export function DesignLab({ registry }: { registry: Registry }) {
                 joint animations.
               </div>
             )}
-            <div className="asset-rig-map">
-              {ROLES.map((role) => (
-                <div className="asset-joint" key={role}>
-                  <label>
-                    {role}
-                    <select
-                      aria-label={`${role} bone`}
-                      value={rig[role].bone}
-                      onFocus={() => setSelectedBone(rig[role].bone)}
-                      onChange={(e) => {
-                        invalidate();
-                        setRig((r) => ({
-                          ...r,
-                          [role]: { ...r[role], bone: e.target.value },
-                        }));
-                        setSelectedBone(e.target.value);
-                      }}
-                    >
-                      <option value="">Not mapped</option>
-                      {model?.bones.map((b) => (
-                        <option key={b.name} value={b.name}>
-                          {b.name.replace(/^rebyter_\d+_/, "")}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Axis
-                    <select
-                      aria-label={`${role} axis`}
-                      value={rig[role].axis}
-                      onChange={(e) => {
-                        invalidate();
-                        setRig((r) => ({
-                          ...r,
-                          [role]: {
-                            ...r[role],
-                            axis: e.target.value as "x" | "y" | "z",
-                          },
-                        }));
-                      }}
-                    >
-                      {["x", "y", "z"].map((a) => (
-                        <option key={a}>{a}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Direction
-                    <select
-                      aria-label={`${role} direction`}
-                      value={rig[role].amount}
-                      onChange={(e) => {
-                        invalidate();
-                        setRig((r) => ({
-                          ...r,
-                          [role]: {
-                            ...r[role],
-                            amount: Number(e.target.value),
-                          },
-                        }));
-                      }}
-                    >
-                      <option value={1}>+</option>
-                      <option value={-1}>−</option>
-                    </select>
-                  </label>
+            {authored && (
+              <p className="asset-status">
+                All six game animations are already embedded. No bone mapping is
+                needed. Preview each action, then upload below.
+              </p>
+            )}
+            {!authored && (
+              <>
+                <div className="asset-rig-map">
+                  {ROLES.map((role) => (
+                    <div className="asset-joint" key={role}>
+                      <label>
+                        {role}
+                        <select
+                          aria-label={`${role} bone`}
+                          value={rig[role].bone}
+                          onFocus={() => setSelectedBone(rig[role].bone)}
+                          onChange={(e) => {
+                            invalidate();
+                            setRig((r) => ({
+                              ...r,
+                              [role]: { ...r[role], bone: e.target.value },
+                            }));
+                            setSelectedBone(e.target.value);
+                          }}
+                        >
+                          <option value="">Not mapped</option>
+                          {model?.bones.map((b) => (
+                            <option key={b.name} value={b.name}>
+                              {b.name.replace(/^rebyter_\d+_/, "")}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Axis
+                        <select
+                          aria-label={`${role} axis`}
+                          value={rig[role].axis}
+                          onChange={(e) => {
+                            invalidate();
+                            setRig((r) => ({
+                              ...r,
+                              [role]: {
+                                ...r[role],
+                                axis: e.target.value as "x" | "y" | "z",
+                              },
+                            }));
+                          }}
+                        >
+                          {["x", "y", "z"].map((a) => (
+                            <option key={a}>{a}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Direction
+                        <select
+                          aria-label={`${role} direction`}
+                          value={rig[role].amount}
+                          onChange={(e) => {
+                            invalidate();
+                            setRig((r) => ({
+                              ...r,
+                              [role]: {
+                                ...r[role],
+                                amount: Number(e.target.value),
+                              },
+                            }));
+                          }}
+                        >
+                          <option value={1}>+</option>
+                          <option value={-1}>−</option>
+                        </select>
+                      </label>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {duplicate && <p role="alert">Each role needs a different bone.</p>}
-            <label className="asset-range">
-              Intensity <strong>{intensity.toFixed(1)}×</strong>
-              <input
-                type="range"
-                min={0.1}
-                max={2}
-                step={0.1}
-                value={intensity}
-                onChange={(e) => {
-                  invalidate();
-                  setIntensity(Number(e.target.value));
-                }}
-              />
-            </label>
-            <label className="asset-range">
-              Speed <strong>{speed.toFixed(1)}×</strong>
-              <input
-                type="range"
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={speed}
-                onChange={(e) => {
-                  invalidate();
-                  setSpeed(Number(e.target.value));
-                }}
-              />
-            </label>
+                {duplicate && (
+                  <p role="alert">Each role needs a different bone.</p>
+                )}
+                <label className="asset-range">
+                  Intensity <strong>{intensity.toFixed(1)}×</strong>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={2}
+                    step={0.1}
+                    value={intensity}
+                    onChange={(e) => {
+                      invalidate();
+                      setIntensity(Number(e.target.value));
+                    }}
+                  />
+                </label>
+                <label className="asset-range">
+                  Speed <strong>{speed.toFixed(1)}×</strong>
+                  <input
+                    type="range"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={speed}
+                    onChange={(e) => {
+                      invalidate();
+                      setSpeed(Number(e.target.value));
+                    }}
+                  />
+                </label>
+              </>
+            )}
             <p className="asset-sleep-note">
               <MoonStar size={16} /> Rest turns the viewer dark. No sleep pose
               or sleep clip is required.
@@ -726,7 +777,9 @@ export function DesignLab({ registry }: { registry: Registry }) {
           )}
           <button
             className="primary"
-            disabled={busy || !model || !selected.length || duplicate}
+            disabled={
+              busy || !model || (!authored && (!selected.length || duplicate))
+            }
             onClick={() => void prepare()}
           >
             <WandSparkles size={16} />
