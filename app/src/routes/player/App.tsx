@@ -213,12 +213,7 @@ function learnedSkillCount(bits:bigint) {
   return count;
 }
 
-function bodyProfile(weight:number) {
-  if(weight<=10) return {label:"Light build",detail:"A compact, lightweight body."};
-  if(weight<=18) return {label:"Medium build",detail:"Balanced body mass."};
-  if(weight<=28) return {label:"Heavy build",detail:"A noticeably heavier frame."};
-  return {label:"Very heavy",detail:"Exceptional body mass."};
-}
+
 function careProfile(bond:number,fullness:number,energy:number) {
   const score=(bond+fullness+energy)/3;
   if(score>=75) return "Thriving";
@@ -513,7 +508,7 @@ export function PlayerHome() {
           <span>{rhythmProfile(active.timeInteractions).label}</span>
           <span>{dietProfile(active.diet).label}</span>
           <span>{disciplineProfile(active.discipline)}</span>
-          <span>{bodyProfile(active.weight).label}</span>
+          <span>Weight {active.weight}</span>
         </div>
         <div className="sheet-section-label">How it feels · {moodProfile(active)}</div>
         <div className="state-bars">
