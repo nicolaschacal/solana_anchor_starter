@@ -189,7 +189,18 @@ function conditionLabels(condition:number) {
 }
 const SKILL_NAMES=["Bite","Guard","Quick Step","Heavy Strike","Second Wind","Iron Guard","Dash","Battle Instinct","Adapt"];
 function learnedSkillNames(bits:bigint) {
-  return SKILL_NAMES.filter((_,index)=>(bits&(1n<<BigInt(index)))!==0n);
+  const names:string[]=[];
+  for(let index=0;index<64;index++){
+    if((bits&(1n<<BigInt(index)))===0n) continue;
+    names.push(SKILL_NAMES[index]??`Skill #${index}`);
+  }
+  return names;
+}
+function learnedSkillCount(bits:bigint) {
+  let value=bits;
+  let count=0;
+  while(value>0n){ count+=Number(value&1n); value>>=1n; }
+  return count;
 }
 
 function bodyProfile(weight:number) {
@@ -232,7 +243,7 @@ function evolutionState(rebyter:OwnedRebyter) {
   state["battle.speed"]=rebyter.spd;
   state["state.sick"]=(rebyter.condition&REBYTER_CONDITION.sick)?1:0;
   state["state.injured"]=(rebyter.condition&REBYTER_CONDITION.injured)?1:0;
-  state["skills.count"]=learnedSkillNames(rebyter.learnedSkills).length;
+  state["skills.count"]=learnedSkillCount(rebyter.learnedSkills);
   return state;
 }
 
