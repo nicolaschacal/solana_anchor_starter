@@ -19,7 +19,7 @@ import "./player.css";
 const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
 
-const BALANCE_CACHE_TTL_MS = 15_000;
+const BALANCE_CACHE_TTL_MS = 30_000;
 const balanceCache = new Map<string,{at:number,value:number}>();
 const balanceInflight = new Map<string,Promise<number>>();
 
