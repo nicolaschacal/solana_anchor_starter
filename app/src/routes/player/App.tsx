@@ -43,6 +43,7 @@ async function getCachedSolBalance(connection: ReturnType<typeof useConnection>[
 
 type OwnedRebyter = {
   mint: string;
+  dnaByteLength: number;
   evolutionId: number;
   level: number;
   bond: number;
@@ -72,6 +73,7 @@ function usePlayerCollection() {
     const evolution = tree.evolutions.find(e => e.id === item.evolutionId);
     return {
       mint: item.mint,
+      dnaByteLength: item.dnaByteLength,
       evolutionId: item.evolutionId,
       level: (evolution?.stage ?? 0) + 1,
       bond: item.bond,
@@ -95,9 +97,9 @@ function usePlayerCollection() {
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     const demoNow=Math.floor(Date.now()/1000);
     owned = [
-      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], careMistakes:0, diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
-      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
-      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
+      { mint:"demo-fangbit", dnaByteLength:50, evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], careMistakes:0, diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
+      { mint:"demo-wolf", dnaByteLength:50, evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
+      { mint:"demo-dire", dnaByteLength:50, evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
     ];
   }
   return { ...chain, tree, owned };
@@ -523,7 +525,7 @@ export function PlayerHome() {
           <div className="status-discipline"><span>Discipline</span><i><b style={{width:`${Math.min(active.discipline,100)}%`}}/></i><strong>{active.discipline}</strong></div>
         </div>
         <div className="sheet-section-label">Condition</div>
-        <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}<span>Care mistakes: {active.careMistakes}</span></div>
+        <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}<span>Care mistakes: {active.careMistakes}</span><span>DNA: {active.dnaByteLength} bytes</span></div>
         <div className="sheet-section-label">Learned skills</div>
         <div className="trait-pills skill-pills">{learnedSkillNames(active.learnedSkills).length?learnedSkillNames(active.learnedSkills).map(name=><span key={name}>{name}</span>):<span>None yet</span>}</div>
         <div className="sheet-section-label">Core stats</div>
