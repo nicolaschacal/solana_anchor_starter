@@ -25,8 +25,7 @@ declare_id!("7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp");
 
 pub const MAX_FAMILIES: usize = 16;
 pub const MAX_URI_LENGTH: usize = 128;
-pub const REBYTER_GENE_COUNT: usize = 4;
-pub const REBYTER_DNA_V3_BYTES: usize = 60;
+pub const REBYTER_DNA_V4_BYTES: usize = 57;
 
 pub const CONDITION_TIRED: u8 = 1 << 0;
 pub const CONDITION_OVERFED: u8 = 1 << 1;
@@ -241,24 +240,9 @@ pub mod solana_anchor_starter {
         let clock = Clock::get()?;
         let owner_key = ctx.accounts.owner.key();
         let mint_key = ctx.accounts.mint.key();
-        let dna = solana_sha256_hasher::hashv(&[
-            b"rebyter-dna-v3",
-            owner_key.as_ref(),
-            mint_key.as_ref(),
-            &clock.slot.to_le_bytes(),
-            &clock.unix_timestamp.to_le_bytes(),
-        ])
-        .to_bytes();
-
-        // Permanent gene order (predispositions, never progression):
-        // metabolism, temperament, rhythm, mutation.
-        let mut genes = [0u8; REBYTER_GENE_COUNT];
-        for (index, gene) in genes.iter_mut().enumerate() {
-            *gene = dna[index] % 101;
-        }
 
         // The only custom TokenMetadata field is DNA.
-        // DNA v3 deliberately stores only irreducible individual state.
+        // DNA v4 deliberately stores only visible gameplay state.
         // Family, stage and atlas version are derived/verified from the active
         // atlas and its Merkle proofs instead of being duplicated in each NFT.
         require!(evolution_id <= u16::MAX as u32, RegistryError::Exhausted);
@@ -271,10 +255,10 @@ pub mod solana_anchor_starter {
         )?;
 
         let now = clock.unix_timestamp.max(0) as u32;
-        let dna_blob = pack_rebyter_dna_v3(
+        let dna_blob = pack_rebyter_dna_v4(
             evolution_id as u16,
-            &genes,
             10,
+            0,
             0,
             0,
             70,
@@ -444,7 +428,7 @@ pub mod solana_anchor_starter {
         let clock = Clock::get()?;
         materialize_lazy_state(&mut dna, clock.unix_timestamp.max(0) as u32);
 
-        // DNA v3 is not pinned to a historical atlas version. Evolutions are
+        // DNA v4 is not pinned to a historical atlas version. Evolutions are
         // always proven against the currently active atlas selected by registry.
         let family = family_index(ctx.accounts.tree.family_id)?;
         require!(
@@ -472,7 +456,7 @@ pub mod solana_anchor_starter {
             &rule_bytes,
         )?;
 
-        // DNA v3 starts from unified atlas proofs only.
+        // DNA v4 starts from unified atlas proofs only.
         require!(ctx.accounts.rule_set.key() == ctx.accounts.tree.key(), RegistryError::InvalidRule);
         let rules_root = ctx.accounts.tree.merkle_root;
         require!(
@@ -504,6 +488,7 @@ pub mod solana_anchor_starter {
         msg!("evolve: player discoveries updated");
 
         dna.evolution_id = target_id;
+        dna.care_mistakes = 0;
         dna.stage_entered_at = clock.unix_timestamp.max(0) as u32;
         dna.last_state_at = dna.stage_entered_at;
         let dna_base58 = bs58::encode(dna.encode()).into_string();
@@ -605,12 +590,12 @@ enum InteractionKind {
 }
 
 #[derive(Clone)]
-struct RebyterDnaV3 {
+struct RebyterDnaV4 {
     evolution_id: u16,
-    genes: [u8; REBYTER_GENE_COUNT],
     weight: u8,
     bond: u8,
     discipline: u8,
+    care_mistakes: u8,
     fullness: u8,
     energy: u8,
     condition: u8,
@@ -628,10 +613,10 @@ struct RebyterDnaV3 {
     learned_skills: u64,
 }
 
-impl RebyterDnaV3 {
+impl RebyterDnaV4 {
     fn decode(bytes: &[u8]) -> Result<Self> {
         require!(
-            bytes.len() == REBYTER_DNA_V3_BYTES && bytes[0] == 3,
+            bytes.len() == REBYTER_DNA_V4_BYTES && bytes[0] == 4,
             RegistryError::UnsupportedDna
         );
         let mut o = 1usize;
@@ -662,12 +647,10 @@ impl RebyterDnaV3 {
         };
 
         let evolution_id = take_u16(bytes, &mut o);
-        let mut genes = [0u8; REBYTER_GENE_COUNT];
-        genes.copy_from_slice(&bytes[o..o + REBYTER_GENE_COUNT]);
-        o += REBYTER_GENE_COUNT;
         let weight = take_u8(bytes, &mut o);
         let bond = take_u8(bytes, &mut o);
         let discipline = take_u8(bytes, &mut o);
+        let care_mistakes = take_u8(bytes, &mut o);
         let fullness = take_u8(bytes, &mut o);
         let energy = take_u8(bytes, &mut o);
         let condition = take_u8(bytes, &mut o);
@@ -687,17 +670,17 @@ impl RebyterDnaV3 {
         let learned_skills = take_u64(bytes, &mut o);
 
         Ok(Self {
-            evolution_id, genes, weight, bond, discipline, fullness, energy,
-            condition, diet, time_interactions, total_interactions, cycle,
+            evolution_id, weight, bond, discipline, care_mistakes, fullness,
+            energy, condition, diet, time_interactions, total_interactions, cycle,
             hp, atk, def, spd, last_state_at, stage_entered_at, created_at,
             learned_skills,
         })
     }
 
     fn encode(&self) -> Vec<u8> {
-        pack_rebyter_dna_v3(
-            self.evolution_id, &self.genes, self.weight, self.bond,
-            self.discipline, self.fullness, self.energy, self.condition,
+        pack_rebyter_dna_v4(
+            self.evolution_id, self.weight, self.bond,
+            self.discipline, self.care_mistakes, self.fullness, self.energy, self.condition,
             self.diet, self.time_interactions, self.total_interactions,
             self.cycle, self.hp, self.atk, self.def, self.spd,
             self.last_state_at, self.stage_entered_at, self.created_at,
@@ -716,23 +699,23 @@ fn utc_time_bucket(unix_timestamp: i64) -> usize {
     }
 }
 
-fn has_condition(dna: &RebyterDnaV3, flag: u8) -> bool { dna.condition & flag != 0 }
-fn add_condition(dna: &mut RebyterDnaV3, flag: u8) { dna.condition |= flag; }
-fn clear_condition(dna: &mut RebyterDnaV3, flag: u8) { dna.condition &= !flag; }
+fn has_condition(dna: &RebyterDnaV4, flag: u8) -> bool { dna.condition & flag != 0 }
+fn add_condition(dna: &mut RebyterDnaV4, flag: u8) { dna.condition |= flag; }
+fn clear_condition(dna: &mut RebyterDnaV4, flag: u8) { dna.condition &= !flag; }
+fn add_care_mistake(dna: &mut RebyterDnaV4) {
+    dna.care_mistakes = dna.care_mistakes.saturating_add(1);
+}
 
-fn materialize_lazy_state(dna: &mut RebyterDnaV3, now: u32) {
+fn materialize_lazy_state(dna: &mut RebyterDnaV4, now: u32) {
     if now <= dna.last_state_at { return; }
     let hours = now.saturating_sub(dna.last_state_at) / 3_600;
     if hours == 0 { return; }
 
-    let metabolism = u32::from(dna.genes[0]);
-    let fullness_per_hour = 1u32.saturating_add(metabolism / 34);
-    let recovery_per_hour = 2u32.saturating_add(metabolism / 50);
     dna.fullness = dna.fullness.saturating_sub(
-        hours.saturating_mul(fullness_per_hour).min(100) as u8
+        hours.saturating_mul(2).min(100) as u8
     );
     dna.energy = dna.energy.saturating_add(
-        hours.saturating_mul(recovery_per_hour).min(100) as u8
+        hours.saturating_mul(3).min(100) as u8
     ).min(100);
 
     if dna.fullness <= 80 { clear_condition(dna, CONDITION_OVERFED); }
@@ -741,7 +724,7 @@ fn materialize_lazy_state(dna: &mut RebyterDnaV3, now: u32) {
     dna.last_state_at = now;
 }
 
-fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV3> {
+fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV4> {
     let data = mint.try_borrow_data()?;
     let mint_state = PodStateWithExtensions::<PodMint>::unpack(&data)
         .map_err(|_| error!(RegistryError::InvalidMetadata))?;
@@ -754,15 +737,14 @@ fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV3> {
         .ok_or_else(|| error!(RegistryError::UnsupportedDna))?;
     let bytes = bs58::decode(dna_base58).into_vec()
         .map_err(|_| error!(RegistryError::UnsupportedDna))?;
-    RebyterDnaV3::decode(&bytes)
+    RebyterDnaV4::decode(&bytes)
 }
 
 fn scaled_gain(base: u16, tier: u8) -> u16 {
     match tier { 2 => base, 1 => base.saturating_add(1) / 2, _ => 0 }
 }
-fn temperament_bond_bonus(dna: &RebyterDnaV3) -> u8 { dna.genes[1] / 50 }
 
-fn maybe_unlock_training_skill(dna: &mut RebyterDnaV3, training_type: u8, full_effect: bool) {
+fn maybe_unlock_training_skill(dna: &mut RebyterDnaV4, training_type: u8, full_effect: bool) {
     if !full_effect { return; }
     let bit = match training_type {
         0 if dna.atk >= 50 => Some(3),
@@ -788,15 +770,16 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             let was_overfed = has_condition(&dna, CONDITION_OVERFED) || dna.fullness >= 90;
             let fullness_gain = [22u8, 16, 18, 14][i];
             let base_weight = [2u8, 1, 1, 1][i];
-            let weight_gain = base_weight.saturating_sub(dna.genes[0] / 60).max(1);
+            let weight_gain = base_weight;
             dna.diet[i] = dna.diet[i].saturating_add(1);
             dna.fullness = dna.fullness.saturating_add(fullness_gain).min(100);
             dna.weight = dna.weight.saturating_add(weight_gain);
             dna.energy = dna.energy.saturating_add(4).min(100);
             if dna.fullness < 80 && !was_overfed {
-                dna.bond = dna.bond.saturating_add(1 + temperament_bond_bonus(&dna)).min(100);
+                dna.bond = dna.bond.saturating_add(1).min(100);
             }
             if was_overfed {
+                add_care_mistake(&mut dna);
                 let already_overfed = has_condition(&dna, CONDITION_OVERFED);
                 dna.discipline = dna.discipline.saturating_sub(2);
                 add_condition(&mut dna, CONDITION_OVERFED);
@@ -813,9 +796,10 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             dna.weight = dna.weight.saturating_sub(1);
 
             if energy_before >= 20 && fullness_before >= 10 && !has_condition(&dna, CONDITION_SICK) {
-                dna.bond = dna.bond.saturating_add(3 + temperament_bond_bonus(&dna)).min(100);
+                dna.bond = dna.bond.saturating_add(3).min(100);
             } else {
-                // The action is allowed, but forcing play while depleted is bad care.
+                // The action is allowed, but forcing play while depleted is a care mistake.
+                add_care_mistake(&mut dna);
                 dna.bond = dna.bond.saturating_sub(1);
                 dna.discipline = dna.discipline.saturating_sub(1);
             }
@@ -836,9 +820,10 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             dna.energy = dna.energy.saturating_sub(2);
             dna.fullness = dna.fullness.saturating_sub(1);
             if can_benefit {
-                dna.bond = dna.bond.saturating_add(4 + temperament_bond_bonus(&dna)).min(100);
+                dna.bond = dna.bond.saturating_add(4).min(100);
             } else {
-                // Repeating Care on a depleted companion is interaction, not free Bond.
+                // Care at the wrong time does not farm Bond and counts as poor care.
+                add_care_mistake(&mut dna);
                 dna.discipline = dna.discipline.saturating_sub(1);
             }
             if has_condition(&dna, CONDITION_SICK)
@@ -860,6 +845,7 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
                 dna.discipline = dna.discipline.saturating_add(1).min(100);
             } else if fullness_before < 10 {
                 // Spamming unnecessary rest while starving is poor routine.
+                add_care_mistake(&mut dna);
                 dna.discipline = dna.discipline.saturating_sub(1);
             }
             if dna.energy >= 40 { clear_condition(&mut dna, CONDITION_TIRED); }
@@ -894,6 +880,7 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             if tier > 0 {
                 dna.discipline = dna.discipline.saturating_add(if training_type == 4 { 2 } else { 1 }).min(100);
             } else {
+                add_care_mistake(&mut dna);
                 dna.discipline = dna.discipline.saturating_sub(2);
                 dna.bond = dna.bond.saturating_sub(1);
                 if has_condition(&dna, CONDITION_TIRED) {
@@ -1003,40 +990,40 @@ fn percentage(value: u16, total: u32) -> u16 {
     ((u32::from(value).saturating_mul(100)) / denominator).min(100) as u16
 }
 
-fn metric_value(metric: u8, dna: &RebyterDnaV3, now: u32) -> Result<u16> {
+fn metric_value(metric: u8, dna: &RebyterDnaV4, now: u32) -> Result<u16> {
     let diet_total: u32 = dna.diet.iter().map(|v| u32::from(*v)).sum();
     let time_total: u32 = dna.time_interactions.iter().map(|v| u32::from(*v)).sum();
     let value = match metric {
-        0..=3 => u16::from(dna.genes[usize::from(metric)]),
-        4 => percentage(dna.diet[0], diet_total),
-        5 => percentage(dna.diet[2], diet_total),
-        6 => percentage(dna.diet[1], diet_total),
-        7 => percentage(dna.diet[3], diet_total),
-        8 => percentage(dna.time_interactions[1], time_total),
-        9 => percentage(dna.time_interactions[2], time_total),
-        10 => percentage(dna.time_interactions[3], time_total),
-        11 => percentage(dna.time_interactions[0], time_total),
-        12 => u16::from(dna.weight),
-        13 => u16::from(dna.bond),
-        14 => u16::from(dna.discipline),
-        15 => u16::from(dna.fullness),
-        16 => u16::from(dna.energy),
-        17 => dna.total_interactions,
-        18 => u16::from(dna.cycle),
-        19 => ((now.saturating_sub(dna.stage_entered_at)) / 3_600).min(u16::MAX as u32) as u16,
-        20 => dna.hp,
-        21 => dna.atk,
-        22 => dna.def,
-        23 => dna.spd,
-        24 => if has_condition(dna, CONDITION_SICK) { 1 } else { 0 },
-        25 => if has_condition(dna, CONDITION_INJURED) { 1 } else { 0 },
-        26 => dna.learned_skills.count_ones().min(u16::MAX as u32) as u16,
+        0 => percentage(dna.diet[0], diet_total),
+        1 => percentage(dna.diet[2], diet_total),
+        2 => percentage(dna.diet[1], diet_total),
+        3 => percentage(dna.diet[3], diet_total),
+        4 => percentage(dna.time_interactions[1], time_total),
+        5 => percentage(dna.time_interactions[2], time_total),
+        6 => percentage(dna.time_interactions[3], time_total),
+        7 => percentage(dna.time_interactions[0], time_total),
+        8 => u16::from(dna.weight),
+        9 => u16::from(dna.bond),
+        10 => u16::from(dna.discipline),
+        11 => u16::from(dna.care_mistakes),
+        12 => u16::from(dna.fullness),
+        13 => u16::from(dna.energy),
+        14 => dna.total_interactions,
+        15 => u16::from(dna.cycle),
+        16 => ((now.saturating_sub(dna.stage_entered_at)) / 60).min(u16::MAX as u32) as u16,
+        17 => dna.hp,
+        18 => dna.atk,
+        19 => dna.def,
+        20 => dna.spd,
+        21 => if has_condition(dna, CONDITION_SICK) { 1 } else { 0 },
+        22 => if has_condition(dna, CONDITION_INJURED) { 1 } else { 0 },
+        23 => dna.learned_skills.count_ones().min(u16::MAX as u32) as u16,
         _ => return err!(RegistryError::InvalidRule),
     };
     Ok(value)
 }
 
-fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV3, now: u32) -> Result<bool> {
+fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV4, now: u32) -> Result<bool> {
     let metric_count = cursor.u8()?;
     require!(metric_count > 0 && metric_count <= 16, RegistryError::InvalidRule);
     let mut value = 0u32;
@@ -1057,12 +1044,12 @@ fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV3, now: u32) -
     })
 }
 
-fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV3, now: u32) -> Result<bool> {
+fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV4, now: u32) -> Result<bool> {
     let mut cursor = RuleCursor::new(bytes);
     require!(cursor.u8()? == 1, RegistryError::InvalidRule);
     let required_groups = cursor.u8()?;
     let group_count = cursor.u8()?;
-    require!(group_count <= 7 && required_groups <= group_count, RegistryError::InvalidRule);
+    require!(group_count <= 6 && required_groups <= group_count, RegistryError::InvalidRule);
 
     let mut passed_groups = 0u8;
     for _ in 0..group_count {
@@ -1138,12 +1125,12 @@ fn record_discovery<'info>(
     Ok(())
 }
 
-fn pack_rebyter_dna_v3(
+fn pack_rebyter_dna_v4(
     evolution_id: u16,
-    genes: &[u8; REBYTER_GENE_COUNT],
     weight: u8,
     bond: u8,
     discipline: u8,
+    care_mistakes: u8,
     fullness: u8,
     energy: u8,
     condition: u8,
@@ -1160,13 +1147,13 @@ fn pack_rebyter_dna_v3(
     created_at: u32,
     learned_skills: u64,
 ) -> Vec<u8> {
-    let mut out = Vec::with_capacity(REBYTER_DNA_V3_BYTES);
-    out.push(3);
+    let mut out = Vec::with_capacity(REBYTER_DNA_V4_BYTES);
+    out.push(4);
     out.extend_from_slice(&evolution_id.to_le_bytes());
-    out.extend_from_slice(genes);
     out.push(weight);
     out.push(bond);
     out.push(discipline);
+    out.push(care_mistakes);
     out.push(fullness);
     out.push(energy);
     out.push(condition);
@@ -1182,7 +1169,7 @@ fn pack_rebyter_dna_v3(
     out.extend_from_slice(&stage_entered_at.to_le_bytes());
     out.extend_from_slice(&created_at.to_le_bytes());
     out.extend_from_slice(&learned_skills.to_le_bytes());
-    debug_assert_eq!(out.len(), REBYTER_DNA_V3_BYTES);
+    debug_assert_eq!(out.len(), REBYTER_DNA_V4_BYTES);
     out
 }
 
@@ -1415,7 +1402,7 @@ pub struct EvolveRebyter<'info> {
     #[account(seeds = [b"registry"], bump)]
     pub registry: Account<'info, RegistryRoot>,
     pub tree: Account<'info, EvolutionTree>,
-    /// CHECK: DNA v3 requires this to be the same address as `tree`; the
+    /// CHECK: DNA v4 requires this to be the same address as `tree`; the
     /// unified active atlas root verifies both forms and gameplay rules.
     pub rule_set: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
@@ -1497,7 +1484,7 @@ pub enum RegistryError {
     InvalidEvolutionProof,
     #[msg("Rebyter metadata is invalid")]
     InvalidMetadata,
-    #[msg("This interaction requires Rebyter DNA v3")]
+    #[msg("This interaction requires Rebyter DNA v4")]
     UnsupportedDna,
     #[msg("Wallet does not own this Rebyter")]
     NotOwner,
