@@ -74,12 +74,12 @@ async function main() {
   if (
     journal &&
     journal.baseVersion === activeVersion &&
-    journal.tree.version === nextVersion &&
+    publishJournal.tree.version === nextVersion &&
     journal.replaceCollection === true
   ) {
     try {
       validateTree(journal.tree);
-      reusePending = journal.tree.proofMode === "unified-v1";
+      reusePending = publishJournal.tree.proofMode === "unified-v1";
     } catch {
       reusePending = false;
     }
@@ -103,7 +103,12 @@ async function main() {
     console.log("Reusing fresh DNA v3 pending publication");
   }
 
-  if (journal.tree.proofMode !== "unified-v1") {
+  if (!journal) {
+    throw new Error("DNA v3 publication journal could not be created");
+  }
+  const publishJournal: PublishJournal = journal;
+
+  if (publishJournal.tree.proofMode !== "unified-v1") {
     throw new Error("DNA v3 requires unified-v1 atlas proofs");
   }
 
@@ -112,13 +117,13 @@ async function main() {
       {
         status: "Preparing fresh DNA v3 atlas",
         fromVersion: activeVersion,
-        toVersion: journal.tree.version,
-        creatures: journal.tree.evolutions.length,
-        connections: journal.tree.evolutions.reduce(
+        toVersion: publishJournal.tree.version,
+        creatures: publishJournal.tree.evolutions.length,
+        connections: publishJournal.tree.evolutions.reduce(
           (sum, evolution) => sum + evolution.paths.length,
           0,
         ),
-        contentHash: contentHash(journal.tree),
+        contentHash: contentHash(publishJournal.tree),
       },
       null,
       2,
@@ -131,7 +136,7 @@ async function main() {
 
   const tree = await publishTree(
     writer,
-    journal,
+    publishJournal,
     async () => {
       const irysSigner = await keypair(irysPath);
       const irys = await Uploader(Solana)
@@ -139,7 +144,7 @@ async function main() {
         .withRpc(rpc)
         .devnet();
       const price = await irys.getPrice(
-        new TextEncoder().encode(canonicalTree(journal!.tree)).length,
+        new TextEncoder().encode(canonicalTree(publishJournal.tree)).length,
       );
       const balance = await irys.getLoadedBalance();
       if (balance.lt(price)) {
