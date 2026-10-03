@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { PublicKey } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, MoonStar,
+  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, Mountain, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -17,6 +18,26 @@ import "./player.css";
 
 const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
+
+const BALANCE_CACHE_TTL_MS = 15_000;
+const balanceCache = new Map<string,{at:number,value:number}>();
+const balanceInflight = new Map<string,Promise<number>>();
+
+async function getCachedSolBalance(connection: ReturnType<typeof useConnection>["connection"], address: string) {
+  const cached=balanceCache.get(address);
+  if(cached&&Date.now()-cached.at<BALANCE_CACHE_TTL_MS) return cached.value;
+  const pending=balanceInflight.get(address);
+  if(pending) return pending;
+  const promise=connection.getBalance(new PublicKey(address),"confirmed")
+    .then(lamports=>{
+      const value=lamports/1_000_000_000;
+      balanceCache.set(address,{at:Date.now(),value});
+      return value;
+    })
+    .finally(()=>balanceInflight.delete(address));
+  balanceInflight.set(address,promise);
+  return promise;
+}
 
 type OwnedRebyter = {
   mint: string;
@@ -95,8 +116,9 @@ function Header() {
   useEffect(()=>{
     let cancelled=false;
     if(!wallet.publicKey){setSolBalance(null);return;}
-    void connection.getBalance(wallet.publicKey,"confirmed")
-      .then(lamports=>{if(!cancelled)setSolBalance(lamports/1_000_000_000)})
+    const address=wallet.publicKey.toBase58();
+    void getCachedSolBalance(connection,address)
+      .then(value=>{if(!cancelled)setSolBalance(value)})
       .catch(()=>{if(!cancelled)setSolBalance(null)});
     return()=>{cancelled=true};
   },[connection,wallet.publicKey]);
@@ -311,6 +333,8 @@ export function PlayerHome() {
   const [homeParams]=useSearchParams();
   const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
+  const [habitatOpen,setHabitatOpen]=useState(false);
+  const [habitat,setHabitat]=useState(0);
   const [reaction,setReaction]=useState("Your companion is watching you.");
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
@@ -339,16 +363,19 @@ export function PlayerHome() {
   /></Shell>;
 
   return <Shell><Header/><main className="game-home">
-    <section className="game-viewer">
+    <section className={`game-viewer habitat-${habitat}`}>
       <div className="viewer-glow"/>
       <CreatureSprite evolution={evolution}/>
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
         <strong>{evolution.name}</strong>
-        <span>{STAGE_NAMES[evolution.stage]} · Lv. {String(active.level).padStart(2,"0")}</span>
+        <span>Level {active.level} · {STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}</span>
       </button>
 
       <div className="monster-hud-right">
+        <button className="hud-square gl-panel" onClick={()=>setHabitatOpen(true)} aria-label="Choose habitat">
+          <Mountain/>
+        </button>
         <button className="hud-square gl-panel" onClick={()=>void openDen()} aria-label="Open den">
           <span className="den-grid-icon"><i/><i/><i/><i/></span>
         </button>
@@ -374,7 +401,7 @@ export function PlayerHome() {
     </section>
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
-      <section className="game-sheet" onClick={e=>e.stopPropagation()}>
+      <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
         <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="sheet-close-text" onClick={()=>setDetailOpen(false)}>Close</button></div>
         <div className="sheet-section-label">Personality</div>
         <div className="trait-pills">
@@ -385,15 +412,39 @@ export function PlayerHome() {
         </div>
         <div className="sheet-section-label">How it feels</div>
         <div className="state-bars">
-          <div><span>Fullness</span><i><b style={{width:`${active.hunger}%`}}/></i><strong>{active.hunger}%</strong></div>
-          <div><span>Energy</span><i><b style={{width:`${active.energy}%`}}/></i><strong>{active.energy}%</strong></div>
-          <div><span>Bond</span><i><b style={{width:`${Math.min(active.bond,100)}%`}}/></i><strong>{active.bond}</strong></div>
+          <div className="status-fullness"><span>Fullness</span><i><b style={{width:`${active.hunger}%`}}/></i><strong>{active.hunger}%</strong></div>
+          <div className="status-energy"><span>Energy</span><i><b style={{width:`${active.energy}%`}}/></i><strong>{active.energy}%</strong></div>
+          <div className="status-bond"><span>Bond</span><i><b style={{width:`${Math.min(active.bond,100)}%`}}/></i><strong>{active.bond}</strong></div>
         </div>
         <div className="sheet-section-label">Core stats</div>
         <div className="sheet-stat-grid">
-          <div><small>HP</small><strong>{active.hp}</strong></div><div><small>ATK</small><strong>{active.atk}</strong></div>
-          <div><small>DEF</small><strong>{active.def}</strong></div><div><small>SPD</small><strong>{active.spd}</strong></div>
+          <div className="stat-hp"><small>HP</small><strong>{active.hp}</strong></div><div className="stat-atk"><small>ATK</small><strong>{active.atk}</strong></div>
+          <div className="stat-def"><small>DEF</small><strong>{active.def}</strong></div><div className="stat-spd"><small>SPD</small><strong>{active.spd}</strong></div>
         </div>
+      </section>
+    </div>}
+
+    {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
+      <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>ENVIRONMENT</small><h2>Habitats</h2></div><button className="sheet-close-text" onClick={()=>setHabitatOpen(false)}>Close</button></div>
+        <div className="habitat-rail">
+          {[
+            ["Verdant Meadow","Equipped"],
+            ["Moonlit Ruins","Owned"],
+            ["Crystal Cavern","Locked"],
+            ["Golden Dunes","Locked"],
+          ].map(([name,state],index)=><button
+            key={name}
+            className={`habitat-card habitat-tone-${index}${habitat===index?" selected":""}`}
+            disabled={state==="Locked"}
+            onClick={()=>{setHabitat(index);setReaction(`${name} selected.`)}}
+          >
+            <span className="habitat-preview"><Mountain/></span>
+            <strong>{name}</strong>
+            <small>{habitat===index?"Equipped":state}</small>
+          </button>)}
+        </div>
+        <button className="habitat-action" disabled>Environment selection is visual for now</button>
       </section>
     </div>}
 
@@ -417,12 +468,12 @@ export function PlayerHome() {
             </article>;
           })}
         </div>}
-        <button className="den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>New Rebyter</strong><ChevronRight/></button>
+        <button className="den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
       </section>
     </div>}
 
     {feeding&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
-      <section className="game-sheet" onClick={e=>e.stopPropagation()}>
+      <section className="game-sheet food-sheet" onClick={e=>e.stopPropagation()}>
         <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>Close</button></div>
         <div className="food-grid">
           {[
