@@ -116,13 +116,13 @@ export function hasStructuredMammalRules(tree: TreeJson): boolean {
 
 
 /**
- * Build the next DNA v3 gameplay atlas from the canonical Mammal seed while
+ * Build the next DNA v4 gameplay atlas from the canonical Mammal seed while
  * preserving the currently active specimen identities and published assets.
  *
- * This is the normal DNA v3 rules upgrade path: no fresh evolution IDs are
+ * This is the normal DNA v4 rules upgrade path: no fresh evolution IDs are
  * reserved, because these are the same forms with new gameplay rules.
  */
-export function buildMammalDnaV3Upgrade(
+export function buildMammalDnaV4Upgrade(
   previous: TreeJson,
   version: number,
 ): TreeJson {
@@ -172,3 +172,6 @@ export function buildMammalDnaV3Upgrade(
     }),
   };
 }
+
+// Temporary internal alias so older development scripts still typecheck.
+export const buildMammalDnaV3Upgrade = buildMammalDnaV4Upgrade;
