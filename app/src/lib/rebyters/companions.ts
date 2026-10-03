@@ -42,6 +42,7 @@ export interface PlayerProfile {
 
 export interface OnchainRebyter {
   address: string;
+  dnaByteLength: number;
   owner: string;
   mint: string;
   evolutionId: number;
@@ -112,8 +113,12 @@ export const REBYTER_CONDITION = {
   injured: 1 << 3,
 } as const;
 
+export function decodeRebyterDnaBytes(value: string) {
+  return Uint8Array.from(bs58.decode(value));
+}
+
 function decodeDna(value: string) {
-  const bytes = Uint8Array.from(bs58.decode(value));
+  const bytes = decodeRebyterDnaBytes(value);
   if (bytes.length !== 50)
     throw new Error("Unsupported Rebyter DNA: mint a current-generation Rebyter");
   let o = 0;
@@ -220,6 +225,7 @@ export async function fetchFirstOwnedRebyter(
 
     return {
       address: mintString,
+      dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
       owner: owner.toBase58(),
       mint: mintString,
       evolutionId: dnaState.evolutionId,
@@ -295,6 +301,7 @@ export async function fetchOwnedRebyters(
 
     result.push({
       address: mintString,
+      dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
       owner: owner.toBase58(),
       mint: mintString,
       evolutionId: dnaState.evolutionId,
