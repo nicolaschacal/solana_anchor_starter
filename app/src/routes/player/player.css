@@ -1868,3 +1868,42 @@ button.account-card.account-nav-card{
 @media(min-width:1280px){
   .den-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
+
+
+/* UX refinement v8 — exact bottom CTA parity + account single-line balance */
+.den-grid{
+  flex:0 1 auto!important;
+}
+.den-mint-cta.compact{
+  margin-top:auto!important;
+  margin-bottom:0!important;
+}
+
+.habitat-action{
+  margin-top:auto!important;
+  border-color:var(--rb-accent)!important;
+  background:linear-gradient(135deg,#48c9ff,#6ae0ff)!important;
+  color:#06203d!important;
+  opacity:1!important;
+}
+.habitat-action:disabled{
+  opacity:1!important;
+  cursor:default!important;
+}
+
+.wallet-balance-trigger{
+  min-width:122px!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+}
+.wallet-balance-trigger span{
+  white-space:nowrap!important;
+}
+
+@media(max-width:420px){
+  .player-head-actions .wallet-balance-trigger{
+    min-width:118px!important;
+    max-width:126px!important;
+    padding:0 10px!important;
+  }
+}
