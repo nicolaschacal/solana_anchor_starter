@@ -821,8 +821,7 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             if can_benefit {
                 dna.bond = dna.bond.saturating_add(4).min(100);
             } else {
-                // Care at the wrong time does not farm Bond and counts as poor care.
-                add_care_mistake(&mut dna);
+                // Care on a depleted companion does not farm Bond.
                 dna.discipline = dna.discipline.saturating_sub(1);
             }
             if has_condition(&dna, CONDITION_SICK)
@@ -843,8 +842,7 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             if needed_rest {
                 dna.discipline = dna.discipline.saturating_add(1).min(100);
             } else if fullness_before < 10 {
-                // Spamming unnecessary rest while starving is poor routine.
-                add_care_mistake(&mut dna);
+                // Unnecessary rest while starving hurts routine, but Rest itself is not a care mistake.
                 dna.discipline = dna.discipline.saturating_sub(1);
             }
             if dna.energy >= 40 { clear_condition(&mut dna, CONDITION_TIRED); }
