@@ -232,7 +232,7 @@ export function usePlayerRebyters() {
         setInteractingMint("");
       }
     },
-    [anchorWallet, connection, loadAll, ownedLoadedAll, refresh, wallet],
+    [anchorWallet, connection, refresh, wallet],
   );
 
   return {
