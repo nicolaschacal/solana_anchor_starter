@@ -174,11 +174,11 @@ function dietProfile(values:number[]) {
   for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
   return {label:labels[best]??"Mixed",detail:details[best]??"Has a mixed diet."};
 }
-function temperamentProfile(value:number) {
-  if(value<25) return "Reserved";
-  if(value<50) return "Independent";
-  if(value<75) return "Balanced";
-  return "Social";
+function disciplineProfile(value:number) {
+  if(value<20) return "Free spirited";
+  if(value<50) return "Learning routine";
+  if(value<75) return "Disciplined";
+  return "Highly disciplined";
 }
 function conditionLabels(condition:number) {
   const labels:string[]=[];
@@ -516,7 +516,7 @@ export function PlayerHome() {
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
           <span>{dietProfile(active.diet).label}</span>
-          <span>{temperamentProfile(active.genes[1]??0)}</span>
+          <span>{disciplineProfile(active.discipline)}</span>
           <span>{bodyProfile(active.weight).label}</span>
         </div>
         <div className="sheet-section-label">How it feels · {moodProfile(active)}</div>
