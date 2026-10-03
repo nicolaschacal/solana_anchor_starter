@@ -1408,3 +1408,486 @@ select:disabled {
 .rule-bonus{display:flex;align-items:center;gap:6px}
 
 .wolf-prototype{position:absolute;inset:0;overflow:hidden}.wolf-prototype canvas{display:block;width:100%;height:100%;touch-action:none}
+
+
+/* ==========================================================================
+   REBYTERS ADMIN — GAME CONSOLE VISUAL SYSTEM
+   ========================================================================== */
+:root{
+  --admin-bg:#04101f;
+  --admin-panel:#07182d;
+  --admin-panel-2:#0a213d;
+  --admin-line:rgba(113,203,255,.16);
+  --admin-cyan:#55dcff;
+  --admin-electric:#18bfff;
+  --admin-text:#edf8ff;
+  --admin-muted:#91a9c3;
+  --admin-danger:#ff6b7a;
+}
+
+/* Hard authority gate: no admin data leaks into the view. */
+.admin-gate{
+  position:fixed;
+  inset:0;
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 44%,rgba(19,115,185,.26),transparent 30%),
+    linear-gradient(180deg,#071a34 0%,#04101f 100%);
+  color:var(--admin-text);
+  font-family:"Sora",sans-serif;
+}
+.admin-gate-glow{
+  position:absolute;
+  width:min(600px,80vw);
+  aspect-ratio:1;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(24,191,255,.14),transparent 70%);
+  filter:blur(28px);
+}
+.admin-gate-card{
+  position:relative;
+  z-index:2;
+  width:min(430px,calc(100vw - 32px));
+  padding:32px 28px;
+  text-align:center;
+  border:1px solid rgba(109,206,255,.16);
+  border-radius:26px;
+  background:linear-gradient(160deg,rgba(10,35,66,.88),rgba(5,19,38,.94));
+  box-shadow:0 30px 90px rgba(0,0,0,.34);
+}
+.admin-gate-orb{
+  width:66px;
+  height:66px;
+  margin:0 auto 18px;
+  display:grid;
+  place-items:center;
+  border-radius:20px;
+  color:var(--admin-cyan);
+  background:linear-gradient(145deg,rgba(24,191,255,.16),rgba(85,220,255,.05));
+  border:1px solid rgba(85,220,255,.22);
+  box-shadow:0 0 34px rgba(24,191,255,.10);
+}
+.admin-gate-orb svg{width:28px;height:28px}
+.admin-gate small{
+  display:block;
+  color:var(--admin-cyan);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.15em;
+}
+.admin-gate h1{
+  margin:7px 0 9px;
+  font-size:28px;
+  letter-spacing:-.03em;
+}
+.admin-gate p{
+  max-width:34ch;
+  margin:0 auto 18px;
+  color:var(--admin-muted);
+  font-size:12px;
+  line-height:1.55;
+}
+.admin-authority-hint{
+  margin:0 0 18px;
+  padding:11px 13px;
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(110,192,240,.10);
+}
+.admin-authority-hint span,
+.admin-authority-hint code{display:block}
+.admin-authority-hint span{font-size:8px;color:#7892ae;text-transform:uppercase;letter-spacing:.1em}
+.admin-authority-hint code{margin-top:4px;color:#cceeff;font-size:11px}
+.admin-gate .wallet-adapter-button{
+  width:100%!important;
+  min-height:48px!important;
+  justify-content:center!important;
+  border-radius:15px!important;
+  background:linear-gradient(135deg,#18bfff,#62e1ff)!important;
+  color:#04172b!important;
+  font-weight:800!important;
+}
+
+/* Shell */
+.admin-game-shell.shell{
+  display:grid;
+  grid-template-columns:228px minmax(0,1fr);
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 58% 12%,rgba(16,99,162,.13),transparent 27%),
+    var(--admin-bg);
+  color:var(--admin-text);
+}
+.admin-game-shell .sidebar{
+  position:fixed;
+  inset:0 auto 0 0;
+  width:228px;
+  padding:22px 16px;
+  background:linear-gradient(180deg,rgba(7,28,55,.98),rgba(4,16,31,.98));
+  border-right:1px solid var(--admin-line);
+  box-shadow:none;
+}
+.admin-game-shell .brand{
+  min-height:56px;
+  padding:8px 9px;
+  border-radius:15px;
+  color:var(--admin-text);
+}
+.admin-game-shell .brand svg{color:var(--admin-cyan)}
+.admin-game-shell .brand small{
+  margin-top:2px;
+  color:#7895b3;
+  font-size:8px;
+  letter-spacing:.12em;
+}
+.admin-game-shell .sidebar nav{
+  display:grid;
+  gap:6px;
+  margin-top:24px;
+}
+.admin-game-shell .sidebar nav a{
+  min-height:44px;
+  padding:0 12px;
+  border-radius:13px;
+  color:#8ea7c1;
+  font-size:11px;
+  font-weight:600;
+  border:1px solid transparent;
+}
+.admin-game-shell .sidebar nav a svg{color:#6e8ba8}
+.admin-game-shell .sidebar nav a.active{
+  color:#eafaff;
+  background:linear-gradient(135deg,rgba(19,117,185,.26),rgba(24,191,255,.08));
+  border-color:rgba(85,220,255,.13);
+}
+.admin-game-shell .sidebar nav a.active svg{color:var(--admin-cyan)}
+.admin-game-shell .sidebar-bottom{
+  color:#7992ab;
+  border-top:1px solid rgba(112,192,238,.10);
+}
+.admin-game-shell .sidebar-bottom a{color:#8fb3ce}
+.admin-game-shell .network-dot{background:#55e7c1;box-shadow:0 0 10px rgba(85,231,193,.4)}
+
+.admin-game-shell .workspace{
+  grid-column:2;
+  width:auto;
+  min-width:0;
+  margin-left:0;
+  background:transparent;
+}
+.admin-game-shell .topbar{
+  position:sticky;
+  top:0;
+  z-index:50;
+  height:72px;
+  padding:0 28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:rgba(4,16,31,.82);
+  border-bottom:1px solid var(--admin-line);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+.admin-topbar-title small,
+.admin-topbar-title strong{display:block}
+.admin-topbar-title small{
+  color:#6686a4;
+  font-size:8px;
+  letter-spacing:.13em;
+  font-weight:800;
+}
+.admin-topbar-title strong{
+  margin-top:3px;
+  color:#eaf7ff;
+  font-size:13px;
+}
+.admin-game-shell .top-actions{display:flex;align-items:center;gap:9px}
+.admin-live{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:34px;
+  padding:0 10px;
+  border-radius:11px;
+  background:rgba(69,224,184,.055);
+  color:#83dfc5;
+  font-size:9px;
+  font-weight:700;
+}
+.admin-live i{
+  width:6px;height:6px;border-radius:50%;
+  background:#55e7c1;
+  box-shadow:0 0 9px rgba(85,231,193,.55);
+}
+.admin-game-shell .topbar .wallet-adapter-button{
+  min-height:38px!important;
+  height:38px!important;
+  border-radius:13px!important;
+  background:rgba(13,43,76,.82)!important;
+  border:1px solid rgba(85,220,255,.14)!important;
+  color:#eaf8ff!important;
+  font-size:10px!important;
+}
+.admin-game-shell main{
+  max-width:none;
+  padding:28px 32px 80px;
+  background:transparent;
+}
+
+/* Page hierarchy */
+.admin-game-shell .back{
+  color:#7897b5;
+  font-size:10px;
+}
+.admin-game-shell .page-heading{
+  margin-top:10px;
+  gap:20px;
+}
+.admin-game-shell .eyebrow{
+  color:var(--admin-cyan);
+  font-size:8px;
+  letter-spacing:.15em;
+}
+.admin-game-shell .page-heading h1{
+  margin-top:6px;
+  color:#f3f9ff;
+  font-size:31px;
+  letter-spacing:-.035em;
+}
+.admin-game-shell .title-suffix{color:#7593ad}
+.admin-game-shell .heading-actions{
+  gap:7px;
+  align-items:center;
+}
+.admin-game-shell button,
+.admin-game-shell .graph-mode-switch{
+  border-color:rgba(117,199,245,.16);
+  background:rgba(9,31,58,.72);
+  color:#bad0e5;
+  border-radius:11px;
+}
+.admin-game-shell button:hover,
+.admin-game-shell .graph-mode-switch:hover{
+  border-color:rgba(85,220,255,.30);
+  background:rgba(14,51,91,.76);
+  color:#ecf9ff;
+}
+.admin-game-shell button.primary,
+.admin-game-shell .admin-new-rebyter{
+  background:linear-gradient(135deg,#168dd8,#18bfff);
+  border-color:#18bfff;
+  color:#03182c;
+  box-shadow:0 8px 24px rgba(24,191,255,.16);
+}
+.admin-secondary-action{
+  opacity:.78;
+  font-size:10px!important;
+}
+.admin-secondary-action:hover{opacity:1}
+
+.admin-game-shell .family-status{
+  margin-top:8px;
+  color:#8da8c1;
+}
+.admin-game-shell .status.verified{color:#62e0bd}
+.admin-game-shell .publication-details{
+  margin:13px 0;
+  border-color:rgba(111,192,240,.12);
+  background:rgba(8,29,54,.45);
+}
+
+/* Quick atlas dashboard */
+.admin-atlas-overview{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin:18px 0 16px;
+}
+.admin-atlas-overview>div{
+  min-width:0;
+  padding:14px 15px;
+  border:1px solid rgba(105,194,248,.13);
+  border-radius:15px;
+  background:linear-gradient(145deg,rgba(11,43,79,.68),rgba(6,25,48,.78));
+}
+.admin-atlas-overview small,
+.admin-atlas-overview strong,
+.admin-atlas-overview span{display:block}
+.admin-atlas-overview small{
+  color:#6d8aa7;
+  font-size:8px;
+  letter-spacing:.12em;
+  font-weight:800;
+}
+.admin-atlas-overview strong{
+  margin-top:5px;
+  color:#effaff;
+  font-size:22px;
+  line-height:1;
+}
+.admin-atlas-overview span{
+  margin-top:5px;
+  color:#7895b1;
+  font-size:9px;
+}
+.admin-atlas-overview .has-draft{
+  border-color:rgba(255,190,95,.22);
+  background:linear-gradient(145deg,rgba(71,48,15,.55),rgba(30,26,20,.68));
+}
+.admin-atlas-overview .has-draft strong{color:#ffc96f}
+
+/* Workflow becomes status, not primary UI. */
+.admin-game-shell .admin-workflow{
+  gap:7px;
+  margin:12px 0 24px;
+}
+.admin-game-shell .admin-workflow-step{
+  padding:10px 11px;
+  border-color:rgba(102,185,235,.10)!important;
+  background:rgba(8,26,49,.48)!important;
+  color:#6f8aa4!important;
+}
+.admin-game-shell .admin-workflow-step strong{color:#a9c1d7!important}
+.admin-game-shell .admin-workflow-step small{color:#6e8499!important}
+.admin-game-shell .admin-workflow-step>span{
+  background:rgba(88,135,172,.12)!important;
+  color:#8caac5!important;
+}
+.admin-game-shell .admin-workflow-step.is-active{
+  border-color:rgba(85,220,255,.20)!important;
+  background:rgba(10,48,84,.56)!important;
+}
+.admin-game-shell .admin-workflow-step.is-active>span{
+  background:var(--admin-electric)!important;
+  color:#04203a!important;
+}
+
+/* Main atlas collection */
+.admin-game-shell .section-heading{
+  padding-top:18px;
+  border-top:1px solid rgba(105,185,233,.11);
+}
+.admin-game-shell .section-heading h2{color:#eff9ff}
+.admin-game-shell .count{
+  background:rgba(24,191,255,.10);
+  color:var(--admin-cyan);
+}
+.admin-game-shell .collection-toolbar,
+.admin-game-shell .graph-toolbar{
+  border-color:rgba(104,188,238,.12)!important;
+  background:rgba(6,24,46,.62)!important;
+}
+.admin-game-shell .collection-stage{
+  border-color:color-mix(in srgb,var(--stage-color) 68%,#203b52)!important;
+}
+.admin-game-shell .collection-stage>header{
+  color:#9eb6cc!important;
+}
+.admin-game-shell .specimen-tile{
+  border-color:rgba(105,190,240,.14)!important;
+  background:linear-gradient(145deg,rgba(11,43,79,.74),rgba(6,24,47,.86))!important;
+  color:#dcefff!important;
+}
+.admin-game-shell .specimen-tile:hover{
+  border-color:rgba(85,220,255,.32)!important;
+  background:linear-gradient(145deg,rgba(16,58,101,.82),rgba(7,29,55,.90))!important;
+}
+.admin-game-shell .specimen-tile strong{color:#f0f9ff!important}
+.admin-game-shell .specimen-tile small{color:#7897b2!important}
+.admin-game-shell .specimen-edit{
+  border-color:rgba(102,194,247,.14)!important;
+  background:#081c34!important;
+  color:#78dfff!important;
+}
+.admin-game-shell .graph-canvas{
+  background:
+    radial-gradient(circle at 50% 40%,rgba(16,88,145,.10),transparent 35%),
+    #06152a!important;
+}
+.admin-game-shell .graph-node{
+  background:#0a213d!important;
+  border-color:rgba(101,188,239,.18)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.18)!important;
+}
+.admin-game-shell .graph-node-body strong{color:#edf8ff!important}
+.admin-game-shell .graph-node-body span{color:#7892ac!important}
+.admin-game-shell .graph-node-image{border-color:rgba(96,180,230,.12)!important}
+
+/* Draft/publish */
+.admin-game-shell .publish-bar{
+  border-color:rgba(255,190,95,.22);
+  background:linear-gradient(135deg,rgba(63,43,15,.72),rgba(28,25,21,.80));
+  box-shadow:0 -12px 30px rgba(0,0,0,.12);
+}
+.admin-game-shell .publish-bar strong{color:#ffe3aa}
+.admin-game-shell .publish-bar small{color:#b69c70}
+
+/* Modal editor */
+.admin-game-shell .modal-backdrop{background:rgba(2,8,17,.72)}
+.admin-game-shell .specimen-edit-modal,
+.admin-game-shell .json-modal{
+  background:#07182d!important;
+  border-color:rgba(110,198,248,.17)!important;
+  color:#e9f7ff!important;
+}
+.admin-game-shell .specimen-edit-modal-head{
+  border-color:rgba(103,188,237,.12)!important;
+}
+.admin-game-shell .specimen-editor-shortcuts{
+  border-color:rgba(102,188,238,.12)!important;
+  background:#091e38!important;
+}
+.admin-game-shell .specimen-editor-shortcuts a{
+  background:rgba(24,191,255,.10)!important;
+  border-color:rgba(85,220,255,.16)!important;
+  color:#aeeeff!important;
+}
+.admin-game-shell .specimen-editor-shortcuts span{
+  background:#06162b!important;
+  color:#859db5!important;
+}
+
+/* Remove old green feel globally within admin console. */
+.admin-game-shell :is(.notice,.sample-banner,.authority-settings,.versions,.registry-address){
+  border-color:rgba(104,188,238,.13)!important;
+}
+.admin-game-shell .notice:not(.error){
+  background:rgba(10,44,78,.58)!important;
+  color:#b6d5eb!important;
+}
+
+@media(max-width:1100px){
+  .admin-game-shell.shell{grid-template-columns:190px minmax(0,1fr)}
+  .admin-game-shell .sidebar{width:190px}
+  .admin-game-shell main{padding:24px 22px 70px}
+  .admin-atlas-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:760px){
+  .admin-game-shell.shell{display:block}
+  .admin-game-shell .sidebar{
+    position:relative;
+    width:100%;
+    min-height:70px;
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border-right:0;
+    border-bottom:1px solid var(--admin-line);
+  }
+  .admin-game-shell .sidebar nav{display:flex;margin:0 0 0 auto}
+  .admin-game-shell .sidebar nav a{font-size:0;padding:0;width:40px;justify-content:center}
+  .admin-game-shell .sidebar-bottom{display:none}
+  .admin-game-shell .workspace{width:100%}
+  .admin-game-shell .topbar{height:60px;padding:0 14px}
+  .admin-topbar-title{display:none}
+  .admin-game-shell main{padding:20px 14px 70px}
+  .admin-atlas-overview{grid-template-columns:1fr 1fr}
+  .admin-game-shell .heading-actions{width:100%;overflow-x:auto;padding-bottom:3px;flex-wrap:nowrap}
+  .admin-game-shell .heading-actions>*{flex:0 0 auto}
+}
