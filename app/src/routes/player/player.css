@@ -2298,3 +2298,90 @@ button.account-card.account-nav-card{
 .lineage-card:disabled{opacity:1;cursor:default}
 .lineage-card.selectable small{color:var(--rb-accent)}
 .lineage-card.selectable.active small{color:var(--rb-muted)}
+
+
+/* Mobile game bottom sheets: keep the companion visible and stay above bottom nav. */
+@media(max-width:899px){
+  .game-sheet-backdrop{
+    background:rgba(3,7,17,.18)!important;
+  }
+
+  .den-sheet,
+  .training-sheet,
+  .habitat-sheet{
+    top:auto!important;
+    bottom:94px!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:min(54dvh,520px)!important;
+    margin:0 auto!important;
+    border-radius:24px!important;
+    padding:18px 18px 16px!important;
+    overflow:auto!important;
+    box-shadow:0 -18px 50px rgba(0,0,0,.30)!important;
+  }
+
+  .den-sheet:before,
+  .training-sheet:before,
+  .habitat-sheet:before{
+    content:"";
+    display:block;
+    width:38px;
+    height:4px;
+    margin:-7px auto 12px;
+    border-radius:999px;
+    background:rgba(160,200,255,.24);
+  }
+
+  .den-sheet{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+
+  .den-grid{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow:auto!important;
+    margin-bottom:12px!important;
+  }
+
+  .den-mint-cta.compact{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:2!important;
+    margin-top:10px!important;
+    margin-bottom:0!important;
+    flex:0 0 auto!important;
+  }
+
+  .training-grid{
+    max-height:34dvh!important;
+    overflow:auto!important;
+    padding-bottom:2px!important;
+  }
+
+  .habitat-rail{
+    max-height:30dvh!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+
+  .habitat-action{
+    position:sticky!important;
+    bottom:0!important;
+    z-index:2!important;
+    margin-top:12px!important;
+  }
+}
+
+@media(max-width:420px){
+  .den-sheet,
+  .training-sheet,
+  .habitat-sheet{
+    left:10px!important;
+    right:10px!important;
+    bottom:90px!important;
+    max-height:52dvh!important;
+    padding:16px!important;
+  }
+}
