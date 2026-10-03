@@ -1,0 +1,10 @@
+{
+  "name": "Rebyters",
+  "short_name": "Rebyters",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060b1a",
+  "theme_color": "#060b1a",
+  "orientation": "portrait-primary"
+}
