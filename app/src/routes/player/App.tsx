@@ -862,25 +862,77 @@ export function PlayerAtlas() {
 export function PlayerAccount() {
   const player=usePlayerCollection();
   const wallet=useRebytersAuth();
+  const {connection}=useConnection();
   const navigate=useNavigate();
   const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
+  const [moneySheet,setMoneySheet]=useState<"deposit"|"withdraw"|null>(null);
+  const [withdrawTo,setWithdrawTo]=useState("");
+  const [withdrawAmount,setWithdrawAmount]=useState("");
+  const [withdrawStatus,setWithdrawStatus]=useState("");
+  const [sending,setSending]=useState(false);
   const activeIds=new Set(tree.evolutions.map(e=>e.id));
   const currentDiscoveries=(playerProfile?.discoveries??[]).filter(id=>activeIds.has(id));
-  const shortAddress=wallet.publicKey?`${wallet.publicKey.toBase58().slice(0,6)}…${wallet.publicKey.toBase58().slice(-6)}`:"";
-  useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
+  const address=wallet.publicKey?.toBase58()??"";
+  const shortAddress=address?`${address.slice(0,6)}…${address.slice(-6)}`:"";
+  useEffect(()=>{ if(wallet.connected&&!ownedLoadedAll) void loadAll().catch(()=>undefined); },[wallet.connected,ownedLoadedAll,loadAll]);
 
   async function logOut() {
     await wallet.disconnect();
     navigate("/");
   }
 
-  return <Shell><Header/><main className="player-main account-page">
-    <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, discovery history and your Rebyters live here.</p></div>
+  async function copyAddress(){
+    if(!address) return;
+    await navigator.clipboard.writeText(address);
+  }
 
-    <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div>
+  async function withdraw(){
+    if(!wallet.publicKey||!wallet.anchorWallet) return;
+    setWithdrawStatus("");
+    setSending(true);
+    try{
+      const destination=new PublicKey(withdrawTo.trim());
+      const amount=Number(withdrawAmount);
+      if(!Number.isFinite(amount)||amount<=0) throw new Error("Enter a valid SOL amount.");
+      const lamports=Math.round(amount*1_000_000_000);
+      const tx=new Transaction().add(SystemProgram.transfer({
+        fromPubkey:wallet.publicKey,
+        toPubkey:destination,
+        lamports,
+      }));
+      const block=await connection.getLatestBlockhash("confirmed");
+      tx.recentBlockhash=block.blockhash;
+      tx.lastValidBlockHeight=block.lastValidBlockHeight;
+      tx.feePayer=wallet.publicKey;
+      const signed=await wallet.anchorWallet.signTransaction(tx);
+      const signature=await connection.sendRawTransaction(signed.serialize(),{skipPreflight:false,maxRetries:3});
+      await connection.confirmTransaction({...block,signature},"confirmed");
+      setWithdrawStatus(`Sent · ${signature.slice(0,12)}…`);
+      setWithdrawAmount("");
+    }catch(e){
+      setWithdrawStatus(e instanceof Error?e.message:String(e));
+    }finally{
+      setSending(false);
+    }
+  }
+
+  return <Shell><Header/><main className="player-main account-page">
+    <div className="player-page-head"><small>ACCOUNT</small><h1>Your profile</h1><p>Your identity, discovery history and Rebyters live here.</p></div>
+
+    <section className="account-card profile-access-card">
+      {wallet.kind==="passkey"?<KeyRound/>:<CircleUserRound/>}
+      <div>
+        <small>{wallet.kind==="passkey"?"SIGNED IN WITH PASSKEY":"CONNECTED BY WALLET"}</small>
+        <strong>{wallet.connected?"Player identity":"Not signed in"}</strong>
+        <p>{wallet.kind==="passkey"?"Your passkey controls a dedicated Solana address for Rebyters.":"Your connected Solana wallet is your Rebyters identity."}</p>
+      </div>
       {wallet.connected
-        ? <div className="account-wallet-id"><small>CONNECTED WALLET</small><code>{shortAddress}</code></div>
+        ? <div className="account-wallet-id"><small>SOLANA ADDRESS</small><code title={address}>{shortAddress}</code></div>
         : <RebytersLoginButton className="account-login-button"/>}
+      {wallet.kind==="passkey"&&<div className="account-money-actions">
+        <button onClick={()=>setMoneySheet("deposit")}><Copy/> Deposit</button>
+        <button onClick={()=>{setWithdrawStatus("");setMoneySheet("withdraw")}}><Send/> Withdraw</button>
+      </div>}
     </section>
 
     <div className="account-nav-grid">
@@ -894,6 +946,33 @@ export function PlayerAccount() {
 
     {wallet.connected&&<div className="account-logout">
       <button onClick={()=>void logOut()}>Log out</button>
+    </div>}
+
+    {moneySheet&&<div className="auth-modal-backdrop money-modal-backdrop" onClick={()=>!sending&&setMoneySheet(null)}>
+      <section className="auth-modal money-modal" onClick={e=>e.stopPropagation()}>
+        <div className="auth-sheet-handle"/>
+        <button className="auth-close" disabled={sending} onClick={()=>setMoneySheet(null)}>×</button>
+        {moneySheet==="deposit"?<>
+          <small className="auth-kicker">RECEIVE SOL</small>
+          <h2>Deposit</h2>
+          <p className="auth-copy">Send SOL on Solana devnet to your Rebyters passkey address.</p>
+          <label className="money-label">Your Solana deposit address</label>
+          <code className="deposit-address">{address}</code>
+          <button className="money-primary" onClick={()=>void copyAddress()}><Copy/> Copy address</button>
+          <p className="auth-note">Only send assets on the Solana network. Keep enough SOL available for transaction fees.</p>
+        </>:<>
+          <small className="auth-kicker">SEND SOL</small>
+          <h2>Withdraw</h2>
+          <p className="auth-copy">Send SOL from your Rebyters passkey wallet to another Solana address.</p>
+          <label className="money-label">Destination</label>
+          <input className="money-input" value={withdrawTo} onChange={e=>setWithdrawTo(e.target.value)} placeholder="Solana address" autoComplete="off"/>
+          <label className="money-label">Amount</label>
+          <input className="money-input" value={withdrawAmount} onChange={e=>setWithdrawAmount(e.target.value)} placeholder="0.00" inputMode="decimal"/>
+          <p className="auth-note">Keep a little SOL for network fees.</p>
+          <button className="money-primary" disabled={sending} onClick={()=>void withdraw()}><Send/> {sending?"Sending…":"Send SOL"}</button>
+          {withdrawStatus&&<p className={withdrawStatus.startsWith("Sent")?"money-status success":"money-status"}>{withdrawStatus}</p>}
+        </>}
+      </section>
     </div>}
   </main></Shell>;
 }
