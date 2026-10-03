@@ -6,6 +6,7 @@
     "build:app": "npm --prefix app run build",
     "test:app": "npm --prefix app test",
     "publish:sample": "npm --prefix app run publish:sample",
-    "publish:current": "npm --prefix app run publish:current"
+    "publish:current": "npm --prefix app run publish:current",
+    "publish:rebalance": "npm --prefix app run publish:rebalance"
   }
 }
