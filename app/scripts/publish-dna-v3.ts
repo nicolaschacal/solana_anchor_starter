@@ -7,7 +7,7 @@ import { RegistryWriter, fetchRegistry, fetchTree } from "../src/lib/rebyters/re
 import { sendInstruction } from "../src/lib/rebyters/transactions";
 import { publishTree, type PublishJournal } from "../src/lib/rebyters/publish";
 import { buildMammalDnaV3Upgrade } from "../src/lib/rebyters/sample";
-import { fetchVerifiedTree } from "../src/lib/rebyters/tree";
+import { fetchVerifiedTreeForMigration } from "../src/lib/rebyters/tree";
 import { PROGRAM_ID, registryPda, treePda } from "../src/lib/rebyters/config";
 import { canonicalTree, contentHash } from "../src/lib/rebyters/canonical";
 
@@ -57,7 +57,7 @@ async function main() {
 
   const activeMeta = await fetchTree(connection, 0, activeVersion);
   if (!activeMeta) throw new Error("Active Mammal metadata is missing");
-  const previous = await fetchVerifiedTree(activeMeta);
+  const previous = await fetchVerifiedTreeForMigration(activeMeta);
 
   await mkdir("../artifacts/publication", { recursive: true });
 
@@ -68,14 +68,27 @@ async function main() {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 
-  if (journal) {
-    if (journal.baseVersion !== activeVersion) {
-      throw new Error("Pending DNA v3 publication has a stale base version");
-    }
+  const desiredTree = buildMammalDnaV3Upgrade(
+    previous,
+    registry.nextVersions[0],
+  );
+  const desiredHash = contentHash(desiredTree);
+
+  if (
+    journal &&
+    journal.baseVersion === activeVersion &&
+    journal.tree.version === desiredTree.version &&
+    contentHash(journal.tree) === desiredHash
+  ) {
+    console.log("Reusing current DNA v3 publication journal");
   } else {
-    const tree = buildMammalDnaV3Upgrade(previous, registry.nextVersions[0]);
+    if (journal) {
+      console.log(
+        "Discarding stale DNA v3 publication journal and rebuilding from the current canonical rules",
+      );
+    }
     journal = {
-      tree,
+      tree: desiredTree,
       baseVersion: activeVersion,
       replaceCollection: false,
     };
