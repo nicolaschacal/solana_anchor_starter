@@ -1,196 +1,808 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, RotateCcw, Save, Sparkles } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FangbitPrototype } from "./WolfPrototype";
+import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  ArrowLeft,
+  Box,
+  Download,
+  MoonStar,
+  Play,
+  Save,
+  Upload,
+  WandSparkles,
+} from "lucide-react";
+import { useEvolutionTree } from "../../hooks/useEvolutionTree";
+import { STAGES, type Registry } from "../../lib/rebyters/types";
+import type { PublishJournal } from "../../lib/rebyters/publish";
+import { IRYS_GATEWAY, RPC_URL, PROGRAM_ID } from "../../lib/rebyters/config";
+import {
+  ACTIONS,
+  ROLES,
+  disposeModel,
+  emptyRig,
+  exportGlb,
+  makeClips,
+  parseModel,
+  suggestRig,
+  type AssetModel,
+  type RigMap,
+} from "../../lib/assets/rig";
+import {
+  atlasDraftKey,
+  loadProject,
+  mergeAssetDraft,
+  saveProject,
+} from "../../lib/assets/drafts";
+import {
+  publishAssetBundle,
+  type AssetReceipts,
+} from "../../lib/assets/publish";
+import { AssetViewer, type ViewerHandle } from "../assets/AssetViewer";
+import "../assets/assets.css";
 
-type Recipe = {
-  schemaVersion: 1;
-  engineVersion: "design-lab-mvp-1";
-  speciesId: "fangbit";
-  name: string;
-  stage: "BYTE";
-  palette: { primary: string; secondary: string; dark: string };
-  proportions: { body: number; head: number; legs: number; tail: number; eyeSpacing: number };
-  personality: { bounce: number; headBob: number; tailWag: number; blinkRate: number };
-  bodyPlan: "baby" | "quadruped" | "aquatic" | "biped";
+type Project = {
+  schema: 1;
+  species: number;
+  source: ArrayBuffer;
+  filename: string;
+  rig: RigMap;
+  intensity: number;
+  speed: number;
+  textureSize: number;
+  prepared?: ArrayBuffer;
+  thumbnail?: Blob;
+  receipts: AssetReceipts;
 };
-
-const DEFAULT: Recipe = {
-  schemaVersion: 1,
-  engineVersion: "design-lab-mvp-1",
-  speciesId: "fangbit",
-  name: "Fangbit",
-  stage: "BYTE",
-  palette: { primary: "#D96A42", secondary: "#F4D59A", dark: "#46323A" },
-  proportions: { body: 1, head: 1, legs: 1, tail: 1, eyeSpacing: 1 },
-  personality: { bounce: 0.12, headBob: 0.08, tailWag: 0.16, blinkRate: 3.4 },
-  bodyPlan: "baby",
-};
-
-type V3 = [number, number, number];
-type Face = { p: V3[]; color: string };
-
-const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
-const shade=(hex:string, amount:number)=>{
-  const n=parseInt(hex.slice(1),16), r=clamp((n>>16)+amount,0,255), g=clamp(((n>>8)&255)+amount,0,255), b=clamp((n&255)+amount,0,255);
-  return "#"+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
-};
-
-function ellipsoid(c:V3, s:V3, color:string, seg=8, rings=5):Face[]{
-  const rows:V3[][]=[];
-  for(let y=0;y<=rings;y++){
-    const v=y/rings, phi=-Math.PI/2+v*Math.PI, row:V3[]=[];
-    for(let x=0;x<seg;x++){
-      const th=x/seg*Math.PI*2;
-      row.push([c[0]+Math.cos(phi)*Math.cos(th)*s[0],c[1]+Math.sin(phi)*s[1],c[2]+Math.cos(phi)*Math.sin(th)*s[2]]);
+const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+function download(data: Blob, name: string) {
+  const url = URL.createObjectURL(data),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+export function DesignLab({ registry }: { registry: Registry }) {
+  const wallet = useWallet(),
+    [params] = useSearchParams();
+  const requestedFamily = Number(params.get("family") ?? 0),
+    family =
+      Number.isInteger(requestedFamily) &&
+      requestedFamily >= 0 &&
+      requestedFamily < 8
+        ? requestedFamily
+        : 0;
+  const data = useEvolutionTree(
+    family,
+    registry.activeVersions[family] ?? 0,
+    false,
+  );
+  const draftKey = atlasDraftKey(wallet.publicKey!.toBase58(), family);
+  const readDraft = (): PublishJournal | null => {
+    const raw = localStorage.getItem(draftKey);
+    return raw ? JSON.parse(raw) : null;
+  };
+  const [draft, setDraft] = useState<PublishJournal | null>(null),
+    [storageError, setStorageError] = useState("");
+  useEffect(() => {
+    try {
+      setDraft(readDraft());
+    } catch {
+      setStorageError(
+        "Atlas draft could not be read. Resolve browser storage before publishing.",
+      );
     }
-    rows.push(row);
-  }
-  const faces:Face[]=[];
-  for(let y=0;y<rings;y++) for(let x=0;x<seg;x++){
-    const nx=(x+1)%seg, light=Math.round(18*Math.cos(x/seg*Math.PI*2)-8*(y/rings));
-    faces.push({p:[rows[y][x],rows[y][nx],rows[y+1][nx],rows[y+1][x]],color:shade(color,light)});
-  }
-  return faces;
-}
-function patch(points:[number,number][],z:number,color:string,bob=0):Face{
-  return {p:points.map(([x,y])=>[x,y+bob,z] as V3),color};
-}
-
-function prism(a:V3,b:V3,r:number,color:string):Face[]{
-  const faces:Face[]=[]; const seg=5; const axis:[number,number,number]=[b[0]-a[0],b[1]-a[1],b[2]-a[2]];
-  const len=Math.hypot(...axis)||1, u:V3=[axis[0]/len,axis[1]/len,axis[2]/len];
-  let side:V3=Math.abs(u[1])<.9?[0,1,0]:[1,0,0];
-  const cross=(x:V3,y:V3):V3=>[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]];
-  let v=cross(u,side), vl=Math.hypot(...v)||1; v=[v[0]/vl,v[1]/vl,v[2]/vl]; const w=cross(u,v);
-  const ring=(c:V3)=>Array.from({length:seg},(_,i)=>{const q=i/seg*Math.PI*2;return [c[0]+r*(v[0]*Math.cos(q)+w[0]*Math.sin(q)),c[1]+r*(v[1]*Math.cos(q)+w[1]*Math.sin(q)),c[2]+r*(v[2]*Math.cos(q)+w[2]*Math.sin(q))] as V3});
-  const ra=ring(a),rb=ring(b);
-  for(let i=0;i<seg;i++) faces.push({p:[ra[i],ra[(i+1)%seg],rb[(i+1)%seg],rb[i]],color:shade(color,(i-2)*7)});
-  faces.push({p:rb,color:shade(color,15)}); return faces;
-}
-
-function FangbitCanvas({recipe, paused}:{recipe:Recipe;paused:boolean}){
-  const ref=useRef<HTMLCanvasElement>(null), drag=useRef<{x:number;yaw:number}|null>(null), yaw=useRef(-.42), zoom=useRef(1.42);
-  useEffect(()=>{
-    let raf=0, start=performance.now();
-    const draw=(now:number)=>{
-      const canvas=ref.current;if(!canvas)return;
-      const dpr=Math.min(devicePixelRatio,2), rect=canvas.getBoundingClientRect();
-      if(canvas.width!==Math.round(rect.width*dpr)||canvas.height!==Math.round(rect.height*dpr)){canvas.width=Math.round(rect.width*dpr);canvas.height=Math.round(rect.height*dpr)}
-      const ctx=canvas.getContext("2d")!;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,rect.width,rect.height);
-      const t=paused?0:(now-start)/1000, bob=Math.sin(t*2.2)*recipe.personality.bounce;
-      const headBob=Math.sin(t*1.7)*recipe.personality.headBob, blinkPhase=t%recipe.personality.blinkRate, blink=blinkPhase<.13?0.12:1;
-      let faces:Face[]=[];
-      // FANGBIT / BYTE — painted low-poly prototype.
-      // Geometry owns the silhouette; flat decals own the illustration. This is
-      // the same production idea we will later bake into one tiny texture/GLB.
-      const pulse=1+Math.sin(t*2.15)*.010;
-      const orange=recipe.palette.primary, cream=recipe.palette.secondary, ink=recipe.palette.dark;
-      const orangeDeep=shade(orange,-26), orangeShade=shade(orange,-12);
-      const creamShade=shade(cream,-18);
-
-      // Single intentionally simple body mesh (~low hundreds of faces once the
-      // final GLB is triangulated), wider at the cheeks and compact underneath.
-      const rings=[
-        {y:-.82,r:.42,z:.00},{y:-.58,r:.61,z:.00},{y:-.18,r:.72,z:.00},
-        {y:.25,r:.80,z:.01},{y:.58,r:.69,z:.00},{y:.79,r:.43,z:-.02}
-      ];
-      const seg=12, bodyVerts:V3[]=[];
-      for(const ring of rings) for(let i=0;i<seg;i++){
-        const a=i/seg*Math.PI*2, sx=Math.sin(a), dz=Math.cos(a);
-        bodyVerts.push([sx*ring.r*pulse,ring.y*pulse+bob,ring.z+dz*ring.r*.78*pulse]);
-      }
-      for(let r=0;r<rings.length-1;r++) for(let i=0;i<seg;i++){
-        const n=(i+1)%seg;
-        faces.push({p:[bodyVerts[r*seg+i],bodyVerts[r*seg+n],bodyVerts[(r+1)*seg+n],bodyVerts[(r+1)*seg+i]],color:shade(orange,((i+r)%3-1)*3)});
-      }
-
-      // Ears are part of the silhouette; inner ear is a painted/decal plane.
-      faces.push(...prism([-.43,.66+bob,.00],[-.63,1.09+bob,.00],.115,orangeDeep));
-      faces.push(...prism([.43,.66+bob,.00],[.63,1.09+bob,.00],.115,orangeDeep));
-      faces.push(patch([[-.54,.78],[-.60,1.00],[-.46,.82]],.62,creamShade,bob));
-      faces.push(patch([[.54,.78],[.60,1.00],[.46,.82]],.62,creamShade,bob));
-
-      // Painted facial mask. These broad flat shapes are deliberately graphic,
-      // like a 128x128 hand-painted texture wrapped over a very small mesh.
-      faces.push(patch([[-.67,.42],[-.50,.61],[-.18,.58],[-.08,.22],[-.30,.02],[-.59,.12]],.655,cream,bob));
-      faces.push(patch([[.67,.42],[.50,.61],[.18,.58],[.08,.22],[.30,.02],[.59,.12]],.655,cream,bob));
-
-      const es=.255*recipe.proportions.eyeSpacing;
-      // Eye sockets are painted, not spherical attachments.
-      faces.push(patch([[-es-.15,.49],[-es-.10,.64],[-es+.09,.64],[-es+.15,.48],[-es+.10,.20],[-es-.10,.20]],.690,ink,bob));
-      faces.push(patch([[es-.15,.49],[es-.10,.64],[es+.09,.64],[es+.15,.48],[es+.10,.20],[es-.10,.20]],.690,ink,bob));
-      if(blink>.5){
-        faces.push(patch([[-es-.055,.51],[-es-.01,.58],[-es+.045,.51],[-es-.005,.43]],.704,cream,bob));
-        faces.push(patch([[es-.055,.51],[es-.01,.58],[es+.045,.51],[es-.005,.43]],.704,cream,bob));
-      } else {
-        faces.push(patch([[-es-.10,.42],[-es+.10,.42],[-es+.09,.45],[-es-.09,.45]],.705,orangeShade,bob));
-        faces.push(patch([[es-.10,.42],[es+.10,.42],[es+.09,.45],[es-.09,.45]],.705,orangeShade,bob));
-      }
-
-      // Painted nose/mouth plus tiny physical fangs: only the signature projects.
-      faces.push(patch([[-.065,.17],[0,.22],[.065,.17],[0,.10]],.715,ink,bob));
-      faces.push(patch([[-.14,.07],[0,.02],[.14,.07],[0,-.015]],.710,orangeDeep,bob));
-      faces.push(...prism([-.105,.035+bob,.72],[-.10,-.055+bob,.73],.016,cream));
-      faces.push(...prism([.105,.035+bob,.72],[.10,-.055+bob,.73],.016,cream));
-
-      // Tiny paws, kept deliberately subordinate.
-      const armWave=Math.sin(t*2.6)*.020;
-      faces.push(...ellipsoid([-.65,-.27+bob+armWave,.27],[.18,.22,.15],orangeDeep,7,4));
-      faces.push(...ellipsoid([.65,-.27+bob-armWave,.27],[.18,.22,.15],orangeDeep,7,4));
-      faces.push(...ellipsoid([-.37,-.79+bob,.20],[.27,.14,.27],orangeDeep,8,4));
-      faces.push(...ellipsoid([.37,-.79+bob,.20],[.27,.14,.27],orangeDeep,8,4));
-
-      // Short thick tail, closer to a designed mascot than a segmented stick.
-      const tw=Math.sin(t*2.25)*recipe.personality.tailWag*.48;
-      faces.push(...ellipsoid([.70,-.35+bob+tw*.15,-.48],[.27,.25,.23],orangeDeep,7,4));
-      faces.push(...ellipsoid([.91,-.08+bob+tw*.55,-.42],[.28,.34,.25],orange,8,4));
-      faces.push(...ellipsoid([1.00,.20+bob+tw,-.34],[.22,.30,.20],cream,7,4));
-      const cy=Math.cos(yaw.current),sy=Math.sin(yaw.current);
-      const project=(p:V3)=>{const x=p[0]*cy-p[2]*sy,z=p[0]*sy+p[2]*cy,y=p[1];const sc=(155*zoom.current)/(4.8-z);return [rect.width/2+x*sc,rect.height*.53-y*sc,z] as V3};
-      const sorted=faces.map(f=>({f,q:f.p.map(project),z:f.p.reduce((a,p)=>a+(p[0]*sy+p[2]*cy),0)/f.p.length})).sort((a,b)=>a.z-b.z);
-      ctx.lineJoin="round";
-      for(const {f,q} of sorted){ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);for(let i=1;i<q.length;i++)ctx.lineTo(q[i][0],q[i][1]);ctx.closePath();ctx.fillStyle=f.color;ctx.fill()}
-      raf=requestAnimationFrame(draw);
+  }, [draftKey]);
+  const tree = draft?.tree ?? data.tree;
+  const [species, setSpecies] = useState(Number(params.get("species")) || 0);
+  const evolution = tree?.evolutions.find((e) => e.id === species);
+  const [model, setModel] = useState<AssetModel | null>(null),
+    [preparedModel, setPreparedModel] = useState<AssetModel | null>(null);
+  const [project, setProject] = useState<Project | null>(null),
+    [rig, setRig] = useState<RigMap>(emptyRig),
+    [intensity, setIntensity] = useState(1),
+    [speed, setSpeed] = useState(1),
+    [textureSize, setTextureSize] = useState(512);
+  const [action, setAction] = useState("idle"),
+    [skeleton, setSkeleton] = useState(false),
+    [selectedBone, setSelectedBone] = useState(""),
+    [confirmed, setConfirmed] = useState(false),
+    [optimized, setOptimized] = useState(true);
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  useEffect(() => {
+    if (!project?.thumbnail) {
+      setThumbnailUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(project.thumbnail);
+    setThumbnailUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [project?.thumbnail]);
+  const [busy, setBusy] = useState(false),
+    [status, setStatus] = useState(""),
+    [error, setError] = useState("");
+  const viewer = useRef<ViewerHandle>(null),
+    lock = useRef(false),
+    mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
     };
-    raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);
-  },[recipe,paused]);
-  return <canvas ref={ref} className="design-canvas" onPointerDown={e=>{drag.current={x:e.clientX,yaw:yaw.current};e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(drag.current)yaw.current=drag.current.yaw+(e.clientX-drag.current.x)*.008}} onPointerUp={()=>drag.current=null} onWheel={e=>{e.preventDefault();zoom.current=clamp(zoom.current-e.deltaY*.0016,.65,4.4)}} onDoubleClick={()=>{zoom.current=1.42}}/>;
-}
-
-const Slider=({label,value,min,max,step=.01,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(v:number)=>void})=><label className="lab-slider"><span>{label}<code>{value.toFixed(2)}</code></span><input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>;
-
-export function DesignLab(){
-  const [params]=useSearchParams();
-  const targetName=params.get("name"), targetStage=params.get("stage"), targetId=params.get("species");
-  const linkedFromAtlas=!!targetId;
-  const [recipe,setRecipe]=useState<Recipe>(()=>{try{return JSON.parse(localStorage.getItem("rebyters:design:fangbit")||"null")||DEFAULT}catch{return DEFAULT}});
-  const [paused,setPaused]=useState(false),[saved,setSaved]=useState(false);
-  const setProp=(k:keyof Recipe["proportions"],v:number)=>setRecipe(r=>({...r,proportions:{...r.proportions,[k]:v}}));
-  const setAnim=(k:keyof Recipe["personality"],v:number)=>setRecipe(r=>({...r,personality:{...r.personality,[k]:v}}));
-  const json=useMemo(()=>JSON.stringify(recipe,null,2),[recipe]);
-  function save(){localStorage.setItem("rebyters:design:fangbit",json);setSaved(true);setTimeout(()=>setSaved(false),1400)}
-  function download(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([json],{type:"application/json"}));a.download="fangbit.recipe.json";a.click();URL.revokeObjectURL(a.href)}
-  return <section className="design-lab">
-    <div className="page-heading"><div>{linkedFromAtlas && <Link className="back design-back" to="/admin/families/0"><ArrowLeft size={14}/> Atlas</Link>}<span className="eyebrow">SPECIMEN DESIGN SYSTEM / MVP 01</span><h1>Design Lab <span className="title-suffix">/ {targetName || "Fangbit"}</span></h1>{linkedFromAtlas && targetName?.toLowerCase()!=="fangbit" && <p className="design-target-note">{targetName} / {targetStage} is selected from the Atlas. Its bespoke renderer has not been authored yet, so the canvas keeps Fangbit as the current reference instead of pretending it is the selected model.</p>}</div><div className="heading-actions"><button onClick={()=>setRecipe(DEFAULT)}><RotateCcw size={15}/>Reset</button><button onClick={download}><Download size={15}/>Export recipe</button><button className="primary" onClick={save}><Save size={15}/>{saved?"Saved":"Save draft"}</button></div></div>
-    <div className="design-grid">
-      <aside className="lab-panel"><div className="lab-panel-title">FANGBIT / BYTE 01</div><p className="lab-help">Painted low-poly prototype: a tiny bespoke mesh carries Fangbit's silhouette while graphic face markings behave like a hand-painted texture. This is the visual pipeline intended for the final lightweight GLB.</p>
-        <div className="design-signature"><span>SILHOUETTE</span><strong>PAINTED CUB / COMPACT</strong><span>SIGNATURE</span><strong>EARS + BABY FANGS</strong><span>LINEAGE</span><strong>MAMMAL / PREDATOR</strong></div>
-        <div className="lab-panel-title sub">FINE TUNING</div>
-        <Slider label="Eye spacing" value={recipe.proportions.eyeSpacing} min={.72} max={1.3} onChange={v=>setProp("eyeSpacing",v)}/>
-        <div className="lab-panel-title sub">PALETTE</div>
-        {(["primary","secondary","dark"] as const).map(k=><label className="color-field" key={k}><span>{k}</span><input type="color" value={recipe.palette[k]} onChange={e=>setRecipe(r=>({...r,palette:{...r.palette,[k]:e.target.value}}))}/><code>{recipe.palette[k]}</code></label>)}
-      </aside>
-      <div className="lab-viewer"><div className="viewer-badge"><Sparkles size={14}/> THREE.JS LOW-POLY PIPELINE TEST</div><FangbitPrototype paused={paused}/><div className="viewer-footer"><span>DRAG TO ROTATE · WHEEL TO ZOOM · REAL WEBGL MESH</span><button onClick={()=>setPaused(v=>!v)}>{paused?"Play idle":"Pause idle"}</button></div></div>
-      <aside className="lab-panel"><div className="lab-panel-title">PERSONALITY / IDLE</div><p className="lab-help">Fangbit has its own idle. The controls below tune personality only; they do not generate the character.</p>
-        <Slider label="Bounce" value={recipe.personality.bounce} min={0} max={.24} onChange={v=>setAnim("bounce",v)}/>
-        <Slider label="Head bob" value={recipe.personality.headBob} min={0} max={.18} onChange={v=>setAnim("headBob",v)}/>
-        <Slider label="Tail wag" value={recipe.personality.tailWag} min={0} max={.35} onChange={v=>setAnim("tailWag",v)}/>
-        <Slider label="Blink interval" value={recipe.personality.blinkRate} min={1.5} max={7} step={.1} onChange={v=>setAnim("blinkRate",v)}/>
-        <div className="recipe-card"><span>SPECIES</span><strong>{recipe.name}</strong><small>{recipe.stage} · {recipe.engineVersion}</small></div>
-        <details className="recipe-json"><summary>Recipe JSON</summary><pre>{json}</pre></details>
-      </aside>
-    </div>
-    <div className="lab-note"><strong>MVP boundary</strong><span>This first pass deliberately saves the deterministic design recipe locally. Irys publishing comes after the Fangbit visual language is approved, so storage and art iteration stay separate.</span></div>
-  </section>
+  }, []);
+  useEffect(
+    () => () => {
+      if (model) disposeModel(model);
+    },
+    [model],
+  );
+  useEffect(
+    () => () => {
+      if (preparedModel) disposeModel(preparedModel);
+    },
+    [preparedModel],
+  );
+  const projectKey = `${RPC_URL}:${PROGRAM_ID}:${wallet.publicKey}:${family}:${species}`;
+  useEffect(() => {
+    if (!species && tree?.evolutions.length) setSpecies(tree.evolutions[0].id);
+  }, [tree, species]);
+  useEffect(() => {
+    setProject(null);
+    setModel(null);
+    setPreparedModel(null);
+    setRig(emptyRig());
+    setConfirmed(false);
+    setStatus("");
+    setError("");
+  }, [species]);
+  const generated = useMemo(() => {
+    if (!model) return [];
+    try {
+      return makeClips(model, rig, intensity, speed);
+    } catch {
+      return [];
+    }
+  }, [model, rig, intensity, speed]);
+  const clips = useMemo(
+    () =>
+      model
+        ? [
+            ...model.clips.filter(
+              (c) => !ACTIONS.includes(c.name as (typeof ACTIONS)[number]),
+            ),
+            ...generated,
+          ]
+        : [],
+    [model, generated],
+  );
+  const selected = ROLES.map((r) => rig[r].bone).filter(Boolean),
+    duplicate = new Set(selected).size !== selected.length;
+  const invalidate = () => {
+    setPreparedModel(null);
+    setConfirmed(false);
+    setProject((p) =>
+      p ? { ...p, prepared: undefined, thumbnail: undefined, receipts: {} } : p,
+    );
+  };
+  async function run(task: () => Promise<void>) {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await task();
+    } catch (e) {
+      if (mounted.current) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      lock.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  function currentProject(): Project {
+    if (!project) throw new Error("Import a GLB first.");
+    return { ...project, rig, intensity, speed, textureSize };
+  }
+  async function importFile(file: File) {
+    await run(async () => {
+      if (!evolution)
+        throw new Error("Choose a species from the active atlas first.");
+      if (
+        !file.name.toLowerCase().endsWith(".glb") ||
+        file.size > 50 * 1024 * 1024
+      )
+        throw new Error("Choose a GLB smaller than 50 MB.");
+      setStatus("Reading model…");
+      const source = await file.arrayBuffer(),
+        next = await parseModel(source);
+      if (!mounted.current) {
+        disposeModel(next);
+        return;
+      }
+      const mapping = suggestRig(next.bones);
+      setModel(next);
+      setPreparedModel(null);
+      setRig(mapping);
+      setConfirmed(false);
+      setAction("idle");
+      const p: Project = {
+        schema: 1,
+        species,
+        source,
+        filename: file.name,
+        rig: mapping,
+        intensity: 1,
+        speed: 1,
+        textureSize: 512,
+        receipts: {},
+      };
+      setIntensity(1);
+      setSpeed(1);
+      setTextureSize(512);
+      setProject(p);
+      await saveProject(projectKey, p);
+      setStatus(
+        "Imported and saved locally. Confirm the bone mapping before preparing.",
+      );
+    });
+  }
+  async function restore() {
+    await run(async () => {
+      const p = await loadProject<Project>(projectKey);
+      if (!p || p.schema !== 1 || p.species !== species)
+        throw new Error("No saved project for this species in this browser.");
+      const next = await parseModel(p.source);
+      let ready: AssetModel | null = null;
+      try {
+        if (p.prepared) ready = await parseModel(p.prepared);
+      } catch (e) {
+        disposeModel(next);
+        throw e;
+      }
+      if (!mounted.current) {
+        disposeModel(next);
+        if (ready) disposeModel(ready);
+        return;
+      }
+      setProject(p);
+      setModel(next);
+      setPreparedModel(ready);
+      setRig(p.rig);
+      setIntensity(p.intensity);
+      setSpeed(p.speed);
+      setTextureSize(p.textureSize);
+      setConfirmed(false);
+      setStatus("Project restored. Review the model before uploading.");
+    });
+  }
+  async function prepare() {
+    await run(async () => {
+      if (!model || !project) return;
+      if (!selected.length || duplicate)
+        throw new Error(
+          "Map at least one joint; each role must use a different bone.",
+        );
+      setStatus("Exporting clips and compressing…");
+      const exported = await exportGlb(model, clips);
+      const { optimizeGlb } = await import("../../lib/assets/optimize");
+      const prepared = await optimizeGlb(exported, textureSize);
+      const checked = await parseModel(prepared);
+      if (!mounted.current) {
+        disposeModel(checked);
+        return;
+      }
+      if (!ACTIONS.every((a) => checked.clips.some((c) => c.name === a))) {
+        disposeModel(checked);
+        throw new Error("Export verification failed: missing action clips.");
+      }
+      const next = {
+        ...currentProject(),
+        prepared,
+        thumbnail: undefined,
+        receipts: {},
+      };
+      await saveProject(projectKey, next);
+      setProject(next);
+      setPreparedModel(checked);
+      setOptimized(true);
+      setConfirmed(false);
+      setStatus(
+        "Optimized GLB reloaded successfully. Review every action, then approve it.",
+      );
+    });
+  }
+  async function captureThumbnail() {
+    await run(async () => {
+      if (!project?.prepared || !optimized || action === "rest")
+        throw new Error("Show the optimized model first.");
+      const thumbnail = await viewer.current!.thumbnail();
+      const next = {
+        ...currentProject(),
+        thumbnail,
+        receipts: { modelUri: project.receipts.modelUri },
+      };
+      await saveProject(projectKey, next);
+      setProject(next);
+      setStatus("Thumbnail captured and saved.");
+    });
+  }
+  async function publish() {
+    await run(async () => {
+      if (
+        !project?.prepared ||
+        !evolution ||
+        !tree ||
+        !confirmed ||
+        !preparedModel
+      )
+        throw new Error("Prepare and approve the optimized asset first.");
+      if (storageError) throw new Error(storageError);
+      const prior = readDraft();
+      mergeAssetDraft(
+        tree,
+        prior,
+        species,
+        {},
+        registry.activeVersions[family],
+        registry.nextVersions[family],
+      );
+      let next = currentProject();
+      const thumbnail = next.thumbnail ?? (await viewer.current!.thumbnail());
+      next = { ...next, thumbnail };
+      await saveProject(projectKey, next);
+      setProject(next);
+      const { browserUploader } =
+        await import("../../lib/rebyters/irys-browser");
+      const uploader = await browserUploader(wallet);
+      const assets = await publishAssetBundle(
+        evolution,
+        next.prepared!,
+        thumbnail,
+        uploader,
+        IRYS_GATEWAY,
+        next.receipts,
+        async (receipts) => {
+          next = { ...next, receipts };
+          setProject(next);
+          await saveProject(projectKey, next);
+        },
+        setStatus,
+      );
+      const latest = readDraft();
+      const journal = mergeAssetDraft(
+        tree,
+        latest,
+        species,
+        assets,
+        registry.activeVersions[family],
+        registry.nextVersions[family],
+      );
+      localStorage.setItem(draftKey, JSON.stringify(journal));
+      setDraft(journal);
+      setStatus(
+        `${evolution.name} linked to the atlas draft. Open Atlas and publish to activate it in the game.`,
+      );
+    });
+  }
+  return (
+    <section className="asset-lab">
+      <header className="asset-lab-heading">
+        <div>
+          <Link className="back" to={`/admin/families/${family}`}>
+            <ArrowLeft size={14} /> Atlas
+          </Link>
+          <span className="eyebrow">REBYTERS / ASSET WORKSHOP</span>
+          <h1>Design Lab</h1>
+          <p>From a rigged creature to a game-ready companion.</p>
+        </div>
+        <span className="asset-chip">DEVNET · DRAFT FIRST</span>
+      </header>
+      <div className="asset-workflow">
+        <span className={model ? "done" : ""}>01 Import</span>
+        <span className={selected.length ? "done" : ""}>02 Rig & motion</span>
+        <span className={preparedModel ? "done" : ""}>03 Prepare</span>
+        <span className={project?.receipts.metadataUri ? "done" : ""}>
+          04 Attach to atlas
+        </span>
+      </div>
+      {(error || storageError || data.error) && (
+        <div className="notice error" role="alert">
+          {error || storageError || data.error}
+        </div>
+      )}
+      {status && (
+        <div className="asset-status" role="status">
+          {status}
+        </div>
+      )}
+      <div className="asset-toolbar">
+        <label>
+          Atlas species
+          <select
+            aria-label="Atlas species"
+            disabled={busy}
+            value={species}
+            onChange={(e) => {
+              if (
+                project &&
+                !window.confirm(
+                  "Switch species? Save your project first to retain edits.",
+                )
+              )
+                return;
+              setSpecies(Number(e.target.value));
+            }}
+          >
+            <option value={0}>Choose a Rebyter</option>
+            {tree?.evolutions.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} · {STAGES[e.stage]} · #{e.id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label
+          className={`asset-import ${busy || !evolution ? "disabled" : ""}`}
+        >
+          <Upload size={16} /> Import GLB
+          <input
+            type="file"
+            accept=".glb"
+            disabled={busy || !evolution}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void importFile(f);
+            }}
+          />
+        </label>
+        <button disabled={busy || !evolution} onClick={() => void restore()}>
+          Restore project
+        </button>
+        <button
+          disabled={busy || !project}
+          onClick={() =>
+            void run(async () => {
+              await saveProject(projectKey, currentProject());
+              setStatus(
+                "Project saved in this browser, including source GLB and rig settings.",
+              );
+            })
+          }
+        >
+          <Save size={15} />
+          Save project
+        </button>
+      </div>
+      {!tree && !data.loading && (
+        <p>No active atlas found. Initialize the collection in Atlas first.</p>
+      )}
+      <div className="asset-workbench">
+        <div className="asset-stage-card">
+          <div className="asset-stage-title">
+            <span>{evolution?.name ?? "Your next companion"}</span>
+            <small>
+              {preparedModel && optimized
+                ? "OPTIMIZED GLB"
+                : "SOURCE + MOTION PREVIEW"}
+            </small>
+          </div>
+          {model ? (
+            <AssetViewer
+              ref={viewer}
+              model={preparedModel && optimized ? preparedModel : model}
+              clips={preparedModel && optimized ? preparedModel.clips : clips}
+              action={action}
+              skeleton={skeleton}
+              selectedBone={selectedBone}
+              sleeping={action === "rest"}
+            />
+          ) : (
+            <div className="asset-empty">
+              <Box size={64} />
+              <h2>Bring your Rebyter to life</h2>
+              <p>
+                Choose its atlas entry and import the rigged GLB from Meshy.
+              </p>
+              <small>Embedded textures · up to 50 MB</small>
+            </div>
+          )}
+          <div className="asset-motion-bar">
+            {[...ACTIONS, "rest"].map((a) => (
+              <button
+                disabled={!model || busy}
+                aria-pressed={action === a}
+                className={action === a ? "active" : ""}
+                key={a}
+                onClick={() => {
+                  setAction(a);
+                  setConfirmed(false);
+                }}
+              >
+                {a === "rest" ? <MoonStar size={14} /> : <Play size={12} />} {a}
+              </button>
+            ))}
+          </div>
+          <div className="asset-view-options">
+            <label>
+              <input
+                type="checkbox"
+                checked={skeleton}
+                onChange={(e) => setSkeleton(e.target.checked)}
+              />{" "}
+              Show skeleton
+            </label>
+            {preparedModel && (
+              <label>
+                <input
+                  type="checkbox"
+                  checked={optimized}
+                  onChange={(e) => {
+                    setOptimized(e.target.checked);
+                    setConfirmed(false);
+                  }}
+                />{" "}
+                Optimized preview
+              </label>
+            )}
+            <small>Drag to orbit · scroll to zoom</small>
+          </div>
+        </div>
+        <div className="asset-inspector">
+          <fieldset disabled={busy}>
+            <h2>Rig & motion</h2>
+            <p>
+              Match joints, choose their local rotation axis and test each
+              action. These are adjustable starter motions, not automatic
+              full-body choreography.
+            </p>
+            <div className="asset-stats">
+              <span>
+                <strong>{model?.triangles ?? "—"}</strong>triangles
+              </span>
+              <span>
+                <strong>{model?.bones.length ?? "—"}</strong>bones
+              </span>
+              <span>
+                <strong>{model?.materials ?? "—"}</strong>materials
+              </span>
+            </div>
+            {model && !model.bones.length && (
+              <div className="notice">
+                No skeleton found. Import a skinned, rigged model to generate
+                joint animations.
+              </div>
+            )}
+            <div className="asset-rig-map">
+              {ROLES.map((role) => (
+                <div className="asset-joint" key={role}>
+                  <label>
+                    {role}
+                    <select
+                      aria-label={`${role} bone`}
+                      value={rig[role].bone}
+                      onFocus={() => setSelectedBone(rig[role].bone)}
+                      onChange={(e) => {
+                        invalidate();
+                        setRig((r) => ({
+                          ...r,
+                          [role]: { ...r[role], bone: e.target.value },
+                        }));
+                        setSelectedBone(e.target.value);
+                      }}
+                    >
+                      <option value="">Not mapped</option>
+                      {model?.bones.map((b) => (
+                        <option key={b.name} value={b.name}>
+                          {b.name.replace(/^rebyter_\d+_/, "")}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Axis
+                    <select
+                      aria-label={`${role} axis`}
+                      value={rig[role].axis}
+                      onChange={(e) => {
+                        invalidate();
+                        setRig((r) => ({
+                          ...r,
+                          [role]: {
+                            ...r[role],
+                            axis: e.target.value as "x" | "y" | "z",
+                          },
+                        }));
+                      }}
+                    >
+                      {["x", "y", "z"].map((a) => (
+                        <option key={a}>{a}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Direction
+                    <select
+                      aria-label={`${role} direction`}
+                      value={rig[role].amount}
+                      onChange={(e) => {
+                        invalidate();
+                        setRig((r) => ({
+                          ...r,
+                          [role]: {
+                            ...r[role],
+                            amount: Number(e.target.value),
+                          },
+                        }));
+                      }}
+                    >
+                      <option value={1}>+</option>
+                      <option value={-1}>−</option>
+                    </select>
+                  </label>
+                </div>
+              ))}
+            </div>
+            {duplicate && <p role="alert">Each role needs a different bone.</p>}
+            <label className="asset-range">
+              Intensity <strong>{intensity.toFixed(1)}×</strong>
+              <input
+                type="range"
+                min={0.1}
+                max={2}
+                step={0.1}
+                value={intensity}
+                onChange={(e) => {
+                  invalidate();
+                  setIntensity(Number(e.target.value));
+                }}
+              />
+            </label>
+            <label className="asset-range">
+              Speed <strong>{speed.toFixed(1)}×</strong>
+              <input
+                type="range"
+                min={0.5}
+                max={2}
+                step={0.1}
+                value={speed}
+                onChange={(e) => {
+                  invalidate();
+                  setSpeed(Number(e.target.value));
+                }}
+              />
+            </label>
+            <p className="asset-sleep-note">
+              <MoonStar size={16} /> Rest turns the viewer dark. No sleep pose
+              or sleep clip is required.
+            </p>
+          </fieldset>
+        </div>
+      </div>
+      <section className="asset-export">
+        <div>
+          <span className="eyebrow">DELIVERY</span>
+          <h2>Prepare for Irys</h2>
+          <p>
+            Meshopt compression, resized textures and embedded action clips.
+            Original geometry and skin weights are retained.
+          </p>
+          <label>
+            Maximum texture size{" "}
+            <select
+              disabled={busy}
+              value={textureSize}
+              onChange={(e) => {
+                invalidate();
+                setTextureSize(Number(e.target.value));
+              }}
+            >
+              {[256, 512, 1024].map((n) => (
+                <option key={n} value={n}>
+                  {n} px
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="asset-export-actions">
+          <div className="asset-size">
+            <span>
+              Source{" "}
+              <strong>{project ? kb(project.source.byteLength) : "—"}</strong>
+            </span>
+            <span>
+              Prepared{" "}
+              <strong>
+                {project?.prepared ? kb(project.prepared.byteLength) : "—"}
+              </strong>
+            </span>
+          </div>
+          {project?.prepared && (
+            <small>
+              {project.prepared.byteLength > 300 * 1024
+                ? "Above the 300 KB target. Try smaller textures or simplify the source in Meshy."
+                : "Within the 300 KB target."}
+            </small>
+          )}
+          <button
+            className="primary"
+            disabled={busy || !model || !selected.length || duplicate}
+            onClick={() => void prepare()}
+          >
+            <WandSparkles size={16} />
+            {busy ? "Working…" : "Prepare optimized GLB"}
+          </button>
+          <button
+            disabled={busy || !project?.prepared}
+            onClick={() =>
+              download(
+                new Blob([project!.prepared!], { type: "model/gltf-binary" }),
+                `${evolution?.key ?? species}.glb`,
+              )
+            }
+          >
+            <Download size={16} />
+            Download GLB
+          </button>
+        </div>
+      </section>
+      {preparedModel && (
+        <section className="asset-publish">
+          <label>
+            <input
+              type="checkbox"
+              checked={confirmed}
+              disabled={busy || !optimized || action === "rest"}
+              onChange={(e) => setConfirmed(e.target.checked)}
+            />
+            I reviewed the optimized model and its actions. The current camera
+            framing is ready for the thumbnail.
+          </label>
+          <button
+            className="primary"
+            disabled={
+              busy ||
+              !confirmed ||
+              !optimized ||
+              action === "rest" ||
+              !!storageError
+            }
+            onClick={() => void publish()}
+          >
+            <Upload size={16} />
+            Upload & attach to atlas draft
+          </button>
+          <button
+            disabled={busy || !optimized || action === "rest"}
+            onClick={() => void captureThumbnail()}
+          >
+            Capture thumbnail
+          </button>
+          {thumbnailUrl && (
+            <div className="asset-thumbnail">
+              <img src={thumbnailUrl} alt={`${evolution?.name} thumbnail`} />
+              <button
+                onClick={() =>
+                  download(
+                    project!.thumbnail!,
+                    `${evolution?.key ?? species}.png`,
+                  )
+                }
+              >
+                Download thumbnail
+              </button>
+            </div>
+          )}
+          <small>
+            Uploads model, thumbnail and metadata to Irys devnet. Wallet
+            signatures may be requested. Activate the changes using Publish in
+            Atlas.
+          </small>
+          {project?.receipts.metadataUri && (
+            <Link to={`/admin/families/${family}`}>Open atlas draft →</Link>
+          )}
+        </section>
+      )}
+    </section>
+  );
 }

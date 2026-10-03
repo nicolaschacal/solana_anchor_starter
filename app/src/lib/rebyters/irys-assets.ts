@@ -27,6 +27,7 @@ export function evolutionMetadata(
     description: evolution.description ?? evolution.visualDescription ?? "",
     seller_fee_basis_points: 0,
     image: imageUri,
+    ...((evolution.assets?.modelUri || evolution.modelUri) ? {animation_url: evolution.assets?.modelUri || evolution.modelUri} : {}),
     attributes: [
       { trait_type: "Evolution ID", value: evolution.id },
       { trait_type: "Stage", value: evolution.stage },
@@ -34,8 +35,8 @@ export function evolutionMetadata(
       { trait_type: "Rarity", value: evolution.rarity ?? "common" },
     ],
     properties: {
-      files: [{ uri: imageUri, type: imageContentType }],
-      category: "image",
+      files: [{ uri: imageUri, type: imageContentType }, ...((evolution.assets?.modelUri || evolution.modelUri) ? [{uri: evolution.assets?.modelUri || evolution.modelUri, type: "model/gltf-binary"}] : [])],
+      category: evolution.assets?.modelUri || evolution.modelUri ? "vr" : "image",
     },
   };
 }

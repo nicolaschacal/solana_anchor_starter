@@ -7,6 +7,7 @@ import {
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
+import { EvolutionModel } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
@@ -442,6 +443,11 @@ export function PlayerHome() {
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [habitat,setHabitat]=useState(0);
   const [reaction,setReaction]=useState("Your companion is watching you.");
+  const [visualAction,setVisualAction]=useState("idle");
+  const [resting,setResting]=useState(false);
+  const [restPending,setRestPending]=useState(false);
+  useEffect(()=>{if(visualAction==="idle")return;const id=window.setTimeout(()=>setVisualAction("idle"),2600);return()=>clearTimeout(id);},[visualAction]);
+  useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const [localNow,setLocalNow]=useState(()=>Date.now());
   const navigate=useNavigate();
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
@@ -508,7 +514,8 @@ export function PlayerHome() {
   return <Shell><Header/><main className="game-home">
     <section className={`game-viewer habitat-${habitat}`}>
       <div className="viewer-glow"/>
-      <CreatureSprite evolution={evolution}/>
+      <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting}/>
+      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
         <strong>{evolution.name}</strong>
@@ -541,11 +548,11 @@ export function PlayerHome() {
           <ChevronRight/>
         </button>}
         <div className="care-actions">
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" wants to play again.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
-          <button className={`gl-panel${needsCare?" recommended-action":""}`} disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels cared for.")).catch(()=>undefined)}><Heart/><span>{needsCare?"Care now":"Care"}</span>{needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
-          <button className={`gl-panel${tired&&!needsCare?" recommended-action":""}`} disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>undefined)}><MoonStar/><span>{tired&&!needsCare?"Rest now":"Rest"}</span>{tired&&!needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>{setVisualAction("play");setReaction(evolution.name+" wants to play again.");}).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
+          <button className={`gl-panel${needsCare?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>{setVisualAction("care");setReaction(evolution.name+" feels cared for.");}).catch(()=>undefined)}><Heart/><span>{needsCare?"Care now":"Care"}</span>{needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${tired&&!needsCare?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{tired&&!needsCare?"Rest now":"Rest"}</span>{tired&&!needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
         {player.error&&<div className="interaction-error">{player.error}</div>}
@@ -634,12 +641,12 @@ export function PlayerHome() {
         <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}>Close</button></div>
         <p className="training-intro">There is no cooldown. Training while exhausted reduces gains and can make your Rebyter tired, sick or injured.</p>
         <div className="training-grid">
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",0).then(()=>{setReaction(evolution.name+" completed Power training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>ATK +++ · HP +</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",1).then(()=>{setReaction(evolution.name+" completed Endurance training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>HP +++ · SPD +</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",2).then(()=>{setReaction(evolution.name+" completed Defense training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>DEF +++ · HP +</small><em>Energy −18</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",3).then(()=>{setReaction(evolution.name+" completed Speed training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>SPD +++ · ATK +</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",4).then(()=>{setReaction(evolution.name+" completed Combat training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>ATK ++ · DEF + · SPD +</small><em>Energy −25 · Discipline ++</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",5).then(()=>{setReaction(evolution.name+" completed Balanced training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>HP + · ATK + · DEF + · SPD +</small><em>Energy −16 · Discipline +</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",0).then(()=>{setReaction(evolution.name+" completed Power training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>ATK +++ · HP +</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",1).then(()=>{setReaction(evolution.name+" completed Endurance training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>HP +++ · SPD +</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",2).then(()=>{setReaction(evolution.name+" completed Defense training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>DEF +++ · HP +</small><em>Energy −18</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",3).then(()=>{setReaction(evolution.name+" completed Speed training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>SPD +++ · ATK +</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",4).then(()=>{setReaction(evolution.name+" completed Combat training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>ATK ++ · DEF + · SPD +</small><em>Energy −25 · Discipline ++</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",5).then(()=>{setReaction(evolution.name+" completed Balanced training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>HP + · ATK + · DEF + · SPD +</small><em>Energy −16 · Discipline +</em></span><ChevronRight/></button>
         </div>
       </section>
     </div>}
@@ -653,7 +660,7 @@ export function PlayerHome() {
             ["Plants","Builds herbivore history",1],
             ["Fish","Builds piscivore history",2],
             ["Fruit","Builds frugivore history",3],
-          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"feed",Number(id)).then(()=>{setReaction(evolution.name+" enjoyed the meal.");setFeeding(false)}).catch(()=>undefined)}>
+          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"feed",Number(id)).then(()=>{setReaction(evolution.name+" enjoyed the meal.");setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
             <Apple/><span><strong>{String(name)}</strong><small>{String(desc)}</small></span>
           </button>)}
         </div>
@@ -816,6 +823,7 @@ function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evol
   return <>
     <button className="atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
     <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Your discovered branch stays visible. Unknown forms remain hidden until one of your Rebyters actually reaches them.</p></div>
+    {(evolution.assets?.modelUri||evolution.modelUri)&&<div className="atlas-model-preview"><EvolutionModel evolution={evolution}/></div>}
     <div className="player-lineage-map">
       {grouped.map((group,index)=><section key={group.stage} className="lineage-stage">
         <div className="lineage-stage-label"><small>0{group.stage+1}</small><strong>{group.label}</strong></div>

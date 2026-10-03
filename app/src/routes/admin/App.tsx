@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   Link,
   NavLink,
@@ -62,7 +62,8 @@ import type { PublishJournal } from "../../lib/rebyters/publish";
 import { EvolutionEditor } from "../../components/admin/EvolutionEditor";
 import { EvolutionGraphEditor } from "../../components/admin/EvolutionGraphEditor";
 import { ThemeToggle } from "../../components/admin/ThemeToggle";
-import { DesignLab } from "../../components/admin/DesignLab";
+import { EvolutionModel } from "../../components/assets/AssetViewer";
+const DesignLab = lazy(() => import("../../components/admin/DesignLab").then(module => ({default: module.DesignLab})));
 import { CoreBenchmark } from "./CoreBenchmark";
 
 const short = (s: string) =>
@@ -129,7 +130,7 @@ export default function App() {
         <Routes>
           <Route index element={<Navigate to="families/0" replace />} />
           <Route path="families" element={<Home state={state} />} />
-          <Route path="design-lab" element={<DesignLab />} />
+          <Route path="design-lab" element={<Suspense fallback={<div className="notice">Loading asset workshop…</div>}><DesignLab registry={state.registry!} /></Suspense>} />
           <Route path="core-benchmark" element={<CoreBenchmark />} />
           <Route path="families/:familyId" element={<Family state={state} />} />
           <Route
@@ -833,7 +834,8 @@ function Family({ state }: { state: RegistryState }) {
               <button className="icon" title="Close editor" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20}/></button>
             </div>
             <div className="specimen-editor-shortcuts">
-              <Link to={`/admin/design-lab?species=${editing.id}&name=${encodeURIComponent(editing.name)}&stage=${STAGES[editing.stage]}`}><Palette size={15}/> Open in Design Lab</Link>
+              <Link to={`/admin/design-lab?family=${family}&species=${editing.id}&name=${encodeURIComponent(editing.name)}&stage=${STAGES[editing.stage]}`}><Palette size={15}/> Open in Design Lab</Link>
+              {(editing.assets?.modelUri||editing.modelUri)&&<div className="atlas-model-preview"><EvolutionModel evolution={editing}/></div>}
               <span>3D asset: {editing.assets?.modelUri || editing.modelUri ? "linked" : "not linked yet"}</span>
               <span>{editing.paths.length} outgoing evolution{editing.paths.length === 1 ? "" : "s"}</span>
             </div>

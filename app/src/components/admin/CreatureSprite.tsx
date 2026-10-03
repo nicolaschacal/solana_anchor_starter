@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Evolution } from "../../lib/rebyters/types";
 
 // Local concept sprites follow workbook body plans until production art is supplied.
 export function CreatureSprite({ evolution: e }: { evolution: Evolution }) {
   const [failed, setFailed] = useState(false);
   const uri = e.assets?.thumbnailUri || e.assets?.imageUri;
+  useEffect(() => setFailed(false), [uri]);
   if (uri && !failed)
     return (
       <img
