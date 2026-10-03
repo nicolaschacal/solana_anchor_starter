@@ -113,3 +113,62 @@ export function hasStructuredMammalRules(tree: TreeJson): boolean {
     e.paths.every(path => !!path.rule)
   );
 }
+
+
+/**
+ * Build the next DNA v3 gameplay atlas from the canonical Mammal seed while
+ * preserving the currently active specimen identities and published assets.
+ *
+ * This is the normal DNA v3 rules upgrade path: no fresh evolution IDs are
+ * reserved, because these are the same forms with new gameplay rules.
+ */
+export function buildMammalDnaV3Upgrade(
+  previous: TreeJson,
+  version: number,
+): TreeJson {
+  if (!containsMammalWorkbook(previous)) {
+    throw new Error("Active Mammal atlas does not match the canonical workbook.");
+  }
+
+  const seed = structuredClone(mammalSeed) as unknown as TreeJson;
+  const previousByKey = new Map(
+    previous.evolutions.map(e => [
+      e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"),
+      e,
+    ]),
+  );
+  const idBySeedId = new Map<number, number>();
+
+  for (const authored of seed.evolutions) {
+    const key = authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_");
+    const current = previousByKey.get(key);
+    if (!current) throw new Error(`Active atlas is missing Mammal form: ${authored.name}`);
+    idBySeedId.set(authored.id, current.id);
+  }
+
+  return {
+    ...seed,
+    version,
+    development: true,
+    evolutions: seed.evolutions.map(authored => {
+      const key = authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_");
+      const current = previousByKey.get(key)!;
+      return {
+        ...authored,
+        id: current.id,
+        name: current.name || authored.name,
+        enabled: current.enabled,
+        ...((current.position ?? authored.position) !== undefined
+          ? { position: current.position ?? authored.position }
+          : {}),
+        initialWeight: current.initialWeight ?? authored.initialWeight,
+        modelUri: current.modelUri || authored.modelUri,
+        assets: { ...authored.assets, ...current.assets },
+        paths: authored.paths.map(path => ({
+          ...path,
+          target: idBySeedId.get(path.target) ?? path.target,
+        })),
+      };
+    }),
+  };
+}
