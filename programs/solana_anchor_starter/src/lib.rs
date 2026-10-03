@@ -1478,12 +1478,12 @@ pub enum RegistryError {
     NotOwner,
     #[msg("Food type must be meat, plant, fish, or fruit")]
     InvalidFood,
-    #[msg("Training type must be power, endurance, defense, speed, combat, or balanced")]
-    InvalidTraining,
     #[msg("Evolution rule proof or encoding is invalid")]
     InvalidRule,
     #[msg("Evolution target is invalid")]
     InvalidEvolution,
     #[msg("This Rebyter does not yet satisfy the evolution requirements")]
     EvolutionRequirements,
+    #[msg("Training type must be power, endurance, defense, speed, combat, or balanced")]
+    InvalidTraining,
 }
