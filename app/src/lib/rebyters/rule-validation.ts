@@ -24,8 +24,8 @@ const condition = z.object({
   if ((c.level && c.upper !== undefined) || (!c.level && c.upperLevel)) fail("Do not mix numeric and preset range bounds");
 });
 export const ruleSchema = z.object({
-  version: z.literal(1), requiredGroups: z.number().int().min(0).max(7),
-  groups: z.array(z.object({ group: z.number().int().min(0).max(6), alternatives: z.array(z.array(condition).min(1).max(16)).min(1).max(16) }).strict()).max(7),
+  version: z.literal(1), requiredGroups: z.number().int().min(0).max(6),
+  groups: z.array(z.object({ group: z.number().int().min(0).max(5), alternatives: z.array(z.array(condition).min(1).max(16)).min(1).max(16) }).strict()).max(6),
   mandatory: z.array(condition).max(16), bonuses: z.array(condition).max(16), selection: z.literal("player-choice"), authoredBy: z.enum(["workbook+balance","admin"]),
 }).strict().superRefine((r,ctx) => {
   if (r.requiredGroups > r.groups.length || (r.groups.length && r.requiredGroups === 0) || (!r.groups.length && !r.mandatory.length)) ctx.addIssue({ code: "custom", message: "Choose at least one required category or a mandatory gate; configured categories cannot be ignored" });
@@ -33,7 +33,7 @@ export const ruleSchema = z.object({
 });
 export function validateStructuredRules(tree: TreeJson) {
   const balance = balanceSchema.parse(tree.balance);
-  const prefixes = ["genetics.","diet.","time.","care.","physical.","progression.","battle."];
+  const prefixes = ["diet.","time.","care.","physical.","progression.","battle."];
   if (!Object.keys(balance.metrics).length) throw new Error("Balance metrics are empty");
   for (const [metric, profile] of Object.entries(balance.metrics)) {
     if (!metric.includes(".")) throw new Error(`Invalid balance metric ${metric}`);
