@@ -810,7 +810,7 @@ export function PlayerLab() {
   </main></Shell>;
 }
 
-function AtlasLineage({ evolution, onBack, tree, discoveredIds }:{evolution:Evolution;onBack:()=>void;tree:TreeJson;discoveredIds:Set<number>}) {
+function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evolution:Evolution;onBack:()=>void;onSelect:(id:number)=>void;tree:TreeJson;discoveredIds:Set<number>}) {
   const lineage=fullEvolutionLineage(tree,evolution.id);
   const grouped=STAGE_NAMES.map((label,stage)=>({label,stage,items:lineage.filter(e=>e.stage===stage)})).filter(x=>x.items.length);
   return <>
@@ -820,7 +820,14 @@ function AtlasLineage({ evolution, onBack, tree, discoveredIds }:{evolution:Evol
       {grouped.map((group,index)=><section key={group.stage} className="lineage-stage">
         <div className="lineage-stage-label"><small>0{group.stage+1}</small><strong>{group.label}</strong></div>
         <div className="lineage-stage-cards">
-          {group.items.map(item=>{const open=discoveredIds.has(item.id);return <div className={`lineage-card${item.id===evolution.id?" active":""}${open?"":" locked"}`} key={item.id}>{open?<CreatureSprite evolution={item}/>:<LockKeyhole/>}<strong>{open?item.name:"???"}</strong><small>{open?item.family:"Undiscovered"}</small></div>})}
+          {group.items.map(item=>{const open=discoveredIds.has(item.id);return <button
+            type="button"
+            disabled={!open}
+            onClick={()=>open&&item.id!==evolution.id&&onSelect(item.id)}
+            aria-pressed={item.id===evolution.id}
+            className={`lineage-card${item.id===evolution.id?" active":""}${open?" selectable":" locked"}`}
+            key={item.id}
+          >{open?<CreatureSprite evolution={item}/>:<LockKeyhole/>}<strong>{open?item.name:"???"}</strong><small>{open?(item.id===evolution.id?"Current focus":"Explore routes"):"Undiscovered"}</small></button>})}
         </div>
         {index<grouped.length-1&&<div className="lineage-arrow"><ChevronRight/></div>}
       </section>)}
@@ -838,7 +845,7 @@ export function PlayerAtlas() {
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
-  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
+  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} onSelect={setSelectedId} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
   return <Shell><Header/><main className="player-main atlas-player">
     <div className="atlas-family-tabs" aria-label="Evolution families">
       <button className="active"><Shield/><span><strong>Mammal</strong><small>Active atlas</small></span></button>
