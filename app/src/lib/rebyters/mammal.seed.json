@@ -19,7 +19,7 @@
           "target": 10,
           "rule": {
             "version": 1,
-            "requiredGroups": 3,
+            "requiredGroups": 2,
             "groups": [
               {
                 "group": 0,
@@ -50,6 +50,20 @@
                 ]
               },
               {
+                "group": 3,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "physical.weight"
+                      ],
+                      "test": "range",
+                      "level": "low"
+                    }
+                  ]
+                ]
+              },
+              {
                 "group": 5,
                 "alternatives": [
                   [
@@ -59,6 +73,34 @@
                       ],
                       "test": "min",
                       "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.bond"
+                      ],
+                      "test": "min",
+                      "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 6
                     }
                   ]
                 ]
@@ -81,14 +123,17 @@
             "Diet": "+meat",
             "Rhythm": "+night",
             "Training": "attack+",
-            "Timer": "1 min"
+            "Timer": "1 min",
+            "Weight": "low",
+            "Care": "bond medium",
+            "Care mistakes": "<= 6"
           }
         },
         {
           "target": 11,
           "rule": {
             "version": 1,
-            "requiredGroups": 3,
+            "requiredGroups": 2,
             "groups": [
               {
                 "group": 0,
@@ -119,6 +164,20 @@
                 ]
               },
               {
+                "group": 3,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "physical.weight"
+                      ],
+                      "test": "range",
+                      "level": "low"
+                    }
+                  ]
+                ]
+              },
+              {
                 "group": 5,
                 "alternatives": [
                   [
@@ -128,6 +187,34 @@
                       ],
                       "test": "min",
                       "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.bond"
+                      ],
+                      "test": "min",
+                      "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 6
                     }
                   ]
                 ]
@@ -150,14 +237,17 @@
             "Diet": "+fruit",
             "Rhythm": "+morning",
             "Training": "speed+",
-            "Timer": "1 min"
+            "Timer": "1 min",
+            "Weight": "low",
+            "Care": "bond medium",
+            "Care mistakes": "<= 6"
           }
         },
         {
           "target": 12,
           "rule": {
             "version": 1,
-            "requiredGroups": 3,
+            "requiredGroups": 2,
             "groups": [
               {
                 "group": 0,
@@ -188,6 +278,20 @@
                 ]
               },
               {
+                "group": 3,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "physical.weight"
+                      ],
+                      "test": "range",
+                      "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
                 "group": 5,
                 "alternatives": [
                   [
@@ -197,6 +301,34 @@
                       ],
                       "test": "min",
                       "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.discipline"
+                      ],
+                      "test": "min",
+                      "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 6
                     }
                   ]
                 ]
@@ -219,14 +351,17 @@
             "Diet": "+plant",
             "Rhythm": "+day",
             "Training": "defense+",
-            "Timer": "1 min"
+            "Timer": "1 min",
+            "Weight": "medium",
+            "Care": "discipline medium",
+            "Care mistakes": "<= 6"
           }
         },
         {
           "target": 13,
           "rule": {
             "version": 1,
-            "requiredGroups": 3,
+            "requiredGroups": 2,
             "groups": [
               {
                 "group": 0,
@@ -257,6 +392,20 @@
                 ]
               },
               {
+                "group": 3,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "physical.weight"
+                      ],
+                      "test": "range",
+                      "level": "low"
+                    }
+                  ]
+                ]
+              },
+              {
                 "group": 5,
                 "alternatives": [
                   [
@@ -266,6 +415,34 @@
                       ],
                       "test": "min",
                       "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.bond"
+                      ],
+                      "test": "min",
+                      "level": "medium"
+                    }
+                  ]
+                ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 6
                     }
                   ]
                 ]
@@ -288,7 +465,10 @@
             "Diet": "+fish",
             "Rhythm": "+evening",
             "Training": "speed+",
-            "Timer": "1 min"
+            "Timer": "1 min",
+            "Weight": "low",
+            "Care": "bond medium",
+            "Care mistakes": "<= 6"
           }
         }
       ],
@@ -385,6 +565,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -406,7 +600,8 @@
             "Weight": "medium",
             "Training": "speed+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -484,6 +679,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -502,10 +711,11 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -583,6 +793,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -601,10 +825,11 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "defense+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -682,6 +907,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -700,10 +939,11 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         }
       ],
@@ -800,6 +1040,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -818,10 +1072,11 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -899,6 +1154,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -917,10 +1186,11 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -998,6 +1268,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1016,10 +1300,11 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1097,6 +1382,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1118,7 +1417,8 @@
             "Weight": "medium",
             "Training": "hp+",
             "Care": "bond high",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         }
       ],
@@ -1212,6 +1512,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1230,10 +1544,11 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "defense+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1311,6 +1626,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1332,7 +1661,8 @@
             "Weight": "medium",
             "Training": "hp+",
             "Care": "bond high",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1410,6 +1740,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1431,7 +1775,8 @@
             "Weight": "medium",
             "Training": "speed+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1509,6 +1854,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1530,7 +1889,8 @@
             "Weight": "veryHigh",
             "Training": "defense+",
             "Care": "bond high",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         }
       ],
@@ -1624,6 +1984,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1642,10 +2016,11 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1723,6 +2098,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1741,10 +2130,11 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1822,6 +2212,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1840,10 +2244,11 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "defense+",
             "Care": "bond medium",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         },
         {
@@ -1921,6 +2326,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 5
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -1939,10 +2358,11 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+day",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "hp+",
             "Care": "bond high",
-            "Timer": "10 min"
+            "Timer": "10 min",
+            "Care mistakes": "<= 5"
           }
         }
       ],
@@ -2036,6 +2456,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2045,13 +2479,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2061,7 +2488,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline high",
             "Timer": "20 min",
@@ -2143,6 +2570,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2152,13 +2593,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2269,6 +2703,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2278,13 +2726,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2294,7 +2735,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond medium",
             "Timer": "20 min",
@@ -2376,6 +2817,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2385,13 +2840,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2401,7 +2849,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "attack+",
             "Care": "discipline high",
             "Timer": "20 min",
@@ -2483,6 +2931,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2492,13 +2954,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2606,6 +3061,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2615,13 +3084,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2631,7 +3093,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "defense+",
             "Care": "discipline high",
             "Timer": "20 min",
@@ -2729,6 +3191,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2738,13 +3214,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2754,7 +3223,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+day",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -2836,6 +3305,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2845,13 +3328,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2959,6 +3435,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -2968,13 +3458,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -2984,7 +3467,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline medium",
             "Timer": "20 min",
@@ -3066,6 +3549,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3075,13 +3572,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3189,6 +3679,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3198,13 +3702,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3214,7 +3711,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+day",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -3312,6 +3809,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3321,13 +3832,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3337,7 +3841,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+day",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -3419,6 +3923,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3428,13 +3946,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3444,7 +3955,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+day",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "hp+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -3542,6 +4053,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3551,13 +4076,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3649,6 +4167,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3658,13 +4190,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3674,7 +4199,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -3756,6 +4281,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3765,13 +4304,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3863,6 +4395,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3872,13 +4418,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -3888,7 +4427,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "discipline high",
             "Timer": "20 min",
@@ -3986,6 +4525,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -3995,13 +4548,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -4011,7 +4557,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline high",
             "Timer": "20 min",
@@ -4109,6 +4655,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4118,13 +4678,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -4134,7 +4687,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "defense+",
             "Care": "bond high",
             "Timer": "20 min",
@@ -4232,6 +4785,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4241,13 +4808,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -4339,6 +4899,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4348,13 +4922,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -4462,6 +5029,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 4
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4471,13 +5052,6 @@
                 ],
                 "test": "min",
                 "value": 20
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 4
               }
             ],
             "bonuses": [],
@@ -4585,6 +5159,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4594,13 +5182,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -4610,7 +5191,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+evening",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond high",
             "Timer": "40 min",
@@ -4692,6 +5273,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4701,13 +5296,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -4815,6 +5403,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4824,13 +5426,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -4840,7 +5435,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "bond veryHigh",
             "Timer": "40 min",
@@ -4922,6 +5517,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -4931,13 +5540,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5048,6 +5650,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5057,13 +5673,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5155,6 +5764,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5164,13 +5787,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5180,7 +5796,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -5278,6 +5894,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5287,13 +5917,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5303,7 +5926,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -5401,6 +6024,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5410,13 +6047,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5426,7 +6056,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -5524,6 +6154,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5533,13 +6177,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5631,6 +6268,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5640,13 +6291,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5656,7 +6300,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -5754,6 +6398,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5763,13 +6421,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5779,7 +6430,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+day",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "40 min",
@@ -5892,6 +6543,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -5901,13 +6566,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -5917,7 +6575,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -6015,6 +6673,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6024,13 +6696,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6040,7 +6705,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -6153,6 +6818,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6162,13 +6841,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6276,6 +6948,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6285,13 +6971,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6399,6 +7078,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6408,13 +7101,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6424,7 +7110,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "40 min",
@@ -6522,6 +7208,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6531,13 +7231,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6547,7 +7240,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "40 min",
@@ -6629,6 +7322,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6638,13 +7345,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6752,6 +7452,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6761,13 +7475,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6777,7 +7484,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+morning",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "40 min",
@@ -6859,6 +7566,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6868,13 +7589,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -6884,7 +7598,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -6982,6 +7696,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -6991,13 +7719,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7007,7 +7728,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7105,6 +7826,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7114,13 +7849,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7130,7 +7858,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7212,6 +7940,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7221,13 +7963,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7319,6 +8054,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7328,13 +8077,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7344,7 +8086,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7442,6 +8184,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7451,13 +8207,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7467,7 +8216,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "hp+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7565,6 +8314,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7574,13 +8337,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7590,7 +8346,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "hp+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7688,6 +8444,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7697,13 +8467,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7713,7 +8476,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "hp+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -7811,6 +8574,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7820,13 +8597,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7918,6 +8688,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 3
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -7927,13 +8711,6 @@
                 ],
                 "test": "min",
                 "value": 40
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 3
               }
             ],
             "bonuses": [],
@@ -7943,7 +8720,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+evening",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "discipline veryHigh",
             "Timer": "40 min",
@@ -8041,6 +8818,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8050,13 +8841,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8066,7 +8850,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+evening",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "60 min",
@@ -8164,6 +8948,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8173,13 +8971,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8189,7 +8980,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "bond veryHigh",
             "Timer": "60 min",
@@ -8290,6 +9081,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8299,13 +9104,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8315,7 +9113,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "heavy",
+            "Weight": "high",
             "Training": "attack+",
             "Care": "bond veryHigh",
             "Timer": "60 min",
@@ -8397,6 +9195,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8406,13 +9218,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8422,7 +9227,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "60 min",
@@ -8504,6 +9309,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8513,13 +9332,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8627,6 +9439,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8636,13 +9462,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8750,6 +9569,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8759,13 +9592,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -8873,6 +9699,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -8882,13 +9722,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9011,6 +9844,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9020,13 +9867,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9134,6 +9974,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9143,13 +9997,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9159,7 +10006,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+night",
-            "Weight": "light",
+            "Weight": "low",
             "Training": "speed+",
             "Care": "bond veryHigh",
             "Timer": "60 min",
@@ -9257,6 +10104,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9266,13 +10127,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9380,6 +10234,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9389,13 +10257,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9503,6 +10364,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9512,13 +10387,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9626,6 +10494,20 @@
                     }
                   ]
                 ]
+              },
+              {
+                "group": 2,
+                "alternatives": [
+                  [
+                    {
+                      "metrics": [
+                        "care.mistakes"
+                      ],
+                      "test": "max",
+                      "value": 2
+                    }
+                  ]
+                ]
               }
             ],
             "mandatory": [
@@ -9635,13 +10517,6 @@
                 ],
                 "test": "min",
                 "value": 60
-              },
-              {
-                "metrics": [
-                  "care.mistakes"
-                ],
-                "test": "max",
-                "value": 2
               }
             ],
             "bonuses": [],
@@ -9761,8 +10636,8 @@
     }
   ],
   "balance": {
-    "version": "mammal-current-physiology-3",
-    "source": "Rebyters current gameplay: flexible physiology traits; route identity is shaped by partial trait matches instead of all-or-nothing gates",
+    "version": "mammal-current-physiology-4",
+    "source": "Rebyters current gameplay: six flexible evolution traits including care mistakes; only the stage timer is mandatory",
     "metrics": {
       "diet.meat": {
         "label": "Meat",
