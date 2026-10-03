@@ -147,7 +147,8 @@ async function main() {
         canonicalTree(publishJournal.tree),
       ).length;
       const price = await irys.getPrice(payloadBytes);
-      const balance = await irys.getLoadedBalance();
+      let balance = await irys.getLoadedBalance();
+      const targetBalance = price.plus(price);
       const solLamports = await connection.getBalance(
         signer.publicKey,
         "confirmed",
@@ -161,9 +162,10 @@ async function main() {
             solBalance,
             payloadBytes,
             irysPriceAtomic: price.toString(),
+            irysTargetBalanceAtomic: targetBalance.toString(),
             irysLoadedBalanceAtomic: balance.toString(),
-            irysFundingRequiredAtomic: balance.lt(price)
-              ? price.minus(balance).toString()
+            irysFundingRequiredAtomic: balance.lt(targetBalance)
+              ? targetBalance.minus(balance).toString()
               : "0",
           },
           null,
@@ -171,11 +173,19 @@ async function main() {
         ),
       );
 
-      if (balance.lt(price)) {
-        const required = price.minus(balance);
-        console.log("Funding Irys devnet upload balance");
+      if (balance.lt(targetBalance)) {
+        const required = targetBalance.minus(balance);
+        console.log("Funding Irys devnet upload buffer");
         try {
           await irys.fund(required);
+          balance = await irys.getLoadedBalance();
+          console.log(
+            JSON.stringify(
+              { irysLoadedBalanceAfterFundingAtomic: balance.toString() },
+              null,
+              2,
+            ),
+          );
         } catch (error) {
           throw new Error(
             "Irys funding failed for wallet " +
@@ -189,12 +199,30 @@ async function main() {
           );
         }
       }
+
       return {
-        upload: (data: string | Uint8Array, options: { tags: { name: string; value: string }[] }) =>
-          irys.upload(
-            typeof data === "string" ? data : Buffer.from(data),
-            options,
-          ),
+        upload: async (
+          data: string | Uint8Array,
+          options: { tags: { name: string; value: string }[] },
+        ) => {
+          const payload = typeof data === "string" ? data : Buffer.from(data);
+          let lastError: unknown;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              return await irys.upload(payload, options);
+            } catch (error) {
+              lastError = error;
+              const message =
+                error instanceof Error ? error.message : String(error);
+              if (!message.includes("402") || attempt === 3) throw error;
+              console.log(
+                `Irys devnet returned 402; retrying upload (${attempt}/3)...`,
+              );
+              await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+            }
+          }
+          throw lastError;
+        },
       };
     },
     save,
