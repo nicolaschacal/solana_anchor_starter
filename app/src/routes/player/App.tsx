@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { PublicKey } from "@solana/web3.js";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
-  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, LockKeyhole, Mountain, MoonStar,
-  Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
+  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy,
+  CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
+  Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
@@ -16,6 +15,7 @@ import { conditionBounds, evaluatePath } from "../../lib/rebyters/rules";
 import type { RuleCondition } from "../../lib/rebyters/rule-types";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { REBYTER_CONDITION } from "../../lib/rebyters/companions";
+import { RebytersLoginButton, useRebytersAuth } from "../../lib/rebyters/auth";
 import "./player.css";
 
 const fallbackTree = sampleMammal();
@@ -66,7 +66,7 @@ type OwnedRebyter = {
 
 function usePlayerCollection() {
   const chain = usePlayerRebyters();
-  const wallet = useWallet();
+  const wallet = useRebytersAuth();
   const [params] = useSearchParams();
   const tree = chain.mammalTree ?? fallbackTree;
   let owned: OwnedRebyter[] = chain.owned.map((item) => {
@@ -118,7 +118,7 @@ function Shell({children}:{children:React.ReactNode}) {
 }
 
 function Header() {
-  const wallet = useWallet();
+  const wallet = useRebytersAuth();
   const { connection } = useConnection();
   const navigate = useNavigate();
   const [solBalance,setSolBalance]=useState<number|null>(null);
@@ -144,7 +144,7 @@ function Header() {
         <NavLink to="/atlas" aria-label="Atlas" title="Atlas"><BookOpen/><span>Atlas</span></NavLink>
       </nav>
       {!wallet.connected
-        ? <WalletMultiButton><><CircleUserRound/><span>Login</span><ChevronDown className="account-chevron"/></></WalletMultiButton>
+        ? <RebytersLoginButton className="user-menu-trigger header-login-trigger"/>
         : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate("/account")} aria-label="Open account">
             <CircleUserRound/><span>{balanceLabel}</span><ChevronDown className="account-chevron"/>
           </button>}
@@ -332,7 +332,7 @@ function EmptyCompanion({
   error:string;
   onCreate:(familyId:number)=>void;
 }) {
-  const { connected }=useWallet();
+  const { connected }=useRebytersAuth();
   const [choosing,setChoosing]=useState(false);
   const families=[
     {id:0,name:"Mammal",description:"Terrestrial and aquatic mammal lineages.",icon:Shield,enabled:true},
@@ -354,7 +354,7 @@ function EmptyCompanion({
             <span><strong>Mint your first companion</strong><small>Choose an origin family · 0 SOL creation price</small></span>
             <ChevronRight/>
           </button>
-        : <WalletMultiButton>Connect wallet</WalletMultiButton>}
+        : <RebytersLoginButton className="empty-login-button"/>}
       {status&&<div className="create-status">{status}</div>}
       {error&&<div className="create-error">{error}</div>}
     </section>
@@ -489,7 +489,7 @@ export function PlayerHome() {
     }
   }
 
-  const { connected } = useWallet();
+  const { connected } = useRebytersAuth();
 
   if (!connected || (loading && !owned.length)) return <Shell><Header/><main className="game-home">
     <section className="game-viewer game-viewer-empty">
@@ -675,7 +675,7 @@ export function PlayerHome() {
 
 export function PlayerLab() {
   const navigate=useNavigate();
-  const { connected }=useWallet();
+  const { connected }=useRebytersAuth();
   const player=usePlayerCollection();
   const { owned, tree, ownedLoadedAll, loadAll, playerProfile }=player;
   useEffect(()=>{ if(connected&&!ownedLoadedAll) void loadAll().catch(()=>undefined); },[connected,ownedLoadedAll,loadAll]);
@@ -686,7 +686,7 @@ export function PlayerLab() {
     <div className="lab-empty-spacer"/>
     {connected
       ? <button className="lab-bottom-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Mint a Rebyter</strong><small>Start from the Home viewer</small></span><ChevronRight/></button>
-      : <WalletMultiButton><><CircleUserRound/> Login <ChevronDown/></></WalletMultiButton>}
+      : <RebytersLoginButton className="lab-bottom-cta login-cta"/>}
   </main></Shell>;
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId);
   if(!evolution) return <Shell><Header/><main className="player-main"><div className="create-error">Current evolution is missing from the active atlas.</div></main></Shell>;
@@ -861,7 +861,7 @@ export function PlayerAtlas() {
 
 export function PlayerAccount() {
   const player=usePlayerCollection();
-  const wallet=useWallet();
+  const wallet=useRebytersAuth();
   const navigate=useNavigate();
   const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
   const activeIds=new Set(tree.evolutions.map(e=>e.id));
@@ -880,7 +880,7 @@ export function PlayerAccount() {
     <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div>
       {wallet.connected
         ? <div className="account-wallet-id"><small>CONNECTED WALLET</small><code>{shortAddress}</code></div>
-        : <WalletMultiButton><><CircleUserRound/> Login</></WalletMultiButton>}
+        : <RebytersLoginButton className="account-login-button"/>}
     </section>
 
     <div className="account-nav-grid">
@@ -909,7 +909,7 @@ const ORIGIN_FAMILIES = [
 
 export function PlayerAcquire() {
   const navigate=useNavigate();
-  const wallet=useWallet();
+  const wallet=useRebytersAuth();
   const player=usePlayerRebyters();
   const [family,setFamily]=useState(0);
 
@@ -935,7 +935,7 @@ export function PlayerAcquire() {
       <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives a compact 50-byte on-chain gameplay state.</p></div>
       <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 50-byte DNA</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
-        ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
+        ? <RebytersLoginButton className="create-rebyter-cta login-create-cta"/>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
       {player.status&&<div className="create-status">{player.status}</div>}
       {player.error&&<div className="create-error">{player.error}</div>}
