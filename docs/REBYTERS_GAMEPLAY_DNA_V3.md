@@ -40,7 +40,7 @@ DNA v3 is stored in Token-2022 TokenMetadata under the custom `DNA` field as a b
 | 34 | 2 | atk | u16 | Attack stat |
 | 36 | 2 | def | u16 | Defense stat |
 | 38 | 2 | spd | u16 | Speed stat |
-| 40 | 4 | lastStateAt | u32 | Last lazy-state materialization |
+| 40 | 4 | lastStateAt | u32 | Last authoritative state action/materialization; replaces the old lastInteraction role |
 | 44 | 4 | stageEnteredAt | u32 | Timestamp when current form was entered |
 | 48 | 4 | createdAt | u32 | Birth timestamp |
 | 52 | 8 | learnedSkills | u64 | Persistent skill bitset |
@@ -106,6 +106,24 @@ Current condition side effects during lazy materialization:
 - Overfed clears once Fullness <= 80.
 - Tired clears once Energy >= 40.
 - If Fullness remains at 0 for at least 12 materialized hours, Sick is set.
+
+## Derived mood / happiness
+
+Happiness is **not** stored as another DNA field. The player UI derives a mood from the current state so it cannot drift out of sync.
+
+Current priority:
+
+- Sick condition → Sick
+- Injured → Hurt
+- Overfed → Uncomfortable
+- Energy < 20 → Exhausted
+- Fullness < 20 → Hungry
+- otherwise Bond + Energy + Fullness are averaged:
+  - >= 75 → Happy
+  - >= 50 → Content
+  - otherwise → Restless
+
+This gives the Digimon-style happiness feedback without spending permanent bytes or introducing another independently mutable stat.
 
 ## Condition bitfield
 
