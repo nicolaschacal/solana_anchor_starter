@@ -74,12 +74,12 @@ async function main() {
   if (
     journal &&
     journal.baseVersion === activeVersion &&
-    publishJournal.tree.version === nextVersion &&
+    journal.tree.version === nextVersion &&
     journal.replaceCollection === true
   ) {
     try {
       validateTree(journal.tree);
-      reusePending = publishJournal.tree.proofMode === "unified-v1";
+      reusePending = journal.tree.proofMode === "unified-v1";
     } catch {
       reusePending = false;
     }
