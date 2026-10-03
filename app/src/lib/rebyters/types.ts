@@ -11,7 +11,6 @@ export const FAMILIES = [
 ] as const;
 export const STAGES = ["BIT", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
 export const GROUPS = [
-  "Genetics",
   "Diet",
   "Time",
   "Care",
@@ -21,12 +20,11 @@ export const GROUPS = [
 ];
 export const OPERATORS = ["=", "!=", ">", ">=", "<", "<="];
 export const METRICS = [
-  ["Metabolism", "Temperament", "Rhythm", "Mutation"],
   ["Meat", "Fish", "Plant", "Fruit"],
   ["Morning", "Day", "Evening", "Night"],
-  ["Bond", "Discipline"],
+  ["Bond", "Discipline", "CareMistakes"],
   ["Weight", "Fullness", "Energy"],
-  ["Interactions", "Cycle", "StageAgeHours", "Skills"],
+  ["Interactions", "Cycle", "StageAgeMinutes", "Skills"],
   ["HP", "Attack", "Defense", "Speed", "Sick", "Injured"],
 ];
 export interface Requirement {
