@@ -55,7 +55,6 @@ type OwnedRebyter = {
   def: number;
   spd: number;
   timeInteractions: number[];
-  totalInteractions: number;
   careMistakes: number;
   diet: number[];
   weight: number;
@@ -85,7 +84,6 @@ function usePlayerCollection() {
       def: item.def,
       spd: item.spd,
       timeInteractions: item.timeInteractions,
-      totalInteractions: item.totalInteractions,
       careMistakes: item.careMistakes,
       diet: item.diet,
       weight: item.weight,
@@ -97,9 +95,9 @@ function usePlayerCollection() {
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     const demoNow=Math.floor(Date.now()/1000);
     owned = [
-      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], totalInteractions:11, careMistakes:0, diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
-      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], totalInteractions:78, careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
-      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], totalInteractions:156, careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
+      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], careMistakes:0, diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
+      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
+      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
     ];
   }
   return { ...chain, tree, owned };
@@ -246,7 +244,6 @@ function evolutionState(rebyter:OwnedRebyter) {
   state["care.mistakes"]=rebyter.careMistakes;
   state["state.fullness"]=rebyter.fullness;
   state["state.energy"]=rebyter.energy;
-  state["progression.interactions"]=rebyter.totalInteractions;
   state["progression.cycle"]=rebyter.cycle;
   state["progression.stageAgeMinutes"]=Math.max(0,Math.floor((Date.now()/1000-rebyter.stageEnteredAt)/60));
   state["battle.hp"]=rebyter.hp;
@@ -298,7 +295,6 @@ function evolutionRequirementStatus(
   if(metric==="care.bond") return {passed,label:`Bond ${plus||"+"}`,detail:""};
   if(metric==="care.discipline") return {passed,label:`Discipline ${plus||"+"}`,detail:""};
   if(metric==="care.mistakes") return {passed,label:`Care mistakes ≤ ${hi}`,detail:`Current: ${value??0}`};
-  if(metric==="progression.interactions") return {passed,label:`${lo}+ interactions`,detail:`Current: ${value??0}`};
   if(metric==="progression.stageAgeMinutes") return {passed,label:`${lo} min in this form`,detail:`Current: ${value??0} min`};
 
   const fallback=balance.metrics[metric]?.label??metric;
@@ -822,8 +818,8 @@ export function PlayerAcquire() {
       </button>})}
     </div>
     <section className="create-summary">
-      <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own compact on-chain gameplay state.</p></div>
-      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 57-byte DNA v4</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives a compact 50-byte on-chain gameplay state.</p></div>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 50-byte DNA</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
