@@ -33,10 +33,26 @@ export function groupLabel(rule: EvolutionRule, index: number, balance: BalanceP
   return `${GROUPS[group.group]}: ${group.alternatives.map(alt => alt.map(c => conditionLabel(c, balance)).join(" AND ")).join(" OR ")}`;
 }
 export function defaultRule(): EvolutionRule {
-  return { version: 1, requiredGroups: 1, groups: [{ group: 3, alternatives: [[{ metrics: ["activity.play"], test: "min", level: "medium" }]] }], mandatory: [], bonuses: [], selection: "player-choice", authoredBy: "admin" };
+  return {
+    version: 1,
+    requiredGroups: 2,
+    groups: [
+      { group: 3, alternatives: [[{ metrics: ["care.bond"], test: "min", level: "medium" }]] },
+      { group: 6, alternatives: [[{ metrics: ["battle.attack"], test: "min", level: "medium" }]] },
+    ],
+    mandatory: [
+      { metrics: ["progression.interactions"], test: "min", value: 5 },
+      { metrics: ["progression.stageAgeHours"], test: "min", value: 1 },
+      { metrics: ["state.sick"], test: "eq", value: 0 },
+      { metrics: ["state.injured"], test: "eq", value: 0 },
+    ],
+    bonuses: [],
+    selection: "player-choice",
+    authoredBy: "admin",
+  };
 }
 export function metricChoices(balance: BalanceProfile, group?: number) {
-  const prefixes = ["genetics.", "diet.", "time.", "activity.", "physical.", "progression."];
+  const prefixes = ["genetics.", "diet.", "time.", "care.", "physical.", "progression.", "battle."];
   const keys = Object.keys(balance.metrics).filter(m => group === undefined || m.startsWith(prefixes[group]));
   const choices = keys.map(m => ({ value: m, label: balance.metrics[m].label }));
   for (const prefix of ["diet.", "time."]) {
