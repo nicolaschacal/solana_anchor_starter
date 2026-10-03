@@ -1060,3 +1060,191 @@ html,body,#root{min-height:100%;background:#060b1a}
 @media(max-width:420px){
   .account-direct-link{min-width:98px!important}
 }
+
+
+/* UX refinement v4 — account actions, den cards, modal spacing and safe bottom space */
+.wallet-balance-trigger{font-variant-numeric:tabular-nums}
+
+/* Give fullscreen sheets breathing room below the header. */
+.game-sheet-backdrop{
+  padding:18px 14px 0!important;
+}
+.game-sheet{
+  top:0!important;
+  bottom:0!important;
+}
+.sheet-close-text{
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  padding:4px 2px!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--rb-muted)!important;
+  font:500 10px 'Sora',sans-serif!important;
+  opacity:.9;
+}
+.sheet-close-text:hover{color:var(--rb-text)!important;background:transparent!important}
+.sheet-close-text:disabled{opacity:.4}
+
+/* Account becomes a compact navigation hub instead of duplicating the Den. */
+.account-page{
+  min-height:calc(100dvh - 72px)!important;
+  padding-bottom:92px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:14px!important;
+}
+.account-nav-grid{display:grid;gap:12px}
+.account-nav-card{
+  width:100%;
+  text-align:left;
+  cursor:pointer;
+  color:var(--rb-text)!important;
+  border:1px solid var(--rb-line)!important;
+  box-shadow:none!important;
+}
+button.trainer-profile-card.account-nav-card{
+  padding:16px!important;
+  background:rgba(16,28,52,.58)!important;
+}
+button.account-card.account-nav-card{
+  grid-template-columns:auto 1fr auto!important;
+  padding:16px!important;
+  background:rgba(92,214,255,.055)!important;
+}
+.account-nav-card:hover{
+  border-color:rgba(92,214,255,.42)!important;
+  background:rgba(92,214,255,.075)!important;
+}
+.account-nav-card>svg:last-child,
+.trainer-profile-head>svg:last-child{
+  width:15px;height:15px;color:var(--rb-muted);margin-left:auto
+}
+.trainer-profile-head{
+  display:grid!important;
+  grid-template-columns:auto 1fr auto!important;
+  gap:12px!important;
+  align-items:center!important;
+}
+.trainer-profile-head>span{
+  width:38px;height:38px;border-radius:13px;
+  display:grid;place-items:center;
+  background:rgba(92,214,255,.09);
+  color:var(--rb-accent)
+}
+.trainer-profile-head>span svg{width:18px;height:18px}
+.trainer-profile-head small,
+.trainer-profile-head h2,
+.trainer-profile-head p{display:block;text-align:left}
+.trainer-profile-head small{font-size:8px;letter-spacing:.1em;color:var(--rb-muted)}
+.trainer-profile-head h2{font-size:15px;margin:3px 0;color:var(--rb-text)}
+.trainer-profile-head p{font-size:9px;line-height:1.45;margin:0;color:var(--rb-muted)}
+.account-logout{
+  margin-top:auto!important;
+  padding:10px 0 2px!important;
+  display:flex!important;
+  justify-content:center!important;
+}
+.account-logout button{
+  min-height:28px!important;
+  padding:4px 8px!important;
+  border:0!important;
+  background:transparent!important;
+  color:#ff7f8d!important;
+  font:500 9px 'Sora',sans-serif!important;
+  opacity:.82!important;
+}
+.account-logout button:hover{opacity:1!important;background:transparent!important;color:#ff9aa6!important}
+
+/* Den inspired by the supplied reference: clearer tiles, more color, less copy. */
+.den-sheet{padding-top:18px!important}
+.den-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-top:14px!important;
+  padding:0 0 10px!important;
+}
+.den-card{
+  position:relative;
+  min-width:0;
+  border:1px solid var(--rb-line);
+  border-radius:18px;
+  overflow:hidden;
+  background:linear-gradient(155deg,rgba(255,255,255,.07),rgba(255,255,255,.035));
+  transition:transform .12s ease,border-color .18s ease,background .18s ease;
+}
+.den-card:hover{transform:translateY(-1px);border-color:rgba(92,214,255,.42)}
+.den-card.active{border-color:var(--rb-accent);box-shadow:0 0 0 1px rgba(92,214,255,.26)}
+.den-card-select{
+  width:100%;
+  min-height:128px;
+  padding:10px 9px 6px;
+  border:0;
+  background:transparent!important;
+  color:var(--rb-text);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.den-card-art{
+  width:100%;
+  min-height:78px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  margin-bottom:7px;
+  background:linear-gradient(145deg,rgba(92,214,255,.20),rgba(92,214,255,.06));
+}
+.den-card:nth-child(4n+2) .den-card-art{background:linear-gradient(145deg,rgba(183,155,255,.24),rgba(183,155,255,.07))}
+.den-card:nth-child(4n+3) .den-card-art{background:linear-gradient(145deg,rgba(255,184,107,.23),rgba(255,184,107,.07))}
+.den-card:nth-child(4n+4) .den-card-art{background:linear-gradient(145deg,rgba(97,210,156,.23),rgba(97,210,156,.07))}
+.den-card-art .creature-sprite{width:74px!important;height:70px!important;filter:drop-shadow(0 9px 14px rgba(0,0,0,.2))}
+.den-card strong{font-size:10px;color:var(--rb-text)}
+.den-card small{margin-top:3px;font-size:7px;letter-spacing:.08em;color:var(--rb-accent)}
+.den-mint-link{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:max-content;
+  max-width:calc(100% - 16px);
+  margin:0 auto 9px;
+  padding:3px 6px;
+  border-radius:8px;
+  color:var(--rb-muted)!important;
+  font:500 7px 'Sora',sans-serif;
+  text-decoration:none;
+}
+.den-mint-link:hover{color:var(--rb-accent)!important;background:rgba(92,214,255,.06)}
+.den-mint-link svg{width:9px;height:9px}
+.den-mint-cta.compact{
+  min-height:44px!important;
+  margin-top:10px!important;
+  padding:9px 12px!important;
+  grid-template-columns:auto 1fr auto!important;
+  background:rgba(255,255,255,.06)!important;
+  border:1px solid var(--rb-line)!important;
+  color:var(--rb-text)!important;
+  box-shadow:none!important;
+}
+.den-mint-cta.compact:hover{border-color:rgba(92,214,255,.45)!important;background:rgba(92,214,255,.07)!important}
+.den-mint-cta.compact strong{font-size:10px!important}
+.den-mint-cta.compact>svg:first-child{color:var(--rb-accent)}
+
+/* Scrollable pages must clear the floating nav instead of disappearing below it. */
+.atlas-player{
+  padding-bottom:126px!important;
+}
+.discovery-stage:last-child{margin-bottom:18px!important}
+
+@media(max-width:700px){
+  .game-sheet-backdrop{padding-top:16px!important}
+  .account-page{
+    min-height:calc(100dvh - 66px)!important;
+    padding-bottom:90px!important;
+  }
+  .atlas-player{padding-bottom:122px!important}
+}
