@@ -129,7 +129,13 @@ async function main() {
         console.log("Funding Irys devnet upload balance");
         await irys.fund(price.minus(balance));
       }
-      return irys;
+      return {
+        upload: (data: string | Uint8Array, options: { tags: { name: string; value: string }[] }) =>
+          irys.upload(
+            typeof data === "string" ? data : Buffer.from(data),
+            options,
+          ),
+      };
     },
     save,
     console.log,
