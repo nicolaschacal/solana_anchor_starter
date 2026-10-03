@@ -14,6 +14,7 @@ import { sampleMammal } from "../../lib/rebyters/sample";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
 import { evaluatePath } from "../../lib/rebyters/rules";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
+import { REBYTER_CONDITION } from "../../lib/rebyters/companions";
 import "./player.css";
 
 const fallbackTree = sampleMammal();
@@ -44,9 +45,10 @@ type OwnedRebyter = {
   evolutionId: number;
   level: number;
   bond: number;
-  hunger: number;
-  activity: number;
+  discipline: number;
+  fullness: number;
   energy: number;
+  condition: number;
   hp: number;
   atk: number;
   def: number;
@@ -57,7 +59,8 @@ type OwnedRebyter = {
   diet: number[];
   weight: number;
   cycle: number;
-  treeVersion: number;
+  stageEnteredAt: number;
+  learnedSkills: bigint;
 };
 
 function usePlayerCollection() {
@@ -65,31 +68,37 @@ function usePlayerCollection() {
   const wallet = useWallet();
   const [params] = useSearchParams();
   const tree = chain.mammalTree ?? fallbackTree;
-  let owned: OwnedRebyter[] = chain.owned.map((item) => ({
-    mint: item.mint,
-    evolutionId: item.evolutionId,
-    level: item.stage + 1,
-    bond: item.bond,
-    hunger: item.hunger,
-    activity: item.activity,
-    energy: item.energy,
-    hp: item.hp,
-    atk: item.atk,
-    def: item.def,
-    spd: item.spd,
-    timeInteractions: item.timeInteractions,
-    totalInteractions: item.totalInteractions,
-    genes: item.genes,
-    diet: item.diet,
-    weight: item.weight,
-    cycle: item.cycle,
-    treeVersion: item.treeVersion,
-  }));
+  let owned: OwnedRebyter[] = chain.owned.map((item) => {
+    const evolution = tree.evolutions.find(e => e.id === item.evolutionId);
+    return {
+      mint: item.mint,
+      evolutionId: item.evolutionId,
+      level: (evolution?.stage ?? 0) + 1,
+      bond: item.bond,
+      discipline: item.discipline,
+      fullness: item.fullness,
+      energy: item.energy,
+      condition: item.condition,
+      hp: item.hp,
+      atk: item.atk,
+      def: item.def,
+      spd: item.spd,
+      timeInteractions: item.timeInteractions,
+      totalInteractions: item.totalInteractions,
+      genes: item.genes,
+      diet: item.diet,
+      weight: item.weight,
+      cycle: item.cycle,
+      stageEnteredAt: item.stageEnteredAt,
+      learnedSkills: item.learnedSkills,
+    };
+  });;
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
+    const demoNow=Math.floor(Date.now()/1000);
     owned = [
-      { mint: "demo-fangbit", evolutionId: tree.evolutions.find(e=>e.name==="Fangbit")?.id ?? 10, level: 1, bond: 12, hunger: 72, activity: 38, energy: 84, hp:120, atk:52, def:47, spd:64, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,76,72,25,30,21,44,68,64,59,42,33], diet:[5,1,2,1], weight:13, cycle:0, treeVersion:tree.version },
-      { mint: "demo-wolf", evolutionId: tree.evolutions.find(e=>e.name==="Wolf")?.id ?? 41, level: 8, bond: 44, hunger: 61, activity: 77, energy: 68, hp:156, atk:81, def:73, spd:88, timeInteractions:[2,4,8,14], totalInteractions:28, genes:[77,70,51,80,81,18,35,22,61,75,88,73,55,40], diet:[12,2,4,2], weight:18, cycle:0, treeVersion:tree.version },
-      { mint: "demo-dire", evolutionId: tree.evolutions.find(e=>e.name==="Dire Wolf")?.id ?? 71, level: 14, bond: 70, hunger: 55, activity: 83, energy: 59, hp:188, atk:99, def:91, spd:76, timeInteractions:[4,6,12,21], totalInteractions:43, genes:[82,74,60,86,79,15,41,19,72,84,76,81,66,48], diet:[18,3,5,2], weight:24, cycle:0, treeVersion:tree.version },
+      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,16], diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
+      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], totalInteractions:78, genes:[77,70,51,80], diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
+      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], totalInteractions:156, genes:[82,74,60,86], diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
     ];
   }
   return { ...chain, tree, owned };
@@ -164,12 +173,25 @@ function dietProfile(values:number[]) {
   for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
   return {label:labels[best]??"Mixed",detail:details[best]??"Has a mixed diet."};
 }
-function activityProfile(value:number) {
-  if(value<20) return {label:"Calm",detail:"Low play activity so far."};
-  if(value<70) return {label:"Active",detail:"Regular play is shaping its development."};
-  if(value<150) return {label:"Energetic",detail:"Highly active and play-driven."};
-  return {label:"Hyperactive",detail:"Exceptional accumulated activity."};
+function temperamentProfile(value:number) {
+  if(value<25) return "Reserved";
+  if(value<50) return "Independent";
+  if(value<75) return "Balanced";
+  return "Social";
 }
+function conditionLabels(condition:number) {
+  const labels:string[]=[];
+  if(condition&REBYTER_CONDITION.tired) labels.push("Tired");
+  if(condition&REBYTER_CONDITION.overfed) labels.push("Overfed");
+  if(condition&REBYTER_CONDITION.sick) labels.push("Sick");
+  if(condition&REBYTER_CONDITION.injured) labels.push("Injured");
+  return labels.length?labels:["Healthy"];
+}
+const SKILL_NAMES=["Bite","Guard","Quick Step","Heavy Strike","Second Wind","Iron Guard","Dash","Battle Instinct","Adapt"];
+function learnedSkillNames(bits:bigint) {
+  return SKILL_NAMES.filter((_,index)=>(bits&(1n<<BigInt(index)))!==0n);
+}
+
 function bodyProfile(weight:number) {
   if(weight<=10) return {label:"Light build",detail:"A compact, lightweight body."};
   if(weight<=18) return {label:"Medium build",detail:"Balanced body mass."};
@@ -184,9 +206,8 @@ function careProfile(bond:number,fullness:number,energy:number) {
   return "Neglected";
 }
 function evolutionState(rebyter:OwnedRebyter) {
-  const geneNames=["activity","sociability","independence","nocturnal","carnivore","herbivore","piscivore","frugivore","size","strength","speed","resilience","mutation","rarity"];
   const state:Record<string,number>={};
-  geneNames.forEach((name,index)=>state[`genetics.${name}`]=rebyter.genes[index]??0);
+  ["metabolism","temperament","rhythm","mutation"].forEach((name,index)=>state[`genetics.${name}`]=rebyter.genes[index]??0);
   const dietTotal=Math.max(1,rebyter.diet.reduce((n,v)=>n+(v??0),0));
   state["diet.meat"]=Math.floor((rebyter.diet[0]??0)*100/dietTotal);
   state["diet.fish"]=Math.floor((rebyter.diet[2]??0)*100/dietTotal);
@@ -197,9 +218,21 @@ function evolutionState(rebyter:OwnedRebyter) {
   state["time.morning"]=Math.floor((rebyter.timeInteractions[1]??0)*100/timeTotal);
   state["time.day"]=Math.floor((rebyter.timeInteractions[2]??0)*100/timeTotal);
   state["time.evening"]=Math.floor((rebyter.timeInteractions[3]??0)*100/timeTotal);
-  state["activity.play"]=Math.floor(rebyter.activity/10);
   state["physical.weight"]=rebyter.weight;
+  state["care.bond"]=rebyter.bond;
+  state["care.discipline"]=rebyter.discipline;
+  state["state.fullness"]=rebyter.fullness;
+  state["state.energy"]=rebyter.energy;
+  state["progression.interactions"]=rebyter.totalInteractions;
   state["progression.cycle"]=rebyter.cycle;
+  state["progression.stageAgeHours"]=Math.max(0,Math.floor((Date.now()/1000-rebyter.stageEnteredAt)/3600));
+  state["battle.hp"]=rebyter.hp;
+  state["battle.attack"]=rebyter.atk;
+  state["battle.defense"]=rebyter.def;
+  state["battle.speed"]=rebyter.spd;
+  state["state.sick"]=(rebyter.condition&REBYTER_CONDITION.sick)?1:0;
+  state["state.injured"]=(rebyter.condition&REBYTER_CONDITION.injured)?1:0;
+  state["skills.count"]=learnedSkillNames(rebyter.learnedSkills).length;
   return state;
 }
 
@@ -335,6 +368,7 @@ export function PlayerHome() {
   const [activeMint,setActiveMint]=useState("");
   const [minting,setMinting]=useState(false);
   const [feeding,setFeeding]=useState(false);
+  const [training,setTraining]=useState(false);
   const [homeParams]=useSearchParams();
   const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
@@ -397,8 +431,9 @@ export function PlayerHome() {
         <div className="care-actions">
           <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
           <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>setReaction(evolution.name+" wants to play again.")).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels closer to you.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
-          <button className="gl-panel locked-action" disabled title="Training will be enabled with the battle system"><Shield/><span>Training</span><LockKeyhole/></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Activity/><span>Train</span></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>setReaction(evolution.name+" feels cared for.")).catch(()=>undefined)}><Heart/><span>Care</span></button>
+          <button className="gl-panel" disabled={player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>undefined)}><MoonStar/><span>Rest</span></button>
         </div>
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
         {player.error&&<div className="interaction-error">{player.error}</div>}
@@ -412,15 +447,20 @@ export function PlayerHome() {
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
           <span>{dietProfile(active.diet).label}</span>
-          <span>{activityProfile(active.activity).label}</span>
+          <span>{temperamentProfile(active.genes[1]??0)}</span>
           <span>{bodyProfile(active.weight).label}</span>
         </div>
         <div className="sheet-section-label">How it feels</div>
         <div className="state-bars">
-          <div className="status-fullness"><span>Fullness</span><i><b style={{width:`${active.hunger}%`}}/></i><strong>{active.hunger}%</strong></div>
+          <div className="status-fullness"><span>Fullness</span><i><b style={{width:`${active.fullness}%`}}/></i><strong>{active.fullness}%</strong></div>
           <div className="status-energy"><span>Energy</span><i><b style={{width:`${active.energy}%`}}/></i><strong>{active.energy}%</strong></div>
           <div className="status-bond"><span>Bond</span><i><b style={{width:`${Math.min(active.bond,100)}%`}}/></i><strong>{active.bond}</strong></div>
+          <div className="status-discipline"><span>Discipline</span><i><b style={{width:`${Math.min(active.discipline,100)}%`}}/></i><strong>{active.discipline}</strong></div>
         </div>
+        <div className="sheet-section-label">Condition</div>
+        <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}</div>
+        <div className="sheet-section-label">Learned skills</div>
+        <div className="trait-pills skill-pills">{learnedSkillNames(active.learnedSkills).length?learnedSkillNames(active.learnedSkills).map(name=><span key={name}>{name}</span>):<span>None yet</span>}</div>
         <div className="sheet-section-label">Core stats</div>
         <div className="sheet-stat-grid">
           <div className="stat-hp"><small>HP</small><strong>{active.hp}</strong></div><div className="stat-atk"><small>ATK</small><strong>{active.atk}</strong></div>
@@ -474,6 +514,21 @@ export function PlayerHome() {
           })}
         </div>}
         <button className="den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
+      </section>
+    </div>}
+
+    {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
+      <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}>Close</button></div>
+        <p className="training-intro">There is no cooldown. Training while exhausted reduces gains and can make your Rebyter tired, sick or injured.</p>
+        <div className="training-grid">
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",0).then(()=>{setReaction(evolution.name+" completed Power training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>ATK +++ · HP +</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",1).then(()=>{setReaction(evolution.name+" completed Endurance training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>HP +++ · SPD +</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",2).then(()=>{setReaction(evolution.name+" completed Defense training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>DEF +++ · HP +</small><em>Energy −18</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",3).then(()=>{setReaction(evolution.name+" completed Speed training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>SPD +++ · ATK +</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",4).then(()=>{setReaction(evolution.name+" completed Combat training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>ATK ++ · DEF + · SPD +</small><em>Energy −25 · Discipline ++</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",5).then(()=>{setReaction(evolution.name+" completed Balanced training.");setTraining(false)}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>HP + · ATK + · DEF + · SPD +</small><em>Energy −16 · Discipline +</em></span><ChevronRight/></button>
+        </div>
       </section>
     </div>}
 
@@ -544,7 +599,7 @@ export function PlayerLab() {
           <strong>{known?target.name:"Unknown form"}</strong>
           <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} rule groups match.</p>
         </div>
-        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree,active.treeVersion).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
+        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
       </article>})}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
     </section>
@@ -667,7 +722,7 @@ export function PlayerAcquire() {
     </div>
     <section className="create-summary">
       <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own on-chain DNA and randomized genetic predispositions.</p></div>
-      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 62-byte DNA</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 60-byte DNA v3</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
