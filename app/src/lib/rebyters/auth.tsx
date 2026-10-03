@@ -160,7 +160,43 @@ function RebytersLoginModal(){
               <img src={item.icon} alt="" aria-hidden="true"/>
               <span><strong>{item.name}</strong><small>{item.readyState==="Installed"?"Ready to connect":"Available on this device"}</small></span>
             </button>)
-          : <div className="auth-no-wallet"><strong>No wallet detected</strong><small>Install or open a compatible Solana wallet, or use a passkey.</small></div>}
+          : <>
+              {[
+                {name:"Phantom",mark:"◆",kind:"phantom"},
+                {name:"Solflare",mark:"S",kind:"solflare"},
+                {name:"Backpack",mark:"B",kind:"backpack"},
+              ].map(item=><button
+                type="button"
+                className={`auth-wallet-option fallback ${item.kind}`}
+                key={item.name}
+                disabled={busy}
+                onClick={()=>{
+                  const here=encodeURIComponent(window.location.href);
+                  const ref=encodeURIComponent(window.location.origin);
+                  const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                  if(!mobile){
+                    window.open(
+                      item.kind==="phantom"?"https://phantom.com/":
+                      item.kind==="solflare"?"https://solflare.com/":
+                      "https://backpack.app/",
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                    return;
+                  }
+                  if(item.kind==="phantom"){
+                    window.location.href=`https://phantom.app/ul/browse/${here}`;
+                  }else if(item.kind==="solflare"){
+                    window.location.href=`https://solflare.com/ul/v1/browse/${here}?ref=${ref}`;
+                  }else{
+                    window.location.href=`https://backpack.app/ul/v1/browse/${here}?ref=${ref}`;
+                  }
+                }}
+              >
+                <span className="fallback-wallet-mark" aria-hidden="true">{item.mark}</span>
+                <span><strong>{item.name}</strong><small>Open Rebyters in {item.name}</small></span>
+              </button>)}
+            </>}
       </div>
       {!passkeysSupported()&&<p className="auth-note">Passkeys are not available in this browser. You can still connect a detected wallet.</p>}
       {error&&<p className="auth-error">{error}</p>}
