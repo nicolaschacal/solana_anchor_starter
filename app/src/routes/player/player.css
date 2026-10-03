@@ -2101,3 +2101,24 @@ button.account-card.account-nav-card{
 .evolution-timer.ready>span{background:rgba(92,214,255,.1);color:var(--rb-accent)}
 .evolution-timer.ready>b{color:var(--rb-accent)}
 .evolution-simple-requirements{grid-column:1/-1}
+
+
+/* Compact current-generation evolution requirements */
+.evolution-simple-requirements .requirement-list{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+}
+.evolution-simple-requirements .requirement-row{
+  min-height:42px;
+  padding:7px 8px;
+  align-items:center;
+}
+.evolution-simple-requirements .requirement-row strong{
+  font-size:9px;
+}
+.evolution-simple-requirements .requirement-row small{
+  font-size:7px;
+}
+@media(max-width:390px){
+  .evolution-simple-requirements .requirement-list{grid-template-columns:1fr}
+}
