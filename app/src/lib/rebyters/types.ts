@@ -24,7 +24,7 @@ export const METRICS = [
   ["Morning", "Day", "Evening", "Night"],
   ["Bond", "Discipline", "CareMistakes"],
   ["Weight", "Fullness", "Energy"],
-  ["Interactions", "Cycle", "StageAgeMinutes", "Skills"],
+  ["Cycle", "StageAgeMinutes", "Skills"],
   ["HP", "Attack", "Defense", "Speed", "Sick", "Injured"],
 ];
 export interface Requirement {
