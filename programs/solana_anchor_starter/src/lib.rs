@@ -242,7 +242,7 @@ pub mod solana_anchor_starter {
         let mint_key = ctx.accounts.mint.key();
 
         // The only custom TokenMetadata field is DNA.
-        // current DNA deliberately stores only visible gameplay state.
+        // DNA deliberately stores only the current visible gameplay state.
         // Family, stage and atlas version are derived/verified from the active
         // atlas and its Merkle proofs instead of being duplicated in each NFT.
         require!(evolution_id <= u16::MAX as u32, RegistryError::Exhausted);
@@ -255,7 +255,7 @@ pub mod solana_anchor_starter {
         )?;
 
         let now = clock.unix_timestamp.max(0) as u32;
-        let dna_blob = pack_rebyter_dna_v4(
+        let dna_blob = pack_rebyter_dna(
             evolution_id as u16,
             10,
             0,
@@ -588,7 +588,7 @@ enum InteractionKind {
 }
 
 #[derive(Clone)]
-struct RebyterDnaV4 {
+struct RebyterDna {
     evolution_id: u16,
     weight: u8,
     bond: u8,
@@ -609,7 +609,7 @@ struct RebyterDnaV4 {
     learned_skills: u64,
 }
 
-impl RebyterDnaV4 {
+impl RebyterDna {
     fn decode(bytes: &[u8]) -> Result<Self> {
         require!(
             bytes.len() == REBYTER_DNA_BYTES,
@@ -672,7 +672,7 @@ impl RebyterDnaV4 {
     }
 
     fn encode(&self) -> Vec<u8> {
-        pack_rebyter_dna_v4(
+        pack_rebyter_dna(
             self.evolution_id, self.weight, self.bond,
             self.discipline, self.care_mistakes, self.fullness, self.energy, self.condition,
             self.diet, self.time_interactions,
@@ -693,14 +693,14 @@ fn utc_time_bucket(unix_timestamp: i64) -> usize {
     }
 }
 
-fn has_condition(dna: &RebyterDnaV4, flag: u8) -> bool { dna.condition & flag != 0 }
-fn add_condition(dna: &mut RebyterDnaV4, flag: u8) { dna.condition |= flag; }
-fn clear_condition(dna: &mut RebyterDnaV4, flag: u8) { dna.condition &= !flag; }
-fn add_care_mistake(dna: &mut RebyterDnaV4) {
+fn has_condition(dna: &RebyterDna, flag: u8) -> bool { dna.condition & flag != 0 }
+fn add_condition(dna: &mut RebyterDna, flag: u8) { dna.condition |= flag; }
+fn clear_condition(dna: &mut RebyterDna, flag: u8) { dna.condition &= !flag; }
+fn add_care_mistake(dna: &mut RebyterDna) {
     dna.care_mistakes = dna.care_mistakes.saturating_add(1);
 }
 
-fn materialize_lazy_state(dna: &mut RebyterDnaV4, now: u32) {
+fn materialize_lazy_state(dna: &mut RebyterDna, now: u32) {
     if now <= dna.last_state_at { return; }
     let hours = now.saturating_sub(dna.last_state_at) / 3_600;
     if hours == 0 { return; }
@@ -718,7 +718,7 @@ fn materialize_lazy_state(dna: &mut RebyterDnaV4, now: u32) {
     dna.last_state_at = now;
 }
 
-fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV4> {
+fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDna> {
     let data = mint.try_borrow_data()?;
     let mint_state = PodStateWithExtensions::<PodMint>::unpack(&data)
         .map_err(|_| error!(RegistryError::InvalidMetadata))?;
@@ -731,14 +731,14 @@ fn read_rebyter_dna(mint: &AccountInfo<'_>) -> Result<RebyterDnaV4> {
         .ok_or_else(|| error!(RegistryError::UnsupportedDna))?;
     let bytes = bs58::decode(dna_base58).into_vec()
         .map_err(|_| error!(RegistryError::UnsupportedDna))?;
-    RebyterDnaV4::decode(&bytes)
+    RebyterDna::decode(&bytes)
 }
 
 fn scaled_gain(base: u16, tier: u8) -> u16 {
     match tier { 2 => base, 1 => base.saturating_add(1) / 2, _ => 0 }
 }
 
-fn maybe_unlock_training_skill(dna: &mut RebyterDnaV4, training_type: u8, full_effect: bool) {
+fn maybe_unlock_training_skill(dna: &mut RebyterDna, training_type: u8, full_effect: bool) {
     if !full_effect { return; }
     let bit = match training_type {
         0 if dna.atk >= 50 => Some(3),
@@ -982,7 +982,7 @@ fn percentage(value: u16, total: u32) -> u16 {
     ((u32::from(value).saturating_mul(100)) / denominator).min(100) as u16
 }
 
-fn metric_value(metric: u8, dna: &RebyterDnaV4, now: u32) -> Result<u16> {
+fn metric_value(metric: u8, dna: &RebyterDna, now: u32) -> Result<u16> {
     let diet_total: u32 = dna.diet.iter().map(|v| u32::from(*v)).sum();
     let time_total: u32 = dna.time_interactions.iter().map(|v| u32::from(*v)).sum();
     let value = match metric {
@@ -1014,7 +1014,7 @@ fn metric_value(metric: u8, dna: &RebyterDnaV4, now: u32) -> Result<u16> {
     Ok(value)
 }
 
-fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV4, now: u32) -> Result<bool> {
+fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDna, now: u32) -> Result<bool> {
     let metric_count = cursor.u8()?;
     require!(metric_count > 0 && metric_count <= 16, RegistryError::InvalidRule);
     let mut value = 0u32;
@@ -1035,7 +1035,7 @@ fn condition_passes(cursor: &mut RuleCursor<'_>, dna: &RebyterDnaV4, now: u32) -
     })
 }
 
-fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDnaV4, now: u32) -> Result<bool> {
+fn evaluate_compact_rule(bytes: &[u8], dna: &RebyterDna, now: u32) -> Result<bool> {
     let mut cursor = RuleCursor::new(bytes);
     require!(cursor.u8()? == 1, RegistryError::InvalidRule);
     let required_groups = cursor.u8()?;
@@ -1116,7 +1116,7 @@ fn record_discovery<'info>(
     Ok(())
 }
 
-fn pack_rebyter_dna_v4(
+fn pack_rebyter_dna(
     evolution_id: u16,
     weight: u8,
     bond: u8,
