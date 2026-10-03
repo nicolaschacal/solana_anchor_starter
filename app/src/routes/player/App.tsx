@@ -706,7 +706,7 @@ export function PlayerLab() {
             </div>
             <div className={result.eligible?"route-readiness ready":"route-readiness"}>
               <strong>{result.eligible?"READY":`${totalLeft} LEFT`}</strong>
-              <small>{requirements.length-left}/{requirements.length} traits</small>
+              <small>{requirements.length-left}/{requirements.length} requirements met</small>
             </div>
           </div>
 
