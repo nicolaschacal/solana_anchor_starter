@@ -12,7 +12,8 @@
     "sample": "tsx scripts/sample.ts",
     "publish:sample": "tsx scripts/publish-sample.ts",
     "publish:workbook": "tsx scripts/publish-workbook.ts",
-    "publish:current": "tsx scripts/publish-current.ts"
+    "publish:current": "tsx scripts/publish-current.ts",
+    "publish:rebalance": "tsx scripts/publish-rebalance.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",
