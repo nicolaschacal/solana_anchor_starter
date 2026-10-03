@@ -19,17 +19,16 @@ const METRIC_IDS: Record<string, number> = {
   "care.mistakes": 11,
   "state.fullness": 12,
   "state.energy": 13,
-  "progression.interactions": 14,
-  "progression.cycle": 15,
-  "progression.stageAgeMinutes": 16,
-  "battle.hp": 17,
-  "battle.attack": 18,
-  "battle.defense": 19,
-  "battle.speed": 20,
-  "state.sick": 21,
-  "state.injured": 22,
-  "skills.count": 23,
-}
+  "progression.cycle": 14,
+  "progression.stageAgeMinutes": 15,
+  "battle.hp": 16,
+  "battle.attack": 17,
+  "battle.defense": 18,
+  "battle.speed": 19,
+  "state.sick": 20,
+  "state.injured": 21,
+  "skills.count": 22,
+};
 
 function u16(value: number) {
   const b = new Uint8Array(2);
