@@ -2948,3 +2948,74 @@ body{
 .auth-wallet-option.fallback.phantom .fallback-wallet-mark{background:#6d5dfc}
 .auth-wallet-option.fallback.solflare .fallback-wallet-mark{background:#f2a327;color:#241400}
 .auth-wallet-option.fallback.backpack .fallback-wallet-mark{background:#111827;border:1px solid rgba(255,255,255,.14)}
+
+
+/* iOS Safari: let the game surface paint the browser-adjacent safe areas.
+   Do not create separate black bands with body safe-area padding. */
+html,body,#root{
+  margin:0!important;
+  padding:0!important;
+  background:#08152b!important;
+}
+html{
+  min-height:100%;
+  background:#08152b!important;
+}
+body{
+  min-height:100dvh!important;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(24,82,126,.58) 0%,rgba(10,36,70,.78) 34%,#08152b 72%,#060b1a 100%)!important;
+}
+.player-bg,
+.player-shell{
+  background:transparent!important;
+}
+
+/* Content routes own their scrolling area below the 66px header.
+   Atlas family tabs must never slide underneath the header. */
+@media(max-width:899px){
+  .player-main{
+    position:absolute!important;
+    top:66px!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    padding-top:18px!important;
+    padding-bottom:106px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scroll-padding-top:18px!important;
+  }
+
+  .atlas-player{
+    padding-top:18px!important;
+  }
+
+  .atlas-family-tabs{
+    position:relative!important;
+    z-index:2!important;
+    top:auto!important;
+    margin-top:0!important;
+    flex:0 0 auto!important;
+  }
+
+  .player-shell:has(> .game-home) > .game-home{
+    top:0!important;
+    bottom:0!important;
+  }
+
+  .player-shell:has(> .game-home) > .player-head{
+    padding-top:max(12px,env(safe-area-inset-top))!important;
+    height:calc(66px + env(safe-area-inset-top,0px))!important;
+    min-height:calc(66px + env(safe-area-inset-top,0px))!important;
+    max-height:calc(66px + env(safe-area-inset-top,0px))!important;
+  }
+
+  .player-shell:not(:has(> .game-home)) > .player-head{
+    padding-top:max(12px,env(safe-area-inset-top))!important;
+  }
+}
