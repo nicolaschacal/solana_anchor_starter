@@ -660,11 +660,27 @@ export function PlayerLab() {
       ? conditionBounds(timerCondition,tree.balance,target.stage)[0]
       : 0;
     const timerCurrent=state["progression.stageAgeMinutes"]??0;
-    const requirements=path.rule.mandatory
+
+    const mandatoryRequirements=path.rule.mandatory
       .filter(condition=>!condition.metrics.includes("progression.stageAgeMinutes"))
       .map(condition=>evolutionRequirementStatus(condition,tree,target.stage,state));
+
+    const traitRequirements=path.rule.groups.map((group,index)=>{
+      const alternative=group.alternatives[0]??[];
+      const requirement=alternative[0]
+        ? evolutionRequirementStatus(alternative[0],tree,target.stage,state)
+        : {passed:false,label:"Unknown trait",detail:""};
+      return {
+        ...requirement,
+        passed:result.groups[index]?.passed??false,
+      };
+    });
+
     return {
-      path,target,result,requirements,timer,
+      path,target,result,
+      requirements:traitRequirements,
+      mandatoryRequirements,
+      timer,
       timerRequired,
       timerCurrent,
       timerRemaining:Math.max(0,timerRequired-timerCurrent),
@@ -674,6 +690,7 @@ export function PlayerLab() {
     target:Evolution;
     result:ReturnType<typeof evaluatePath>;
     requirements:ReturnType<typeof evolutionRequirementStatus>[];
+    mandatoryRequirements:ReturnType<typeof evolutionRequirementStatus>[];
     timer:ReturnType<typeof evolutionRequirementStatus>|null;
     timerRequired:number;
     timerCurrent:number;
@@ -686,10 +703,13 @@ export function PlayerLab() {
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
-      {candidates.map(({target,result,requirements,timer,timerRequired,timerCurrent,timerRemaining})=>{
+      {candidates.map(({path,target,result,requirements,mandatoryRequirements,timer,timerRequired,timerCurrent,timerRemaining})=>{
         const known=discoveredIds.has(target.id);
-        const left=requirements.filter(item=>!item.passed).length;
-        const totalLeft=left+(timer&&!timer.passed?1:0);
+        const traitMatches=requirements.filter(item=>item.passed).length;
+        const mandatoryLeft=mandatoryRequirements.filter(item=>!item.passed).length;
+        const timerLeft=timer&&!timer.passed?1:0;
+        const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-traitMatches);
+        const totalLeft=mandatoryLeft+timerLeft+traitLeft;
         return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
           <div className="evolution-option-top">
             <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
@@ -698,15 +718,13 @@ export function PlayerLab() {
               <strong>{known?target.name:"Unknown form"}</strong>
               <p>{result.eligible
                 ?"Ready to evolve."
-                :timer&&!timer.passed&&left===0
+                :traitLeft===0&&mandatoryLeft===0&&timerLeft
                   ?`Evolution unlocks in ${timerRemaining} min.`
-                  :totalLeft===1
-                    ?"1 condition left."
-                    :`${totalLeft} conditions left.`}</p>
+                  :`${traitMatches}/${requirements.length} traits matched · need ${path.rule?.requiredGroups??0}.`}</p>
             </div>
             <div className={result.eligible?"route-readiness ready":"route-readiness"}>
               <strong>{result.eligible?"READY":`${totalLeft} LEFT`}</strong>
-              <small>{requirements.length-left}/{requirements.length} requirements met</small>
+              <small>{traitMatches}/{requirements.length} traits · need {path.rule?.requiredGroups??0}</small>
             </div>
           </div>
 
@@ -722,17 +740,21 @@ export function PlayerLab() {
           <section className="requirement-block evolution-simple-requirements">
             <div className="requirement-block-head">
               <strong>Requirements to evolve</strong>
-              <span>{requirements.length-left}/{requirements.length}</span>
+              <span>{traitMatches}/{requirements.length} traits · need {path.rule?.requiredGroups??0}</span>
             </div>
             <div className="requirement-list">
-              {requirements.map((item,index)=><div className={item.passed?"requirement-row passed":"requirement-row"} key={`${target.id}-requirement-${index}`}>
+              {requirements.map((item,index)=><div className={item.passed?"requirement-row passed":"requirement-row"} key={`${target.id}-trait-${index}`}>
+                <i>{item.passed?"✓":"×"}</i>
+                <span><strong>{item.label}</strong>{item.detail&&<small>{item.detail}</small>}</span>
+              </div>)}
+              {mandatoryRequirements.map((item,index)=><div className={item.passed?"requirement-row passed requirement-row-mandatory":"requirement-row requirement-row-mandatory"} key={`${target.id}-mandatory-${index}`}>
                 <i>{item.passed?"✓":"×"}</i>
                 <span><strong>{item.label}</strong>{item.detail&&<small>{item.detail}</small>}</span>
               </div>)}
             </div>
           </section>
 
-          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {timer&&!timer.passed&&left===0?"Wait for the evolution timer":"Shape the missing traits above"}</span>}
+          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
         </article>
       })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
