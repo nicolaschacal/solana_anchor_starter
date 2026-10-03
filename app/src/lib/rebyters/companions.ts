@@ -55,7 +55,6 @@ export interface OnchainRebyter {
   condition: number;
   diet: number[];
   timeInteractions: number[];
-  totalInteractions: number;
   cycle: number;
   lastStateAt: number;
   stageEnteredAt: number;
@@ -116,9 +115,9 @@ export const REBYTER_CONDITION = {
 
 function decodeDna(value: string) {
   const bytes = Uint8Array.from(bs58.decode(value));
-  if (bytes.length !== 57 || bytes[0] !== 4)
-    throw new Error("Unsupported Rebyter DNA: mint a DNA v4 Rebyter");
-  let o = 1;
+  if (bytes.length !== 50)
+    throw new Error("Unsupported Rebyter DNA: mint a current-generation Rebyter");
+  let o = 0;
   const evolutionId = readU16(bytes, o); o += 2;
   const weight = bytes[o++];
   const bond = bytes[o++];
@@ -129,7 +128,6 @@ function decodeDna(value: string) {
   const condition = bytes[o++];
   const diet = [0,0,0,0].map(()=>{ const v=readU16(bytes,o); o+=2; return v; });
   const timeInteractions = [0,0,0,0].map(()=>{ const v=readU16(bytes,o); o+=2; return v; });
-  const totalInteractions = readU16(bytes,o); o+=2;
   const cycle = bytes[o++];
   const hp = readU16(bytes,o); o+=2;
   const atk = readU16(bytes,o); o+=2;
@@ -137,12 +135,11 @@ function decodeDna(value: string) {
   const spd = readU16(bytes,o); o+=2;
   const lastStateAt = readU32(bytes,o); o+=4;
   const stageEnteredAt = readU32(bytes,o); o+=4;
-  const createdAt = readU32(bytes,o); o+=4;
   const learnedSkills = readU64(bytes,o);
   return {
     evolutionId, weight, bond, discipline, careMistakes, fullness, energy, condition,
-    diet, timeInteractions, totalInteractions, cycle, hp, atk, def, spd,
-    lastStateAt, stageEnteredAt, createdAt, learnedSkills,
+    diet, timeInteractions, cycle, hp, atk, def, spd,
+    lastStateAt, stageEnteredAt, learnedSkills,
   };
 }
 
@@ -233,11 +230,9 @@ export async function fetchFirstOwnedRebyter(
       condition: dnaState.condition,
       diet: dnaState.diet,
       timeInteractions: dnaState.timeInteractions,
-      totalInteractions: dnaState.totalInteractions,
       cycle: dnaState.cycle,
       lastStateAt: dnaState.lastStateAt,
       stageEnteredAt: dnaState.stageEnteredAt,
-      createdAt: dnaState.createdAt,
       hp: dnaState.hp,
       atk: dnaState.atk,
       def: dnaState.def,
@@ -310,11 +305,9 @@ export async function fetchOwnedRebyters(
       condition: dnaState.condition,
       diet: dnaState.diet,
       timeInteractions: dnaState.timeInteractions,
-      totalInteractions: dnaState.totalInteractions,
       cycle: dnaState.cycle,
       lastStateAt: dnaState.lastStateAt,
       stageEnteredAt: dnaState.stageEnteredAt,
-      createdAt: dnaState.createdAt,
       hp: dnaState.hp,
       atk: dnaState.atk,
       def: dnaState.def,
