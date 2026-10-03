@@ -727,6 +727,9 @@
           "name": "rebyter_authority"
         },
         {
+          "name": "registry"
+        },
+        {
           "name": "tree"
         },
         {
@@ -1009,7 +1012,7 @@
     {
       "code": 6013,
       "name": "UnsupportedDna",
-      "msg": "This interaction requires compact DNA v2"
+      "msg": "This interaction requires Rebyter DNA v3"
     },
     {
       "code": 6014,
@@ -1035,6 +1038,11 @@
       "code": 6018,
       "name": "EvolutionRequirements",
       "msg": "This Rebyter does not yet satisfy the evolution requirements"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidTraining",
+      "msg": "Training type must be power, endurance, defense, speed, combat, or balanced"
     }
   ],
   "types": [
