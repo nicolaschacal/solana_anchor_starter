@@ -2385,3 +2385,229 @@ button.account-card.account-nav-card{
     padding:16px!important;
   }
 }
+
+
+/* Rebyters auth — Minuttery-inspired access hierarchy */
+.rebyters-login-trigger,
+.header-login-trigger,
+.empty-login-button,
+.account-login-button{
+  border:1px solid var(--rb-line);
+  background:rgba(16,28,52,.58);
+  color:var(--rb-text);
+  border-radius:14px;
+  min-height:38px;
+  padding:0 13px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font:600 10px 'Sora',sans-serif;
+  cursor:pointer;
+}
+.rebyters-login-trigger svg{width:16px;height:16px}
+
+.auth-modal-backdrop{
+  position:fixed;
+  z-index:120;
+  inset:0;
+  background:rgba(2,5,14,.68);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.auth-modal{
+  position:relative;
+  width:min(430px,100%);
+  padding:22px;
+  border:1px solid rgba(160,200,255,.18);
+  border-radius:26px;
+  background:rgba(8,14,30,.97);
+  color:var(--rb-text);
+  box-shadow:0 28px 90px rgba(0,0,0,.48);
+}
+.auth-sheet-handle{
+  display:none;
+  width:38px;
+  height:4px;
+  border-radius:999px;
+  background:rgba(160,200,255,.26);
+  margin:0 auto 12px;
+}
+.auth-close{
+  position:absolute;
+  right:14px;
+  top:14px;
+  width:34px;
+  height:34px;
+  padding:0;
+  border:0;
+  border-radius:12px;
+  background:rgba(255,255,255,.05);
+  color:var(--rb-muted);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+}
+.auth-close svg{width:16px;height:16px}
+.auth-kicker{
+  display:block;
+  padding-right:42px;
+  font-size:8px;
+  letter-spacing:.14em;
+  color:var(--rb-accent);
+  font-weight:800;
+}
+.auth-modal h2{
+  margin:5px 0 7px;
+  font-size:26px;
+  letter-spacing:-.03em;
+  color:var(--rb-text);
+}
+.auth-copy{
+  margin:0 0 18px;
+  color:var(--rb-muted);
+  font-size:11px;
+  line-height:1.55;
+}
+.auth-passkey,
+.auth-detect-wallet{
+  width:100%;
+  border-radius:17px;
+  min-height:64px;
+  padding:11px 13px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:11px;
+  text-align:left;
+  font-family:'Sora',sans-serif;
+  cursor:pointer;
+}
+.auth-passkey{
+  border:1px solid var(--rb-accent);
+  background:var(--rb-accent);
+  color:#06203d;
+}
+.auth-passkey>span:first-child,
+.auth-detect-wallet>span:first-child{
+  width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+}
+.auth-passkey>span:first-child{background:rgba(6,32,61,.10)}
+.auth-detect-wallet>span:first-child{background:rgba(92,214,255,.08)}
+.auth-passkey svg,.auth-detect-wallet svg{width:19px;height:19px}
+.auth-passkey>svg:last-child{width:15px;height:15px;opacity:.65}
+.auth-passkey strong,.auth-passkey small,
+.auth-detect-wallet strong,.auth-detect-wallet small{display:block}
+.auth-passkey strong,.auth-detect-wallet strong{font-size:11px;font-weight:700}
+.auth-passkey small{margin-top:3px;font-size:8px;color:rgba(6,32,61,.66)}
+.auth-detect-wallet small{margin-top:3px;font-size:8px;color:var(--rb-muted);line-height:1.35}
+.auth-passkey:disabled{opacity:.45;cursor:not-allowed}
+.auth-or{
+  height:36px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#68829a;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.auth-or:before,.auth-or:after{content:"";height:1px;flex:1;background:rgba(160,200,255,.12)}
+.auth-detect-wallet{
+  border:1px solid var(--rb-line);
+  background:rgba(255,255,255,.045);
+  color:var(--rb-text);
+}
+.auth-detect-wallet:hover{background:rgba(92,214,255,.07);border-color:rgba(92,214,255,.28)}
+.auth-note{margin:12px 0 0;color:var(--rb-muted);font-size:8px;line-height:1.5}
+.auth-error,.money-status{margin:12px 0 0;color:#ff9aa8;font-size:9px;line-height:1.4}
+.money-status.success{color:#75d9ae}
+
+/* Account access method + passkey money controls */
+.profile-access-card{grid-template-columns:auto 1fr auto!important}
+.account-money-actions{
+  grid-column:1/-1;
+  width:100%;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:3px;
+}
+.account-money-actions button{
+  min-height:42px;
+  border:1px solid rgba(92,214,255,.22);
+  border-radius:13px;
+  background:rgba(92,214,255,.07);
+  color:var(--rb-accent);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font:600 9px 'Sora',sans-serif;
+  cursor:pointer;
+}
+.account-money-actions svg{width:15px;height:15px}
+.money-modal{width:min(460px,100%)}
+.money-label{
+  display:block;
+  margin:13px 0 6px;
+  color:var(--rb-muted);
+  font-size:8px;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.deposit-address{
+  display:block;
+  width:100%;
+  padding:12px;
+  border:1px solid var(--rb-line);
+  border-radius:13px;
+  background:rgba(255,255,255,.04);
+  color:var(--rb-text);
+  font-size:9px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.money-input{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--rb-line);
+  border-radius:13px;
+  background:rgba(255,255,255,.045);
+  color:var(--rb-text);
+  padding:0 12px;
+  outline:none;
+  font:500 11px 'Sora',sans-serif;
+}
+.money-input:focus{border-color:rgba(92,214,255,.46)}
+.money-primary{
+  width:100%;
+  min-height:46px;
+  margin-top:12px;
+  border:0;
+  border-radius:14px;
+  background:var(--rb-accent);
+  color:#06203d;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font:700 10px 'Sora',sans-serif;
+  cursor:pointer;
+}
+.money-primary svg{width:16px;height:16px}
+.money-primary:disabled{opacity:.5;cursor:wait}
+
+@media(max-width:700px){
+  .auth-modal-backdrop{
+    align-items:flex-end;
+    padding:10px;
+  }
+  .auth-modal{
+    border-radius:25px;
+    padding:17px 16px 18px;
+    margin-bottom:82px;
+  }
+  .auth-sheet-handle{display:block}
+  .auth-modal h2{font-size:22px}
+  .profile-access-card{grid-template-columns:auto 1fr!important}
+  .profile-access-card .account-wallet-id{grid-column:1/-1}
+}
