@@ -46,7 +46,7 @@ export interface OnchainRebyter {
   mint: string;
   evolutionId: number;
   dnaBase58: string;
-  genes: number[];
+  careMistakes: number;
   weight: number;
   bond: number;
   discipline: number;
@@ -116,14 +116,14 @@ export const REBYTER_CONDITION = {
 
 function decodeDna(value: string) {
   const bytes = Uint8Array.from(bs58.decode(value));
-  if (bytes.length !== 60 || bytes[0] !== 3)
-    throw new Error("Unsupported Rebyter DNA: mint a DNA v3 Rebyter");
+  if (bytes.length !== 57 || bytes[0] !== 4)
+    throw new Error("Unsupported Rebyter DNA: mint a DNA v4 Rebyter");
   let o = 1;
   const evolutionId = readU16(bytes, o); o += 2;
-  const genes = Array.from(bytes.slice(o, o + 4)); o += 4;
   const weight = bytes[o++];
   const bond = bytes[o++];
   const discipline = bytes[o++];
+  const careMistakes = bytes[o++];
   const fullness = bytes[o++];
   const energy = bytes[o++];
   const condition = bytes[o++];
@@ -140,7 +140,7 @@ function decodeDna(value: string) {
   const createdAt = readU32(bytes,o); o+=4;
   const learnedSkills = readU64(bytes,o);
   return {
-    evolutionId, genes, weight, bond, discipline, fullness, energy, condition,
+    evolutionId, weight, bond, discipline, careMistakes, fullness, energy, condition,
     diet, timeInteractions, totalInteractions, cycle, hp, atk, def, spd,
     lastStateAt, stageEnteredAt, createdAt, learnedSkills,
   };
@@ -150,9 +150,8 @@ function effectiveDnaState(raw: ReturnType<typeof decodeDna>) {
   const now = Math.floor(Date.now()/1000);
   const hours = Math.max(0,Math.floor((now-raw.lastStateAt)/3600));
   if(!hours) return raw;
-  const metabolism=raw.genes[0]??0;
-  const fullness=Math.max(0,raw.fullness-hours*(1+Math.floor(metabolism/34)));
-  const energy=Math.min(100,raw.energy+hours*(2+Math.floor(metabolism/50)));
+  const fullness=Math.max(0,raw.fullness-hours*2);
+  const energy=Math.min(100,raw.energy+hours*3);
   let condition=raw.condition;
   if(fullness<=80) condition&=~REBYTER_CONDITION.overfed;
   if(energy>=40) condition&=~REBYTER_CONDITION.tired;
@@ -225,7 +224,7 @@ export async function fetchFirstOwnedRebyter(
       mint: mintString,
       evolutionId: dnaState.evolutionId,
       dnaBase58: dnaField,
-      genes: dnaState.genes,
+      careMistakes: dnaState.careMistakes,
       weight: dnaState.weight,
       bond: dnaState.bond,
       discipline: dnaState.discipline,
@@ -302,7 +301,7 @@ export async function fetchOwnedRebyters(
       mint: mintString,
       evolutionId: dnaState.evolutionId,
       dnaBase58: dnaField,
-      genes: dnaState.genes,
+      careMistakes: dnaState.careMistakes,
       weight: dnaState.weight,
       bond: dnaState.bond,
       discipline: dnaState.discipline,
