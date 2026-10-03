@@ -543,7 +543,7 @@ export async function evolveRebyter(
     throw new Error("This path has no structured gameplay rule");
 
   if (evolutionTree.proofMode !== "unified-v1")
-    throw new Error("DNA v3 requires a unified active atlas");
+    throw new Error("DNA v4 requires a unified active atlas");
   const proof = buildMerkleTree(evolutionTree).getRuleProof(sourceId, targetId);
   const mint = new PublicKey(mintString);
   const ownerTokenAccount = getAssociatedTokenAddressSync(
