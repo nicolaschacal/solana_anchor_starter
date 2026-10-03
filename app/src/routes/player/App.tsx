@@ -523,7 +523,7 @@ export function PlayerHome() {
           <div className="status-discipline"><span>Discipline</span><i><b style={{width:`${Math.min(active.discipline,100)}%`}}/></i><strong>{active.discipline}</strong></div>
         </div>
         <div className="sheet-section-label">Condition</div>
-        <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}</div>
+        <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}<span>Care mistakes: {active.careMistakes}</span></div>
         <div className="sheet-section-label">Learned skills</div>
         <div className="trait-pills skill-pills">{learnedSkillNames(active.learnedSkills).length?learnedSkillNames(active.learnedSkills).map(name=><span key={name}>{name}</span>):<span>None yet</span>}</div>
         <div className="sheet-section-label">Core stats</div>
