@@ -25,13 +25,11 @@ import {
   PROGRAM_ID,
   playerProfilePda,
   registryPda,
-  ruleSetPda,
   treePda,
 } from "./config";
 import { getProgram, fetchRegistry, fetchTree } from "./registry";
 import { fetchVerifiedTree } from "./tree";
 import { buildMerkleTree, leafHash } from "./merkle";
-import { buildRuleMerkleTree } from "./rule-merkle";
 import type { TreeJson } from "./types";
 
 export interface PlayerProfile {
@@ -543,10 +541,9 @@ export async function evolveRebyter(
   if (!path.rule)
     throw new Error("This path has no structured gameplay rule");
 
-  const proof =
-    evolutionTree.proofMode === "unified-v1"
-      ? buildMerkleTree(evolutionTree).getRuleProof(sourceId, targetId)
-      : buildRuleMerkleTree(evolutionTree).getProof(sourceId, targetId);
+  if (evolutionTree.proofMode !== "unified-v1")
+    throw new Error("DNA v3 requires a unified active atlas");
+  const proof = buildMerkleTree(evolutionTree).getRuleProof(sourceId, targetId);
   const mint = new PublicKey(mintString);
   const ownerTokenAccount = getAssociatedTokenAddressSync(
     mint,
@@ -575,10 +572,7 @@ export async function evolveRebyter(
       rebyterAuthority,
       registry: registryPda(),
       tree: treePda(evolutionTree.family.id, evolutionTree.version),
-      ruleSet:
-        evolutionTree.proofMode === "unified-v1"
-          ? treePda(evolutionTree.family.id, evolutionTree.version)
-          : ruleSetPda(evolutionTree.family.id, evolutionTree.version),
+      ruleSet: treePda(evolutionTree.family.id, evolutionTree.version),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
