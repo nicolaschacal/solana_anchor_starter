@@ -1,8 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { CircleUserRound, KeyRound, ShieldCheck, WalletCards, X } from "lucide-react";
+import { CircleUserRound, KeyRound, ShieldCheck, X } from "lucide-react";
 import { createOrGetPasskeyWallet, passkeysSupported } from "./passkey";
 
 type AuthKind="wallet"|"passkey"|null;
@@ -19,7 +18,8 @@ type AuthContextValue={
   openLogin:()=>void;
   closeLogin:()=>void;
   signInWithPasskey:()=>Promise<void>;
-  detectWallet:()=>void;
+  availableWallets:Array<{name:string;icon:string;readyState:string}>;
+  connectWallet:(name:string)=>void;
   disconnect:()=>Promise<void>;
 };
 
@@ -28,9 +28,9 @@ const AuthContext=createContext<AuthContextValue|null>(null);
 export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   const adapter=useWallet();
   const adapterAnchor=useAnchorWallet();
-  const walletModal=useWalletModal();
   const [passkeyWallet,setPasskeyWallet]=useState<AnchorWallet|null>(null);
   const [loginOpen,setLoginOpen]=useState(false);
+  const [pendingWallet,setPendingWallet]=useState<string|null>(null);
 
   const kind:AuthKind=passkeyWallet?"passkey":adapter.connected?"wallet":null;
   const anchorWallet=passkeyWallet??adapterAnchor;
@@ -43,11 +43,39 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     setLoginOpen(false);
   },[adapter]);
 
-  const detectWallet=useCallback(()=>{
+  const availableWallets=useMemo(
+    ()=>adapter.wallets
+      .filter(item=>item.readyState!=="Unsupported"&&item.readyState!=="NotDetected")
+      .map(item=>({
+        name:String(item.adapter.name),
+        icon:item.adapter.icon,
+        readyState:String(item.readyState),
+      })),
+    [adapter.wallets],
+  );
+
+  const connectWallet=useCallback((name:string)=>{
     setPasskeyWallet(null);
-    setLoginOpen(false);
-    walletModal.setVisible(true);
-  },[walletModal]);
+    setPendingWallet(name);
+    adapter.select(name as Parameters<typeof adapter.select>[0]);
+  },[adapter]);
+
+  useEffect(()=>{
+    if(!pendingWallet) return;
+    if(String(adapter.wallet?.adapter.name??"")!==pendingWallet) return;
+    let cancelled=false;
+    void adapter.connect()
+      .then(()=>{
+        if(cancelled) return;
+        setPendingWallet(null);
+        setLoginOpen(false);
+      })
+      .catch(()=>{
+        if(cancelled) return;
+        setPendingWallet(null);
+      });
+    return()=>{cancelled=true};
+  },[adapter,pendingWallet]);
 
   const disconnect=useCallback(async()=>{
     if(passkeyWallet){
@@ -70,9 +98,10 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     openLogin:()=>setLoginOpen(true),
     closeLogin:()=>setLoginOpen(false),
     signInWithPasskey,
-    detectWallet,
+    availableWallets,
+    connectWallet,
     disconnect,
-  }),[anchorWallet,detectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
+  }),[anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
 
   return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/></AuthContext.Provider>;
 }
@@ -119,11 +148,21 @@ function RebytersLoginModal(){
 
       <div className="auth-or"><span>or connect a wallet</span></div>
 
-      <button className="auth-detect-wallet" onClick={auth.detectWallet} disabled={busy}>
-        <span><WalletCards/></span>
-        <span><strong>Detect wallet</strong><small>Use any compatible Solana wallet installed on this device</small></span>
-      </button>
-      {!passkeysSupported()&&<p className="auth-note">Passkeys are not available in this browser. You can still connect a wallet.</p>}
+      <div className="auth-wallet-list">
+        {auth.availableWallets.length
+          ? auth.availableWallets.map(item=><button
+              type="button"
+              className="auth-wallet-option"
+              key={item.name}
+              disabled={busy}
+              onClick={()=>auth.connectWallet(item.name)}
+            >
+              <img src={item.icon} alt="" aria-hidden="true"/>
+              <span><strong>{item.name}</strong><small>{item.readyState==="Installed"?"Ready to connect":"Available on this device"}</small></span>
+            </button>)
+          : <div className="auth-no-wallet"><strong>No wallet detected</strong><small>Install or open a compatible Solana wallet, or use a passkey.</small></div>}
+      </div>
+      {!passkeysSupported()&&<p className="auth-note">Passkeys are not available in this browser. You can still connect a detected wallet.</p>}
       {error&&<p className="auth-error">{error}</p>}
     </section>
   </div>;
