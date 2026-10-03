@@ -11,7 +11,7 @@ import {
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
-import { GROUPS, type Evolution, type TreeJson } from "../../lib/rebyters/types";
+import type { Evolution, TreeJson } from "../../lib/rebyters/types";
 import { conditionBounds, evaluatePath } from "../../lib/rebyters/rules";
 import type { RuleCondition } from "../../lib/rebyters/rule-types";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
