@@ -30,7 +30,10 @@ anchor build
 anchor deploy --provider.cluster devnet --provider.wallet artifacts/private/admin-keypair.json
 cp target/idl/solana_anchor_starter.json app/src/idl/solana_anchor_starter.json
 cd app
+# Initial empty/dev registry only:
 npm run publish:sample
+# Existing Mammal collection -> next DNA v3 rules version, preserving IDs/assets:
+npm run publish:dna-v3
 ```
 
 If `anchor`'s AVM wrapper is unavailable in a restricted shell, the installed binary is `/home/codespace/.avm/bin/anchor-1.2.0`. The deployer must be funded before deployment. The sample command uses the generated wallet by default, reserves IDs, uploads to Irys devnet, registers/activates the tree, downloads it again, verifies both hashes, and saves public receipts in `artifacts/publication/`. `SOLANA_WALLET_PATH`, `IRYS_WALLET_PATH`, `SOLANA_RPC_URL`, and `IRYS_GATEWAY` override defaults. Export these variables in your shell; `.env.example` documents them. No private key is put in a `VITE_` variable. The script refuses non-devnet genesis hashes.
