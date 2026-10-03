@@ -12,8 +12,7 @@
     "sample": "tsx scripts/sample.ts",
     "publish:sample": "tsx scripts/publish-sample.ts",
     "publish:workbook": "tsx scripts/publish-workbook.ts",
-    "publish:dna-v3": "tsx scripts/publish-dna-v3.ts",
-    "publish:dna-v4": "tsx scripts/publish-dna-v4.ts"
+    "publish:current": "tsx scripts/publish-current.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",
