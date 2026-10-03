@@ -12,7 +12,7 @@ export const balanceSchema = z.object({
   metrics: z.record(z.object({ label: z.string().min(1).max(60), unit: z.string().max(20), maximum: uint, bands: z.array(bands).length(6) }).strict()),
 }).strict();
 const condition = z.object({
-  metrics: z.array(z.string().regex(/^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/)).min(1).max(4),
+  metrics: z.array(z.string().min(1).max(64)).min(1).max(4),
   test: z.enum(["min","max","range","eq"]), level: level.optional(), upperLevel: level.optional(), value: uint.optional(), upper: uint.optional(),
 }).strict().superRefine((c,ctx) => {
   const fail = (message: string) => ctx.addIssue({ code: "custom", message });
@@ -36,7 +36,7 @@ export function validateStructuredRules(tree: TreeJson) {
   const prefixes = ["genetics.","diet.","time.","care.","physical.","progression.","battle."];
   if (!Object.keys(balance.metrics).length) throw new Error("Balance metrics are empty");
   for (const [metric, profile] of Object.entries(balance.metrics)) {
-    if (!/^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/.test(metric)) throw new Error(`Invalid balance metric ${metric}`);
+    if (!metric.includes(".")) throw new Error(`Invalid balance metric ${metric}`);
     for (const stage of profile.bands) {
       let last = -1;
       for (const band of [stage.low,stage.medium,stage.high,stage.veryHigh]) {
