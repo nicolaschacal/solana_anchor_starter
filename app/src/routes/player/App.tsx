@@ -187,6 +187,17 @@ function conditionLabels(condition:number) {
   if(condition&REBYTER_CONDITION.injured) labels.push("Injured");
   return labels.length?labels:["Healthy"];
 }
+function moodProfile(rebyter:OwnedRebyter) {
+  if(rebyter.condition&REBYTER_CONDITION.sick) return "Sick";
+  if(rebyter.condition&REBYTER_CONDITION.injured) return "Hurt";
+  if(rebyter.condition&REBYTER_CONDITION.overfed) return "Uncomfortable";
+  if(rebyter.energy<20) return "Exhausted";
+  if(rebyter.fullness<20) return "Hungry";
+  const score=(rebyter.bond+rebyter.energy+rebyter.fullness)/3;
+  if(score>=75) return "Happy";
+  if(score>=50) return "Content";
+  return "Restless";
+}
 const SKILL_NAMES=["Bite","Guard","Quick Step","Heavy Strike","Second Wind","Iron Guard","Dash","Battle Instinct","Adapt"];
 function learnedSkillNames(bits:bigint) {
   const names:string[]=[];
@@ -461,7 +472,7 @@ export function PlayerHome() {
           <span>{temperamentProfile(active.genes[1]??0)}</span>
           <span>{bodyProfile(active.weight).label}</span>
         </div>
-        <div className="sheet-section-label">How it feels</div>
+        <div className="sheet-section-label">How it feels · {moodProfile(active)}</div>
         <div className="state-bars">
           <div className="status-fullness"><span>Fullness</span><i><b style={{width:`${active.fullness}%`}}/></i><strong>{active.fullness}%</strong></div>
           <div className="status-energy"><span>Energy</span><i><b style={{width:`${active.energy}%`}}/></i><strong>{active.energy}%</strong></div>
@@ -599,7 +610,7 @@ export function PlayerLab() {
   const eligible=candidates.filter(c=>c.result.eligible);
   const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
   return <Shell><Header/><main className="player-main evolution-player">
-    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>Available evolutions</h1><p>{eligible.length?"Choose among the verified routes currently unlocked for this Rebyter.":"No route is unlocked yet. Keep shaping its routine, diet, activity and body."}</p></div>
+    <div className="player-page-head"><small>EVOLUTION LAB</small><h1>Available evolutions</h1><p>{eligible.length?"Choose among the verified routes currently unlocked for this Rebyter.":"No route is unlocked yet. Keep shaping its training, diet, routine, care and body."}</p></div>
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
