@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  useAnchorWallet,
-  useConnection,
-  useWallet,
-} from "@solana/wallet-adapter-react";
+import { useConnection } from "@solana/wallet-adapter-react";
 import type { TreeJson } from "../lib/rebyters/types";
+import { useRebytersAuth } from "../lib/rebyters/auth";
+import type { PublicKey } from "@solana/web3.js";
 import {
   createRebyter,
   fetchActiveFamilyTree,
@@ -30,7 +28,7 @@ const playerSnapshotInflight = new Map<string, Promise<PlayerSnapshot>>();
 
 async function getPlayerSnapshot(
   connection: ReturnType<typeof useConnection>["connection"],
-  owner: NonNullable<ReturnType<typeof useWallet>["publicKey"]>,
+  owner: PublicKey,
   force = false,
 ): Promise<PlayerSnapshot> {
   const key = owner.toBase58();
@@ -66,8 +64,9 @@ function invalidatePlayerSnapshot(owner: string | undefined) {
 
 export function usePlayerRebyters() {
   const { connection } = useConnection();
-  const wallet = useWallet();
-  const anchorWallet = useAnchorWallet();
+  const auth = useRebytersAuth();
+  const wallet = auth.wallet;
+  const anchorWallet = auth.anchorWallet;
   const [owned, setOwned] = useState<OnchainRebyter[]>([]);
   const [ownedLoadedAll, setOwnedLoadedAll] = useState(false);
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null);
@@ -80,7 +79,7 @@ export function usePlayerRebyters() {
 
   const refresh = useCallback(async (force = false) => {
     setError("");
-    if (!wallet.publicKey) {
+    if (!auth.publicKey) {
       setOwned([]);
       setOwnedLoadedAll(false);
       setPlayerProfile(null);
@@ -88,7 +87,7 @@ export function usePlayerRebyters() {
     }
     setLoading(true);
     try {
-      const snapshot = await getPlayerSnapshot(connection, wallet.publicKey, force);
+      const snapshot = await getPlayerSnapshot(connection, auth.publicKey, force);
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
@@ -100,14 +99,14 @@ export function usePlayerRebyters() {
     } finally {
       setLoading(false);
     }
-  }, [connection, wallet.publicKey]);
+  }, [connection, auth.publicKey]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   const loadAll = useCallback(async (force = false) => {
-    if (!wallet.publicKey) {
+    if (!auth.publicKey) {
       setOwned([]);
       setOwnedLoadedAll(false);
       return [];
@@ -115,7 +114,7 @@ export function usePlayerRebyters() {
     setLoading(true);
     setError("");
     try {
-      const snapshot = await getPlayerSnapshot(connection, wallet.publicKey, force);
+      const snapshot = await getPlayerSnapshot(connection, auth.publicKey, force);
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
@@ -128,7 +127,7 @@ export function usePlayerRebyters() {
     } finally {
       setLoading(false);
     }
-  }, [connection, wallet.publicKey]);
+  }, [connection, auth.publicKey]);
 
   const create = useCallback(
     async (familyId: number) => {
@@ -144,7 +143,7 @@ export function usePlayerRebyters() {
           familyId,
         );
         setStatus("Rebyter created");
-        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        invalidatePlayerSnapshot(auth.publicKey?.toBase58());
         await refresh(true);
         return result;
       } catch (e) {
@@ -185,7 +184,7 @@ export function usePlayerRebyters() {
           action,
           option,
         );
-        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        invalidatePlayerSnapshot(auth.publicKey?.toBase58());
         await refresh(true);
         setStatus(
           action === "feed" ? "Meal complete"
@@ -229,7 +228,7 @@ export function usePlayerRebyters() {
           sourceId,
           targetId,
         );
-        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        invalidatePlayerSnapshot(auth.publicKey?.toBase58());
         await refresh(true);
         setStatus("Evolution complete");
         return signature;
