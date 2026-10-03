@@ -44,29 +44,27 @@ export interface OnchainRebyter {
   address: string;
   owner: string;
   mint: string;
-  familyId: number;
-  stage: number;
-  treeVersion: number;
   evolutionId: number;
-  evolutionLeafHash: number[];
-  dna: number[];
   dnaBase58: string;
   genes: number[];
   weight: number;
   bond: number;
-  activity: number;
-  hunger: number;
+  discipline: number;
+  fullness: number;
   energy: number;
+  condition: number;
   diet: number[];
   timeInteractions: number[];
   totalInteractions: number;
   cycle: number;
-  lastInteraction: number;
+  lastStateAt: number;
+  stageEnteredAt: number;
   createdAt: number;
   hp: number;
   atk: number;
   def: number;
   spd: number;
+  learnedSkills: bigint;
   metadataUri: string;
 }
 
@@ -104,110 +102,62 @@ function readU32(bytes: Uint8Array, offset: number) {
     (bytes[offset + 3] << 24)
   ) >>> 0;
 }
-function readI64(bytes: Uint8Array, offset: number) {
+function readU64(bytes: Uint8Array, offset: number) {
   const view = new DataView(bytes.buffer, bytes.byteOffset + offset, 8);
-  return Number(view.getBigInt64(0, true));
+  return view.getBigUint64(0, true);
 }
 
-function decodeDnaV1(value: string) {
-  const bytes = Uint8Array.from(bs58.decode(value));
-  let o = 0;
-  const version = bytes[o++];
-  if (version !== 1) throw new Error(`Unsupported Rebyter DNA version ${version}`);
-  const familyId = bytes[o++];
-  const stage = bytes[o++];
-  const treeVersion = readU32(bytes, o); o += 4;
-  const evolutionId = readU32(bytes, o); o += 4;
-  const evolutionLeafHash = Array.from(bytes.slice(o, o + 32)); o += 32;
-  const genomeSeed = Array.from(bytes.slice(o, o + 32)); o += 32;
-  const genes = Array.from(bytes.slice(o, o + 14)); o += 14;
-  const weight = readU16(bytes, o); o += 2;
-  const bond = readU16(bytes, o); o += 2;
-  const activity = readU32(bytes, o); o += 4;
-  const hunger = readU16(bytes, o); o += 2;
-  const energy = readU16(bytes, o); o += 2;
-  const diet = [0, 0, 0, 0].map(() => {
-    const v = readU16(bytes, o); o += 2; return v;
-  });
-  const timeInteractions = [0, 0, 0, 0].map(() => {
-    const v = readU16(bytes, o); o += 2; return v;
-  });
-  const totalInteractions = readU32(bytes, o); o += 4;
-  const cycle = readU16(bytes, o); o += 2;
-  const lastInteraction = readI64(bytes, o); o += 8;
-  const createdAt = readI64(bytes, o);
-  return {
-    familyId,
-    stage,
-    treeVersion,
-    evolutionId,
-    evolutionLeafHash,
-    genomeSeed,
-    genes,
-    weight,
-    bond,
-    activity,
-    hunger,
-    energy,
-    diet,
-    timeInteractions,
-    totalInteractions,
-    cycle,
-    lastInteraction,
-    createdAt,
-  };
-}
-
-
-function decodeDnaV2(value: string) {
-  const bytes = Uint8Array.from(bs58.decode(value));
-  if (bytes.length !== 62 || bytes[0] !== 2)
-    throw new Error("Invalid Rebyter DNA v2");
-  let o = 1;
-  const familyId = bytes[o++];
-  const stage = bytes[o++];
-  const treeVersion = readU16(bytes, o); o += 2;
-  const evolutionId = readU16(bytes, o); o += 2;
-  const genes = Array.from(bytes.slice(o, o + 14)); o += 14;
-  const weight = bytes[o++];
-  const bond = bytes[o++];
-  const activity = readU16(bytes, o); o += 2;
-  const hunger = bytes[o++];
-  const energy = bytes[o++];
-  const diet = [0, 0, 0, 0].map(() => {
-    const v = readU16(bytes, o); o += 2; return v;
-  });
-  const timeInteractions = [0, 0, 0, 0].map(() => {
-    const v = readU16(bytes, o); o += 2; return v;
-  });
-  const totalInteractions = readU16(bytes, o); o += 2;
-  const cycle = bytes[o++];
-  const hp = readU16(bytes, o); o += 2;
-  const atk = readU16(bytes, o); o += 2;
-  const def = readU16(bytes, o); o += 2;
-  const spd = readU16(bytes, o); o += 2;
-  const lastInteraction = readU32(bytes, o); o += 4;
-  const createdAt = readU32(bytes, o);
-  return {
-    familyId, stage, treeVersion, evolutionId, genes, weight, bond, activity,
-    hunger, energy, diet, timeInteractions, totalInteractions, cycle,
-    hp, atk, def, spd, lastInteraction, createdAt,
-    evolutionLeafHash: [] as number[],
-    genomeSeed: [] as number[],
-  };
-}
+export const REBYTER_CONDITION = {
+  tired: 1 << 0,
+  overfed: 1 << 1,
+  sick: 1 << 2,
+  injured: 1 << 3,
+} as const;
 
 function decodeDna(value: string) {
   const bytes = Uint8Array.from(bs58.decode(value));
-  if (bytes[0] === 2) return decodeDnaV2(value);
-  const legacy = decodeDnaV1(value);
+  if (bytes.length !== 60 || bytes[0] !== 3)
+    throw new Error("Unsupported Rebyter DNA: mint a DNA v3 Rebyter");
+  let o = 1;
+  const evolutionId = readU16(bytes, o); o += 2;
+  const genes = Array.from(bytes.slice(o, o + 4)); o += 4;
+  const weight = bytes[o++];
+  const bond = bytes[o++];
+  const discipline = bytes[o++];
+  const fullness = bytes[o++];
+  const energy = bytes[o++];
+  const condition = bytes[o++];
+  const diet = [0,0,0,0].map(()=>{ const v=readU16(bytes,o); o+=2; return v; });
+  const timeInteractions = [0,0,0,0].map(()=>{ const v=readU16(bytes,o); o+=2; return v; });
+  const totalInteractions = readU16(bytes,o); o+=2;
+  const cycle = bytes[o++];
+  const hp = readU16(bytes,o); o+=2;
+  const atk = readU16(bytes,o); o+=2;
+  const def = readU16(bytes,o); o+=2;
+  const spd = readU16(bytes,o); o+=2;
+  const lastStateAt = readU32(bytes,o); o+=4;
+  const stageEnteredAt = readU32(bytes,o); o+=4;
+  const createdAt = readU32(bytes,o); o+=4;
+  const learnedSkills = readU64(bytes,o);
   return {
-    ...legacy,
-    hp: 100 + (legacy.genes[11] ?? 0) * 2,
-    atk: 20 + (legacy.genes[9] ?? 0),
-    def: 20 + (legacy.genes[11] ?? 0),
-    spd: 20 + (legacy.genes[10] ?? 0),
+    evolutionId, genes, weight, bond, discipline, fullness, energy, condition,
+    diet, timeInteractions, totalInteractions, cycle, hp, atk, def, spd,
+    lastStateAt, stageEnteredAt, createdAt, learnedSkills,
   };
+}
+
+function effectiveDnaState(raw: ReturnType<typeof decodeDna>) {
+  const now = Math.floor(Date.now()/1000);
+  const hours = Math.max(0,Math.floor((now-raw.lastStateAt)/3600));
+  if(!hours) return raw;
+  const metabolism=raw.genes[0]??0;
+  const fullness=Math.max(0,raw.fullness-hours*(1+Math.floor(metabolism/34)));
+  const energy=Math.min(100,raw.energy+hours*(2+Math.floor(metabolism/50)));
+  let condition=raw.condition;
+  if(fullness<=80) condition&=~REBYTER_CONDITION.overfed;
+  if(energy>=40) condition&=~REBYTER_CONDITION.tired;
+  if(fullness===0&&hours>=12) condition|=REBYTER_CONDITION.sick;
+  return {...raw,fullness,energy,condition};
 }
 
 export async function fetchPlayerProfile(
@@ -264,7 +214,7 @@ export async function fetchFirstOwnedRebyter(
 
     let dnaState;
     try {
-      dnaState = decodeDna(dnaField);
+      dnaState = effectiveDnaState(decodeDna(dnaField));
     } catch {
       continue;
     }
@@ -273,29 +223,27 @@ export async function fetchFirstOwnedRebyter(
       address: mintString,
       owner: owner.toBase58(),
       mint: mintString,
-      familyId: dnaState.familyId,
-      stage: dnaState.stage,
-      treeVersion: dnaState.treeVersion,
       evolutionId: dnaState.evolutionId,
-      evolutionLeafHash: dnaState.evolutionLeafHash,
-      dna: dnaState.genomeSeed,
       dnaBase58: dnaField,
       genes: dnaState.genes,
       weight: dnaState.weight,
       bond: dnaState.bond,
-      activity: dnaState.activity,
-      hunger: dnaState.hunger,
+      discipline: dnaState.discipline,
+      fullness: dnaState.fullness,
       energy: dnaState.energy,
+      condition: dnaState.condition,
       diet: dnaState.diet,
       timeInteractions: dnaState.timeInteractions,
       totalInteractions: dnaState.totalInteractions,
       cycle: dnaState.cycle,
-      lastInteraction: dnaState.lastInteraction,
+      lastStateAt: dnaState.lastStateAt,
+      stageEnteredAt: dnaState.stageEnteredAt,
       createdAt: dnaState.createdAt,
       hp: dnaState.hp,
       atk: dnaState.atk,
       def: dnaState.def,
       spd: dnaState.spd,
+      learnedSkills: dnaState.learnedSkills,
       metadataUri: metadata.uri,
     };
   }
@@ -343,7 +291,7 @@ export async function fetchOwnedRebyters(
 
     let dnaState;
     try {
-      dnaState = decodeDna(dnaField);
+      dnaState = effectiveDnaState(decodeDna(dnaField));
     } catch {
       continue;
     }
@@ -352,29 +300,27 @@ export async function fetchOwnedRebyters(
       address: mintString,
       owner: owner.toBase58(),
       mint: mintString,
-      familyId: dnaState.familyId,
-      stage: dnaState.stage,
-      treeVersion: dnaState.treeVersion,
       evolutionId: dnaState.evolutionId,
-      evolutionLeafHash: dnaState.evolutionLeafHash,
-      dna: dnaState.genomeSeed,
       dnaBase58: dnaField,
       genes: dnaState.genes,
       weight: dnaState.weight,
       bond: dnaState.bond,
-      activity: dnaState.activity,
-      hunger: dnaState.hunger,
+      discipline: dnaState.discipline,
+      fullness: dnaState.fullness,
       energy: dnaState.energy,
+      condition: dnaState.condition,
       diet: dnaState.diet,
       timeInteractions: dnaState.timeInteractions,
       totalInteractions: dnaState.totalInteractions,
       cycle: dnaState.cycle,
-      lastInteraction: dnaState.lastInteraction,
+      lastStateAt: dnaState.lastStateAt,
+      stageEnteredAt: dnaState.stageEnteredAt,
       createdAt: dnaState.createdAt,
       hp: dnaState.hp,
       atk: dnaState.atk,
       def: dnaState.def,
       spd: dnaState.spd,
+      learnedSkills: dnaState.learnedSkills,
       metadataUri: metadata.uri,
     });
   }
@@ -516,7 +462,7 @@ export async function createRebyter(
 }
 
 
-export type RebyterInteraction = "feed" | "play" | "care";
+export type RebyterInteraction = "feed" | "play" | "care" | "rest" | "train";
 
 export async function interactWithRebyter(
   connection: Connection,
@@ -524,7 +470,7 @@ export async function interactWithRebyter(
   wallet: WalletContextState,
   mintString: string,
   action: RebyterInteraction,
-  foodType = 0,
+  option = 0,
 ) {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
@@ -541,9 +487,11 @@ export async function interactWithRebyter(
   const program = getProgram(connection, anchorWallet);
 
   let builder;
-  if (action === "feed") builder = program.methods.feed(foodType);
+  if (action === "feed") builder = program.methods.feed(option);
   else if (action === "play") builder = program.methods.play();
-  else builder = program.methods.care();
+  else if (action === "care") builder = program.methods.care();
+  else if (action === "rest") builder = program.methods.rest();
+  else builder = program.methods.train(option);
 
   const ix = await builder
     .accountsStrict({
@@ -583,18 +531,10 @@ export async function evolveRebyter(
   tree: TreeJson,
   sourceId: number,
   targetId: number,
-  treeVersion?: number,
 ) {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
-  let evolutionTree = tree;
-  if (treeVersion !== undefined && tree.version !== treeVersion) {
-    const metadata = await fetchTree(connection, tree.family.id, treeVersion);
-    if (!metadata)
-      throw new Error(`Rebyter atlas v${treeVersion} is no longer available`);
-    evolutionTree = await fetchVerifiedTree(metadata);
-  }
-
+  const evolutionTree = tree;
   const source = evolutionTree.evolutions.find((e) => e.id === sourceId);
   const path = source?.paths.find((p) => p.target === targetId);
   const target = evolutionTree.evolutions.find((e) => e.id === targetId);
@@ -633,6 +573,7 @@ export async function evolveRebyter(
       mint,
       ownerTokenAccount,
       rebyterAuthority,
+      registry: registryPda(),
       tree: treePda(evolutionTree.family.id, evolutionTree.version),
       ruleSet:
         evolutionTree.proofMode === "unified-v1"
