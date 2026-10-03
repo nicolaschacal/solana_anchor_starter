@@ -2907,3 +2907,16 @@ button.account-card.account-nav-card{
     max-height:min(680px,82dvh)!important;
   }
 }
+
+
+/* Prevent document-level pull/scroll while the game shell is mounted. */
+html:has(.player-bg),
+body:has(.player-bg),
+#root:has(.player-bg){
+  width:100%;
+  height:100dvh;
+  min-height:100dvh;
+  max-height:100dvh;
+  overflow:hidden;
+  overscroll-behavior:none;
+}
