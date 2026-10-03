@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
@@ -88,15 +88,28 @@ function Shell({children}:{children:React.ReactNode}) {
 
 function Header() {
   const wallet = useWallet();
+  const { connection } = useConnection();
   const navigate = useNavigate();
+  const [solBalance,setSolBalance]=useState<number|null>(null);
+
+  useEffect(()=>{
+    let cancelled=false;
+    if(!wallet.publicKey){setSolBalance(null);return;}
+    void connection.getBalance(wallet.publicKey,"confirmed")
+      .then(lamports=>{if(!cancelled)setSolBalance(lamports/1_000_000_000)})
+      .catch(()=>{if(!cancelled)setSolBalance(null)});
+    return()=>{cancelled=true};
+  },[connection,wallet.publicKey]);
+
+  const balanceLabel=solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
 
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
       {!wallet.connected
         ? <WalletMultiButton><><CircleUserRound/><span>Login</span><ChevronDown className="account-chevron"/></></WalletMultiButton>
-        : <button className="user-menu-trigger account-direct-link" onClick={()=>navigate("/account")} aria-label="Open account">
-            <CircleUserRound/><span>Account</span>
+        : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate("/account")} aria-label="Open account">
+            <CircleUserRound/><span>{balanceLabel}</span>
           </button>}
     </div>
   </header>;
@@ -295,7 +308,8 @@ export function PlayerHome() {
   const [activeMint,setActiveMint]=useState("");
   const [minting,setMinting]=useState(false);
   const [feeding,setFeeding]=useState(false);
-  const [denOpen,setDenOpen]=useState(false);
+  const [homeParams]=useSearchParams();
+  const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
   const [reaction,setReaction]=useState("Your companion is watching you.");
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
@@ -361,7 +375,7 @@ export function PlayerHome() {
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button onClick={()=>setDetailOpen(false)}>×</button></div>
+        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="sheet-close-text" onClick={()=>setDetailOpen(false)}>Close</button></div>
         <div className="sheet-section-label">Personality</div>
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
@@ -385,23 +399,31 @@ export function PlayerHome() {
 
     {denOpen&&<div className="game-sheet-backdrop" onClick={()=>setDenOpen(false)}>
       <section className="game-sheet den-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button onClick={()=>setDenOpen(false)}>×</button></div>
+        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button className="sheet-close-text" onClick={()=>setDenOpen(false)}>Close</button></div>
         {player.loading&&!player.ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
-          {owned.map(item=>{
+          {owned.map((item,index)=>{
             const form=tree.evolutions.find(e=>e.id===item.evolutionId);
             if(!form) return null;
-            return <button key={item.mint} className={item.mint===active.mint?"active":""} onClick={()=>{setActiveMint(item.mint);setDenOpen(false)}}>
-              <CreatureSprite evolution={form}/><strong>{form.name}</strong><small>{STAGE_NAMES[form.stage]}</small>
-            </button>;
+            const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
+            return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===active.mint?" active":""}`}>
+              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setDenOpen(false)}}>
+                <div className="den-card-art"><CreatureSprite evolution={form}/></div>
+                <strong>{form.name}</strong>
+                <small>{STAGE_NAMES[form.stage]}</small>
+              </button>
+              <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
+                {mintLabel}<ExternalLink/>
+              </a>
+            </article>;
           })}
         </div>}
-        <button className="den-mint-cta" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><span><strong>Mint another Rebyter</strong><small>Add a new companion to your den</small></span><ChevronRight/></button>
+        <button className="den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>New Rebyter</strong><ChevronRight/></button>
       </section>
     </div>}
 
     {feeding&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
       <section className="game-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>×</button></div>
+        <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>Close</button></div>
         <div className="food-grid">
           {[
             ["Meat","Builds carnivore history",0],
@@ -521,7 +543,7 @@ export function PlayerAccount() {
   const player=usePlayerCollection();
   const wallet=useWallet();
   const navigate=useNavigate();
-  const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
+  const { owned, playerProfile, ownedLoadedAll, loadAll }=player;
   const shortAddress=wallet.publicKey?`${wallet.publicKey.toBase58().slice(0,6)}…${wallet.publicKey.toBase58().slice(-6)}`:"";
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
 
@@ -532,28 +554,24 @@ export function PlayerAccount() {
 
   return <Shell><Header/><main className="player-main account-page">
     <div className="player-page-head"><small>ACCOUNT</small><h1>Your den</h1><p>Wallet, discovery history and your Rebyters live here.</p></div>
+
     <section className="account-card"><CircleUserRound/><div><small>PLAYER IDENTITY</small><strong>Wallet access</strong><p>Your wallet is the identity behind this persistent player profile.</p></div>
       {wallet.connected
         ? <div className="account-wallet-id"><small>CONNECTED WALLET</small><code>{shortAddress}</code></div>
         : <WalletMultiButton><><CircleUserRound/> Login</></WalletMultiButton>}
     </section>
-    {playerProfile&&<section className="trainer-profile-card">
-      <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{playerProfile.discoveries.length} discovered</h2><p>Your discovered forms stay with this wallet even after a Rebyter evolves.</p></div></div>
-    </section>}
-    <section className="account-card subtle"><Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>{owned.length?"Your on-chain Rebyters are listed below.":"No Rebyters found in this wallet."}</p></div></section>
-    {owned.length>0&&<section className="onchain-companions">
-      <div className="section-title"><div><small>ON-CHAIN ASSETS</small><h2>Your mints</h2></div><span>Devnet</span></div>
-      {owned.map(item=>{
-        const evolution=tree.evolutions.find(e=>e.id===item.evolutionId);
-        return <div className="onchain-companion" key={item.mint}>
-          {evolution&&<CreatureSprite evolution={evolution}/>}
-          <div><strong>{evolution?.name??"Rebyter"}</strong><code>{item.mint}</code></div>
-          <a href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer">Explorer <ExternalLink/></a>
-        </div>;
-      })}
-    </section>}
+
+    <div className="account-nav-grid">
+      <button className="trainer-profile-card account-nav-card" onClick={()=>navigate("/atlas")}>
+        <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{playerProfile?.discoveries.length??0} discovered</h2><p>Open your Atlas and review every form you have discovered.</p></div><ChevronRight/></div>
+      </button>
+      <button className="account-card subtle account-nav-card" onClick={()=>navigate("/?den=1")}>
+        <Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>Open your Den and switch between your Rebyters.</p></div><ChevronRight/>
+      </button>
+    </div>
+
     {wallet.connected&&<div className="account-logout">
-      <button onClick={()=>void logOut()}><LogOut/> Log out</button>
+      <button onClick={()=>void logOut()}>Log out</button>
     </div>}
   </main></Shell>;
 }
