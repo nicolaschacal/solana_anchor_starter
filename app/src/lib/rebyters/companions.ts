@@ -58,7 +58,6 @@ export interface OnchainRebyter {
   cycle: number;
   lastStateAt: number;
   stageEnteredAt: number;
-  createdAt: number;
   hp: number;
   atk: number;
   def: number;
