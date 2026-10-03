@@ -1691,3 +1691,180 @@ button.account-card.account-nav-card{
   .den-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}
   .discovery-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
 }
+
+
+/* UX refinement v7 — restore Den proportions + true desktop header navigation */
+.desktop-top-nav{display:none}
+
+/* Keep sheets slightly separated from the top chrome, but not so low that home controls peek above them. */
+.game-sheet{top:12px!important}
+@media(max-width:700px){
+  .game-sheet{top:11px!important}
+}
+
+/* Restore Den card proportions. The CTA sits low through layout, not by attaching it to the modal edge. */
+.den-sheet{
+  padding:18px!important;
+  padding-bottom:18px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.den-grid{
+  flex:0 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-top:14px!important;
+  padding:0 0 12px!important;
+}
+.den-card-select{min-height:128px!important}
+.den-card-art{min-height:78px!important}
+.den-card-art .creature-sprite{width:74px!important;height:70px!important}
+.den-mint-cta.compact{
+  position:relative!important;
+  bottom:auto!important;
+  z-index:1!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:50px!important;
+  margin:clamp(26px,6vh,54px) 0 0!important;
+  padding:11px 14px!important;
+  border:1px solid var(--rb-accent)!important;
+  border-radius:16px!important;
+  box-shadow:0 8px 26px rgba(92,214,255,.18)!important;
+}
+
+/* Desktop: 100vh exactly, navigation lives in the top bar, never in a sticky footer. */
+@media(min-width:900px){
+  html,body,#root,.player-bg,.player-shell{
+    height:100dvh!important;
+    min-height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+  }
+
+  .player-shell{padding-bottom:0!important}
+
+  .player-head{
+    width:min(1180px,calc(100vw - 48px))!important;
+    height:76px!important;
+    min-height:76px!important;
+    max-height:76px!important;
+    margin:0 auto!important;
+    padding:16px 4px!important;
+  }
+
+  .player-head-actions{gap:10px!important}
+  .desktop-top-nav{
+    display:flex!important;
+    align-items:center;
+    gap:6px;
+    margin-right:2px;
+  }
+  .desktop-top-nav a{
+    min-width:42px;
+    height:38px;
+    padding:0 10px;
+    border:1px solid transparent;
+    border-radius:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    color:var(--rb-muted);
+    text-decoration:none;
+    font:500 9px 'Sora',sans-serif;
+    transition:background .15s ease,border-color .15s ease,color .15s ease;
+  }
+  .desktop-top-nav a svg{
+    width:16px;height:16px;stroke-width:1.7;
+  }
+  .desktop-top-nav a:hover{
+    background:rgba(255,255,255,.045);
+    border-color:rgba(160,200,255,.12);
+    color:var(--rb-text);
+  }
+  .desktop-top-nav a.active{
+    background:rgba(92,214,255,.08);
+    border-color:rgba(92,214,255,.22);
+    color:var(--rb-accent);
+  }
+
+  .wallet-balance-trigger .account-chevron{
+    width:11px!important;
+    height:11px!important;
+    opacity:.7!important;
+  }
+
+  .player-nav{display:none!important}
+
+  .game-home{
+    width:min(1180px,calc(100vw - 48px))!important;
+    height:calc(100dvh - 76px)!important;
+    min-height:calc(100dvh - 76px)!important;
+    max-height:calc(100dvh - 76px)!important;
+    margin:0 auto!important;
+    overflow:hidden!important;
+  }
+
+  .game-viewer{
+    inset:16px 0 18px!important;
+    height:auto!important;
+  }
+
+  .game-controls{
+    bottom:20px!important;
+  }
+
+  .player-main{
+    width:min(1180px,calc(100vw - 48px))!important;
+    height:calc(100dvh - 76px)!important;
+    min-height:0!important;
+    max-height:calc(100dvh - 76px)!important;
+    margin:0 auto!important;
+    padding:26px 0 34px!important;
+    overflow:auto!important;
+    overscroll-behavior:contain;
+  }
+
+  .account-page,
+  .evolution-player,
+  .atlas-player{
+    min-height:0!important;
+    max-height:calc(100dvh - 76px)!important;
+  }
+
+  .game-sheet-backdrop{
+    inset:76px 0 0!important;
+    height:calc(100dvh - 76px)!important;
+    padding:0!important;
+    align-items:flex-start!important;
+  }
+  .game-sheet{
+    top:auto!important;
+    width:min(720px,calc(100vw - 80px))!important;
+    height:min(660px,calc(100dvh - 150px))!important;
+    margin:16px auto 0!important;
+  }
+
+  .den-sheet{width:min(720px,calc(100vw - 80px))!important}
+  .den-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .den-card-select{min-height:128px!important}
+  .den-card-art{min-height:78px!important}
+  .den-card-art .creature-sprite{width:74px!important;height:70px!important}
+  .den-mint-cta.compact{
+    width:100%!important;
+    margin:clamp(28px,5vh,48px) 0 0!important;
+    border-radius:16px!important;
+    padding:11px 14px!important;
+    min-height:50px!important;
+  }
+}
+
+@media(min-width:1280px){
+  .den-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
