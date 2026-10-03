@@ -6,8 +6,7 @@ import { Solana } from "@irys/upload-solana";
 import { RegistryWriter, fetchRegistry, fetchTree } from "../src/lib/rebyters/registry";
 import { sendInstruction } from "../src/lib/rebyters/transactions";
 import { publishTree, type PublishJournal } from "../src/lib/rebyters/publish";
-import { buildMammalDnaV3Upgrade } from "../src/lib/rebyters/sample";
-import { fetchVerifiedTreeForMigration } from "../src/lib/rebyters/tree";
+import { MAMMAL_SEED_EVOLUTION_COUNT, sampleMammal } from "../src/lib/rebyters/sample";
 import { PROGRAM_ID, registryPda, treePda } from "../src/lib/rebyters/config";
 import { canonicalTree, contentHash } from "../src/lib/rebyters/canonical";
 import { validateTree } from "../src/lib/rebyters/validation";
@@ -53,99 +52,56 @@ async function main() {
     throw new Error("Configured wallet is not the registry authority");
   }
 
-  const activeVersion = registry.activeVersions[0];
-  if (!activeVersion) throw new Error("Mammal has no active atlas");
-
-  const activeMeta = await fetchTree(connection, 0, activeVersion);
-  if (!activeMeta) throw new Error("Active Mammal metadata is missing");
-  const previous = await fetchVerifiedTreeForMigration(activeMeta);
+  const activeVersion = registry.activeVersions[0] ?? 0;
 
   await mkdir("../artifacts/publication", { recursive: true });
 
-  // DNA v3 migration is deterministic: always rebuild from the currently
-  // authenticated active atlas + the canonical DNA v3 seed. Never reuse a
-  // pending file created by an earlier implementation.
-  const desiredTree = buildMammalDnaV3Upgrade(
-    previous,
-    registry.nextVersions[0],
-  );
-
-  const metricPattern =
-    /^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/;
-  const invalidMetrics: Array<{
-    evolution: string;
-    path: number;
-    location: string;
-    metric: string;
-  }> = [];
-
-  desiredTree.evolutions.forEach((evolution) => {
-    evolution.paths.forEach((path, pathIndex) => {
-      if (!path.rule) return;
-      path.rule.groups.forEach((group, groupIndex) => {
-        group.alternatives.forEach((alternative, alternativeIndex) => {
-          alternative.forEach((condition, conditionIndex) => {
-            condition.metrics.forEach((metric) => {
-              if (!metricPattern.test(metric)) {
-                invalidMetrics.push({
-                  evolution: evolution.name,
-                  path: pathIndex,
-                  location: `group ${groupIndex}, alternative ${alternativeIndex}, condition ${conditionIndex}`,
-                  metric,
-                });
-              }
-            });
-          });
-        });
-      });
-      path.rule.mandatory.forEach((condition, conditionIndex) => {
-        condition.metrics.forEach((metric) => {
-          if (!metricPattern.test(metric)) {
-            invalidMetrics.push({
-              evolution: evolution.name,
-              path: pathIndex,
-              location: `mandatory ${conditionIndex}`,
-              metric,
-            });
-          }
-        });
-      });
-      path.rule.bonuses.forEach((condition, conditionIndex) => {
-        condition.metrics.forEach((metric) => {
-          if (!metricPattern.test(metric)) {
-            invalidMetrics.push({
-              evolution: evolution.name,
-              path: pathIndex,
-              location: `bonus ${conditionIndex}`,
-              metric,
-            });
-          }
-        });
-      });
-    });
-  });
-
-  if (invalidMetrics.length) {
-    throw new Error(
-      "DNA v3 canonical seed contains invalid metrics:\n" +
-        invalidMetrics
-          .map(
-            item =>
-              `- ${item.evolution} path ${item.path} ${item.location}: ${item.metric}`,
-          )
-          .join("\n"),
-    );
+  // DNA v3 is a clean devnet generation. Do not preserve old evolution IDs,
+  // old rules, or any compatibility layer. The only source of truth is the
+  // canonical DNA v3 Mammal seed.
+  let journal: PublishJournal | undefined;
+  try {
+    journal = JSON.parse(await readFile(journalFile, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
 
-  // Run the exact validator used by Admin/publish before touching Irys/Solana.
-  validateTree(desiredTree);
+  const nextVersion = registry.nextVersions[0];
 
-  const journal: PublishJournal = {
-    tree: desiredTree,
-    baseVersion: activeVersion,
-    replaceCollection: false,
-  };
-  await writeFile(journalFile, JSON.stringify(journal, null, 2));
+  // A pending journal is reusable only if it was created by this fresh DNA v3
+  // flow for the current base/version and still validates against today's code.
+  let reusePending = false;
+  if (
+    journal &&
+    journal.baseVersion === activeVersion &&
+    journal.tree.version === nextVersion &&
+    journal.replaceCollection === true
+  ) {
+    try {
+      validateTree(journal.tree);
+      reusePending = journal.tree.proofMode === "unified-v1";
+    } catch {
+      reusePending = false;
+    }
+  }
+
+  if (!reusePending) {
+    console.log(
+      `Reserving ${MAMMAL_SEED_EVOLUTION_COUNT} fresh DNA v3 evolution IDs`,
+    );
+    const start = await writer.reserve(MAMMAL_SEED_EVOLUTION_COUNT);
+    const desiredTree = sampleMammal(start, nextVersion);
+    validateTree(desiredTree);
+
+    journal = {
+      tree: desiredTree,
+      baseVersion: activeVersion,
+      replaceCollection: true,
+    };
+    await writeFile(journalFile, JSON.stringify(journal, null, 2));
+  } else {
+    console.log("Reusing fresh DNA v3 pending publication");
+  }
 
   if (journal.tree.proofMode !== "unified-v1") {
     throw new Error("DNA v3 requires unified-v1 atlas proofs");
@@ -154,7 +110,7 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        status: "Preparing DNA v3 atlas",
+        status: "Preparing fresh DNA v3 atlas",
         fromVersion: activeVersion,
         toVersion: journal.tree.version,
         creatures: journal.tree.evolutions.length,
