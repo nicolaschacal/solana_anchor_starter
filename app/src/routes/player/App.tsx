@@ -157,11 +157,16 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
 function rhythmProfile(values:number[]) {
   const total=values.reduce((n,v)=>n+(v??0),0);
   if (!total) return {label:"Undetermined",detail:"Interact at different times to reveal a rhythm."};
-  const [night=0,morning=0,day=0,evening=0]=values;
-  if ((night+evening)/total>=.6) return {label:"Nocturnal",detail:"Most activity happens after daylight."};
-  if ((morning+day)/total>=.6) return {label:"Diurnal",detail:"Most activity happens during daylight."};
-  if (evening===Math.max(...values)) return {label:"Crepuscular",detail:"Activity peaks around the evening."};
-  return {label:"Flexible",detail:"Activity is spread across different times."};
+  const labels=["Nocturnal","Early bird","Diurnal","Evening"];
+  const details=[
+    "Most interactions happen at night.",
+    "Most interactions happen in the morning.",
+    "Most interactions happen during the day.",
+    "Most interactions happen in the evening.",
+  ];
+  let best=0;
+  for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
+  return {label:labels[best]??"Undetermined",detail:details[best]??""};
 }
 function dietProfile(values:number[]) {
   const labels=["Meat leaning","Plant leaning","Fish leaning","Fruit leaning"];
@@ -503,7 +508,7 @@ export function PlayerHome() {
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
         <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="sheet-close-text" onClick={()=>setDetailOpen(false)}>Close</button></div>
-        <div className="sheet-section-label">Personality</div>
+        <div className="sheet-section-label">Habits & build</div>
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
           <span>{dietProfile(active.diet).label}</span>
