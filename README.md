@@ -2,13 +2,13 @@
 
 One Solana program, one React client. `programs/solana_anchor_starter/` is the **only on-chain program**. `app/` contains the player experience, admin dashboard and publishing tools. There is no gameplay backend/database: Rebyter state lives in Token-2022 metadata and gameplay mutations are verified by the Solana program.
 
-The current gameplay baseline is **DNA v3**: a 60-byte on-chain state model with four genetic predispositions, lazy Fullness/Energy state, Bond, Discipline, conditions, training, persistent skills and data-driven evolution rules. See [DNA v3 gameplay architecture](docs/REBYTERS_GAMEPLAY_DNA_V3.md).
+The current gameplay baseline uses a **50-byte on-chain DNA state with no schema/version byte**. It stores visible gameplay state only: Weight, Bond, Discipline, Care Mistakes, Fullness, Energy, condition flags, diet/rhythm history, Cycle, combat stats, lazy-state timing, stage timing and persistent skills. There are no genetics, total-interaction counter or DNA birth timestamp. See [gameplay architecture](docs/REBYTERS_GAMEPLAY.md).
 
-The Mammal atlas contains 58 forms, 85 connections and one BIT origin (`mammal.exe`). DNA v3 development rules require earned stats, time in form, interactions and healthy condition before evolution, then use diet, observed rhythm, care, weight and genetics to shape branches. See [deployment addresses and receipts](docs/devnet-deployment.md).
+The Mammal atlas contains 58 forms, 85 connections and one BIT origin (`mammal.exe`). Evolution routes are physiology-driven and readable in the player UI: diet tendency, time-of-day tendency, body weight, trained stat, Bond or Discipline, optional Care Mistakes at later stages, plus a short 1/10/20/40/60-minute stage timer. See [deployment addresses and receipts](docs/devnet-deployment.md).
 
 The dashboard opens into a responsive collection grouped by BIT, BYTE, KYLO, MEGA, GIGA and TERA. Desktop shows multiple specimens per row; mobile starts at BIT with stage filters and an All option. Stage filters survive a visit to a specimen's lineage, and search spans all stages. Selecting a specimen shows its immediate predecessors and successors. The connection map remains an alternative view with pan, zoom and origin centering. Local concept sprites follow the workbook's body plans; supplied image assets take precedence. Detailed records and publication data are collapsible.
 
-Workbook source: `../Rebyters_Mammal_EXE_Evolution_Graph_v2.xlsx`. Reimport with `python scripts/import-mammal-workbook.py` from `app/`. The current `mammal.seed.json` is now also a gameplay eligibility dataset: DNA v3 numeric balance and structured rule proofs are part of the published atlas. Reimporting the workbook must not silently overwrite the DNA v3 balance without reapplying/validating gameplay rules.
+Workbook source: `../Rebyters_Mammal_EXE_Evolution_Graph_v2.xlsx`. Reimport with `python scripts/import-mammal-workbook.py` from `app/`. The current `mammal.seed.json` is now also a gameplay eligibility dataset: current physiology balance and structured rule proofs are part of the published atlas. Reimporting the workbook must not silently overwrite the current balance without reapplying/validating gameplay rules.
 
 ## Local dashboard
 
@@ -32,8 +32,8 @@ cp target/idl/solana_anchor_starter.json app/src/idl/solana_anchor_starter.json
 cd app
 # Initial empty/dev registry only:
 npm run publish:sample
-# Existing Mammal collection -> next DNA v3 rules version, preserving IDs/assets:
-npm run publish:dna-v3
+# Current generation -> fresh Mammal IDs, reusing already-published media:
+npm run publish:current
 ```
 
 If `anchor`'s AVM wrapper is unavailable in a restricted shell, the installed binary is `/home/codespace/.avm/bin/anchor-1.2.0`. The deployer must be funded before deployment. The sample command uses the generated wallet by default, reserves IDs, uploads to Irys devnet, registers/activates the tree, downloads it again, verifies both hashes, and saves public receipts in `artifacts/publication/`. `SOLANA_WALLET_PATH`, `IRYS_WALLET_PATH`, `SOLANA_RPC_URL`, and `IRYS_GATEWAY` override defaults. Export these variables in your shell; `.env.example` documents them. No private key is put in a `VITE_` variable. The script refuses non-devnet genesis hashes.
@@ -50,9 +50,9 @@ Publish validates the draft, uploads new canonical JSON, verifies the upload, cr
 
 Anchor 1.2.0, Solana CLI 4.1.2 and Rust 1.98.1 were preserved. RegistryRoot is 172 bytes including discriminator. EvolutionTree is 215 bytes including discriminator. Registry seed: `[b"registry"]`; tree seeds: `[b"tree", one-byte family ID, little-endian u32 version]`. Family IDs 0-7 are supported, 8-15 reserved. URI capacity is 128 UTF-8 bytes, HTTPS only. Versions start at 1 and never reuse closed addresses. IDs start at 1, max 65535; u32 next-ID counter represents exhaustion at 65536.
 
-Bootstrap verifies the actual upgradeable-loader ProgramData PDA, owner, discriminator and upgrade authority; a random first caller cannot initialize. All later writes require the stored registry authority. Trees have no in-place edit instruction. Registry/tree publication remains versioned for rollback, while DNA v3 Rebyters are not pinned to a historical tree version and evolve against the currently active unified atlas. Gameplay instructions include create_rebyter, feed, play, care, rest, train and evolve in addition to registry/admin instructions. Rebyters are Token-2022 1/1 mints with self metadata pointer and program-controlled metadata updates. Closing an active tree is forbidden.
+Bootstrap verifies the actual upgradeable-loader ProgramData PDA, owner, discriminator and upgrade authority; a random first caller cannot initialize. All later writes require the stored registry authority. Trees have no in-place edit instruction. Registry/tree publication remains versioned for rollback, while Current Rebyters are not pinned to a historical tree version and evolve against the currently active unified atlas. Gameplay instructions include create_rebyter, feed, play, care, rest, train and evolve in addition to registry/admin instructions. Rebyters are Token-2022 1/1 mints with self metadata pointer and program-controlled metadata updates. Closing an active tree is forbidden.
 
-The on-chain program authenticates publication metadata, not JSON semantics. It cannot fetch Irys. The admin is trusted to publish correctly; the client rejects duplicate IDs and invalid rules and protects identities relative to its active base version. A malicious authority can bypass those client checks. A global counter guarantees unique *reservations*, not permanent cross-version identity semantics in arbitrary uploaded JSON. Rollback may omit newer identities and closing newer metadata may remove their discovery path. DNA v3 resolves future evolution against the Registry's active atlas rather than storing an atlas version inside each NFT. Merkle verification authenticates bytes, not the truth or safety of the contained rules.
+The on-chain program authenticates publication metadata, not JSON semantics. It cannot fetch Irys. The admin is trusted to publish correctly; the client rejects duplicate IDs and invalid rules and protects identities relative to its active base version. A malicious authority can bypass those client checks. A global counter guarantees unique *reservations*, not permanent cross-version identity semantics in arbitrary uploaded JSON. Rollback may omit newer identities and closing newer metadata may remove their discovery path. The current DNA resolves future evolution against the Registry's active atlas rather than storing an atlas version inside each NFT. Merkle verification authenticates bytes, not the truth or safety of the contained rules.
 
 ## Canonical JSON and proofs
 
