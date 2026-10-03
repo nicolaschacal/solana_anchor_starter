@@ -38,21 +38,7 @@
               },
               {
                 "metrics": [
-                  "physical.weight"
-                ],
-                "test": "range",
-                "level": "low"
-              },
-              {
-                "metrics": [
                   "battle.attack"
-                ],
-                "test": "min",
-                "level": "medium"
-              },
-              {
-                "metrics": [
-                  "care.bond"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -72,9 +58,7 @@
           "designRule": {
             "Diet": "+meat",
             "Rhythm": "+night",
-            "Weight": "light",
             "Training": "attack+",
-            "Care": "bond medium",
             "Timer": "1 min"
           }
         },
@@ -101,21 +85,7 @@
               },
               {
                 "metrics": [
-                  "physical.weight"
-                ],
-                "test": "range",
-                "level": "low"
-              },
-              {
-                "metrics": [
                   "battle.speed"
-                ],
-                "test": "min",
-                "level": "medium"
-              },
-              {
-                "metrics": [
-                  "care.bond"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -135,9 +105,7 @@
           "designRule": {
             "Diet": "+fruit",
             "Rhythm": "+morning",
-            "Weight": "light",
             "Training": "speed+",
-            "Care": "bond medium",
             "Timer": "1 min"
           }
         },
@@ -164,21 +132,7 @@
               },
               {
                 "metrics": [
-                  "physical.weight"
-                ],
-                "test": "range",
-                "level": "medium"
-              },
-              {
-                "metrics": [
                   "battle.defense"
-                ],
-                "test": "min",
-                "level": "medium"
-              },
-              {
-                "metrics": [
-                  "care.discipline"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -198,9 +152,7 @@
           "designRule": {
             "Diet": "+plant",
             "Rhythm": "+day",
-            "Weight": "medium",
             "Training": "defense+",
-            "Care": "discipline medium",
             "Timer": "1 min"
           }
         },
@@ -227,21 +179,7 @@
               },
               {
                 "metrics": [
-                  "physical.weight"
-                ],
-                "test": "range",
-                "level": "low"
-              },
-              {
-                "metrics": [
                   "battle.speed"
-                ],
-                "test": "min",
-                "level": "medium"
-              },
-              {
-                "metrics": [
-                  "care.bond"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -261,9 +199,7 @@
           "designRule": {
             "Diet": "+fish",
             "Rhythm": "+evening",
-            "Weight": "light",
             "Training": "speed+",
-            "Care": "bond medium",
             "Timer": "1 min"
           }
         }
@@ -6821,8 +6757,8 @@
     }
   ],
   "balance": {
-    "version": "mammal-current-physiology-1",
-    "source": "Rebyters current gameplay: physiology-inspired diet, rhythm, body weight, training, bond/discipline, care mistakes and short stage timers",
+    "version": "mammal-current-physiology-2",
+    "source": "Rebyters current gameplay: simplified BIT→BYTE onboarding; physiology-driven later stages",
     "metrics": {
       "diet.meat": {
         "label": "Meat",
