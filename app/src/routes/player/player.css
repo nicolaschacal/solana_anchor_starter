@@ -2180,3 +2180,11 @@ button.account-card.account-nav-card{
   }
   .game-controls{bottom:86px}
 }
+
+
+/* Five persistent interaction actions remain visible even when evolution is ready. */
+.care-actions{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+@media(max-width:420px){
+  .care-actions button{padding-left:2px!important;padding-right:2px!important;font-size:8px!important}
+  .care-actions button>svg:first-child{width:21px;height:21px}
+}
