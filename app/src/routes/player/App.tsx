@@ -128,10 +128,15 @@ function Header() {
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
+      <nav className="desktop-top-nav" aria-label="Player navigation">
+        <NavLink end to="/" aria-label="Home" title="Home"><Home/><span>Home</span></NavLink>
+        <NavLink to="/lab" aria-label="Lab" title="Lab"><Atom/><span>Lab</span></NavLink>
+        <NavLink to="/atlas" aria-label="Atlas" title="Atlas"><BookOpen/><span>Atlas</span></NavLink>
+      </nav>
       {!wallet.connected
         ? <WalletMultiButton><><CircleUserRound/><span>Login</span><ChevronDown className="account-chevron"/></></WalletMultiButton>
         : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate("/account")} aria-label="Open account">
-            <CircleUserRound/><span>{balanceLabel}</span>
+            <CircleUserRound/><span>{balanceLabel}</span><ChevronDown className="account-chevron"/>
           </button>}
     </div>
   </header>;
