@@ -487,6 +487,8 @@ pub mod solana_anchor_starter {
 
         dna.evolution_id = target_id;
         dna.care_mistakes = 0;
+        dna.diet = [0; 4];
+        dna.time_interactions = [0; 4];
         dna.stage_entered_at = clock.unix_timestamp.max(0) as u32;
         dna.last_state_at = dna.stage_entered_at;
         let dna_base58 = bs58::encode(dna.encode()).into_string();
@@ -714,7 +716,10 @@ fn materialize_lazy_state(dna: &mut RebyterDna, now: u32) {
 
     if dna.fullness <= 80 { clear_condition(dna, CONDITION_OVERFED); }
     if dna.energy >= 40 { clear_condition(dna, CONDITION_TIRED); }
-    if dna.fullness == 0 && hours >= 12 { add_condition(dna, CONDITION_SICK); }
+    if dna.fullness == 0 && hours >= 12 && !has_condition(dna, CONDITION_SICK) {
+        add_condition(dna, CONDITION_SICK);
+        add_care_mistake(dna);
+    }
     dna.last_state_at = now;
 }
 
