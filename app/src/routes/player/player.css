@@ -2611,3 +2611,299 @@ button.account-card.account-nav-card{
   .profile-access-card{grid-template-columns:auto 1fr!important}
   .profile-access-card .account-wallet-id{grid-column:1/-1}
 }
+
+
+/* Mobile viewport + chrome consistency */
+@media(max-width:899px){
+  .player-bg{
+    width:100%!important;
+    height:100dvh!important;
+    min-height:100dvh!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+  }
+
+  .player-shell{
+    width:min(100%,480px)!important;
+    height:100dvh!important;
+    min-height:100dvh!important;
+    max-height:100dvh!important;
+    padding-bottom:0!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+    position:relative!important;
+  }
+
+  /* Same transparent top chrome everywhere. Content pages reserve its height;
+     Home places the same chrome over the viewer. */
+  .player-head{
+    position:relative!important;
+    z-index:40!important;
+    width:100%!important;
+    height:66px!important;
+    min-height:66px!important;
+    max-height:66px!important;
+    margin:0!important;
+    padding:12px 14px!important;
+    background:transparent!important;
+    border-bottom:1px solid rgba(220,238,255,.14)!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  .player-main{
+    height:calc(100dvh - 66px)!important;
+    min-height:0!important;
+    max-height:calc(100dvh - 66px)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior-y:contain!important;
+    -webkit-overflow-scrolling:touch;
+    padding-top:18px!important;
+    padding-bottom:106px!important;
+  }
+
+  .player-shell:has(> .game-home) > .player-head{
+    position:absolute!important;
+    top:0!important;
+    left:0!important;
+    right:0!important;
+  }
+
+  .player-shell:has(> .game-home) > .game-home{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100dvh!important;
+    min-height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+    touch-action:none;
+    padding:0!important;
+    margin:0!important;
+  }
+
+  .player-shell:has(> .game-home) .game-viewer{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    touch-action:none!important;
+  }
+
+  /* One bottom nav geometry for every player route. */
+  .player-nav{
+    position:absolute!important;
+    z-index:70!important;
+    left:12px!important;
+    right:12px!important;
+    bottom:10px!important;
+    transform:none!important;
+    width:auto!important;
+    height:64px!important;
+    margin:0!important;
+    padding:6px!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    border-radius:20px!important;
+    background:rgba(10,19,38,.22)!important;
+    border:1px solid rgba(220,238,255,.16)!important;
+    box-shadow:none!important;
+    backdrop-filter:blur(14px)!important;
+    -webkit-backdrop-filter:blur(14px)!important;
+  }
+
+  .player-nav a{
+    min-width:0!important;
+    border-radius:15px!important;
+  }
+
+  .player-nav a.active{
+    background:rgba(92,214,255,.09)!important;
+    color:var(--rb-accent)!important;
+  }
+
+  .game-controls{bottom:84px!important}
+}
+
+/* Login is a true bottom sheet, like Minuttery. */
+.auth-modal-backdrop{
+  align-items:flex-end!important;
+  justify-content:center!important;
+  padding:0!important;
+  background:rgba(2,5,14,.56)!important;
+}
+
+.auth-modal{
+  width:min(100%,480px)!important;
+  min-height:50dvh!important;
+  max-height:72dvh!important;
+  margin:0!important;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px))!important;
+  border-left:1px solid rgba(160,200,255,.18)!important;
+  border-right:1px solid rgba(160,200,255,.18)!important;
+  border-top:1px solid rgba(160,200,255,.22)!important;
+  border-bottom:0!important;
+  border-radius:26px 26px 0 0!important;
+  background:rgba(8,14,30,.985)!important;
+  overflow-y:auto!important;
+  box-shadow:0 -24px 70px rgba(0,0,0,.48)!important;
+}
+
+.auth-sheet-handle{
+  display:block!important;
+  width:42px!important;
+  height:4px!important;
+  margin:-7px auto 14px!important;
+  background:rgba(196,221,255,.38)!important;
+}
+
+.auth-kicker{
+  font-size:10px!important;
+  line-height:1.3!important;
+  color:#72ddff!important;
+}
+
+.auth-modal h2{
+  margin:5px 0 8px!important;
+  font-size:25px!important;
+  line-height:1.12!important;
+}
+
+.auth-copy{
+  margin-bottom:18px!important;
+  font-size:13px!important;
+  line-height:1.5!important;
+  color:#afc4dd!important;
+}
+
+.auth-passkey{
+  min-height:70px!important;
+  border:0!important;
+  border-radius:18px!important;
+  padding:12px 14px!important;
+  background:linear-gradient(135deg,#38bdf8 0%,#5cd6ff 55%,#75e5ff 100%)!important;
+  color:#05213e!important;
+  box-shadow:0 12px 30px rgba(92,214,255,.24)!important;
+}
+
+.auth-passkey>span:first-child{
+  width:42px!important;
+  height:42px!important;
+  background:rgba(5,33,62,.10)!important;
+}
+
+.auth-passkey strong{
+  font-size:13px!important;
+  line-height:1.25!important;
+}
+
+.auth-passkey small{
+  margin-top:4px!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+  color:rgba(5,33,62,.72)!important;
+}
+
+.auth-passkey svg{width:21px!important;height:21px!important}
+
+.auth-or{
+  height:42px!important;
+  font-size:9px!important;
+  color:#8ca4bf!important;
+}
+
+.auth-wallet-list{
+  display:grid;
+  gap:8px;
+}
+
+.auth-wallet-option{
+  width:100%;
+  min-height:58px;
+  padding:9px 12px;
+  border:1px solid rgba(160,200,255,.16);
+  border-radius:16px;
+  background:rgba(255,255,255,.045);
+  color:var(--rb-text);
+  display:grid;
+  grid-template-columns:38px 1fr;
+  align-items:center;
+  gap:11px;
+  text-align:left;
+  font-family:'Sora',sans-serif;
+  cursor:pointer;
+}
+
+.auth-wallet-option:hover{
+  border-color:rgba(92,214,255,.34);
+  background:rgba(92,214,255,.07);
+}
+
+.auth-wallet-option img{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  object-fit:cover;
+}
+
+.auth-wallet-option strong{
+  display:block;
+  font-size:12px;
+  line-height:1.25;
+}
+
+.auth-wallet-option small{
+  display:block;
+  margin-top:3px;
+  color:#9db3cc;
+  font-size:10px;
+  line-height:1.3;
+}
+
+.auth-no-wallet{
+  padding:14px;
+  border:1px solid rgba(160,200,255,.12);
+  border-radius:15px;
+  background:rgba(255,255,255,.035);
+}
+
+.auth-no-wallet strong{
+  display:block;
+  font-size:12px;
+}
+
+.auth-no-wallet small{
+  display:block;
+  margin-top:4px;
+  color:#9db3cc;
+  font-size:10px;
+  line-height:1.4;
+}
+
+.auth-note{
+  font-size:10px!important;
+  line-height:1.45!important;
+  color:#91a9c2!important;
+}
+
+.auth-error{
+  font-size:10px!important;
+  line-height:1.4!important;
+}
+
+.auth-close{
+  top:14px!important;
+  right:16px!important;
+  width:36px!important;
+  height:36px!important;
+}
+
+@media(min-width:900px){
+  .auth-modal{
+    width:min(480px,calc(100vw - 40px))!important;
+    min-height:0!important;
+    max-height:min(680px,82dvh)!important;
+  }
+}
