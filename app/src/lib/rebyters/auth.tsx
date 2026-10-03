@@ -45,7 +45,7 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
 
   const availableWallets=useMemo(
     ()=>adapter.wallets
-      .filter(item=>item.readyState!=="Unsupported"&&item.readyState!=="NotDetected")
+      .filter(item=>String(item.readyState)!=="Unsupported"&&String(item.readyState)!=="NotDetected")
       .map(item=>({
         name:String(item.adapter.name),
         icon:item.adapter.icon,
