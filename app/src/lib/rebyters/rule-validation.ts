@@ -12,7 +12,7 @@ export const balanceSchema = z.object({
   metrics: z.record(z.object({ label: z.string().min(1).max(60), unit: z.string().max(20), maximum: uint, bands: z.array(bands).length(6) }).strict()),
 }).strict();
 const condition = z.object({
-  metrics: z.array(z.string().regex(/^(genetics|diet|time|activity|physical|progression)\.[a-z]+$/)).min(1).max(4),
+  metrics: z.array(z.string().regex(/^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/)).min(1).max(4),
   test: z.enum(["min","max","range","eq"]), level: level.optional(), upperLevel: level.optional(), value: uint.optional(), upper: uint.optional(),
 }).strict().superRefine((c,ctx) => {
   const fail = (message: string) => ctx.addIssue({ code: "custom", message });
@@ -24,8 +24,8 @@ const condition = z.object({
   if ((c.level && c.upper !== undefined) || (!c.level && c.upperLevel)) fail("Do not mix numeric and preset range bounds");
 });
 export const ruleSchema = z.object({
-  version: z.literal(1), requiredGroups: z.number().int().min(0).max(5),
-  groups: z.array(z.object({ group: z.number().int().min(0).max(4), alternatives: z.array(z.array(condition).min(1).max(16)).min(1).max(16) }).strict()).max(5),
+  version: z.literal(1), requiredGroups: z.number().int().min(0).max(7),
+  groups: z.array(z.object({ group: z.number().int().min(0).max(6), alternatives: z.array(z.array(condition).min(1).max(16)).min(1).max(16) }).strict()).max(7),
   mandatory: z.array(condition).max(16), bonuses: z.array(condition).max(16), selection: z.literal("player-choice"), authoredBy: z.enum(["workbook+balance","admin"]),
 }).strict().superRefine((r,ctx) => {
   if (r.requiredGroups > r.groups.length || (r.groups.length && r.requiredGroups === 0) || (!r.groups.length && !r.mandatory.length)) ctx.addIssue({ code: "custom", message: "Choose at least one required category or a mandatory gate; configured categories cannot be ignored" });
@@ -33,10 +33,10 @@ export const ruleSchema = z.object({
 });
 export function validateStructuredRules(tree: TreeJson) {
   const balance = balanceSchema.parse(tree.balance);
-  const prefixes = ["genetics.","diet.","time.","activity.","physical."];
+  const prefixes = ["genetics.","diet.","time.","care.","physical.","progression.","battle."];
   if (!Object.keys(balance.metrics).length) throw new Error("Balance metrics are empty");
   for (const [metric, profile] of Object.entries(balance.metrics)) {
-    if (!/^(genetics|diet|time|activity|physical|progression)\.[a-z]+$/.test(metric)) throw new Error(`Invalid balance metric ${metric}`);
+    if (!/^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/.test(metric)) throw new Error(`Invalid balance metric ${metric}`);
     for (const stage of profile.bands) {
       let last = -1;
       for (const band of [stage.low,stage.medium,stage.high,stage.veryHigh]) {
