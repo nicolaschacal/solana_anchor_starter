@@ -756,9 +756,10 @@ function AtlasLineage({ evolution, onBack, tree, discoveredIds }:{evolution:Evol
 
 export function PlayerAtlas() {
   const { owned, tree, playerProfile }=usePlayerCollection();
+  const activeIds=new Set(tree.evolutions.map(e=>e.id));
   const ownedEvolutionIds=new Set([
-    ...(playerProfile?.discoveries ?? []),
-    ...owned.map(x=>x.evolutionId),
+    ...(playerProfile?.discoveries ?? []).filter(id=>activeIds.has(id)),
+    ...owned.map(x=>x.evolutionId).filter(id=>activeIds.has(id)),
   ]);
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
@@ -781,7 +782,9 @@ export function PlayerAccount() {
   const player=usePlayerCollection();
   const wallet=useWallet();
   const navigate=useNavigate();
-  const { owned, playerProfile, ownedLoadedAll, loadAll }=player;
+  const { owned, tree, playerProfile, ownedLoadedAll, loadAll }=player;
+  const activeIds=new Set(tree.evolutions.map(e=>e.id));
+  const currentDiscoveries=(playerProfile?.discoveries??[]).filter(id=>activeIds.has(id));
   const shortAddress=wallet.publicKey?`${wallet.publicKey.toBase58().slice(0,6)}…${wallet.publicKey.toBase58().slice(-6)}`:"";
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
 
@@ -801,7 +804,7 @@ export function PlayerAccount() {
 
     <div className="account-nav-grid">
       <button className="trainer-profile-card account-nav-card" onClick={()=>navigate("/atlas")}>
-        <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{playerProfile?.discoveries.length??0} discovered</h2><p>Open your Atlas and review every form you have discovered.</p></div><ChevronRight/></div>
+        <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{currentDiscoveries.length} discovered</h2><p>Open your Atlas and review every form you have discovered.</p></div><ChevronRight/></div>
       </button>
       <button className="account-card subtle account-nav-card" onClick={()=>navigate("/?den=1")}>
         <Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>Open your Den and switch between your Rebyters.</p></div><ChevronRight/>
