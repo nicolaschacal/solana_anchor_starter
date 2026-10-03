@@ -1,7 +1,9 @@
 import bs58 from "bs58";
 import { Buffer } from "buffer";
-import type { Wallet } from "@anchor-lang/core";
-import type { WalletContextState } from "@solana/wallet-adapter-react";
+import type {
+  AnchorWallet,
+  WalletContextState,
+} from "@solana/wallet-adapter-react";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   ExtensionType,
@@ -340,7 +342,7 @@ export async function fetchActiveFamilyTree(
 
 export async function createRebyter(
   connection: Connection,
-  anchorWallet: Wallet,
+  anchorWallet: AnchorWallet,
   wallet: WalletContextState,
   familyId: number,
 ) {
@@ -464,7 +466,7 @@ export type RebyterInteraction = "feed" | "play" | "care" | "rest" | "train";
 
 export async function interactWithRebyter(
   connection: Connection,
-  anchorWallet: Wallet,
+  anchorWallet: AnchorWallet,
   wallet: WalletContextState,
   mintString: string,
   action: RebyterInteraction,
@@ -523,7 +525,7 @@ export async function interactWithRebyter(
 
 export async function evolveRebyter(
   connection: Connection,
-  anchorWallet: Wallet,
+  anchorWallet: AnchorWallet,
   wallet: WalletContextState,
   mintString: string,
   tree: TreeJson,
