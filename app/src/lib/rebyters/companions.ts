@@ -1,9 +1,6 @@
 import bs58 from "bs58";
 import { Buffer } from "buffer";
-import type {
-  AnchorWallet,
-  WalletContextState,
-} from "@solana/wallet-adapter-react";
+import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   ExtensionType,
@@ -342,10 +339,15 @@ export async function fetchActiveFamilyTree(
   return { tree: await fetchVerifiedTree(metadata), version };
 }
 
+export type RebytersTransactionWallet = {
+  publicKey: PublicKey | null;
+  signTransaction?: (transaction: Transaction) => Promise<Transaction>;
+};
+
 export async function createRebyter(
   connection: Connection,
   anchorWallet: AnchorWallet,
-  wallet: WalletContextState,
+  wallet: RebytersTransactionWallet,
   familyId: number,
 ) {
   if (familyId !== 0) throw new Error("Only Mammal creation is enabled");
@@ -469,7 +471,7 @@ export type RebyterInteraction = "feed" | "play" | "care" | "rest" | "train";
 export async function interactWithRebyter(
   connection: Connection,
   anchorWallet: AnchorWallet,
-  wallet: WalletContextState,
+  wallet: RebytersTransactionWallet,
   mintString: string,
   action: RebyterInteraction,
   option = 0,
@@ -528,7 +530,7 @@ export async function interactWithRebyter(
 export async function evolveRebyter(
   connection: Connection,
   anchorWallet: AnchorWallet,
-  wallet: WalletContextState,
+  wallet: RebytersTransactionWallet,
   mintString: string,
   tree: TreeJson,
   sourceId: number,
