@@ -56,7 +56,7 @@ type OwnedRebyter = {
   spd: number;
   timeInteractions: number[];
   totalInteractions: number;
-  genes: number[];
+  careMistakes: number;
   diet: number[];
   weight: number;
   cycle: number;
@@ -86,7 +86,7 @@ function usePlayerCollection() {
       spd: item.spd,
       timeInteractions: item.timeInteractions,
       totalInteractions: item.totalInteractions,
-      genes: item.genes,
+      careMistakes: item.careMistakes,
       diet: item.diet,
       weight: item.weight,
       cycle: item.cycle,
@@ -97,9 +97,9 @@ function usePlayerCollection() {
   if (import.meta.env.DEV && wallet.connected && params.get("demo") === "1" && !owned.length) {
     const demoNow=Math.floor(Date.now()/1000);
     owned = [
-      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], totalInteractions:11, genes:[55,62,45,16], diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
-      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], totalInteractions:78, genes:[77,70,51,80], diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
-      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], totalInteractions:156, genes:[82,74,60,86], diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
+      { mint:"demo-fangbit", evolutionId:tree.evolutions.find(e=>e.name==="Fangbit")?.id??10, level:2, bond:24, discipline:18, fullness:72, energy:84, condition:0, hp:118, atk:31, def:28, spd:36, timeInteractions:[1,3,2,5], totalInteractions:11, careMistakes:0, diet:[5,1,2,1], weight:13, cycle:0, stageEnteredAt:demoNow-8*3600, learnedSkills:0n },
+      { mint:"demo-wolf", evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], totalInteractions:78, careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
+      { mint:"demo-dire", evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], totalInteractions:156, careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
     ];
   }
   return { ...chain, tree, owned };
@@ -230,7 +230,6 @@ function careProfile(bond:number,fullness:number,energy:number) {
 }
 function evolutionState(rebyter:OwnedRebyter) {
   const state:Record<string,number>={};
-  ["metabolism","temperament","rhythm","mutation"].forEach((name,index)=>state[`genetics.${name}`]=rebyter.genes[index]??0);
   const dietTotal=Math.max(1,rebyter.diet.reduce((n,v)=>n+(v??0),0));
   state["diet.meat"]=Math.floor((rebyter.diet[0]??0)*100/dietTotal);
   state["diet.fish"]=Math.floor((rebyter.diet[2]??0)*100/dietTotal);
@@ -244,11 +243,12 @@ function evolutionState(rebyter:OwnedRebyter) {
   state["physical.weight"]=rebyter.weight;
   state["care.bond"]=rebyter.bond;
   state["care.discipline"]=rebyter.discipline;
+  state["care.mistakes"]=rebyter.careMistakes;
   state["state.fullness"]=rebyter.fullness;
   state["state.energy"]=rebyter.energy;
   state["progression.interactions"]=rebyter.totalInteractions;
   state["progression.cycle"]=rebyter.cycle;
-  state["progression.stageAgeHours"]=Math.max(0,Math.floor((Date.now()/1000-rebyter.stageEnteredAt)/3600));
+  state["progression.stageAgeMinutes"]=Math.max(0,Math.floor((Date.now()/1000-rebyter.stageEnteredAt)/60));
   state["battle.hp"]=rebyter.hp;
   state["battle.attack"]=rebyter.atk;
   state["battle.defense"]=rebyter.def;
@@ -266,59 +266,43 @@ function evolutionRequirementStatus(
   state: Record<string, number>,
 ) {
   if (!tree.balance) {
-    return { passed: false, label: "Unknown requirement", current: "—", required: "—" };
+    return { passed:false, label:"Unknown requirement", detail:"" };
   }
-  const balance = tree.balance;
-  const values = condition.metrics.map(metric => state[metric]);
-  const value = values.every(v => v !== undefined)
-    ? values.reduce((sum, current) => sum + (current ?? 0), 0)
+  const balance=tree.balance;
+  const values=condition.metrics.map(metric=>state[metric]);
+  const value=values.every(v=>v!==undefined)
+    ? values.reduce((sum,current)=>sum+(current??0),0)
     : undefined;
-  const [lo, hi] = conditionBounds(condition, balance, targetStage);
-  const passed = value !== undefined && value >= lo && value <= hi;
-  const primary = condition.metrics[0];
-  const metricLabel = condition.metrics
-    .map(metric => balance.metrics[metric]?.label ?? metric)
-    .join(" + ");
+  const [lo,hi]=conditionBounds(condition,balance,targetStage);
+  const passed=value!==undefined&&value>=lo&&value<=hi;
+  const metric=condition.metrics[0];
+  const plus=(condition.level==="veryHigh"?"+++":condition.level==="high"?"++":condition.level?"+":"");
 
-  const friendlyLabel: Record<string, string> = {
-    "battle.hp": "Build HP",
-    "battle.attack": "Train Attack",
-    "battle.defense": "Train Defense",
-    "battle.speed": "Train Speed",
-    "progression.interactions": "Interact with your Rebyter",
-    "progression.stageAgeHours": "Time in this form",
-    "state.sick": "Stay healthy",
-    "state.injured": "Avoid injury",
-    "care.bond": "Build Bond",
-    "care.discipline": "Build Discipline",
-    "physical.weight": "Body weight",
-    "skills.count": "Learn skills",
+  const dietLabels:Record<string,string>={
+    "diet.meat":"Meat","diet.fish":"Fish","diet.plant":"Vegetables","diet.fruit":"Fruit",
   };
-  const label = friendlyLabel[primary] ?? metricLabel;
-
-  const unit = balance.metrics[primary]?.unit ?? "";
-  const valueText = (n: number | undefined) => {
-    if (n === undefined) return "—";
-    if (primary === "state.sick") return n === 0 ? "Healthy" : "Sick";
-    if (primary === "state.injured") return n === 0 ? "Not injured" : "Injured";
-    if (primary === "progression.stageAgeHours") return `${n}h`;
-    if (unit === "%") return `${n}%`;
-    return unit ? `${n} ${unit}` : String(n);
+  const timeLabels:Record<string,string>={
+    "time.night":"Nocturnal","time.morning":"Early bird","time.day":"Diurnal","time.evening":"Evening",
   };
-  const required =
-    primary === "state.sick" && lo === 0 && hi === 0
-      ? "Healthy"
-      : primary === "state.injured" && lo === 0 && hi === 0
-        ? "Not injured"
-        : condition.test === "min"
-          ? `${valueText(lo)}+`
-          : condition.test === "max"
-            ? `≤ ${valueText(hi)}`
-            : condition.test === "eq"
-              ? valueText(lo)
-              : `${valueText(lo)}–${valueText(hi)}`;
+  if(dietLabels[metric]) return {passed,label:`+${dietLabels[metric]}`,detail:""};
+  if(timeLabels[metric]) return {passed,label:`+${timeLabels[metric]}`,detail:""};
 
-  return { passed, label, current: valueText(value), required };
+  if(metric==="physical.weight"){
+    const weightLabel=condition.level==="low"?"Light":condition.level==="high"?"Heavy":condition.level==="veryHigh"?"Very heavy":"Medium";
+    return {passed,label:`${weightLabel} weight`,detail:""};
+  }
+  const statLabels:Record<string,string>={
+    "battle.hp":"HP","battle.attack":"Attack","battle.defense":"Defense","battle.speed":"Speed",
+  };
+  if(statLabels[metric]) return {passed,label:`${statLabels[metric]} ${plus||"+"}`,detail:""};
+  if(metric==="care.bond") return {passed,label:`Bond ${plus||"+"}`,detail:""};
+  if(metric==="care.discipline") return {passed,label:`Discipline ${plus||"+"}`,detail:""};
+  if(metric==="care.mistakes") return {passed,label:`Care mistakes ≤ ${hi}`,detail:`Current: ${value??0}`};
+  if(metric==="progression.interactions") return {passed,label:`${lo}+ interactions`,detail:`Current: ${value??0}`};
+  if(metric==="progression.stageAgeMinutes") return {passed,label:`${lo} min in this form`,detail:`Current: ${value??0} min`};
+
+  const fallback=balance.metrics[metric]?.label??metric;
+  return {passed,label:fallback,detail:""};
 }
 
 function RebyterPicker({
@@ -668,28 +652,15 @@ export function PlayerLab() {
     const target=tree.evolutions.find(e=>e.id===path.target);
     if(!target||!path.rule||tree.schema!==2||!tree.balance) return null;
     const result=evaluatePath(tree,path,state);
-    const mandatory=path.rule.mandatory.map(condition=>
+    const requirements=path.rule.mandatory.map(condition=>
       evolutionRequirementStatus(condition,tree,target.stage,state)
     );
-    const traits=path.rule.groups.map((group,index)=>{
-      const groupResult=result.groups[index];
-      const firstAlternative=group.alternatives[0]??[];
-      const conditions=firstAlternative.map(condition=>
-        evolutionRequirementStatus(condition,tree,target.stage,state)
-      );
-      return {
-        label:GROUPS[group.group]??`Group ${group.group}`,
-        passed:groupResult?.passed??false,
-        summary:conditions.map(item=>`${item.label}: ${item.current} / ${item.required}`).join(" · "),
-      };
-    });
-    return {path,target,result,mandatory,traits};
+    return {path,target,result,requirements};
   }).filter(Boolean) as {
     path:any;
     target:Evolution;
     result:ReturnType<typeof evaluatePath>;
-    mandatory:ReturnType<typeof evolutionRequirementStatus>[];
-    traits:{label:string;passed:boolean;summary:string}[];
+    requirements:ReturnType<typeof evolutionRequirementStatus>[];
   }[];
   const eligible=candidates.filter(c=>c.result.eligible);
   const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
@@ -698,59 +669,37 @@ export function PlayerLab() {
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
-      {candidates.map(({path,target,result,mandatory,traits})=>{
+      {candidates.map(({target,result,requirements})=>{
         const known=discoveredIds.has(target.id);
-        const mandatoryLeft=mandatory.filter(item=>!item.passed).length;
-        const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-result.passedGroups);
-        const blockers=mandatoryLeft+traitLeft;
+        const left=requirements.filter(item=>!item.passed).length;
         return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
           <div className="evolution-option-top">
             <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
             <div className="evolution-option-copy">
               <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
               <strong>{known?target.name:"Unknown form"}</strong>
-              <p>{result.eligible
-                ?"All requirements are met."
-                :blockers===1
-                  ?"1 requirement still needs attention."
-                  :`${blockers} requirements still need attention.`}</p>
+              <p>{result.eligible?"Ready to evolve.":left===1?"1 requirement left.":`${left} requirements left.`}</p>
             </div>
             <div className={result.eligible?"route-readiness ready":"route-readiness"}>
-              <strong>{result.eligible?"READY":`${blockers} LEFT`}</strong>
-              <small>{result.passedGroups} traits matched · {path.rule?.requiredGroups??0} required</small>
+              <strong>{result.eligible?"READY":`${left} LEFT`}</strong>
+              <small>{requirements.length-left}/{requirements.length} complete</small>
             </div>
           </div>
 
-          <div className="evolution-requirements">
-            <section className="requirement-block">
-              <div className="requirement-block-head">
-                <strong>Required</strong>
-                <span>{mandatory.length-mandatoryLeft}/{mandatory.length}</span>
-              </div>
-              <div className="requirement-list">
-                {mandatory.map((item,index)=><div className={item.passed?"requirement-row passed":"requirement-row"} key={`${target.id}-mandatory-${index}`}>
-                  <i>{item.passed?"✓":"×"}</i>
-                  <span><strong>{item.label}</strong><small>{item.current} <b>→</b> {item.required}</small></span>
-                </div>)}
-              </div>
-            </section>
+          <section className="requirement-block evolution-simple-requirements">
+            <div className="requirement-block-head">
+              <strong>Requirements to evolve</strong>
+              <span>{requirements.length-left}/{requirements.length}</span>
+            </div>
+            <div className="requirement-list">
+              {requirements.map((item,index)=><div className={item.passed?"requirement-row passed":"requirement-row"} key={`${target.id}-requirement-${index}`}>
+                <i>{item.passed?"✓":"×"}</i>
+                <span><strong>{item.label}</strong>{item.detail&&<small>{item.detail}</small>}</span>
+              </div>)}
+            </div>
+          </section>
 
-            <section className="requirement-block">
-              <div className="requirement-block-head">
-                <strong>Route traits</strong>
-                <span>{result.passedGroups} matched · need {path.rule?.requiredGroups??0}</span>
-              </div>
-              <div className="trait-requirement-list">
-                {traits.map((trait,index)=><div className={trait.passed?"trait-requirement passed":"trait-requirement"} key={`${target.id}-trait-${index}`}>
-                  <i>{trait.passed?"✓":"×"}</i>
-                  <span><strong>{trait.label}</strong><small>{trait.summary}</small></span>
-                </div>)}
-              </div>
-              <p className="route-trait-note">You only need {path.rule?.requiredGroups??0} of these route traits. Genetics can help shape a branch, but trained stats and the Required section cannot be skipped.</p>
-            </section>
-          </div>
-
-          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Complete the missing requirements above</span>}
+          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Complete the missing requirements</span>}
         </article>
       })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
@@ -873,8 +822,8 @@ export function PlayerAcquire() {
       </button>})}
     </div>
     <section className="create-summary">
-      <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own on-chain DNA and randomized genetic predispositions.</p></div>
-      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 60-byte DNA v3</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
+      <div><small>SELECTED ORIGIN</small><h2>Mammal BIT</h2><p>The active Mammal atlas provides the BIT name, reference image and Irys metadata URI. Your mint receives its own compact on-chain gameplay state.</p></div>
+      <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 57-byte DNA v4</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <WalletMultiButton>Connect wallet to create</WalletMultiButton>
         : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
