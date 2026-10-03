@@ -2122,3 +2122,61 @@ button.account-card.account-nav-card{
 @media(max-width:390px){
   .evolution-simple-requirements .requirement-list{grid-template-columns:1fr}
 }
+
+
+/* Context-aware home UX */
+.monster-speech.needs-attention{
+  border-color:rgba(255,184,107,.34)!important;
+  background:rgba(62,41,24,.68)!important;
+  color:#ffd19a!important;
+}
+.care-actions .recommended-action{
+  background:var(--rb-accent)!important;
+  border-color:var(--rb-accent)!important;
+  color:#06203d!important;
+  box-shadow:0 0 0 1px rgba(92,214,255,.18),0 8px 24px rgba(92,214,255,.13)!important;
+}
+.care-actions .recommended-action>svg:first-child{color:#06203d!important}
+.action-recommendation-dot{
+  position:absolute;right:8px;top:8px;width:8px;height:8px;border-radius:50%;
+  background:var(--rb-warm);box-shadow:0 0 0 3px rgba(255,184,107,.12);
+}
+.growth-card.ready{
+  border-color:rgba(92,214,255,.30)!important;
+  background:rgba(16,44,66,.64)!important;
+}
+.growth-card.ready strong{color:var(--rb-accent)}
+.home-evolve-cta{
+  width:100%;min-height:52px;border:1px solid var(--rb-warm);border-radius:16px;
+  padding:9px 12px;background:var(--rb-warm);color:#221407;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;
+  font-family:'Sora',sans-serif;cursor:pointer;
+}
+.home-evolve-cta>svg:first-child{width:21px;height:21px}
+.home-evolve-cta span{display:block}
+.home-evolve-cta small{display:block;font-size:7px;letter-spacing:.1em;font-weight:800;opacity:.68}
+.home-evolve-cta strong{display:block;margin-top:1px;font-size:11px;font-weight:650}
+.home-evolve-cta>svg:last-child{width:16px;height:16px}
+
+/* Bottom navigation should feel like part of the viewer, not a separate dark slab. */
+.player-nav{
+  grid-template-columns:repeat(3,1fr)!important;
+  background:rgba(16,28,52,.34)!important;
+  border:1px solid rgba(160,200,255,.18)!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.player-nav a{color:#7189a7!important}
+.player-nav a.active{
+  background:rgba(92,214,255,.08)!important;
+  color:var(--rb-accent)!important;
+}
+@media(max-width:700px){
+  .player-nav{
+    bottom:10px!important;
+    background:rgba(10,19,38,.18)!important;
+    border-color:rgba(220,238,255,.16)!important;
+    box-shadow:none!important;
+  }
+  .game-controls{bottom:86px}
+}
