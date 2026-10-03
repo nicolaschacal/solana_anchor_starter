@@ -596,13 +596,13 @@ function Family({ state }: { state: RegistryState }) {
               </button>
             )}
           {tree && (
-            <button onClick={() => setPreview(true)}>
+            <button className="admin-secondary-action" onClick={() => setPreview(true)}>
               <Code2 size={16} />
-              Advanced / JSON
+              JSON
             </button>
           )}
           {family === 0 && !sample && (
-            <Link className="graph-mode-switch" to="/admin/core-benchmark">
+            <Link className="graph-mode-switch admin-secondary-action" to="/admin/core-benchmark">
               <Blocks size={16} />
               Core benchmark
             </Link>
@@ -630,9 +630,9 @@ function Family({ state }: { state: RegistryState }) {
                   Prepare unified atlas
                 </button>
               )}
-              <button disabled={tx.busy} onClick={() => void publishLocalReferences()}>
+              <button className="admin-secondary-action" disabled={tx.busy} onClick={() => void publishLocalReferences()}>
                 <Upload size={16} />
-                Publish reference assets
+                Reference assets
               </button>
               {tree.proofMode !== "unified-v1" && <button
                 disabled={tx.busy || tree.schema !== 2 || !active}
@@ -650,7 +650,7 @@ function Family({ state }: { state: RegistryState }) {
             </>
           )}
           {editable && tree && (
-            <button disabled={tx.busy} onClick={() => void add()}>
+            <button className="primary admin-new-rebyter" disabled={tx.busy} onClick={() => void add()}>
               <Plus size={16} />
               New Rebyter
             </button>
@@ -676,6 +676,12 @@ function Family({ state }: { state: RegistryState }) {
           <span className="tag draft-tag">LOCAL DRAFT · v{draft.version}</span>
         )}
       </div>
+      {tree && <section className="admin-atlas-overview" aria-label="Atlas overview">
+        <div><small>FORMS</small><strong>{tree.evolutions.length}</strong><span>Rebyters in this atlas</span></div>
+        <div><small>ROUTES</small><strong>{tree.evolutions.reduce((count,e)=>count+e.paths.length,0)}</strong><span>Evolution connections</span></div>
+        <div><small>ACTIVE</small><strong>{sample?"Local":`v${active}`}</strong><span>{sample?"Workbook preview":"Published on devnet"}</span></div>
+        <div className={draft?"has-draft":""}><small>DRAFT</small><strong>{draft?`v${draft.version}`:"Clean"}</strong><span>{draft?"Unpublished changes":"No pending changes"}</span></div>
+      </section>}
       {sample && (
         <div className="sample-banner">
           <div>
