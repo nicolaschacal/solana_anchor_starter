@@ -17,6 +17,7 @@ import "./atlas.css";
 import "./theme.css";
 import "./rules.css";
 import { initializeTheme } from "./lib/theme";
+import { RebytersAuthProvider } from "./lib/rebyters/auth";
 initializeTheme();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -30,6 +31,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     >
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
+          <RebytersAuthProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/admin/*" element={<AdminApp />} />
@@ -40,6 +42,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               <Route path="/*" element={<PlayerHome />} />
             </Routes>
           </BrowserRouter>
+          </RebytersAuthProvider>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
