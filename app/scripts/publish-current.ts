@@ -10,7 +10,7 @@ import {
   buildFreshCurrentMammal,
   MAMMAL_SEED_EVOLUTION_COUNT,
 } from "../src/lib/rebyters/sample";
-import { fetchVerifiedTree } from "../src/lib/rebyters/tree";
+import { fetchVerifiedTreeForMigration } from "../src/lib/rebyters/tree";
 import { PROGRAM_ID, registryPda, treePda } from "../src/lib/rebyters/config";
 import { canonicalTree, contentHash } from "../src/lib/rebyters/canonical";
 import { validateTree } from "../src/lib/rebyters/validation";
@@ -57,7 +57,7 @@ async function main() {
   if (!activeVersion) throw new Error("Mammal has no active atlas");
   const activeMeta = await fetchTree(connection, 0, activeVersion);
   if (!activeMeta) throw new Error("Active Mammal atlas metadata is missing");
-  const previous = await fetchVerifiedTree(activeMeta);
+  const previous = await fetchVerifiedTreeForMigration(activeMeta);
 
   await mkdir("../artifacts/publication", { recursive: true });
   const nextVersion = registry.nextVersions[0];
@@ -95,7 +95,8 @@ async function main() {
     await writeFile(journalFile, JSON.stringify(journal, null, 2));
   }
 
-  const publishJournal = journal;
+  if (!journal) throw new Error("Current publication journal could not be created");
+  const publishJournal: PublishJournal = journal;
   console.log(
     JSON.stringify(
       {
