@@ -35,12 +35,12 @@ export function groupLabel(rule: EvolutionRule, index: number, balance: BalanceP
 export function defaultRule(): EvolutionRule {
   return {
     version: 1,
-    requiredGroups: 2,
+    requiredGroups: 1,
     groups: [
       { group: 3, alternatives: [[{ metrics: ["care.bond"], test: "min", level: "medium" }]] },
-      { group: 6, alternatives: [[{ metrics: ["battle.attack"], test: "min", level: "medium" }]] },
     ],
     mandatory: [
+      { metrics: ["battle.attack"], test: "min", level: "medium" },
       { metrics: ["progression.interactions"], test: "min", value: 5 },
       { metrics: ["progression.stageAgeHours"], test: "min", value: 1 },
       { metrics: ["state.sick"], test: "eq", value: 0 },
