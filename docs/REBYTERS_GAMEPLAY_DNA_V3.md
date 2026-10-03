@@ -440,7 +440,15 @@ Then deploy to devnet with the configured authority:
 anchor deploy --provider.cluster devnet --provider.wallet artifacts/private/admin-keypair.json
 ```
 
-After deployment, publish/activate a **new** Mammal atlas version using the normal admin publication flow. The Merkle root must be rebuilt from the DNA v3 rules; the old active root cannot verify the new rule bytes.
+After deployment, publish/activate a **new** Mammal atlas version with the dedicated identity-preserving publisher:
+
+```sh
+cd app
+npm run publish:dna-v3
+cd ..
+```
+
+This command reads the active Mammal atlas, preserves the existing evolution IDs and published assets, applies the canonical DNA v3 rules/balance, uploads the new immutable JSON to Irys, creates the next versioned tree PDA and activates it. It does **not** reserve a fresh creature collection. The Merkle root must be rebuilt because the old active root cannot verify the new rule bytes.
 
 Finally mint a fresh Rebyter and test, in order:
 
