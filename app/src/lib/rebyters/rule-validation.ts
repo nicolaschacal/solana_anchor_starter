@@ -28,8 +28,10 @@ export const ruleSchema = z.object({
   groups: z.array(z.object({ group: z.number().int().min(0).max(5), alternatives: z.array(z.array(condition).min(1).max(16)).min(1).max(16) }).strict()).max(6),
   mandatory: z.array(condition).max(16), bonuses: z.array(condition).max(16), selection: z.literal("player-choice"), authoredBy: z.enum(["workbook+balance","admin"]),
 }).strict().superRefine((r,ctx) => {
-  if (r.requiredGroups > r.groups.length || (r.groups.length && r.requiredGroups === 0) || (!r.groups.length && !r.mandatory.length)) ctx.addIssue({ code: "custom", message: "Choose at least one required category or a mandatory gate; configured categories cannot be ignored" });
-  if (new Set(r.groups.map(g => g.group)).size !== r.groups.length) ctx.addIssue({ code: "custom", message: "Duplicate rule category" });
+  if (r.requiredGroups > r.groups.length || (r.groups.length && r.requiredGroups === 0) || (!r.groups.length && !r.mandatory.length)) ctx.addIssue({ code: "custom", message: "Choose at least one required trait or a mandatory gate; configured traits cannot be ignored" });
+  // Multiple independent traits may share the same semantic category.
+  // Example: Bond/Discipline and Care Mistakes both belong to Care,
+  // but each counts independently toward the route's required trait total.
 });
 export function validateStructuredRules(tree: TreeJson) {
   const balance = balanceSchema.parse(tree.balance);
