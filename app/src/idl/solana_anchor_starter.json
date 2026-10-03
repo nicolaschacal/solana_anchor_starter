@@ -551,6 +551,39 @@
       "args": []
     },
     {
+      "name": "rest",
+      "discriminator": [
+        19,
+        104,
+        92,
+        246,
+        64,
+        32,
+        203,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_rule_set",
       "discriminator": [
         104,
