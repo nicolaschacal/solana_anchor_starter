@@ -150,10 +150,14 @@ function effectiveDnaState(raw: ReturnType<typeof decodeDna>) {
   const fullness=Math.max(0,raw.fullness-hours*2);
   const energy=Math.min(100,raw.energy+hours*3);
   let condition=raw.condition;
+  let careMistakes=raw.careMistakes;
   if(fullness<=80) condition&=~REBYTER_CONDITION.overfed;
   if(energy>=40) condition&=~REBYTER_CONDITION.tired;
-  if(fullness===0&&hours>=12) condition|=REBYTER_CONDITION.sick;
-  return {...raw,fullness,energy,condition};
+  if(fullness===0&&hours>=12&&(condition&REBYTER_CONDITION.sick)===0){
+    condition|=REBYTER_CONDITION.sick;
+    careMistakes=Math.min(255,careMistakes+1);
+  }
+  return {...raw,fullness,energy,condition,careMistakes};
 }
 
 export async function fetchPlayerProfile(
