@@ -8,7 +8,6 @@ import type { TreeJson } from "../lib/rebyters/types";
 import {
   createRebyter,
   fetchActiveFamilyTree,
-  fetchFirstOwnedRebyter,
   fetchOwnedRebyters,
   fetchPlayerProfile,
   interactWithRebyter,
@@ -17,6 +16,53 @@ import {
   type PlayerProfile,
   type RebyterInteraction,
 } from "../lib/rebyters/companions";
+
+const PLAYER_CACHE_TTL_MS = 15_000;
+
+type PlayerSnapshot = {
+  owned: OnchainRebyter[];
+  playerProfile: PlayerProfile | null;
+  mammalTree: TreeJson | null;
+};
+
+const playerSnapshotCache = new Map<string, { at: number; value: PlayerSnapshot }>();
+const playerSnapshotInflight = new Map<string, Promise<PlayerSnapshot>>();
+
+async function getPlayerSnapshot(
+  connection: ReturnType<typeof useConnection>["connection"],
+  owner: NonNullable<ReturnType<typeof useWallet>["publicKey"]>,
+  force = false,
+): Promise<PlayerSnapshot> {
+  const key = owner.toBase58();
+  const cached = playerSnapshotCache.get(key);
+  if (!force && cached && Date.now() - cached.at < PLAYER_CACHE_TTL_MS) return cached.value;
+
+  const pending = playerSnapshotInflight.get(key);
+  if (!force && pending) return pending;
+
+  const promise = Promise.all([
+    fetchOwnedRebyters(connection, owner),
+    fetchPlayerProfile(connection, owner).catch(() => null),
+    fetchActiveFamilyTree(connection, 0).catch(() => null),
+  ]).then(([owned, playerProfile, family]) => {
+    const value: PlayerSnapshot = {
+      owned,
+      playerProfile,
+      mammalTree: family?.tree ?? null,
+    };
+    playerSnapshotCache.set(key, { at: Date.now(), value });
+    return value;
+  }).finally(() => {
+    if (playerSnapshotInflight.get(key) === promise) playerSnapshotInflight.delete(key);
+  });
+
+  playerSnapshotInflight.set(key, promise);
+  return promise;
+}
+
+function invalidatePlayerSnapshot(owner: string | undefined) {
+  if (owner) playerSnapshotCache.delete(owner);
+}
 
 export function usePlayerRebyters() {
   const { connection } = useConnection();
@@ -32,7 +78,7 @@ export function usePlayerRebyters() {
   const [error, setError] = useState("");
   const [interactingMint, setInteractingMint] = useState("");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = false) => {
     setError("");
     if (!wallet.publicKey) {
       setOwned([]);
@@ -42,18 +88,15 @@ export function usePlayerRebyters() {
     }
     setLoading(true);
     try {
-      const [first, profile, family] = await Promise.all([
-        fetchFirstOwnedRebyter(connection, wallet.publicKey),
-        fetchPlayerProfile(connection, wallet.publicKey).catch(() => null),
-        fetchActiveFamilyTree(connection, 0).catch(() => null),
-      ]);
-      setOwned(first ? [first] : []);
-      setOwnedLoadedAll(false);
-      setPlayerProfile(profile);
-      if (family) setMammalTree(family.tree);
+      const snapshot = await getPlayerSnapshot(connection, wallet.publicKey, force);
+      setOwned(snapshot.owned);
+      setOwnedLoadedAll(true);
+      setPlayerProfile(snapshot.playerProfile);
+      if (snapshot.mammalTree) setMammalTree(snapshot.mammalTree);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setOwned([]);
+      setOwnedLoadedAll(false);
     } finally {
       setLoading(false);
     }
@@ -63,7 +106,7 @@ export function usePlayerRebyters() {
     void refresh();
   }, [refresh]);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (force = false) => {
     if (!wallet.publicKey) {
       setOwned([]);
       setOwnedLoadedAll(false);
@@ -72,10 +115,12 @@ export function usePlayerRebyters() {
     setLoading(true);
     setError("");
     try {
-      const records = await fetchOwnedRebyters(connection, wallet.publicKey);
-      setOwned(records);
+      const snapshot = await getPlayerSnapshot(connection, wallet.publicKey, force);
+      setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
-      return records;
+      setPlayerProfile(snapshot.playerProfile);
+      if (snapshot.mammalTree) setMammalTree(snapshot.mammalTree);
+      return snapshot.owned;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setError(message);
@@ -99,7 +144,8 @@ export function usePlayerRebyters() {
           familyId,
         );
         setStatus("Rebyter created");
-        await refresh();
+        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        await refresh(true);
         return result;
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
@@ -110,7 +156,7 @@ export function usePlayerRebyters() {
         setCreating(false);
       }
     },
-    [anchorWallet, connection, loadAll, ownedLoadedAll, refresh, wallet],
+    [anchorWallet, connection, refresh, wallet],
   );
 
 
@@ -133,8 +179,8 @@ export function usePlayerRebyters() {
           action,
           foodType,
         );
-        if (ownedLoadedAll) await loadAll();
-        else await refresh();
+        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        await refresh(true);
         setStatus(action === "feed" ? "Meal complete" : action === "play" ? "Play complete" : "Care complete");
         return signature;
       } catch (e) {
@@ -146,7 +192,7 @@ export function usePlayerRebyters() {
         setInteractingMint("");
       }
     },
-    [anchorWallet, connection, loadAll, ownedLoadedAll, refresh, wallet],
+    [anchorWallet, connection, refresh, wallet],
   );
 
 
@@ -173,8 +219,8 @@ export function usePlayerRebyters() {
           targetId,
           treeVersion,
         );
-        if (ownedLoadedAll) await loadAll();
-        else await refresh();
+        invalidatePlayerSnapshot(wallet.publicKey?.toBase58());
+        await refresh(true);
         setStatus("Evolution complete");
         return signature;
       } catch (e) {
