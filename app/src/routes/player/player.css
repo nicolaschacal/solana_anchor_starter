@@ -3019,3 +3019,371 @@ body{
     padding-top:max(12px,env(safe-area-inset-top))!important;
   }
 }
+
+
+/* ==========================================================================
+   REBYTERS GAME UI — FINAL MOBILE FRAME
+   One authoritative mobile layer. Keep new mobile frame changes below here.
+   ========================================================================== */
+@media (max-width:899px){
+  :root{
+    --game-ink:#04101f;
+    --game-navy:#06172e;
+    --game-blue:#0a2f5d;
+    --game-cyan:#55dcff;
+    --game-electric:#18bfff;
+    --game-line:rgba(120,211,255,.18);
+    --game-safe-top:env(safe-area-inset-top,0px);
+    --game-safe-bottom:env(safe-area-inset-bottom,0px);
+    --game-header:76px;
+    --game-nav:72px;
+  }
+
+  html:has(.game-frame),
+  body:has(.game-frame),
+  #root:has(.game-frame){
+    position:fixed!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:100%!important;
+    max-height:100%!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    overscroll-behavior:none!important;
+    background:var(--game-ink)!important;
+  }
+
+  .player-bg:has(.game-frame){
+    position:fixed!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    background:
+      radial-gradient(ellipse at 50% 42%,rgba(18,103,169,.50) 0%,rgba(7,43,83,.52) 33%,rgba(4,19,40,.94) 72%,#04101f 100%)!important;
+  }
+
+  .player-shell.game-frame{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+  }
+
+  .game-frame > .player-head{
+    position:absolute!important;
+    z-index:100!important;
+    top:0!important;
+    left:0!important;
+    right:0!important;
+    width:100%!important;
+    height:var(--game-header)!important;
+    min-height:var(--game-header)!important;
+    max-height:var(--game-header)!important;
+    padding:14px 22px 12px!important;
+    margin:0!important;
+    display:flex!important;
+    align-items:center!important;
+    background:linear-gradient(180deg,rgba(4,16,31,.80) 0%,rgba(4,16,31,.38) 72%,rgba(4,16,31,0) 100%)!important;
+    border:0!important;
+    border-bottom:1px solid rgba(104,202,255,.14)!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  .game-frame .player-logo{
+    font-size:19px!important;
+    letter-spacing:.045em!important;
+    text-shadow:0 0 22px rgba(85,220,255,.12);
+  }
+  .game-frame .player-brand small{
+    margin-top:2px!important;
+    font-size:9px!important;
+    color:#8fa9c7!important;
+    letter-spacing:.04em!important;
+  }
+  .game-frame .header-login-trigger,
+  .game-frame .wallet-balance-trigger{
+    min-height:42px!important;
+    padding:0 16px!important;
+    border-radius:15px!important;
+    border:1px solid rgba(118,203,255,.22)!important;
+    background:rgba(7,25,49,.54)!important;
+    color:#eef8ff!important;
+    font-size:11px!important;
+  }
+
+  /* All content routes live in one scroll viewport between HUD bars. */
+  .game-frame > .player-main:not(.player-home-layout){
+    position:absolute!important;
+    z-index:10!important;
+    top:var(--game-header)!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:22px 20px calc(var(--game-nav) + 34px)!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    background:
+      radial-gradient(circle at 50% 9%,rgba(16,100,167,.24),transparent 33%),
+      linear-gradient(180deg,rgba(7,28,55,.35),rgba(4,16,31,.12))!important;
+  }
+
+  /* Bottom HUD: same component and geometry on every route. */
+  .game-frame > .player-nav{
+    position:absolute!important;
+    z-index:110!important;
+    left:20px!important;
+    right:20px!important;
+    bottom:12px!important;
+    width:auto!important;
+    height:68px!important;
+    min-height:68px!important;
+    max-height:68px!important;
+    margin:0!important;
+    padding:6px!important;
+    transform:none!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr)!important;
+    gap:4px!important;
+    border:1px solid rgba(121,205,255,.20)!important;
+    border-radius:20px!important;
+    background:rgba(4,15,31,.88)!important;
+    box-shadow:0 16px 44px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.025)!important;
+    backdrop-filter:blur(18px)!important;
+    -webkit-backdrop-filter:blur(18px)!important;
+  }
+  .game-frame > .player-nav a{
+    height:56px!important;
+    min-height:56px!important;
+    padding:5px!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:15px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    gap:3px!important;
+    color:#7089a8!important;
+    background:transparent!important;
+  }
+  .game-frame > .player-nav a svg{width:20px!important;height:20px!important}
+  .game-frame > .player-nav a span{font-size:8px!important}
+  .game-frame > .player-nav a.active{
+    color:var(--game-cyan)!important;
+    background:linear-gradient(135deg,rgba(18,118,184,.24),rgba(31,198,255,.10))!important;
+    box-shadow:inset 0 0 0 1px rgba(85,220,255,.04),0 0 28px rgba(24,191,255,.07)!important;
+  }
+
+  /* Home = stage. It is intentionally full bleed, but with richer lighting. */
+  .game-frame > .player-home-layout{
+    position:absolute!important;
+    z-index:1!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+    background:
+      radial-gradient(ellipse at 50% 43%,rgba(23,117,186,.44) 0%,rgba(10,58,108,.25) 28%,transparent 58%),
+      linear-gradient(180deg,#071a34 0%,#08264a 43%,#061a34 72%,#04101f 100%)!important;
+  }
+  .game-frame .game-viewer{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    border:0!important;
+    border-radius:0!important;
+    background:
+      radial-gradient(ellipse at 50% 42%,rgba(32,137,211,.22),transparent 35%),
+      radial-gradient(ellipse at 50% 76%,rgba(26,163,220,.08),transparent 24%)!important;
+  }
+  .game-frame .game-viewer:before{
+    content:""!important;
+    position:absolute!important;
+    z-index:0!important;
+    left:12%!important;
+    right:12%!important;
+    bottom:25%!important;
+    height:20%!important;
+    pointer-events:none!important;
+    background:radial-gradient(ellipse,rgba(58,202,255,.13) 0%,rgba(20,105,170,.05) 38%,transparent 70%)!important;
+    filter:blur(16px)!important;
+  }
+  .game-frame .game-viewer:after{
+    content:""!important;
+    position:absolute!important;
+    z-index:0!important;
+    left:50%!important;
+    bottom:27%!important;
+    width:58%!important;
+    aspect-ratio:3.4/1!important;
+    transform:translateX(-50%)!important;
+    border:1px solid rgba(76,213,255,.30)!important;
+    border-radius:50%!important;
+    background:radial-gradient(ellipse,rgba(47,193,255,.07),transparent 67%)!important;
+    box-shadow:0 0 32px rgba(33,181,255,.10),inset 0 0 22px rgba(39,185,255,.05)!important;
+    pointer-events:none!important;
+  }
+  .game-frame .game-controls{bottom:92px!important}
+
+  /* Atlas: family selector is now a deliberate dock, never under the header. */
+  .game-frame .atlas-player{
+    padding-top:16px!important;
+  }
+  .game-frame .atlas-family-dock{
+    position:relative!important;
+    z-index:20!important;
+    width:100%!important;
+    margin:0 0 24px!important;
+    padding:0!important;
+    overflow:visible!important;
+  }
+  .game-frame .atlas-family-tabs{
+    position:relative!important;
+    inset:auto!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:0 0 5px!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:7px!important;
+    overflow:visible!important;
+    transform:none!important;
+    background:transparent!important;
+    border:0!important;
+  }
+  .game-frame .atlas-family-tabs button{
+    width:100%!important;
+    min-width:0!important;
+    height:58px!important;
+    padding:7px 5px!important;
+    margin:0!important;
+    border-radius:15px!important;
+    border:1px solid rgba(113,189,239,.12)!important;
+    background:rgba(8,30,58,.60)!important;
+    color:#6f89a7!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:3px!important;
+    overflow:hidden!important;
+  }
+  .game-frame .atlas-family-tabs button svg{width:16px!important;height:16px!important}
+  .game-frame .atlas-family-tabs button span{min-width:0!important;text-align:center!important}
+  .game-frame .atlas-family-tabs button strong{
+    display:block!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    font-size:8px!important;
+    line-height:1.2!important;
+  }
+  .game-frame .atlas-family-tabs button small{display:none!important}
+  .game-frame .atlas-family-tabs button>svg:last-child{display:none!important}
+  .game-frame .atlas-family-tabs button.active{
+    color:#eafaff!important;
+    border-color:rgba(85,220,255,.42)!important;
+    background:linear-gradient(150deg,rgba(18,136,207,.35),rgba(11,62,111,.54))!important;
+    box-shadow:0 0 26px rgba(24,191,255,.10),inset 0 0 18px rgba(85,220,255,.04)!important;
+  }
+
+  .game-frame .atlas-hero{
+    margin:0 0 22px!important;
+    padding:0 3px!important;
+  }
+  .game-frame .atlas-hero small{color:var(--game-cyan)!important;font-size:9px!important;letter-spacing:.14em!important}
+  .game-frame .atlas-hero h1{
+    margin:5px 0 7px!important;
+    font-size:29px!important;
+    line-height:1.05!important;
+    letter-spacing:-.035em!important;
+    color:#f2f8ff!important;
+  }
+  .game-frame .atlas-hero p{
+    margin:0!important;
+    max-width:37ch!important;
+    color:#9bb2cd!important;
+    font-size:11px!important;
+    line-height:1.55!important;
+  }
+  .game-frame .atlas-progress{
+    margin:0 0 28px!important;
+    padding:16px!important;
+    border-radius:18px!important;
+    border:1px solid rgba(98,189,246,.16)!important;
+    background:linear-gradient(135deg,rgba(11,43,80,.74),rgba(6,25,49,.76))!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.02)!important;
+  }
+  .game-frame .atlas-progress>div{background:rgba(112,170,220,.10)!important}
+  .game-frame .atlas-progress i{
+    background:linear-gradient(90deg,#18bfff,#67e8ff)!important;
+    box-shadow:0 0 14px rgba(24,191,255,.38)!important;
+  }
+
+  .game-frame .discovery-stage{margin-bottom:28px!important}
+  .game-frame .discovery-stage h2{
+    margin:0 0 10px!important;
+    color:#9bb4d0!important;
+    font-size:9px!important;
+    letter-spacing:.13em!important;
+  }
+  .game-frame .discovery-stage h2 span{color:var(--game-cyan)!important}
+  .game-frame .discovery-grid{gap:10px!important}
+  .game-frame .discovery-card{
+    min-height:166px!important;
+    border-radius:18px!important;
+    border-color:rgba(103,186,239,.17)!important;
+    background:linear-gradient(155deg,rgba(13,48,88,.68),rgba(6,24,48,.80))!important;
+  }
+  .game-frame .discovery-card.locked{
+    background:linear-gradient(155deg,rgba(10,32,61,.52),rgba(5,18,37,.72))!important;
+    opacity:.78!important;
+  }
+
+  /* Lab / generic content gets the same game hierarchy. */
+  .game-frame .player-page-head>small{color:var(--game-cyan)!important}
+  .game-frame .player-page-head h1{color:#f2f8ff!important}
+  .game-frame .player-page-head p{color:#9bb2cd!important}
+  .game-frame .evolution-route,
+  .game-frame .account-card,
+  .game-frame .trainer-profile-card{
+    border-color:rgba(105,193,248,.16)!important;
+    background:linear-gradient(150deg,rgba(10,40,76,.72),rgba(5,22,44,.80))!important;
+  }
+}
+
+/* Browser chrome should meet the same dark navy at the physical viewport edge. */
+html,body,#root{background:#04101f!important}
