@@ -143,13 +143,51 @@ async function main() {
         .withWallet(irysSigner.secretKey)
         .withRpc(rpc)
         .devnet();
-      const price = await irys.getPrice(
-        new TextEncoder().encode(canonicalTree(publishJournal.tree)).length,
-      );
+      const payloadBytes = new TextEncoder().encode(
+        canonicalTree(publishJournal.tree),
+      ).length;
+      const price = await irys.getPrice(payloadBytes);
       const balance = await irys.getLoadedBalance();
+      const solLamports = await connection.getBalance(
+        signer.publicKey,
+        "confirmed",
+      );
+      const solBalance = solLamports / 1_000_000_000;
+
+      console.log(
+        JSON.stringify(
+          {
+            irysFundingWallet: signer.publicKey.toBase58(),
+            solBalance,
+            payloadBytes,
+            irysPriceAtomic: price.toString(),
+            irysLoadedBalanceAtomic: balance.toString(),
+            irysFundingRequiredAtomic: balance.lt(price)
+              ? price.minus(balance).toString()
+              : "0",
+          },
+          null,
+          2,
+        ),
+      );
+
       if (balance.lt(price)) {
+        const required = price.minus(balance);
         console.log("Funding Irys devnet upload balance");
-        await irys.fund(price.minus(balance));
+        try {
+          await irys.fund(required);
+        } catch (error) {
+          throw new Error(
+            "Irys funding failed for wallet " +
+              signer.publicKey.toBase58() +
+              " (Solana balance: " +
+              solBalance +
+              " SOL, required Irys atomic amount: " +
+              required.toString() +
+              "): " +
+              (error instanceof Error ? error.message : String(error)),
+          );
+        }
       }
       return {
         upload: (data: string | Uint8Array, options: { tags: { name: string; value: string }[] }) =>
