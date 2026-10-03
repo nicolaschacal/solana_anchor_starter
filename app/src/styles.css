@@ -1891,3 +1891,180 @@ select:disabled {
   .admin-game-shell .heading-actions{width:100%;overflow-x:auto;padding-bottom:3px;flex-wrap:nowrap}
   .admin-game-shell .heading-actions>*{flex:0 0 auto}
 }
+
+
+/* ==========================================================================
+   ADMIN CONSOLE — NO SIDEBAR / NORMAL SCROLL
+   ========================================================================== */
+.admin-console{
+  display:block!important;
+  width:100%!important;
+  min-height:100vh!important;
+  height:auto!important;
+  overflow:visible!important;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(16,98,161,.12),transparent 30%),
+    var(--admin-bg)!important;
+  color:var(--admin-text)!important;
+}
+
+.admin-console .admin-console-bar{
+  position:sticky!important;
+  top:0!important;
+  z-index:80!important;
+  width:100%!important;
+  height:68px!important;
+  padding:0 24px!important;
+  display:grid!important;
+  grid-template-columns:auto 1fr auto!important;
+  align-items:center!important;
+  gap:18px!important;
+  background:rgba(4,16,31,.92)!important;
+  border-bottom:1px solid var(--admin-line)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+
+.admin-console-brand{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:max-content;
+  color:#f2f9ff;
+}
+.admin-console-brand>svg{color:var(--admin-cyan)}
+.admin-console-brand span{display:flex;align-items:baseline;gap:7px}
+.admin-console-brand strong{
+  font-size:15px;
+  letter-spacing:.04em;
+}
+.admin-console-brand small{
+  font-size:8px;
+  letter-spacing:.14em;
+  color:#7898b6;
+  font-weight:800;
+}
+
+.admin-console-nav{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:0;
+}
+.admin-console-nav a{
+  min-height:38px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid transparent;
+  border-radius:12px;
+  color:#7f9bb6;
+  font-size:10px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.admin-console-nav a svg{width:16px;height:16px}
+.admin-console-nav a:hover{
+  color:#dff7ff;
+  background:rgba(24,191,255,.05);
+}
+.admin-console-nav a.active{
+  color:#eafaff;
+  border-color:rgba(85,220,255,.14);
+  background:linear-gradient(135deg,rgba(20,118,185,.24),rgba(24,191,255,.07));
+}
+
+.admin-console .top-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.admin-console-main{
+  width:100%!important;
+  max-width:1600px!important;
+  min-height:calc(100vh - 68px)!important;
+  height:auto!important;
+  margin:0 auto!important;
+  padding:30px 32px 90px!important;
+  overflow:visible!important;
+}
+
+html:has(.admin-console),
+body:has(.admin-console),
+#root:has(.admin-console){
+  height:auto!important;
+  min-height:100%!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+  background:var(--admin-bg)!important;
+}
+
+body:has(.admin-console){
+  position:static!important;
+}
+
+/* The old sidebar shell must not influence the new console. */
+.admin-console .sidebar,
+.admin-console .sidebar-bottom,
+.admin-console .workspace{
+  display:none!important;
+}
+
+/* Give the graph the width that the removed sidebar used to steal. */
+.admin-console .graph-layout{
+  grid-template-columns:minmax(0,1fr) minmax(300px,390px)!important;
+}
+.admin-console .graph-canvas{
+  min-height:720px!important;
+}
+
+/* Cleaner page heading now that navigation lives above. */
+.admin-console .page-heading{
+  margin-bottom:14px!important;
+}
+.admin-console .heading-actions{
+  max-width:760px;
+}
+
+/* Keep overview compact and useful. */
+.admin-console .admin-atlas-overview{
+  margin-top:16px!important;
+}
+
+/* On narrower admin screens, nav stays horizontal and content scrolls naturally. */
+@media(max-width:900px){
+  .admin-console .admin-console-bar{
+    height:auto!important;
+    min-height:68px!important;
+    padding:10px 14px!important;
+    grid-template-columns:auto auto!important;
+    grid-template-areas:
+      "brand actions"
+      "nav nav"!important;
+    row-gap:8px!important;
+  }
+  .admin-console-brand{grid-area:brand}
+  .admin-console .top-actions{grid-area:actions}
+  .admin-console-nav{
+    grid-area:nav;
+    justify-content:flex-start;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  .admin-console-nav a{flex:0 0 auto}
+  .admin-console-main{
+    padding:22px 16px 80px!important;
+  }
+  .admin-console .graph-layout{
+    grid-template-columns:1fr!important;
+  }
+  .admin-console .graph-canvas{
+    min-height:620px!important;
+  }
+}
