@@ -17,7 +17,7 @@ import {
   type RebyterInteraction,
 } from "../lib/rebyters/companions";
 
-const PLAYER_CACHE_TTL_MS = 15_000;
+const PLAYER_CACHE_TTL_MS = 30_000;
 
 type PlayerSnapshot = {
   owned: OnchainRebyter[];
