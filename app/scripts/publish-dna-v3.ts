@@ -10,6 +10,7 @@ import { buildMammalDnaV3Upgrade } from "../src/lib/rebyters/sample";
 import { fetchVerifiedTreeForMigration } from "../src/lib/rebyters/tree";
 import { PROGRAM_ID, registryPda, treePda } from "../src/lib/rebyters/config";
 import { canonicalTree, contentHash } from "../src/lib/rebyters/canonical";
+import { validateTree } from "../src/lib/rebyters/validation";
 
 const rpc = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const walletPath =
@@ -61,39 +62,90 @@ async function main() {
 
   await mkdir("../artifacts/publication", { recursive: true });
 
-  let journal: PublishJournal | undefined;
-  try {
-    journal = JSON.parse(await readFile(journalFile, "utf8"));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-
+  // DNA v3 migration is deterministic: always rebuild from the currently
+  // authenticated active atlas + the canonical DNA v3 seed. Never reuse a
+  // pending file created by an earlier implementation.
   const desiredTree = buildMammalDnaV3Upgrade(
     previous,
     registry.nextVersions[0],
   );
-  const desiredHash = contentHash(desiredTree);
 
-  if (
-    journal &&
-    journal.baseVersion === activeVersion &&
-    journal.tree.version === desiredTree.version &&
-    contentHash(journal.tree) === desiredHash
-  ) {
-    console.log("Reusing current DNA v3 publication journal");
-  } else {
-    if (journal) {
-      console.log(
-        "Discarding stale DNA v3 publication journal and rebuilding from the current canonical rules",
-      );
-    }
-    journal = {
-      tree: desiredTree,
-      baseVersion: activeVersion,
-      replaceCollection: false,
-    };
-    await writeFile(journalFile, JSON.stringify(journal, null, 2));
+  const metricPattern =
+    /^(genetics|diet|time|care|physical|progression|battle|state|skills)\.[A-Za-z]+$/;
+  const invalidMetrics: Array<{
+    evolution: string;
+    path: number;
+    location: string;
+    metric: string;
+  }> = [];
+
+  desiredTree.evolutions.forEach((evolution) => {
+    evolution.paths.forEach((path, pathIndex) => {
+      if (!path.rule) return;
+      path.rule.groups.forEach((group, groupIndex) => {
+        group.alternatives.forEach((alternative, alternativeIndex) => {
+          alternative.forEach((condition, conditionIndex) => {
+            condition.metrics.forEach((metric) => {
+              if (!metricPattern.test(metric)) {
+                invalidMetrics.push({
+                  evolution: evolution.name,
+                  path: pathIndex,
+                  location: `group ${groupIndex}, alternative ${alternativeIndex}, condition ${conditionIndex}`,
+                  metric,
+                });
+              }
+            });
+          });
+        });
+      });
+      path.rule.mandatory.forEach((condition, conditionIndex) => {
+        condition.metrics.forEach((metric) => {
+          if (!metricPattern.test(metric)) {
+            invalidMetrics.push({
+              evolution: evolution.name,
+              path: pathIndex,
+              location: `mandatory ${conditionIndex}`,
+              metric,
+            });
+          }
+        });
+      });
+      path.rule.bonuses.forEach((condition, conditionIndex) => {
+        condition.metrics.forEach((metric) => {
+          if (!metricPattern.test(metric)) {
+            invalidMetrics.push({
+              evolution: evolution.name,
+              path: pathIndex,
+              location: `bonus ${conditionIndex}`,
+              metric,
+            });
+          }
+        });
+      });
+    });
+  });
+
+  if (invalidMetrics.length) {
+    throw new Error(
+      "DNA v3 canonical seed contains invalid metrics:\n" +
+        invalidMetrics
+          .map(
+            item =>
+              `- ${item.evolution} path ${item.path} ${item.location}: ${item.metric}`,
+          )
+          .join("\n"),
+    );
   }
+
+  // Run the exact validator used by Admin/publish before touching Irys/Solana.
+  validateTree(desiredTree);
+
+  const journal: PublishJournal = {
+    tree: desiredTree,
+    baseVersion: activeVersion,
+    replaceCollection: false,
+  };
+  await writeFile(journalFile, JSON.stringify(journal, null, 2));
 
   if (journal.tree.proofMode !== "unified-v1") {
     throw new Error("DNA v3 requires unified-v1 atlas proofs");
