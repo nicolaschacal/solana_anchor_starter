@@ -68,8 +68,22 @@ export const treeSchema = z
   })
   .strict()
   .passthrough();
+function readableValidationError(error: z.ZodError) {
+  return error.issues
+    .slice(0, 12)
+    .map(issue => `${issue.path.join(".")}: ${issue.message}`)
+    .join("\n");
+}
+
 export function validateTree(input: unknown): TreeJson {
-  const tree = treeSchema.parse(input);
+  let tree;
+  try {
+    tree = treeSchema.parse(input);
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      throw new Error(`Atlas validation failed:\n${readableValidationError(error)}`);
+    throw error;
+  }
   if (tree.family.name !== FAMILIES[tree.family.id])
     throw new Error("Family name does not match ID");
   const ids = new Set(tree.evolutions.map((e) => e.id));
