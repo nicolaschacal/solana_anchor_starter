@@ -2920,3 +2920,31 @@ body:has(.player-bg),
   overflow:hidden;
   overscroll-behavior:none;
 }
+
+
+/* Extend the Rebyters surface through mobile safe areas / browser chrome. */
+html,body,#root{
+  background:#060b1a;
+}
+body{
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.player-bg{
+  background:#060b1a!important;
+}
+.player-shell{
+  background:#060b1a!important;
+}
+.fallback-wallet-mark{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  font:700 15px 'Sora',sans-serif;
+  color:#fff;
+}
+.auth-wallet-option.fallback.phantom .fallback-wallet-mark{background:#6d5dfc}
+.auth-wallet-option.fallback.solflare .fallback-wallet-mark{background:#f2a327;color:#241400}
+.auth-wallet-option.fallback.backpack .fallback-wallet-mark{background:#111827;border:1px solid rgba(255,255,255,.14)}
