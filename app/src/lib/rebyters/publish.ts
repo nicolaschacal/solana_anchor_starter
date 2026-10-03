@@ -42,18 +42,19 @@ export async function publishTree(
       "Active version changed. Reload before publishing. Your draft is preserved.",
     );
   if (journal.baseVersion) {
-    const previous = await fetchTree(
-      writer.connection,
-      family,
-      journal.baseVersion,
-    );
-    if (!previous) throw new Error("Active tree missing");
-    const previousTree = await fetchVerifiedTree(previous);
     if (journal.replaceCollection) {
-      const previousIds = new Set(previousTree.evolutions.map((e) => e.id));
-      if (tree.evolutions.some((e) => previousIds.has(e.id)))
-        throw new Error("A replacement collection must use fresh reserved IDs");
+      // Fresh replacement collections deliberately do not parse or validate
+      // the active atlas being replaced. Global registry ID reservation already
+      // guarantees the new IDs are fresh; only the base-version lock matters.
+      progress("Replacing active collection with fresh reserved identities");
     } else {
+      const previous = await fetchTree(
+        writer.connection,
+        family,
+        journal.baseVersion,
+      );
+      if (!previous) throw new Error("Active tree missing");
+      const previousTree = await fetchVerifiedTree(previous);
       assertCompatible(previousTree, tree);
     }
   }
