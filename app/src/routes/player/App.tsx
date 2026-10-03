@@ -11,8 +11,9 @@ import {
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
-import type { Evolution, TreeJson } from "../../lib/rebyters/types";
-import { evaluatePath } from "../../lib/rebyters/rules";
+import { GROUPS, type Evolution, type TreeJson } from "../../lib/rebyters/types";
+import { conditionBounds, evaluatePath } from "../../lib/rebyters/rules";
+import type { RuleCondition } from "../../lib/rebyters/rule-types";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { REBYTER_CONDITION } from "../../lib/rebyters/companions";
 import "./player.css";
@@ -256,6 +257,68 @@ function evolutionState(rebyter:OwnedRebyter) {
   state["state.injured"]=(rebyter.condition&REBYTER_CONDITION.injured)?1:0;
   state["skills.count"]=learnedSkillCount(rebyter.learnedSkills);
   return state;
+}
+
+function evolutionRequirementStatus(
+  condition: RuleCondition,
+  tree: TreeJson,
+  targetStage: number,
+  state: Record<string, number>,
+) {
+  if (!tree.balance) {
+    return { passed: false, label: "Unknown requirement", current: "—", required: "—" };
+  }
+  const balance = tree.balance;
+  const values = condition.metrics.map(metric => state[metric]);
+  const value = values.every(v => v !== undefined)
+    ? values.reduce((sum, current) => sum + (current ?? 0), 0)
+    : undefined;
+  const [lo, hi] = conditionBounds(condition, balance, targetStage);
+  const passed = value !== undefined && value >= lo && value <= hi;
+  const primary = condition.metrics[0];
+  const metricLabel = condition.metrics
+    .map(metric => balance.metrics[metric]?.label ?? metric)
+    .join(" + ");
+
+  const friendlyLabel: Record<string, string> = {
+    "battle.hp": "Build HP",
+    "battle.attack": "Train Attack",
+    "battle.defense": "Train Defense",
+    "battle.speed": "Train Speed",
+    "progression.interactions": "Interact with your Rebyter",
+    "progression.stageAgeHours": "Time in this form",
+    "state.sick": "Stay healthy",
+    "state.injured": "Avoid injury",
+    "care.bond": "Build Bond",
+    "care.discipline": "Build Discipline",
+    "physical.weight": "Body weight",
+    "skills.count": "Learn skills",
+  };
+  const label = friendlyLabel[primary] ?? metricLabel;
+
+  const unit = balance.metrics[primary]?.unit ?? "";
+  const valueText = (n: number | undefined) => {
+    if (n === undefined) return "—";
+    if (primary === "state.sick") return n === 0 ? "Healthy" : "Sick";
+    if (primary === "state.injured") return n === 0 ? "Not injured" : "Injured";
+    if (primary === "progression.stageAgeHours") return `${n}h`;
+    if (unit === "%") return `${n}%`;
+    return unit ? `${n} ${unit}` : String(n);
+  };
+  const required =
+    primary === "state.sick" && lo === 0 && hi === 0
+      ? "Healthy"
+      : primary === "state.injured" && lo === 0 && hi === 0
+        ? "Not injured"
+        : condition.test === "min"
+          ? `${valueText(lo)}+`
+          : condition.test === "max"
+            ? `≤ ${valueText(hi)}`
+            : condition.test === "eq"
+              ? valueText(lo)
+              : `${valueText(lo)}–${valueText(hi)}`;
+
+  return { passed, label, current: valueText(value), required };
 }
 
 function RebyterPicker({
@@ -605,8 +668,29 @@ export function PlayerLab() {
     const target=tree.evolutions.find(e=>e.id===path.target);
     if(!target||!path.rule||tree.schema!==2||!tree.balance) return null;
     const result=evaluatePath(tree,path,state);
-    return {path,target,result};
-  }).filter(Boolean) as {path:any;target:Evolution;result:ReturnType<typeof evaluatePath>}[];
+    const mandatory=path.rule.mandatory.map(condition=>
+      evolutionRequirementStatus(condition,tree,target.stage,state)
+    );
+    const traits=path.rule.groups.map((group,index)=>{
+      const groupResult=result.groups[index];
+      const firstAlternative=group.alternatives[0]??[];
+      const conditions=firstAlternative.map(condition=>
+        evolutionRequirementStatus(condition,tree,target.stage,state)
+      );
+      return {
+        label:GROUPS[group.group]??`Group ${group.group}`,
+        passed:groupResult?.passed??false,
+        summary:conditions.map(item=>`${item.label}: ${item.current} / ${item.required}`).join(" · "),
+      };
+    });
+    return {path,target,result,mandatory,traits};
+  }).filter(Boolean) as {
+    path:any;
+    target:Evolution;
+    result:ReturnType<typeof evaluatePath>;
+    mandatory:ReturnType<typeof evolutionRequirementStatus>[];
+    traits:{label:string;passed:boolean;summary:string}[];
+  }[];
   const eligible=candidates.filter(c=>c.result.eligible);
   const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
   return <Shell><Header/><main className="player-main evolution-player">
@@ -614,15 +698,61 @@ export function PlayerLab() {
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
-      {candidates.map(({target,result})=>{const known=discoveredIds.has(target.id);return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
-        <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
-        <div className="evolution-option-copy">
-          <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
-          <strong>{known?target.name:"Unknown form"}</strong>
-          <p>{result.passedGroups} of {evolution.paths.find(p=>p.target===target.id)?.rule?.requiredGroups??0} rule groups match.</p>
-        </div>
-        {result.eligible?<button disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Keep developing</span>}
-      </article>})}
+      {candidates.map(({path,target,result,mandatory,traits})=>{
+        const known=discoveredIds.has(target.id);
+        const mandatoryLeft=mandatory.filter(item=>!item.passed).length;
+        const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-result.passedGroups);
+        const blockers=mandatoryLeft+traitLeft;
+        return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
+          <div className="evolution-option-top">
+            <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
+            <div className="evolution-option-copy">
+              <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
+              <strong>{known?target.name:"Unknown form"}</strong>
+              <p>{result.eligible
+                ?"All requirements are met."
+                :blockers===1
+                  ?"1 requirement still needs attention."
+                  :`${blockers} requirements still need attention.`}</p>
+            </div>
+            <div className={result.eligible?"route-readiness ready":"route-readiness"}>
+              <strong>{result.eligible?"READY":`${blockers} LEFT`}</strong>
+              <small>{result.passedGroups} traits matched · {path.rule?.requiredGroups??0} required</small>
+            </div>
+          </div>
+
+          <div className="evolution-requirements">
+            <section className="requirement-block">
+              <div className="requirement-block-head">
+                <strong>Required</strong>
+                <span>{mandatory.length-mandatoryLeft}/{mandatory.length}</span>
+              </div>
+              <div className="requirement-list">
+                {mandatory.map((item,index)=><div className={item.passed?"requirement-row passed":"requirement-row"} key={`${target.id}-mandatory-${index}`}>
+                  <i>{item.passed?"✓":"×"}</i>
+                  <span><strong>{item.label}</strong><small>{item.current} <b>→</b> {item.required}</small></span>
+                </div>)}
+              </div>
+            </section>
+
+            <section className="requirement-block">
+              <div className="requirement-block-head">
+                <strong>Route traits</strong>
+                <span>{result.passedGroups} matched · need {path.rule?.requiredGroups??0}</span>
+              </div>
+              <div className="trait-requirement-list">
+                {traits.map((trait,index)=><div className={trait.passed?"trait-requirement passed":"trait-requirement"} key={`${target.id}-trait-${index}`}>
+                  <i>{trait.passed?"✓":"×"}</i>
+                  <span><strong>{trait.label}</strong><small>{trait.summary}</small></span>
+                </div>)}
+              </div>
+              <p className="route-trait-note">You only need {path.rule?.requiredGroups??0} of these route traits. Genetics can help shape a branch, but trained stats and the Required section cannot be skipped.</p>
+            </section>
+          </div>
+
+          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> Complete the missing requirements above</span>}
+        </article>
+      })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
     </section>
     {player.status&&<div className="create-status">{player.status}</div>}
