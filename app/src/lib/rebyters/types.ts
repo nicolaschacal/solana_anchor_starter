@@ -14,35 +14,20 @@ export const GROUPS = [
   "Genetics",
   "Diet",
   "Time",
-  "Activity",
+  "Care",
   "Physical",
   "Progression",
   "Battle",
 ];
 export const OPERATORS = ["=", "!=", ">", ">=", "<", "<="];
 export const METRICS = [
-  [
-    "ActivityGene",
-    "SociabilityGene",
-    "IndependenceGene",
-    "NocturnalGene",
-    "CarnivoreGene",
-    "HerbivoreGene",
-    "PiscivoreGene",
-    "FrugivoreGene",
-    "SizeGene",
-    "StrengthGene",
-    "SpeedGene",
-    "ResilienceGene",
-    "MutationGene",
-    "RarityGene",
-  ],
+  ["Metabolism", "Temperament", "Rhythm", "Mutation"],
   ["Meat", "Fish", "Plant", "Fruit"],
   ["Morning", "Day", "Evening", "Night"],
-  ["Play"],
-  ["Weight", "Age"],
-  ["Cycle", "Level", "XP"],
-  ["Wins", "Losses", "HP", "Attack", "Defense", "Speed"],
+  ["Bond", "Discipline"],
+  ["Weight", "Fullness", "Energy"],
+  ["Interactions", "Cycle", "StageAgeHours", "Skills"],
+  ["HP", "Attack", "Defense", "Speed", "Sick", "Injured"],
 ];
 export interface Requirement {
   group: number;
