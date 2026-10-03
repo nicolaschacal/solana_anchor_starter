@@ -6,7 +6,6 @@
     "build:app": "npm --prefix app run build",
     "test:app": "npm --prefix app test",
     "publish:sample": "npm --prefix app run publish:sample",
-    "publish:dna-v3": "npm --prefix app run publish:dna-v3",
-    "publish:dna-v4": "npm --prefix app run publish:dna-v4"
+    "publish:current": "npm --prefix app run publish:current"
   }
 }
