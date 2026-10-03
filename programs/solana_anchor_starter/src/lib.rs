@@ -25,7 +25,7 @@ declare_id!("7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp");
 
 pub const MAX_FAMILIES: usize = 16;
 pub const MAX_URI_LENGTH: usize = 128;
-pub const REBYTER_DNA_V4_BYTES: usize = 57;
+pub const REBYTER_DNA_BYTES: usize = 50;
 
 pub const CONDITION_TIRED: u8 = 1 << 0;
 pub const CONDITION_OVERFED: u8 = 1 << 1;
@@ -242,7 +242,7 @@ pub mod solana_anchor_starter {
         let mint_key = ctx.accounts.mint.key();
 
         // The only custom TokenMetadata field is DNA.
-        // DNA v4 deliberately stores only visible gameplay state.
+        // current DNA deliberately stores only visible gameplay state.
         // Family, stage and atlas version are derived/verified from the active
         // atlas and its Merkle proofs instead of being duplicated in each NFT.
         require!(evolution_id <= u16::MAX as u32, RegistryError::Exhausted);
@@ -267,12 +267,10 @@ pub mod solana_anchor_starter {
             [0; 4],
             [0; 4],
             0,
-            0,
             100,
             20,
             20,
             20,
-            now,
             now,
             now,
             0,
@@ -428,7 +426,7 @@ pub mod solana_anchor_starter {
         let clock = Clock::get()?;
         materialize_lazy_state(&mut dna, clock.unix_timestamp.max(0) as u32);
 
-        // DNA v4 is not pinned to a historical atlas version. Evolutions are
+        // current DNA is not pinned to a historical atlas version. Evolutions are
         // always proven against the currently active atlas selected by registry.
         let family = family_index(ctx.accounts.tree.family_id)?;
         require!(
@@ -456,7 +454,7 @@ pub mod solana_anchor_starter {
             &rule_bytes,
         )?;
 
-        // DNA v4 starts from unified atlas proofs only.
+        // current DNA starts from unified atlas proofs only.
         require!(ctx.accounts.rule_set.key() == ctx.accounts.tree.key(), RegistryError::InvalidRule);
         let rules_root = ctx.accounts.tree.merkle_root;
         require!(
@@ -601,7 +599,6 @@ struct RebyterDnaV4 {
     condition: u8,
     diet: [u16; 4],
     time_interactions: [u16; 4],
-    total_interactions: u16,
     cycle: u8,
     hp: u16,
     atk: u16,
@@ -609,17 +606,16 @@ struct RebyterDnaV4 {
     spd: u16,
     last_state_at: u32,
     stage_entered_at: u32,
-    created_at: u32,
     learned_skills: u64,
 }
 
 impl RebyterDnaV4 {
     fn decode(bytes: &[u8]) -> Result<Self> {
         require!(
-            bytes.len() == REBYTER_DNA_V4_BYTES && bytes[0] == 4,
+            bytes.len() == REBYTER_DNA_BYTES,
             RegistryError::UnsupportedDna
         );
-        let mut o = 1usize;
+        let mut o = 0usize;
         let take_u8 = |data: &[u8], offset: &mut usize| -> u8 {
             let value = data[*offset];
             *offset += 1;
@@ -658,7 +654,6 @@ impl RebyterDnaV4 {
         for value in diet.iter_mut() { *value = take_u16(bytes, &mut o); }
         let mut time_interactions = [0u16; 4];
         for value in time_interactions.iter_mut() { *value = take_u16(bytes, &mut o); }
-        let total_interactions = take_u16(bytes, &mut o);
         let cycle = take_u8(bytes, &mut o);
         let hp = take_u16(bytes, &mut o);
         let atk = take_u16(bytes, &mut o);
@@ -666,13 +661,12 @@ impl RebyterDnaV4 {
         let spd = take_u16(bytes, &mut o);
         let last_state_at = take_u32(bytes, &mut o);
         let stage_entered_at = take_u32(bytes, &mut o);
-        let created_at = take_u32(bytes, &mut o);
         let learned_skills = take_u64(bytes, &mut o);
 
         Ok(Self {
             evolution_id, weight, bond, discipline, care_mistakes, fullness,
-            energy, condition, diet, time_interactions, total_interactions, cycle,
-            hp, atk, def, spd, last_state_at, stage_entered_at, created_at,
+            energy, condition, diet, time_interactions, cycle,
+            hp, atk, def, spd, last_state_at, stage_entered_at,
             learned_skills,
         })
     }
@@ -681,9 +675,9 @@ impl RebyterDnaV4 {
         pack_rebyter_dna_v4(
             self.evolution_id, self.weight, self.bond,
             self.discipline, self.care_mistakes, self.fullness, self.energy, self.condition,
-            self.diet, self.time_interactions, self.total_interactions,
+            self.diet, self.time_interactions,
             self.cycle, self.hp, self.atk, self.def, self.spd,
-            self.last_state_at, self.stage_entered_at, self.created_at,
+            self.last_state_at, self.stage_entered_at,
             self.learned_skills,
         )
     }
@@ -897,7 +891,6 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
 
     let bucket = utc_time_bucket(clock.unix_timestamp);
     dna.time_interactions[bucket] = dna.time_interactions[bucket].saturating_add(1);
-    dna.total_interactions = dna.total_interactions.saturating_add(1);
     dna.last_state_at = now;
 
     let dna_base58 = bs58::encode(dna.encode()).into_string();
@@ -928,7 +921,6 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
             InteractionKind::Train(_) => 4,
         },
         time_bucket: bucket as u8,
-        total_interactions: dna.total_interactions,
     });
     Ok(())
 }
@@ -1008,16 +1000,15 @@ fn metric_value(metric: u8, dna: &RebyterDnaV4, now: u32) -> Result<u16> {
         11 => u16::from(dna.care_mistakes),
         12 => u16::from(dna.fullness),
         13 => u16::from(dna.energy),
-        14 => dna.total_interactions,
-        15 => u16::from(dna.cycle),
-        16 => ((now.saturating_sub(dna.stage_entered_at)) / 60).min(u16::MAX as u32) as u16,
-        17 => dna.hp,
-        18 => dna.atk,
-        19 => dna.def,
-        20 => dna.spd,
-        21 => if has_condition(dna, CONDITION_SICK) { 1 } else { 0 },
-        22 => if has_condition(dna, CONDITION_INJURED) { 1 } else { 0 },
-        23 => dna.learned_skills.count_ones().min(u16::MAX as u32) as u16,
+        14 => u16::from(dna.cycle),
+        15 => ((now.saturating_sub(dna.stage_entered_at)) / 60).min(u16::MAX as u32) as u16,
+        16 => dna.hp,
+        17 => dna.atk,
+        18 => dna.def,
+        19 => dna.spd,
+        20 => if has_condition(dna, CONDITION_SICK) { 1 } else { 0 },
+        21 => if has_condition(dna, CONDITION_INJURED) { 1 } else { 0 },
+        22 => dna.learned_skills.count_ones().min(u16::MAX as u32) as u16,
         _ => return err!(RegistryError::InvalidRule),
     };
     Ok(value)
@@ -1136,7 +1127,6 @@ fn pack_rebyter_dna_v4(
     condition: u8,
     diet: [u16; 4],
     time_interactions: [u16; 4],
-    total_interactions: u16,
     cycle: u8,
     hp: u16,
     atk: u16,
@@ -1144,11 +1134,9 @@ fn pack_rebyter_dna_v4(
     spd: u16,
     last_state_at: u32,
     stage_entered_at: u32,
-    created_at: u32,
     learned_skills: u64,
 ) -> Vec<u8> {
-    let mut out = Vec::with_capacity(REBYTER_DNA_V4_BYTES);
-    out.push(4);
+    let mut out = Vec::with_capacity(REBYTER_DNA_BYTES);
     out.extend_from_slice(&evolution_id.to_le_bytes());
     out.push(weight);
     out.push(bond);
@@ -1159,7 +1147,6 @@ fn pack_rebyter_dna_v4(
     out.push(condition);
     for value in diet { out.extend_from_slice(&value.to_le_bytes()); }
     for value in time_interactions { out.extend_from_slice(&value.to_le_bytes()); }
-    out.extend_from_slice(&total_interactions.to_le_bytes());
     out.push(cycle);
     out.extend_from_slice(&hp.to_le_bytes());
     out.extend_from_slice(&atk.to_le_bytes());
@@ -1167,9 +1154,8 @@ fn pack_rebyter_dna_v4(
     out.extend_from_slice(&spd.to_le_bytes());
     out.extend_from_slice(&last_state_at.to_le_bytes());
     out.extend_from_slice(&stage_entered_at.to_le_bytes());
-    out.extend_from_slice(&created_at.to_le_bytes());
     out.extend_from_slice(&learned_skills.to_le_bytes());
-    debug_assert_eq!(out.len(), REBYTER_DNA_V4_BYTES);
+    debug_assert_eq!(out.len(), REBYTER_DNA_BYTES);
     out
 }
 
@@ -1402,7 +1388,7 @@ pub struct EvolveRebyter<'info> {
     #[account(seeds = [b"registry"], bump)]
     pub registry: Account<'info, RegistryRoot>,
     pub tree: Account<'info, EvolutionTree>,
-    /// CHECK: DNA v4 requires this to be the same address as `tree`; the
+    /// CHECK: current DNA requires this to be the same address as `tree`; the
     /// unified active atlas root verifies both forms and gameplay rules.
     pub rule_set: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
@@ -1430,7 +1416,6 @@ pub struct RebyterInteraction {
     pub action: u8,
     /// 0 night, 1 morning, 2 day, 3 evening (UTC).
     pub time_bucket: u8,
-    pub total_interactions: u16,
 }
 
 #[event]
@@ -1484,7 +1469,7 @@ pub enum RegistryError {
     InvalidEvolutionProof,
     #[msg("Rebyter metadata is invalid")]
     InvalidMetadata,
-    #[msg("This interaction requires Rebyter DNA v4")]
+    #[msg("This interaction requires Rebyter current DNA")]
     UnsupportedDna,
     #[msg("Wallet does not own this Rebyter")]
     NotOwner,
