@@ -242,7 +242,7 @@ pub mod solana_anchor_starter {
         let owner_key = ctx.accounts.owner.key();
         let mint_key = ctx.accounts.mint.key();
         let dna = solana_sha256_hasher::hashv(&[
-            b"rebyter-dna-v2",
+            b"rebyter-dna-v3",
             owner_key.as_ref(),
             mint_key.as_ref(),
             &clock.slot.to_le_bytes(),
@@ -404,7 +404,7 @@ pub mod solana_anchor_starter {
         apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))
     }
 
-    /// Play increases activity and bond while consuming energy/fullness.
+    /// Play builds bond and a little speed while consuming energy/fullness.
     pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
         apply_interaction(&ctx.accounts, InteractionKind::Play)
     }
@@ -807,10 +807,19 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
         }
         InteractionKind::Play => {
             let energy_before = dna.energy;
+            let fullness_before = dna.fullness;
             dna.energy = dna.energy.saturating_sub(12);
             dna.fullness = dna.fullness.saturating_sub(4);
             dna.weight = dna.weight.saturating_sub(1);
-            dna.bond = dna.bond.saturating_add(3 + temperament_bond_bonus(&dna)).min(100);
+
+            if energy_before >= 20 && fullness_before >= 10 && !has_condition(&dna, CONDITION_SICK) {
+                dna.bond = dna.bond.saturating_add(3 + temperament_bond_bonus(&dna)).min(100);
+            } else {
+                // The action is allowed, but forcing play while depleted is bad care.
+                dna.bond = dna.bond.saturating_sub(1);
+                dna.discipline = dna.discipline.saturating_sub(1);
+            }
+
             if energy_before >= 40 && !has_condition(&dna, CONDITION_SICK) {
                 dna.spd = dna.spd.saturating_add(1);
             }
@@ -818,11 +827,20 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
                 if has_condition(&dna, CONDITION_TIRED) { add_condition(&mut dna, CONDITION_SICK); }
                 add_condition(&mut dna, CONDITION_TIRED);
             }
+            if fullness_before == 0 {
+                add_condition(&mut dna, CONDITION_SICK);
+            }
         }
         InteractionKind::Care => {
+            let can_benefit = dna.energy >= 15 && dna.fullness >= 10;
             dna.energy = dna.energy.saturating_sub(2);
             dna.fullness = dna.fullness.saturating_sub(1);
-            dna.bond = dna.bond.saturating_add(4 + temperament_bond_bonus(&dna)).min(100);
+            if can_benefit {
+                dna.bond = dna.bond.saturating_add(4 + temperament_bond_bonus(&dna)).min(100);
+            } else {
+                // Repeating Care on a depleted companion is interaction, not free Bond.
+                dna.discipline = dna.discipline.saturating_sub(1);
+            }
             if has_condition(&dna, CONDITION_SICK)
                 && dna.energy >= 50 && dna.fullness >= 20 && dna.fullness <= 90
             {
@@ -835,14 +853,21 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
         }
         InteractionKind::Rest => {
             let needed_rest = dna.energy < 70 || has_condition(&dna, CONDITION_TIRED);
+            let fullness_before = dna.fullness;
             dna.energy = dna.energy.saturating_add(30).min(100);
             dna.fullness = dna.fullness.saturating_sub(2);
-            if needed_rest { dna.discipline = dna.discipline.saturating_add(1).min(100); }
+            if needed_rest {
+                dna.discipline = dna.discipline.saturating_add(1).min(100);
+            } else if fullness_before < 10 {
+                // Spamming unnecessary rest while starving is poor routine.
+                dna.discipline = dna.discipline.saturating_sub(1);
+            }
             if dna.energy >= 40 { clear_condition(&mut dna, CONDITION_TIRED); }
             if dna.energy >= 70 && dna.fullness >= 20 && !has_condition(&dna, CONDITION_OVERFED) {
                 clear_condition(&mut dna, CONDITION_SICK);
             }
             if dna.energy >= 85 { clear_condition(&mut dna, CONDITION_INJURED); }
+            if fullness_before == 0 { add_condition(&mut dna, CONDITION_SICK); }
         }
         InteractionKind::Train(training_type) => {
             let energy_before = dna.energy;
@@ -1003,8 +1028,8 @@ fn metric_value(metric: u8, dna: &RebyterDnaV3, now: u32) -> Result<u16> {
         21 => dna.atk,
         22 => dna.def,
         23 => dna.spd,
-        24 => u16::from(has_condition(dna, CONDITION_SICK)),
-        25 => u16::from(has_condition(dna, CONDITION_INJURED)),
+        24 => if has_condition(dna, CONDITION_SICK) { 1 } else { 0 },
+        25 => if has_condition(dna, CONDITION_INJURED) { 1 } else { 0 },
         26 => dna.learned_skills.count_ones().min(u16::MAX as u32) as u16,
         _ => return err!(RegistryError::InvalidRule),
     };
@@ -1390,8 +1415,8 @@ pub struct EvolveRebyter<'info> {
     #[account(seeds = [b"registry"], bump)]
     pub registry: Account<'info, RegistryRoot>,
     pub tree: Account<'info, EvolutionTree>,
-    /// CHECK: DNA v3 requires this to be the same address as `tree`.
-    /// Legacy atlas versions may pass their historical RuleSet PDA instead.
+    /// CHECK: DNA v3 requires this to be the same address as `tree`; the
+    /// unified active atlas root verifies both forms and gameplay rules.
     pub rule_set: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
@@ -1414,7 +1439,7 @@ pub struct PlayerDiscovery {
 pub struct RebyterInteraction {
     pub owner: Pubkey,
     pub mint: Pubkey,
-    /// 0 feed, 1 play, 2 care.
+    /// 0 feed, 1 play, 2 care, 3 rest, 4 train.
     pub action: u8,
     /// 0 night, 1 morning, 2 day, 3 evening (UTC).
     pub time_bucket: u8,
