@@ -35,16 +35,16 @@ export function groupLabel(rule: EvolutionRule, index: number, balance: BalanceP
 export function defaultRule(): EvolutionRule {
   return {
     version: 1,
-    requiredGroups: 1,
-    groups: [
-      { group: 3, alternatives: [[{ metrics: ["care.bond"], test: "min", level: "medium" }]] },
-    ],
+    requiredGroups: 0,
+    groups: [],
     mandatory: [
+      { metrics: ["time.day"], test: "min", level: "medium" },
+      { metrics: ["diet.meat"], test: "min", level: "medium" },
+      { metrics: ["physical.weight"], test: "range", level: "medium" },
       { metrics: ["battle.attack"], test: "min", level: "medium" },
-      { metrics: ["progression.interactions"], test: "min", value: 5 },
-      { metrics: ["progression.stageAgeHours"], test: "min", value: 1 },
-      { metrics: ["state.sick"], test: "eq", value: 0 },
-      { metrics: ["state.injured"], test: "eq", value: 0 },
+      { metrics: ["care.bond"], test: "min", level: "medium" },
+      { metrics: ["progression.interactions"], test: "min", value: 3 },
+      { metrics: ["progression.stageAgeMinutes"], test: "min", value: 1 },
     ],
     bonuses: [],
     selection: "player-choice",
@@ -52,7 +52,7 @@ export function defaultRule(): EvolutionRule {
   };
 }
 export function metricChoices(balance: BalanceProfile, group?: number) {
-  const prefixes = ["genetics.", "diet.", "time.", "care.", "physical.", "progression.", "battle."];
+  const prefixes = ["diet.", "time.", "care.", "physical.", "progression.", "battle."];
   const keys = Object.keys(balance.metrics).filter(m => group === undefined || m.startsWith(prefixes[group]));
   const choices = keys.map(m => ({ value: m, label: balance.metrics[m].label }));
   for (const prefix of ["diet.", "time."]) {
