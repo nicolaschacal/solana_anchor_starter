@@ -2274,3 +2274,27 @@ button.account-card.account-nav-card{
     height:calc(100dvh - 66px)!important;
   }
 }
+
+
+/* Player Atlas lineage nodes behave like focusable game graph nodes. */
+.lineage-card.selectable{
+  width:100%;
+  border:1px solid var(--line);
+  cursor:pointer;
+  font:inherit;
+  color:inherit;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease,box-shadow .14s ease;
+}
+.lineage-card.selectable:hover:not(:disabled){
+  transform:translateY(-2px);
+  border-color:rgba(92,214,255,.44);
+  background:rgba(92,214,255,.07);
+}
+.lineage-card.selectable.active{
+  cursor:default;
+  border-color:var(--rb-accent);
+  box-shadow:0 0 0 2px rgba(92,214,255,.12);
+}
+.lineage-card:disabled{opacity:1;cursor:default}
+.lineage-card.selectable small{color:var(--rb-accent)}
+.lineage-card.selectable.active small{color:var(--rb-muted)}
