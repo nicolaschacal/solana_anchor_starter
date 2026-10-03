@@ -584,6 +584,44 @@
       "args": []
     },
     {
+      "name": "train",
+      "discriminator": [
+        27,
+        158,
+        209,
+        155,
+        170,
+        217,
+        179,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority"
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "training_type",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "create_rule_set",
       "discriminator": [
         104,
