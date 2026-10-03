@@ -105,68 +105,40 @@ export default function App() {
   }
 
   return (
-    <div className="shell admin-game-shell">
-      <aside className="sidebar">
-        <Link to="/admin" className="brand">
-          <Blocks size={25} />
-          <span>
-            REBYTERS<small>ADMIN CONSOLE</small>
-          </span>
+    <div className="admin-game-shell admin-console">
+      <header className="topbar admin-console-bar">
+        <Link to="/admin/families/0" className="admin-console-brand">
+          <Blocks size={23}/>
+          <span><strong>REBYTERS</strong><small>ADMIN</small></span>
         </Link>
-        <nav>
-          <NavLink end to="/admin/families">
-            <LayoutDashboard size={18} />
-            Collections
-          </NavLink>
-          <NavLink title="Mammal graph" to="/admin/families/0">
-            <Network size={18} />
-            Evolution atlas
-          </NavLink>
-          <NavLink to="/admin/design-lab">
-            <Palette size={18} />
-            Design Lab
-          </NavLink>
+
+        <nav className="admin-console-nav" aria-label="Admin navigation">
+          <NavLink to="/admin/families/0"><Network size={17}/>Atlas</NavLink>
+          <NavLink end to="/admin/families"><LayoutDashboard size={17}/>Collections</NavLink>
+          <NavLink to="/admin/design-lab"><Palette size={17}/>Design Lab</NavLink>
         </nav>
-        <div className="sidebar-bottom">
-          <span className="network-dot" />
-          Solana devnet<small>Registry online</small>
-          <a
-            href={`https://explorer.solana.com/address/${PROGRAM_ID}?cluster=devnet`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Program {short(PROGRAM_ID.toBase58())}
-            <ExternalLink size={12} />
-          </a>
+
+        <div className="top-actions">
+          <span className="admin-live"><i/> Devnet</span>
+          <ThemeToggle />
+          <WalletMultiButton />
         </div>
-      </aside>
-      <div className="workspace">
-        <header className="topbar">
-          <div className="admin-topbar-title">
-            <small>EVOLUTION CONTROL</small>
-            <strong>Mammal atlas</strong>
-          </div>
-          <div className="top-actions">
-            <span className="admin-live"><i/> Devnet</span>
-            <ThemeToggle />
-            <WalletMultiButton />
-          </div>
-        </header>
-        <main>
-          <Routes>
-            <Route index element={<Navigate to="families/0" replace />} />
-            <Route path="families" element={<Home state={state} />} />
-            <Route path="design-lab" element={<DesignLab />} />
-            <Route path="core-benchmark" element={<CoreBenchmark />} />
-            <Route path="families/:familyId" element={<Family state={state} />} />
-            <Route
-              path="families/:familyId/evolutions/:evolutionId"
-              element={<Family state={state} />}
-            />
-            <Route path="*" element={<Navigate to="families/0" replace />} />
-          </Routes>
-        </main>
-      </div>
+      </header>
+
+      <main className="admin-console-main">
+        <Routes>
+          <Route index element={<Navigate to="families/0" replace />} />
+          <Route path="families" element={<Home state={state} />} />
+          <Route path="design-lab" element={<DesignLab />} />
+          <Route path="core-benchmark" element={<CoreBenchmark />} />
+          <Route path="families/:familyId" element={<Family state={state} />} />
+          <Route
+            path="families/:familyId/evolutions/:evolutionId"
+            element={<Family state={state} />}
+          />
+          <Route path="*" element={<Navigate to="families/0" replace />} />
+        </Routes>
+      </main>
     </div>
   );
 }
