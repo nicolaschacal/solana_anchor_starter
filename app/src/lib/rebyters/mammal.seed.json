@@ -94,7 +94,7 @@
               },
               {
                 "metrics": [
-                  "time.day"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -134,7 +134,7 @@
           },
           "designRule": {
             "Diet": "+fruit",
-            "Rhythm": "+day",
+            "Rhythm": "+morning",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
@@ -220,7 +220,7 @@
               },
               {
                 "metrics": [
-                  "time.day"
+                  "time.evening"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -260,7 +260,7 @@
           },
           "designRule": {
             "Diet": "+fish",
-            "Rhythm": "+day",
+            "Rhythm": "+evening",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
@@ -491,7 +491,7 @@
               },
               {
                 "metrics": [
-                  "time.evening"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -531,7 +531,7 @@
           },
           "designRule": {
             "Diet": "+fish",
-            "Rhythm": "+evening",
+            "Rhythm": "+morning",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
@@ -573,7 +573,7 @@
               },
               {
                 "metrics": [
-                  "time.evening"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -613,7 +613,7 @@
           },
           "designRule": {
             "Diet": "+fish",
-            "Rhythm": "+evening",
+            "Rhythm": "+morning",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
@@ -699,7 +699,7 @@
               },
               {
                 "metrics": [
-                  "time.day"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -739,7 +739,7 @@
           },
           "designRule": {
             "Diet": "+plant",
-            "Rhythm": "+day",
+            "Rhythm": "+morning",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
@@ -967,7 +967,7 @@
               },
               {
                 "metrics": [
-                  "time.day"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -1007,7 +1007,7 @@
           },
           "designRule": {
             "Diet": "+plant",
-            "Rhythm": "+day",
+            "Rhythm": "+morning",
             "Weight": "medium",
             "Training": "speed+",
             "Care": "discipline medium",
@@ -1109,7 +1109,7 @@
               },
               {
                 "metrics": [
-                  "time.evening"
+                  "time.morning"
                 ],
                 "test": "min",
                 "level": "medium"
@@ -1149,7 +1149,7 @@
           },
           "designRule": {
             "Diet": "+fish",
-            "Rhythm": "+evening",
+            "Rhythm": "+morning",
             "Weight": "light",
             "Training": "speed+",
             "Care": "bond medium",
