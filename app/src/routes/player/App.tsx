@@ -114,7 +114,7 @@ function Nav() {
 }
 
 function Shell({children}:{children:React.ReactNode}) {
-  return <div className="player-bg"><div className="player-shell">{children}<Nav/></div></div>;
+  return <div className="player-bg"><div className="player-shell game-frame">{children}<Nav/></div></div>;
 }
 
 function Header() {
@@ -847,13 +847,13 @@ export function PlayerAtlas() {
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
   if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} onSelect={setSelectedId} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
   return <Shell><Header/><main className="player-main atlas-player">
-    <div className="atlas-family-tabs" aria-label="Evolution families">
+    <section className="atlas-family-dock"><div className="atlas-family-tabs" aria-label="Evolution families">
       <button className="active"><Shield/><span><strong>Mammal</strong><small>Active atlas</small></span></button>
       <button disabled><Droplets/><span><strong>Amphibian</strong><small>Locked</small></span><LockKeyhole/></button>
       <button disabled><Bird/><span><strong>Avian</strong><small>Locked</small></span><LockKeyhole/></button>
       <button disabled><Zap/><span><strong>Reptile</strong><small>Locked</small></span><LockKeyhole/></button>
-    </div>
-    <div className="player-page-head"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Every form your trainer has ever reached stays revealed here, even after that Rebyter evolves again.</p></div>
+    </div></section>
+    <div className="player-page-head atlas-hero"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Every form your trainer has ever reached stays revealed here, even after that Rebyter evolves again.</p></div>
     <div className="atlas-progress"><span><strong>{ownedEvolutionIds.size}</strong> / {tree.evolutions.length} discovered</span><div><i style={{width:`${ownedEvolutionIds.size/tree.evolutions.length*100}%`}}/></div></div>
     {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<CreatureSprite evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
   </main></Shell>;
