@@ -4,6 +4,7 @@ import {
   type Idl,
   type Wallet,
 } from "@anchor-lang/core";
+import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import {
   Connection,
   PublicKey,
@@ -15,11 +16,20 @@ import { PROGRAM_ID, registryPda, ruleSetPda, treePda } from "./config";
 import type { Registry, TreeMetadata, Publication, TreeJson } from "./types";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
 import { buildRuleMerkleTree } from "./rule-merkle";
-export function getProgram(connection: Connection, wallet?: Wallet) {
+export type RebytersProviderWallet = Wallet | AnchorWallet;
+
+export function getProgram(
+  connection: Connection,
+  wallet?: RebytersProviderWallet,
+) {
   return new Program(
     idl as Idl,
     wallet
-      ? new AnchorProvider(connection, wallet, { commitment: "confirmed" })
+      ? new AnchorProvider(
+          connection,
+          wallet as ConstructorParameters<typeof AnchorProvider>[1],
+          { commitment: "confirmed" },
+        )
       : { connection },
   );
 }
