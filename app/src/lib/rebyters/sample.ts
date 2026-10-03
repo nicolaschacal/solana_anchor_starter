@@ -189,13 +189,15 @@ export function buildCurrentMammalRebalance(
     evolutions: seed.evolutions.map(authored => {
       const key = authored.key ?? authored.name.toLowerCase().replace(/\s+/g, "_");
       const current = previousByKey.get(key)!;
+      const position = current.position ?? authored.position;
+      const modelUri = current.modelUri || authored.modelUri;
       return {
         ...authored,
         id: current.id,
         name: current.name || authored.name,
         enabled: current.enabled,
-        position: current.position ?? authored.position,
-        modelUri: current.modelUri || authored.modelUri,
+        ...(position !== undefined ? { position } : {}),
+        ...(modelUri !== undefined && modelUri !== "" ? { modelUri } : {}),
         assets: { ...authored.assets, ...current.assets },
         paths: authored.paths.map(path => ({
           ...path,
