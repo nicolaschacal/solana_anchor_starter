@@ -4,7 +4,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight,
-  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, LogOut, MoonStar,
+  CircleUserRound, Dna, Droplets, ExternalLink, Heart, Home, LockKeyhole, MoonStar,
   Plus, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
