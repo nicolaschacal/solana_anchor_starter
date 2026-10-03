@@ -68,7 +68,7 @@ async function main() {
       pending.baseVersion === activeVersion &&
       pending.tree.version === nextVersion &&
       pending.replaceCollection === false &&
-      pending.tree.balance?.version === "mammal-current-physiology-3"
+      pending.tree.balance?.version === "mammal-current-physiology-4"
     ) {
       validateTree(pending.tree);
       journal = pending;
