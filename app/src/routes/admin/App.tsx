@@ -28,6 +28,8 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldCheck,
+  LockKeyhole,
+  WalletCards,
   Trash2,
   Upload,
   X,
@@ -68,13 +70,47 @@ const short = (s: string) =>
 type RegistryState = ReturnType<typeof useRegistry>;
 export default function App() {
   const state = useRegistry();
+  const wallet = useWallet();
+  const authority = state.registry?.authority ?? null;
+  const connected = wallet.publicKey?.toBase58() ?? null;
+  const authorized = !!authority && connected === authority;
+
+  if (state.loading && !state.registry) {
+    return <div className="admin-gate">
+      <div className="admin-gate-orb"><Blocks/></div>
+      <small>REBYTERS ADMIN</small>
+      <h1>Loading authority…</h1>
+    </div>;
+  }
+
+  if (!authorized) {
+    return <div className="admin-gate">
+      <div className="admin-gate-glow"/>
+      <section className="admin-gate-card">
+        <div className="admin-gate-orb"><LockKeyhole/></div>
+        <small>REBYTERS ADMIN</small>
+        <h1>Authority required</h1>
+        <p>{!wallet.connected
+          ? "Connect the registry authority wallet to open the evolution console."
+          : "This wallet does not control the Rebyters registry."}</p>
+        {authority&&<div className="admin-authority-hint">
+          <span>Registry authority</span>
+          <code>{short(authority)}</code>
+        </div>}
+        <WalletMultiButton>
+          <><WalletCards size={17}/><span>{wallet.connected?"Change wallet":"Connect admin wallet"}</span></>
+        </WalletMultiButton>
+      </section>
+    </div>;
+  }
+
   return (
-    <div className="shell">
+    <div className="shell admin-game-shell">
       <aside className="sidebar">
         <Link to="/admin" className="brand">
-          <Blocks size={28} />
+          <Blocks size={25} />
           <span>
-            REBYTERS<small>EVOLUTION LAB</small>
+            REBYTERS<small>ADMIN CONSOLE</small>
           </span>
         </Link>
         <nav>
@@ -93,23 +129,26 @@ export default function App() {
         </nav>
         <div className="sidebar-bottom">
           <span className="network-dot" />
-          Solana devnet<small>Registry program</small>
+          Solana devnet<small>Registry online</small>
           <a
             href={`https://explorer.solana.com/address/${PROGRAM_ID}?cluster=devnet`}
             target="_blank"
             rel="noreferrer"
           >
-            {short(PROGRAM_ID.toBase58())}
+            Program {short(PROGRAM_ID.toBase58())}
             <ExternalLink size={12} />
           </a>
         </div>
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <span>RESEARCH STATION 01 / MAMMAL DIVISION</span>
+          <div className="admin-topbar-title">
+            <small>EVOLUTION CONTROL</small>
+            <strong>Mammal atlas</strong>
+          </div>
           <div className="top-actions">
+            <span className="admin-live"><i/> Devnet</span>
             <ThemeToggle />
-            <span className="tag">DEVNET</span>
             <WalletMultiButton />
           </div>
         </header>
@@ -127,9 +166,6 @@ export default function App() {
             <Route path="*" element={<Navigate to="families/0" replace />} />
           </Routes>
         </main>
-        <footer>
-          REBYTERS <span>Development network · Schema 1</span>
-        </footer>
       </div>
     </div>
   );
