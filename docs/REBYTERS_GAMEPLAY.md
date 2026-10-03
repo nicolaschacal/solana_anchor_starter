@@ -66,9 +66,10 @@ The browser mirrors the same calculation for display; the program is authoritati
 Examples that can add a mistake:
 - repeated overfeeding;
 - forcing Play while depleted;
-- using Care while severely depleted;
-- resting while starving when rest was unnecessary;
-- training with no effective energy / severe overtraining.
+- training with no effective energy / severe overtraining;
+- allowing prolonged starvation to make the Rebyter Sick.
+
+Care and Rest are recovery actions and do not themselves add care mistakes.
 
 A later evolution can require, for example, `Care mistakes <= 2`.
 
@@ -88,7 +89,7 @@ No evolution timer exceeds one hour.
 
 ## Evolution identity
 
-The player-facing Lab does not show raw percentages or internal thresholds.
+Diet/time counters and care mistakes reset when the Rebyter evolves, so each form is raised as a new stage. The player-facing Lab does not show raw percentages or internal thresholds.
 
 A route reads like:
 
