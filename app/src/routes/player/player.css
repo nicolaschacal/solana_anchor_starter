@@ -2190,35 +2190,58 @@ button.account-card.account-nav-card{
 }
 
 
-/* Mobile top header overlays the viewer instead of consuming viewport height. */
+/* Mobile header behavior is route-sensitive.
+   Home overlays the viewer; content pages keep the header in normal flow. */
 @media(max-width:899px){
   .player-shell{
     position:relative!important;
-    height:100dvh!important;
     min-height:100dvh!important;
-    overflow:hidden!important;
   }
 
+  /* Content pages: Lab / Atlas / Account */
   .player-head{
-    position:absolute!important;
+    position:relative!important;
     z-index:40!important;
-    top:0!important;
-    left:0!important;
-    right:0!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
     width:100%!important;
     height:66px!important;
     min-height:66px!important;
     max-height:66px!important;
     margin:0!important;
     padding:12px 14px!important;
+    background:rgba(6,11,26,.34)!important;
+    border-bottom:1px solid rgba(220,238,255,.12)!important;
+    box-shadow:none!important;
+    backdrop-filter:blur(10px)!important;
+    -webkit-backdrop-filter:blur(10px)!important;
+  }
+
+  .player-main{
+    min-height:calc(100dvh - 66px)!important;
+    padding-top:18px!important;
+  }
+
+  /* Home only: header floats over the full-viewport companion viewer. */
+  .player-shell:has(> .game-home) {
+    height:100dvh!important;
+    min-height:100dvh!important;
+    overflow:hidden!important;
+  }
+
+  .player-shell:has(> .game-home) > .player-head{
+    position:absolute!important;
+    top:0!important;
+    left:0!important;
+    right:0!important;
     background:transparent!important;
     border-bottom:1px solid rgba(220,238,255,.14)!important;
-    box-shadow:none!important;
     backdrop-filter:none!important;
     -webkit-backdrop-filter:none!important;
   }
 
-  .game-home{
+  .player-shell:has(> .game-home) > .game-home{
     position:relative!important;
     top:0!important;
     width:100%!important;
@@ -2230,23 +2253,23 @@ button.account-card.account-nav-card{
     overflow:hidden!important;
   }
 
-  .game-viewer{
+  .player-shell:has(> .game-home) .game-viewer{
     position:absolute!important;
     inset:0!important;
     width:100%!important;
     height:100%!important;
   }
 
-  .monster-id,
-  .monster-hud-right{
+  .player-shell:has(> .game-home) .monster-id,
+  .player-shell:has(> .game-home) .monster-hud-right{
     top:80px!important;
   }
 
-  .monster-speech{
+  .player-shell:has(> .game-home) .monster-speech{
     top:23%!important;
   }
 
-  .game-sheet-backdrop{
+  .player-shell:has(> .game-home) .game-sheet-backdrop{
     inset:66px 0 0!important;
     height:calc(100dvh - 66px)!important;
   }
