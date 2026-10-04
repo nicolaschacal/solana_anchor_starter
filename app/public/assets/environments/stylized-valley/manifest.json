@@ -1,0 +1,110 @@
+{
+  "name": "Textured stylized valley",
+  "author": "Quaternius (nature assets); Rebyters (composition, terrain, lake)",
+  "license": "CC0-1.0 (source assets)",
+  "source": "https://quaternius.com/packs/ultimatestylizednature.html",
+  "sources": {
+    "birch": "https://static.poly.pizza/457b2397-4bfb-41c4-862d-82d1592b2a5f.glb",
+    "pine": "https://static.poly.pizza/42a2a958-040d-4ce3-bae5-2332c1282cb5.glb",
+    "rocks": "https://static.poly.pizza/01671e28-0504-4db1-a5d5-af71ce0a6a1e.glb",
+    "bush": "https://static.poly.pizza/029d08a8-f7de-47ab-b00f-34970698ce21.glb",
+    "grass": "https://static.poly.pizza/99357ca2-6364-4990-8d4c-9bc5a1a5e859.glb",
+    "flowers": "https://static.poly.pizza/c25cb5dc-3cd3-470c-a08c-045af0c0fe3d.glb"
+  },
+  "selected": {
+    "birch": [
+      "BirchTree_4",
+      "BirchTree_5"
+    ],
+    "pine": [
+      "PineTree_5",
+      "PineTree_3"
+    ],
+    "rocks": [
+      "Rock_1",
+      "Rock_2",
+      "Rock_4"
+    ],
+    "bush": [
+      "Plant_Flowers"
+    ],
+    "grass": [
+      "Grass_Small"
+    ],
+    "flowers": [
+      "Flower_4_Clump",
+      "Flower_5_Clump"
+    ]
+  },
+  "bytes": 1031688,
+  "triangles": 63336,
+  "drawCalls": 14,
+  "textures": [
+    {
+      "name": "BirchTree_Leaves.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 11450
+    },
+    {
+      "name": "BirchTree_Bark.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 10382
+    },
+    {
+      "name": "PineTree_Leaves.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 23649
+    },
+    {
+      "name": "PineTree_Bark.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 3861
+    },
+    {
+      "name": "Rocks.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 9894
+    },
+    {
+      "name": "Flowers.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 16966
+    },
+    {
+      "name": "Grass.png",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 1285
+    },
+    {
+      "name": "Fine turf",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 6989
+    }
+  ],
+  "compression": "EXT_meshopt_compression",
+  "seed": 37
+}

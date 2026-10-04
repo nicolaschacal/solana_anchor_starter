@@ -1,0 +1,13 @@
+Quaternius — Ultimate Stylized Nature Pack
+Source: https://quaternius.com/packs/ultimatestylizednature.html
+Distribution: https://poly.pizza/bundle/Ultimate-Stylized-Nature-Pack-zyIyYd9yGr
+
+The source nature assets are released by Quaternius under Creative Commons
+CC0 1.0 Universal. Commercial use and modification are permitted; attribution
+is optional. This file records provenance; it is not a substitute for the legal text:
+https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Rebyters modifications: selected meshes, Y-up conversion, foliage alpha testing,
+non-metallic materials, reduced textures, simplified birches, batched geometry,
+Meshopt compression, and original terrain/lake/landscape composition.
+The source download URLs and selected model names are in manifest.json.

@@ -34,29 +34,44 @@ const palettes = {
 };
 // Cache the small compressed download, not disposable GPU objects. Each mounted
 // scene parses its own resources so changing periods cannot dispose another view.
-const environmentUri = "/assets/environments/kenney-valley/valley.glb";
+const environmentUri = "/assets/environments/stylized-valley/valley.glb";
 let environmentBytes: Promise<ArrayBuffer> | undefined;
 function loadEnvironmentBytes() {
   if (!environmentBytes) {
     environmentBytes = fetch(environmentUri)
-      .then(response => {
-        if (!response.ok) throw Error(`Environment download failed: ${response.status}`);
+      .then((response) => {
+        if (!response.ok)
+          throw Error(`Environment download failed: ${response.status}`);
         return response.arrayBuffer();
       })
-      .catch(error => { environmentBytes = undefined; throw error; });
+      .catch((error) => {
+        environmentBytes = undefined;
+        throw error;
+      });
   }
   return environmentBytes;
 }
 function disposeGroup(group: THREE.Object3D) {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
-  group.traverse(node => {
+  const textures = new Set<THREE.Texture>();
+  group.traverse((node) => {
     const mesh = node as THREE.Mesh;
     if (mesh.geometry) geometries.add(mesh.geometry);
-    if (mesh.material) for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) materials.add(material);
+    if (mesh.material)
+      for (const material of Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material])
+        materials.add(material);
   });
-  geometries.forEach(geometry => geometry.dispose());
-  materials.forEach(material => material.dispose());
+  geometries.forEach((geometry) => geometry.dispose());
+  materials.forEach((material) => {
+    for (const value of Object.values(material)) {
+      if (value instanceof THREE.Texture) textures.add(value);
+    }
+    material.dispose();
+  });
+  textures.forEach((texture) => texture.dispose());
 }
 export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const colors = palettes[period];
@@ -73,10 +88,15 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   group.add(floor);
   let disposed = false;
   const ready = loadEnvironmentBytes()
-    .then(bytes => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(bytes, ""))
-    .then(model => {
-      if (disposed) { disposeGroup(model.scene); return false; }
-      model.scene.traverse(node => {
+    .then((bytes) =>
+      new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(bytes, ""),
+    )
+    .then((model) => {
+      if (disposed) {
+        disposeGroup(model.scene);
+        return false;
+      }
+      model.scene.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (mesh.isMesh) {
           mesh.castShadow = false;
@@ -147,7 +167,6 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     ready,
     dispose() {
       disposed = true;
-      texture.dispose();
       disposeGroup(group);
       scene.remove(group);
     },
