@@ -8,7 +8,7 @@ import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
-  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy,
+  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Menu, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
@@ -448,6 +448,7 @@ export function PlayerHome() {
   const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
+  const [drawerOpen,setDrawerOpen]=useState(false);
   const [habitat,setHabitat]=useState(0);
   const [speech,setSpeech]=useState({text:"",sequence:0});
   const [speechVisible,setSpeechVisible]=useState(false);
@@ -551,7 +552,25 @@ export function PlayerHome() {
     onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
   /></Shell>;
 
-  return <Shell><Header/><main className="game-home">
+  return <Shell><Header/><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
+    <button className="game-drawer-tab" onClick={()=>setDrawerOpen(true)} aria-label="Open navigation"><ChevronRight/></button>
+    {drawerOpen&&<div className="game-drawer-backdrop" onClick={()=>setDrawerOpen(false)}>
+      <aside className="game-drawer" onClick={event=>event.stopPropagation()} aria-label="Game navigation">
+        <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button onClick={()=>setDrawerOpen(false)} aria-label="Close navigation"><X/></button></div>
+        <div className="game-drawer-balance"><CircleUserRound/><span>Account</span><ChevronRight/></div>
+        <nav className="game-drawer-nav">
+          <NavLink end to="/" onClick={()=>setDrawerOpen(false)}><Home/><span>Home</span></NavLink>
+          <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
+          <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>
+          <button onClick={()=>{setDrawerOpen(false);setHabitatOpen(true)}}><Mountain/><span>Habitats</span></button>
+          <button onClick={()=>{setDrawerOpen(false);void openDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
+        </nav>
+        <div className="game-drawer-footer">
+          <button onClick={()=>navigate("/account")}><CircleUserRound/><span>Account</span></button>
+          <button disabled title="Coming soon"><Settings/><span>Settings</span><small>soon</small></button>
+        </div>
+      </aside>
+    </div>}
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
       <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting} landscape period={worldClock.period}/>
