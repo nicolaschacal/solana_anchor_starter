@@ -3198,7 +3198,7 @@ html,body,#root{background:#04101f!important}
   /* Glass: translucent tinted fill + top sheen + crisp rim + soft depth. */
   --glass-blur:blur(20px) saturate(165%);
   --glass-sheen:radial-gradient(130% 75% at 8% -8%,rgba(190,232,255,.17),transparent 58%);
-  --glass-fill:linear-gradient(155deg,rgba(25,61,99,.92) 0%,rgba(12,34,62,.94) 48%,rgba(7,24,46,.96) 100%);
+  --glass-fill:linear-gradient(155deg,rgba(60,120,182,.30) 0%,rgba(14,40,76,.46) 48%,rgba(6,22,46,.58) 100%);
   --glass-fill-bar:linear-gradient(158deg,rgba(46,104,162,.46) 0%,rgba(9,30,60,.66) 55%,rgba(5,20,40,.74) 100%);
   --glass-fill-strong:linear-gradient(158deg,rgba(40,92,150,.66) 0%,rgba(10,32,62,.82) 50%,rgba(5,20,40,.90) 100%);
   --glass-edge:rgba(170,224,255,.30);
@@ -3248,7 +3248,7 @@ html,body,#root{background:#04101f!important}
 /* State variants keep their meaning on top of the shared glass. */
 .game-frame .growth-card.ready{
   border-color:rgba(92,214,255,.42)!important;
-  background:var(--glass-sheen),linear-gradient(155deg,rgba(22,75,106,.94),rgba(8,39,64,.96))!important;
+  background:var(--glass-sheen),linear-gradient(155deg,rgba(40,132,184,.38),rgba(10,52,82,.60))!important;
 }
 .game-frame .monster-speech.needs-attention{
   border-color:rgba(255,184,107,.40)!important;
@@ -3415,10 +3415,7 @@ html,body,#root{background:#04101f!important}
   .game-frame .game-sheet>.den-grid{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
 }
 
-/* Readable HUD against both bright skies and the night landscape. */
-.game-frame .monster-id span,
-.game-frame .growth-card>div:first-child,
-.game-frame .growth-card strong{color:#d4e8fa!important}
+/* Clean HUD edges, centered clock and transient speech. */
 .game-frame .monster-id,.game-frame .hud-square{
   appearance:none;-webkit-appearance:none;background-clip:padding-box!important;
 }
