@@ -1,7 +1,9 @@
 import { meadow } from "./meadow";
+import { ScenePausedContext } from "./scene-visibility";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 import {
   forwardRef,
+  useContext,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -51,6 +53,29 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     );
   const [error, setError] = useState("");
   const reactToTouch = useRef<() => void>(() => {});
+  const paused = useContext(ScenePausedContext);
+  const live = useRef({
+    action,
+    sleeping,
+    paused,
+    clips,
+    skeleton,
+    selectedBone,
+    period,
+  });
+  live.current = {
+    action,
+    sleeping,
+    paused,
+    clips,
+    skeleton,
+    selectedBone,
+    period,
+  };
+  const changeAnimation = useRef<() => void>(() => {});
+  const changeDebug = useRef<() => void>(() => {});
+  const changePeriod = useRef<(next: WorldPeriod) => void>(() => {});
+  const changePlayback = useRef<() => void>(() => {});
   const viewState = useRef<{
     position: THREE.Vector3;
     target: THREE.Vector3;
@@ -76,13 +101,33 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
     key.position.set(3, 5, 4);
     scene.add(key);
-    const environment = landscape ? meadow(scene, period) : null;
+    const initialPeriod = live.current.period;
+    let environment = landscape ? meadow(scene, initialPeriod) : null;
+    let environmentPeriod = initialPeriod;
     if (environment) {
       key.color.setHex(environment.colors.light);
       key.intensity = environment.colors.intensity;
-      ambient.intensity = period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8;
-      ambient.color.setHex(period === "Night" ? 0x8faeff : 0xd9efff);
+      ambient.intensity =
+        initialPeriod === "Night"
+          ? 0.65
+          : initialPeriod === "Evening"
+            ? 1.2
+            : 1.8;
+      ambient.color.setHex(initialPeriod === "Night" ? 0x8faeff : 0xd9efff);
     }
+    changePeriod.current = (next) => {
+      if (next === environmentPeriod) return;
+      environmentPeriod = next;
+      environment?.dispose();
+      environment = landscape ? meadow(scene, next) : null;
+      if (environment) {
+        key.color.setHex(environment.colors.light);
+        key.intensity = environment.colors.intensity;
+        ambient.intensity =
+          next === "Night" ? 0.65 : next === "Evening" ? 1.2 : 1.8;
+        ambient.color.setHex(next === "Night" ? 0x8faeff : 0xd9efff);
+      }
+    };
     const root = clone(model.scene),
       stage = new THREE.Group();
     stage.add(root);
@@ -109,8 +154,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     }
     if (landscape) {
       if (!viewState.current) {
-        camera.position.set(0, 2.20, 4.7);
-        controls.target.set(0, 1.60, 0);
+        camera.position.set(0, 2.2, 4.7);
+        controls.target.set(0, 1.6, 0);
       }
       const polar = new THREE.Spherical().setFromVector3(
         camera.position.clone().sub(controls.target),
@@ -131,18 +176,28 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     ground.position.y = -0.09;
     if (!landscape) scene.add(ground);
     const helper = new THREE.SkeletonHelper(root);
-    helper.visible = skeleton;
+    helper.visible = live.current.skeleton;
     scene.add(helper);
     const axes = new THREE.AxesHelper(0.25 / scale);
-    const selected = root.getObjectByName(selectedBone);
-    if (selected) selected.add(axes);
+    changeDebug.current = () => {
+      helper.visible = live.current.skeleton;
+      axes.removeFromParent();
+      const selected = root.getObjectByName(live.current.selectedBone);
+      if (selected) selected.add(axes);
+    };
+    changeDebug.current();
     const mixer = new THREE.AnimationMixer(root);
-    const clip =
-      clips.find((c) => c.name === action) ??
-      clips.find((c) => c.name === "idle");
-    if (clip) mixer.clipAction(clip).play();
+    let clip: THREE.AnimationClip | undefined;
     let touching = false;
-    const touchClip = clips.find((c) => c.name === "touch");
+    changeAnimation.current = () => {
+      touching = false;
+      mixer.stopAllAction();
+      clip =
+        live.current.clips.find((c) => c.name === live.current.action) ??
+        live.current.clips.find((c) => c.name === "idle");
+      if (clip) mixer.clipAction(clip).reset().play();
+    };
+    changeAnimation.current();
     const returnToIdle = () => {
       touching = false;
       mixer.stopAllAction();
@@ -150,7 +205,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     };
     mixer.addEventListener("finished", returnToIdle);
     reactToTouch.current = () => {
-      if (sleeping || action !== "idle" || touching || !touchClip) return;
+      const { sleeping, paused, action, clips } = live.current;
+      const touchClip = clips.find((c) => c.name === "touch");
+      if (sleeping || paused || action !== "idle" || touching || !touchClip)
+        return;
       touching = true;
       mixer.stopAllAction();
       const reaction = mixer.clipAction(touchClip);
@@ -240,9 +298,14 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
               (w <= 700 ? 0.42 : 0.54)),
         );
         // Lower the companion toward Growth in portrait, keeping its feet on the ground.
-        const direction = camera.position.clone().sub(controls.target).normalize();
-        controls.target.y = 1.60 + (camera.aspect < 1 ? 0.70 : 0);
-        camera.position.copy(controls.target).addScaledVector(direction,distance);
+        const direction = camera.position
+          .clone()
+          .sub(controls.target)
+          .normalize();
+        controls.target.y = 1.6 + (camera.aspect < 1 ? 0.7 : 0);
+        camera.position
+          .copy(controls.target)
+          .addScaledVector(direction, distance);
         controls.maxDistance = Math.max(12, distance);
         controls.update();
       }
@@ -256,19 +319,40 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       raf = 0;
     const intersection = new IntersectionObserver((entries) => {
       visible = entries[0].isIntersecting;
+      changePlayback.current();
     });
     intersection.observe(host);
     const tick = (now: number) => {
       const delta = Math.min((now - last) / 1000, 0.05);
       last = now;
-      if (visible && !document.hidden && !sleeping) {
+      if (
+        visible &&
+        !document.hidden &&
+        !live.current.sleeping &&
+        !live.current.paused
+      ) {
         mixer.update(delta);
         controls.update();
         renderer.render(scene, camera);
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
       }
-      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
+    changePlayback.current = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      last = performance.now();
+      if (
+        visible &&
+        !document.hidden &&
+        !live.current.sleeping &&
+        !live.current.paused
+      )
+        raf = requestAnimationFrame(tick);
+    };
+    document.addEventListener("visibilitychange", changePlayback.current);
+    changePlayback.current();
     capture.current = async () => {
       const original = renderer.getSize(new THREE.Vector2()),
         aspect = camera.aspect,
@@ -312,6 +396,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       cancelAnimationFrame(raf);
       observer.disconnect();
       intersection.disconnect();
+      document.removeEventListener("visibilitychange", changePlayback.current);
+      changePlayback.current = () => {};
+      changeAnimation.current = () => {};
+      changeDebug.current = () => {};
+      changePeriod.current = () => {};
       reactToTouch.current = () => {};
       renderer.domElement.removeEventListener("pointerdown", down);
       renderer.domElement.removeEventListener("pointermove", move);
@@ -334,16 +423,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [
-    model,
-    clips,
-    action,
-    skeleton,
-    selectedBone,
-    sleeping,
-    landscape,
-    period,
-  ]);
+  }, [model, landscape]);
+  useEffect(() => changeAnimation.current(), [action, clips]);
+  useEffect(() => changeDebug.current(), [skeleton, selectedBone]);
+  useEffect(() => changePeriod.current(period), [period]);
+  useEffect(() => changePlayback.current(), [sleeping, paused]);
   return (
     <div className="asset-viewport">
       <div ref={mount} className="asset-canvas" />
@@ -371,65 +455,119 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   );
 });
 
-
 export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
+  const paused = useContext(ScenePausedContext);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+  const playback = useRef<() => void>(() => {});
   const mount = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const host = mount.current;
     if (!host) return;
     let renderer: THREE.WebGLRenderer;
-    try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); }
-    catch { return; }
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    } catch {
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const env = meadow(scene, period);
-    const hemi = new THREE.HemisphereLight(period === "Night" ? 0x8faeff : 0xdff5ff, 0x314536, period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8);
+    const hemi = new THREE.HemisphereLight(
+      period === "Night" ? 0x8faeff : 0xdff5ff,
+      0x314536,
+      period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8,
+    );
     scene.add(hemi);
-    const key = new THREE.DirectionalLight(env.colors.light, env.colors.intensity);
-    key.position.set(3, 6, 4); scene.add(key);
+    const key = new THREE.DirectionalLight(
+      env.colors.light,
+      env.colors.intensity,
+    );
+    key.position.set(3, 6, 4);
+    scene.add(key);
 
     const platform = new THREE.Mesh(
       new THREE.CylinderGeometry(1.95, 2.12, 0.18, 64),
-      new THREE.MeshStandardMaterial({ color: 0x5a6670, roughness: 0.94, metalness: 0.02 })
+      new THREE.MeshStandardMaterial({
+        color: 0x5a6670,
+        roughness: 0.94,
+        metalness: 0.02,
+      }),
     );
-    platform.position.set(0, 0.05, 0.3); scene.add(platform);
+    platform.position.set(0, 0.05, 0.3);
+    scene.add(platform);
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(1.42, 0.025, 10, 96),
-      new THREE.MeshBasicMaterial({ color: 0x65dcff, transparent: true, opacity: 0.58 })
+      new THREE.MeshBasicMaterial({
+        color: 0x65dcff,
+        transparent: true,
+        opacity: 0.58,
+      }),
     );
-    ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.155, 0.3); scene.add(ring);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(0, 0.155, 0.3);
+    scene.add(ring);
     const inner = new THREE.Mesh(
       new THREE.TorusGeometry(0.82, 0.018, 10, 96),
-      new THREE.MeshBasicMaterial({ color: 0x8be8ff, transparent: true, opacity: 0.32 })
+      new THREE.MeshBasicMaterial({
+        color: 0x8be8ff,
+        transparent: true,
+        opacity: 0.32,
+      }),
     );
-    inner.rotation.x = Math.PI / 2; inner.position.set(0, 0.158, 0.3); scene.add(inner);
+    inner.rotation.x = Math.PI / 2;
+    inner.position.set(0, 0.158, 0.3);
+    scene.add(inner);
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    camera.position.set(0, 2.6, 6.7); camera.lookAt(0, 1.15, -0.2);
+    camera.position.set(0, 2.6, 6.7);
+    camera.lookAt(0, 1.15, -0.2);
     const resize = () => {
-      const w = Math.max(1, host.clientWidth), h = Math.max(1, host.clientHeight);
-      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+      const w = Math.max(1, host.clientWidth),
+        h = Math.max(1, host.clientHeight);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
     };
     resize();
-    const ro = new ResizeObserver(resize); ro.observe(host);
-    let raf = 0; const clock = new THREE.Clock();
+    const ro = new ResizeObserver(resize);
+    ro.observe(host);
+    let raf = 0;
+    const clock = new THREE.Clock();
     const render = () => {
       const t = clock.getElapsedTime();
       ring.material.opacity = 0.48 + Math.sin(t * 1.6) * 0.1;
-      renderer.render(scene, camera); raf = requestAnimationFrame(render);
+      if (!pausedRef.current && !document.hidden) {
+        renderer.render(scene, camera);
+        raf = requestAnimationFrame(render);
+      } else raf = 0;
     };
-    render();
+    playback.current = () => {
+      cancelAnimationFrame(raf);
+      if (!pausedRef.current && !document.hidden) render();
+    };
+    document.addEventListener("visibilitychange", playback.current);
+    playback.current();
     return () => {
-      cancelAnimationFrame(raf); ro.disconnect(); env.dispose();
-      platform.geometry.dispose(); (platform.material as THREE.Material).dispose();
-      ring.geometry.dispose(); (ring.material as THREE.Material).dispose();
-      inner.geometry.dispose(); (inner.material as THREE.Material).dispose();
-      renderer.dispose(); renderer.domElement.remove();
+      document.removeEventListener("visibilitychange", playback.current);
+      playback.current = () => {};
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      env.dispose();
+      platform.geometry.dispose();
+      (platform.material as THREE.Material).dispose();
+      ring.geometry.dispose();
+      (ring.material as THREE.Material).dispose();
+      inner.geometry.dispose();
+      (inner.material as THREE.Material).dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
     };
   }, [period]);
-  return <div className="guest-world-canvas" ref={mount} aria-hidden="true"/>;
+  useEffect(() => playback.current(), [paused]);
+  return <div className="guest-world-canvas" ref={mount} aria-hidden="true" />;
 }
 
 export function EvolutionModel({

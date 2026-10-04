@@ -53,6 +53,7 @@
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^4.5.0",
     "eslint": "^9.28.0",
+    "jsdom": "^26.1.0",
     "prettier": "3.9.9",
     "tsx": "^4.19.0",
     "typescript": "^5.8.3",

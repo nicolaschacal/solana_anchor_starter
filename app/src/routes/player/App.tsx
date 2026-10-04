@@ -3,7 +3,8 @@ import { useWorldClock } from "../../hooks/useWorldClock";
 import { modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
@@ -71,7 +72,8 @@ type OwnedRebyter = {
 };
 
 function usePlayerCollection() {
-  const chain = usePlayerRebyters();
+  const chain = useContext(PlayerStateContext);
+  if (!chain) throw new Error("Player collection requires the persistent game provider");
   const wallet = useRebytersAuth();
   const [params] = useSearchParams();
   const tree = chain.mammalTree ?? fallbackTree;
@@ -120,10 +122,13 @@ function Nav() {
 }
 
 function Shell({children,showNav=true}:{children:React.ReactNode;showNav?:boolean}) {
+  const embedded = useContext(PlayerPanelContext);
+  if (embedded) return <div className="game-frame player-panel-frame">{children}</div>;
   return <div className="player-bg"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
 }
 
 function Header() {
+  const embedded = useContext(PlayerPanelContext);
   const wallet = useRebytersAuth();
   const { connection } = useConnection();
   const navigate = useNavigate();
@@ -143,6 +148,7 @@ function Header() {
 
   const balanceLabel=solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
 
+  if (embedded) return null;
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
     <div className="player-head-actions">
@@ -576,13 +582,13 @@ export function PlayerHome() {
         <div className="game-drawer-balance"><CircleUserRound/><span>Account</span><ChevronRight/></div>
         <nav className="game-drawer-nav">
           <NavLink end to="/" onClick={()=>setDrawerOpen(false)}><Home/><span>Home</span></NavLink>
-          <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
-          <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>
+          <NavLink to="/lab" onClick={()=>setDrawerOpen(false)}><Atom/><span>Lab</span></NavLink>
+          <NavLink to="/atlas" onClick={()=>setDrawerOpen(false)}><BookOpen/><span>Atlas</span></NavLink>
           <button onClick={()=>{setDrawerOpen(false);setHabitatOpen(true)}}><Mountain/><span>Habitats</span></button>
           <button onClick={()=>{setDrawerOpen(false);void openDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
         </nav>
         <div className="game-drawer-footer">
-          <button onClick={()=>navigate("/account")}><CircleUserRound/><span>Account</span></button>
+          <button onClick={()=>{setDrawerOpen(false);navigate("/account")}}><CircleUserRound/><span>Account</span></button>
           <button disabled title="Coming soon"><Settings/><span>Settings</span><small>soon</small></button>
         </div>
       </aside>
