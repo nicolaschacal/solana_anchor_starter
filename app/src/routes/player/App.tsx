@@ -538,11 +538,26 @@ export function PlayerHome() {
 
   const { connected } = useRebytersAuth();
 
-  if (!connected || (loading && !owned.length)) return <Shell><Header/><main className="game-home">
-    <section className="game-viewer game-viewer-empty">
+  if (!connected) return <Shell><Header/><main className="game-home guest-home">
+    <section className="game-viewer game-viewer-empty guest-world">
       <div className="viewer-glow"/>
-      {connected&&<div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div>}
+      <div className="guest-hero">
+        <div className="guest-title"><strong>REBYTERS</strong><span>DIGITAL COMPANIONS</span></div>
+        <div className="guest-divider"><i/><Sparkles/><i/></div>
+        <p>Raise. Evolve. Own.<br/>On Solana.</p>
+        <RebytersLoginButton className="guest-login-button"/>
+      </div>
+      <div className="guest-features" aria-label="Rebyters features">
+        <div><Heart/><span>RAISE</span></div>
+        <div><Sparkles/><span>EVOLVE</span></div>
+        <div><Dna/><span>COLLECT</span></div>
+        <div><Zap/><span>ON SOLANA</span></div>
+      </div>
     </section>
+  </main></Shell>;
+
+  if (loading && !owned.length) return <Shell><main className="game-home">
+    <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
   </main></Shell>;
 
   if (!active || !evolution) return <Shell><Header/><EmptyCompanion
