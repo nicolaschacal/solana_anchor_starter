@@ -110,7 +110,7 @@ function usePlayerCollection() {
 }
 
 function Nav() {
-  return <nav className="player-nav">
+  return <nav className="player-nav" aria-label="Main">
     <NavLink end to="/"><Home/><span>Home</span></NavLink>
     <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
     <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>

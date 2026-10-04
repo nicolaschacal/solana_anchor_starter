@@ -63,9 +63,6 @@
 :root[data-theme="dark"] .origin-icon{background:#19364c;color:#77bff7}
 :root[data-theme="dark"] .origin-lock{background:#1d2b35;color:#71899a}
 :root[data-theme="dark"] .origin-ready{background:#173729;color:#75d69f}
-:root[data-theme="dark"] .player-nav{background:#142431;border-color:#2b4354}
-:root[data-theme="dark"] .player-nav a{color:#6f8798}
-:root[data-theme="dark"] .player-nav a.active{background:#193650;color:#7dc0f7}
 :root[data-theme="dark"] .discovery-card.locked{background:#101c25;color:#5e7280}
 :root[data-theme="dark"] .atlas-progress>div{background:#1d3140}
 :root[data-theme="dark"] .lab-focus{background:linear-gradient(135deg,#17334a,#245d8f)}
@@ -406,30 +403,6 @@
 }
 .player-head-actions .wallet-adapter-button-start-icon{width:16px!important;height:16px!important;margin-right:7px!important}
 
-/* floating bottom navigation */
-.player-nav{
-  position:fixed!important;
-  z-index:50;
-  left:50%!important;right:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;
-  transform:translateX(-50%);
-  width:min(432px,calc(100vw - 28px));
-  height:58px;
-  display:flex!important;align-items:center;justify-content:space-around;
-  padding:8px 12px!important;
-  border:1px solid var(--rb-line)!important;
-  border-radius:20px!important;
-  background:rgba(16,28,52,.72)!important;
-  box-shadow:0 18px 50px rgba(0,0,0,.32);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-}
-.player-nav a{
-  flex:1;height:42px;display:flex!important;flex-direction:column;justify-content:center;align-items:center;gap:2px;
-  color:var(--rb-muted)!important;text-decoration:none!important;border:0!important;background:transparent!important;
-  border-radius:14px!important;font-size:7px!important;font-weight:600!important;
-}
-.player-nav a svg{width:21px;height:21px;stroke-width:1.7}
-.player-nav a.active{color:var(--rb-accent)!important;background:rgba(92,214,255,.08)!important}
-.player-nav a.active svg{stroke:var(--rb-accent)!important}
 
 /* shared content */
 .player-main{
@@ -1559,14 +1532,6 @@ button.account-card.account-nav-card{
     font-size:10px!important;
   }
 
-  .player-nav{
-    width:360px!important;
-    height:54px!important;
-    bottom:20px!important;
-    padding:6px 10px!important;
-    border-radius:18px!important;
-  }
-  .player-nav a{height:40px!important}
 
   /* Desktop sheets become centered panels with a clear gap below the header. */
   .game-sheet-backdrop{
@@ -2158,28 +2123,6 @@ button.account-card.account-nav-card{
 .home-evolve-cta strong{display:block;margin-top:1px;font-size:11px;font-weight:650}
 .home-evolve-cta>svg:last-child{width:16px;height:16px}
 
-/* Bottom navigation should feel like part of the viewer, not a separate dark slab. */
-.player-nav{
-  grid-template-columns:repeat(3,1fr)!important;
-  background:rgba(16,28,52,.34)!important;
-  border:1px solid rgba(160,200,255,.18)!important;
-  box-shadow:none!important;
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-}
-.player-nav a{color:#7189a7!important}
-.player-nav a.active{
-  background:rgba(92,214,255,.08)!important;
-  color:var(--rb-accent)!important;
-}
-@media(max-width:700px){
-  .player-nav{
-    bottom:10px!important;
-    background:rgba(10,19,38,.18)!important;
-    border-color:rgba(220,238,255,.16)!important;
-    box-shadow:none!important;
-  }
-  .game-controls{bottom:86px}
-}
 
 
 /* Five persistent interaction actions remain visible even when evolution is ready. */
@@ -2269,10 +2212,6 @@ button.account-card.account-nav-card{
     top:23%!important;
   }
 
-  .player-shell:has(> .game-home) .game-sheet-backdrop{
-    inset:66px 0 0!important;
-    height:calc(100dvh - 66px)!important;
-  }
 }
 
 
@@ -2300,91 +2239,6 @@ button.account-card.account-nav-card{
 .lineage-card.selectable.active small{color:var(--rb-muted)}
 
 
-/* Mobile game bottom sheets: keep the companion visible and stay above bottom nav. */
-@media(max-width:899px){
-  .game-sheet-backdrop{
-    background:rgba(3,7,17,.18)!important;
-  }
-
-  .den-sheet,
-  .training-sheet,
-  .habitat-sheet{
-    top:auto!important;
-    bottom:94px!important;
-    height:auto!important;
-    min-height:0!important;
-    max-height:min(54dvh,520px)!important;
-    margin:0 auto!important;
-    border-radius:24px!important;
-    padding:18px 18px 16px!important;
-    overflow:auto!important;
-    box-shadow:0 -18px 50px rgba(0,0,0,.30)!important;
-  }
-
-  .den-sheet:before,
-  .training-sheet:before,
-  .habitat-sheet:before{
-    content:"";
-    display:block;
-    width:38px;
-    height:4px;
-    margin:-7px auto 12px;
-    border-radius:999px;
-    background:rgba(160,200,255,.24);
-  }
-
-  .den-sheet{
-    display:flex!important;
-    flex-direction:column!important;
-  }
-
-  .den-grid{
-    flex:1 1 auto!important;
-    min-height:0!important;
-    overflow:auto!important;
-    margin-bottom:12px!important;
-  }
-
-  .den-mint-cta.compact{
-    position:sticky!important;
-    bottom:0!important;
-    z-index:2!important;
-    margin-top:10px!important;
-    margin-bottom:0!important;
-    flex:0 0 auto!important;
-  }
-
-  .training-grid{
-    max-height:34dvh!important;
-    overflow:auto!important;
-    padding-bottom:2px!important;
-  }
-
-  .habitat-rail{
-    max-height:30dvh!important;
-    overflow-x:auto!important;
-    overflow-y:hidden!important;
-  }
-
-  .habitat-action{
-    position:sticky!important;
-    bottom:0!important;
-    z-index:2!important;
-    margin-top:12px!important;
-  }
-}
-
-@media(max-width:420px){
-  .den-sheet,
-  .training-sheet,
-  .habitat-sheet{
-    left:10px!important;
-    right:10px!important;
-    bottom:90px!important;
-    max-height:52dvh!important;
-    padding:16px!important;
-  }
-}
 
 
 /* Rebyters auth — Minuttery-inspired access hierarchy */
@@ -2693,38 +2547,6 @@ button.account-card.account-nav-card{
     touch-action:none!important;
   }
 
-  /* One bottom nav geometry for every player route. */
-  .player-nav{
-    position:absolute!important;
-    z-index:70!important;
-    left:12px!important;
-    right:12px!important;
-    bottom:10px!important;
-    transform:none!important;
-    width:auto!important;
-    height:64px!important;
-    margin:0!important;
-    padding:6px!important;
-    grid-template-columns:repeat(3,1fr)!important;
-    border-radius:20px!important;
-    background:rgba(10,19,38,.22)!important;
-    border:1px solid rgba(220,238,255,.16)!important;
-    box-shadow:none!important;
-    backdrop-filter:blur(14px)!important;
-    -webkit-backdrop-filter:blur(14px)!important;
-  }
-
-  .player-nav a{
-    min-width:0!important;
-    border-radius:15px!important;
-  }
-
-  .player-nav a.active{
-    background:rgba(92,214,255,.09)!important;
-    color:var(--rb-accent)!important;
-  }
-
-  .game-controls{bottom:84px!important}
 }
 
 /* Login is a true bottom sheet, like Minuttery. */
@@ -3149,51 +2971,6 @@ body{
       linear-gradient(180deg,rgba(7,28,55,.35),rgba(4,16,31,.12))!important;
   }
 
-  /* Bottom HUD: same component and geometry on every route. */
-  .game-frame > .player-nav{
-    position:absolute!important;
-    z-index:110!important;
-    left:20px!important;
-    right:20px!important;
-    bottom:12px!important;
-    width:auto!important;
-    height:68px!important;
-    min-height:68px!important;
-    max-height:68px!important;
-    margin:0!important;
-    padding:6px!important;
-    transform:none!important;
-    display:grid!important;
-    grid-template-columns:repeat(3,1fr)!important;
-    gap:4px!important;
-    border:1px solid rgba(121,205,255,.20)!important;
-    border-radius:20px!important;
-    background:rgba(4,15,31,.88)!important;
-    box-shadow:0 16px 44px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.025)!important;
-    backdrop-filter:blur(18px)!important;
-    -webkit-backdrop-filter:blur(18px)!important;
-  }
-  .game-frame > .player-nav a{
-    height:56px!important;
-    min-height:56px!important;
-    padding:5px!important;
-    margin:0!important;
-    border:0!important;
-    border-radius:15px!important;
-    display:flex!important;
-    flex-direction:column!important;
-    justify-content:center!important;
-    gap:3px!important;
-    color:#7089a8!important;
-    background:transparent!important;
-  }
-  .game-frame > .player-nav a svg{width:20px!important;height:20px!important}
-  .game-frame > .player-nav a span{font-size:8px!important}
-  .game-frame > .player-nav a.active{
-    color:var(--game-cyan)!important;
-    background:linear-gradient(135deg,rgba(18,118,184,.24),rgba(31,198,255,.10))!important;
-    box-shadow:inset 0 0 0 1px rgba(85,220,255,.04),0 0 28px rgba(24,191,255,.07)!important;
-  }
 
   /* Home = stage. It is intentionally full bleed, but with richer lighting. */
   .game-frame > .player-home-layout{
@@ -3251,7 +3028,6 @@ body{
     box-shadow:0 0 32px rgba(33,181,255,.10),inset 0 0 22px rgba(39,185,255,.05)!important;
     pointer-events:none!important;
   }
-  .game-frame .game-controls{bottom:92px!important}
 
   /* Atlas: family selector is now a deliberate dock, never under the header. */
   .game-frame .atlas-player{
@@ -3399,24 +3175,242 @@ html,body,#root{background:#04101f!important}
 .world-clock small{display:block;font-size:8px;color:#c3d8e6;font-variant-numeric:tabular-nums;white-space:nowrap}
 @media(max-width:380px){.world-clock{min-width:82px;padding:6px;gap:4px}.world-clock-face{width:22px;height:22px}.game-world .monster-hud-right{gap:4px}}
 
-/* Shared interaction and navigation controls. */
-.game-frame{--control-edge:14px;--control-radius:16px;--control-border:rgba(106,203,255,.25);--control-fill:linear-gradient(155deg,rgba(15,48,80,.94),rgba(5,23,45,.96))}
-.game-frame .care-actions>button,.game-frame>.player-nav a{
-  border:1px solid var(--control-border)!important;border-radius:var(--control-radius)!important;
-  background:var(--control-fill)!important;color:#d2e9f8!important;
-  box-shadow:inset 0 1px 0 rgba(210,243,255,.07),0 3px 10px rgba(0,8,20,.12)!important;
-  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;
-  font-family:inherit!important;transition:background .16s,border-color .16s,transform .16s!important;
+/* ==========================================================================
+   UNIFIED HUD
+   Single source of truth for everything that floats over the world:
+   glass surfaces (chips, care buttons, header buttons, sheets, dialogs),
+   the bottom navigation bar, and the bottom anchor shared by the nav bar,
+   the care controls and every sheet.
+   Change HUD look/geometry HERE instead of stacking another override layer.
+   ========================================================================== */
+:root{
+  /* Bottom anchor: the nav bar sits on --hud-nav-bottom; controls and sheets
+     float --hud-gap above it, so they always clear the bar by the same amount. */
+  --hud-edge:14px;
+  --hud-width:min(calc(100% - 2 * var(--hud-edge)),520px);
+  --hud-nav-h:64px;
+  --hud-nav-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  --hud-gap:12px;
+  --hud-float-bottom:calc(var(--hud-nav-bottom) + var(--hud-nav-h) + var(--hud-gap));
+  --hud-float-top:calc(66px + env(safe-area-inset-top,0px) + 14px);
+  --game-nav:calc(var(--hud-nav-bottom) + var(--hud-nav-h));
+
+  /* Glass: translucent tinted fill + top sheen + crisp rim + soft depth. */
+  --glass-blur:blur(20px) saturate(165%);
+  --glass-sheen:radial-gradient(130% 75% at 8% -8%,rgba(190,232,255,.17),transparent 58%);
+  --glass-fill:linear-gradient(155deg,rgba(60,120,182,.30) 0%,rgba(14,40,76,.46) 48%,rgba(6,22,46,.58) 100%);
+  --glass-fill-bar:linear-gradient(158deg,rgba(46,104,162,.46) 0%,rgba(9,30,60,.66) 55%,rgba(5,20,40,.74) 100%);
+  --glass-fill-strong:linear-gradient(158deg,rgba(40,92,150,.66) 0%,rgba(10,32,62,.82) 50%,rgba(5,20,40,.90) 100%);
+  --glass-edge:rgba(170,224,255,.30);
+  --glass-edge-soft:rgba(170,224,255,.17);
+  --glass-rim:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -14px 26px rgba(0,12,32,.16);
+  --glass-drop:0 10px 30px rgba(0,8,24,.28);
+  --glass-drop-lg:0 20px 56px rgba(0,8,24,.44);
 }
-.game-frame .care-actions>button svg,.game-frame>.player-nav a svg{width:21px!important;height:21px!important;stroke-width:1.65!important;color:#6ddcff!important}
-.game-frame .care-actions>button span,.game-frame>.player-nav a span{font-size:9px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:.01em!important}
-.game-frame>.player-nav a.active{background:linear-gradient(150deg,#125b83,#103655)!important;border-color:#58d4f8!important;color:#e9fcff!important;box-shadow:inset 0 1px #a5edff24,0 0 14px #37bbeb18!important}
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  :root{
+    --glass-fill:linear-gradient(155deg,rgba(28,66,108,.94),rgba(8,26,50,.96));
+    --glass-fill-bar:linear-gradient(158deg,rgba(26,62,104,.96),rgba(6,22,44,.98));
+    --glass-fill-strong:linear-gradient(158deg,rgba(26,62,104,.98),rgba(6,22,44,.99));
+  }
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{
+    --glass-blur:none;
+    --glass-fill:linear-gradient(155deg,rgba(28,66,108,.94),rgba(8,26,50,.96));
+    --glass-fill-bar:linear-gradient(158deg,rgba(26,62,104,.96),rgba(6,22,44,.98));
+    --glass-fill-strong:linear-gradient(158deg,rgba(26,62,104,.98),rgba(6,22,44,.99));
+  }
+}
+
+/* ---- Glass surfaces: HUD chips, growth card, care buttons ---- */
+.game-frame .gl-panel,
+.game-frame .care-actions>button{
+  border:1px solid var(--glass-edge-soft)!important;
+  background:var(--glass-sheen),var(--glass-fill)!important;
+  color:var(--rb-text)!important;
+  box-shadow:var(--glass-rim),var(--glass-drop)!important;
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+}
+.game-frame .care-actions>button{
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+  font-family:inherit!important;
+  transition:transform .16s,border-color .16s,box-shadow .16s!important;
+}
+.game-frame .care-actions>button svg{width:21px!important;height:21px!important;stroke-width:1.65!important;color:#6ddcff!important}
+.game-frame .care-actions>button span{font-size:9px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:.01em!important}
 .game-frame .care-actions>button:disabled{opacity:.45!important;cursor:wait}
-.game-frame .care-actions>button:focus-visible,.game-frame>.player-nav a:focus-visible{outline:2px solid #99edff;outline-offset:3px}
-@media(hover:hover){.game-frame .care-actions>button:not(:disabled):hover,.game-frame>.player-nav a:hover{border-color:#70dfff!important;background:linear-gradient(150deg,#164769,#0b2d4d)!important}}
-@media(max-width:699px){
-  .game-frame .game-controls{left:var(--control-edge)!important;right:var(--control-edge)!important;width:auto!important;max-width:none!important;transform:none!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box!important}
-  .game-frame>.player-nav{left:var(--control-edge)!important;right:var(--control-edge)!important;width:auto!important;max-width:none!important;transform:none!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;gap:8px!important;box-sizing:border-box!important;backdrop-filter:none!important}
+.game-frame .care-actions>button:focus-visible,
+.game-frame>.player-nav a:focus-visible{outline:2px solid #99edff;outline-offset:3px}
+@media(hover:hover){
+  .game-frame .care-actions>button:not(:disabled):hover{border-color:rgba(130,225,255,.55)!important;transform:translateY(-2px)}
+}
+/* State variants keep their meaning on top of the shared glass. */
+.game-frame .growth-card.ready{
+  border-color:rgba(92,214,255,.42)!important;
+  background:var(--glass-sheen),linear-gradient(155deg,rgba(40,132,184,.38),rgba(10,52,82,.60))!important;
+}
+.game-frame .monster-speech.needs-attention{
+  border-color:rgba(255,184,107,.40)!important;
+  background:linear-gradient(155deg,rgba(124,80,36,.56),rgba(64,40,18,.74))!important;
+  color:#ffd19a!important;
+}
+.game-frame .care-actions>button.recommended-action{
+  background:var(--rb-accent)!important;
+  border-color:var(--rb-accent)!important;
+  color:#06203d!important;
+  box-shadow:0 0 0 1px rgba(92,214,255,.18),0 8px 24px rgba(92,214,255,.13)!important;
+}
+
+/* While a sheet is open the home HUD behind it (controls, name chip, habitat/den
+   buttons, clock, speech bubble) fades out. Otherwise the corners of those chips
+   peek out around the glass sheet's rounded edge. */
+.game-world .game-controls,
+.game-world .monster-id,
+.game-world .monster-hud-right,
+.game-world .monster-speech{transition:opacity .18s ease,visibility 0s}
+.game-home:has(> .game-sheet-backdrop) .game-world :is(.game-controls,.monster-id,.monster-hud-right,.monster-speech),
+.game-home:has(> .origin-sheet-backdrop) .game-world :is(.game-controls,.monster-id,.monster-hud-right,.monster-speech){
+  opacity:0;visibility:hidden;transition:opacity .18s ease,visibility 0s .18s;
+}
+
+/* ---- Glass surfaces: sheets and dialogs (same recipe at every width) ---- */
+.game-frame .game-sheet,
+.game-frame .origin-sheet,
+.auth-modal{
+  border:1px solid var(--glass-edge)!important;
+  background:var(--glass-sheen),var(--glass-fill-strong)!important;
+  box-shadow:var(--glass-rim),var(--glass-drop-lg)!important;
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+}
+
+/* ---- Stats sheet: compact, content-height, no dead space ---- */
+.status-sheet .sheet-section-label{margin:14px 0 7px}
+.status-sheet .state-bars{gap:8px}
+.status-sheet .state-bars>div{padding:8px 12px}
+.status-sheet .sheet-stat-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.status-sheet .sheet-stat-grid>div{padding:10px 4px}
+
+/* ---- Mint dialog: leftover light-theme colors aligned with the dark HUD ---- */
+.game-frame .origin-sheet-head small{color:var(--rb-accent)!important}
+.game-frame .origin-sheet-close{
+  width:34px;min-width:34px;height:34px;padding:0;border-radius:12px;
+  border:1px solid var(--glass-edge-soft)!important;background:rgba(255,255,255,.06)!important;
+  color:var(--rb-muted)!important;font-size:22px;line-height:1;
+}
+.game-frame .origin-sheet-close:hover:not(:disabled){color:var(--rb-text)!important;border-color:var(--glass-edge)!important}
+.game-frame .mint-sheet .origin-pick.available:after{color:var(--rb-accent)}
+.game-frame .origin-pick b{background:rgba(92,214,255,.14)!important;color:var(--rb-accent)!important;box-shadow:inset 0 0 0 1px rgba(92,214,255,.32)}
+.game-frame .origin-pick-lock{background:rgba(255,255,255,.06)!important;color:var(--rb-muted)!important}
+
+/* ---- Other sheets: content-height, so no dead space inside them ---- */
+.habitat-sheet .habitat-action{margin-top:14px!important;flex:0 0 auto}
+.training-sheet .training-grid{gap:8px;margin-top:12px}
+.training-sheet .training-grid button{min-height:76px;padding:10px 12px}
+
+/* ---- Mobile / tablet: one bottom nav bar + sheets floating above it ---- */
+@media (max-width:899px){
+  .game-frame .header-login-trigger,
+  .game-frame .wallet-balance-trigger{
+    border:1px solid var(--glass-edge-soft)!important;
+    background:var(--glass-sheen),var(--glass-fill)!important;
+    box-shadow:var(--glass-rim)!important;
+    -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  }
+
+  /* The bar is ONE surface; the three destinations are tabs inside it. */
+  .game-frame>.player-nav{
+    position:absolute!important;z-index:110!important;
+    left:0!important;right:0!important;bottom:var(--hud-nav-bottom)!important;
+    width:var(--hud-width)!important;max-width:none!important;
+    height:var(--hud-nav-h)!important;min-height:var(--hud-nav-h)!important;max-height:var(--hud-nav-h)!important;
+    margin:0 auto!important;padding:6px!important;transform:none!important;box-sizing:border-box!important;
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important;
+    border:1px solid var(--glass-edge)!important;border-radius:22px!important;
+    background:var(--glass-sheen),var(--glass-fill-bar)!important;
+    box-shadow:var(--glass-rim),var(--glass-drop-lg)!important;
+    -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  }
+  .game-frame>.player-nav a{
+    position:relative;min-width:0;height:100%!important;min-height:0!important;margin:0!important;padding:0 4px!important;
+    border:0!important;border-radius:17px!important;background:transparent!important;box-shadow:none!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;
+    color:#8eb0cf!important;text-decoration:none!important;font-family:inherit!important;
+    transition:color .16s,background-color .16s,box-shadow .16s!important;
+  }
+  .game-frame>.player-nav a svg{width:21px!important;height:21px!important;stroke-width:1.7!important;color:currentColor!important}
+  .game-frame>.player-nav a span{font-size:9px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:.01em!important}
+  .game-frame>.player-nav a.active,
+  .game-frame>.player-nav a[aria-current="page"]{
+    color:var(--rb-accent)!important;
+    background:linear-gradient(160deg,rgba(92,214,255,.22),rgba(92,214,255,.07))!important;
+    box-shadow:inset 0 0 0 1px rgba(125,225,255,.26),0 0 20px rgba(46,190,255,.12)!important;
+  }
+  @media(hover:hover){
+    .game-frame>.player-nav a:not(.active):hover{color:#d6efff!important;background:rgba(255,255,255,.06)!important}
+  }
+
+  /* Care controls share the sheets' bottom anchor and column width. */
+  .game-frame .game-controls{
+    left:0!important;right:0!important;bottom:var(--hud-float-bottom)!important;
+    width:var(--hud-width)!important;max-width:none!important;margin:0 auto!important;
+    padding:0!important;transform:none!important;box-sizing:border-box!important;
+  }
+
+  /* Sheets: float above the nav bar, content-height, never under it. */
+  .player-bg .player-shell.game-frame .game-sheet-backdrop,
+  .player-bg .player-shell.game-frame .origin-sheet-backdrop{
+    position:fixed!important;inset:0!important;z-index:70!important;
+    width:auto!important;height:auto!important;margin:0!important;padding:0!important;
+    overflow:hidden!important;background:rgba(3,8,20,.24)!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  .player-bg .player-shell.game-frame .origin-sheet-backdrop{
+    display:flex!important;align-items:flex-end!important;justify-content:center!important;
+    padding-bottom:var(--hud-float-bottom)!important;
+  }
+  .player-bg .player-shell.game-frame .game-sheet-backdrop>.game-sheet,
+  .player-bg .player-shell.game-frame .origin-sheet-backdrop>.origin-sheet{
+    position:absolute!important;left:0!important;right:0!important;top:auto!important;bottom:var(--hud-float-bottom)!important;
+    width:var(--hud-width)!important;min-width:0!important;max-width:none!important;
+    height:auto!important;min-height:0!important;
+    max-height:min(calc(100dvh - var(--hud-float-bottom) - var(--hud-float-top)),680px)!important;
+    margin:0 auto!important;padding:10px 18px 18px!important;box-sizing:border-box!important;
+    border-radius:26px!important;
+    display:flex!important;flex-direction:column!important;overflow:auto!important;
+    overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  .player-bg .player-shell.game-frame .game-sheet-backdrop>.game-sheet.den-sheet{overflow:hidden!important}
+  .player-bg .player-shell.game-frame .game-sheet-backdrop>.game-sheet:before,
+  .player-bg .player-shell.game-frame .origin-sheet-backdrop>.origin-sheet:before{
+    content:"";display:block;flex:0 0 auto;width:38px;height:4px;margin:0 auto 12px;
+    border-radius:999px;background:rgba(190,225,255,.30);
+  }
+  .game-frame .game-sheet>*,
+  .game-frame .origin-sheet>*{flex-shrink:0}
+  .game-frame .game-sheet>.den-grid{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+}
+@media (max-width:699px){
   .game-frame .care-actions{width:100%!important;gap:8px!important;padding:0!important;margin:0!important}
-  .game-frame .care-actions>button,.game-frame>.player-nav a{height:62px!important;min-height:62px!important;padding:7px 3px!important;box-sizing:border-box!important}
+  .game-frame .care-actions>button{height:62px!important;min-height:62px!important;padding:7px 3px!important;box-sizing:border-box!important}
+}
+
+/* ---- Desktop: no bottom bar; sheets are content-height panels, centered ---- */
+@media (min-width:900px){
+  .player-bg .player-shell.game-frame .game-sheet-backdrop,
+  .player-bg .player-shell.game-frame .origin-sheet-backdrop{
+    background:rgba(2,5,14,.42)!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  .player-bg .player-shell.game-frame .game-sheet-backdrop{
+    inset:76px 0 0!important;height:auto!important;padding:0 0 28px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+  }
+  .player-bg .player-shell.game-frame .game-sheet-backdrop>.game-sheet{
+    height:auto!important;margin:0!important;
+    max-height:min(680px,calc(100dvh - 76px - 56px))!important;
+    display:flex!important;flex-direction:column!important;
+  }
+  .game-frame .game-sheet>*{flex-shrink:0}
+  .game-frame .game-sheet>.den-grid{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
 }
