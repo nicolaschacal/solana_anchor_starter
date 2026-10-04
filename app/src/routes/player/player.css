@@ -3598,3 +3598,168 @@ html,body,#root{background:#04101f!important}
 @media(max-height:650px){
   .guest-hero{margin-top:4vh}.guest-divider{margin:14px 0 10px}.guest-hero p{margin-bottom:16px}.guest-features{bottom:14px}
 }
+
+
+/* ==========================================================================
+   REBYTERS HOME V2 — exact mobile composition, independent from legacy shell
+   ========================================================================== */
+@media (max-width:899px){
+  .player-shell.game-frame:has(.game-home){
+    width:100%!important;
+    max-width:none!important;
+    min-height:100svh!important;
+    height:100svh!important;
+    padding:0!important;
+    overflow:hidden!important;
+    background:#06172d!important;
+    box-shadow:none!important;
+  }
+
+  .player-shell.game-frame:has(.game-home)>.player-head{display:none!important}
+  .player-shell.game-frame:has(.guest-home)>.player-head{
+    display:flex!important;
+    position:absolute!important;
+    z-index:220!important;
+    top:0!important;left:0!important;right:0!important;
+    height:auto!important;
+    padding:calc(15px + env(safe-area-inset-top,0px)) 18px 10px!important;
+    background:linear-gradient(180deg,rgba(3,18,36,.82) 0%,rgba(3,18,36,.24) 72%,transparent 100%)!important;
+    color:white!important;
+  }
+  .player-shell.game-frame:has(.guest-home)>.player-head .player-brand{
+    display:flex!important;flex-direction:column!important;text-decoration:none!important;color:#fff!important;
+  }
+  .player-shell.game-frame:has(.guest-home)>.player-head .player-logo{
+    font-size:18px!important;font-weight:900!important;letter-spacing:.14em!important;line-height:1!important;
+  }
+  .player-shell.game-frame:has(.guest-home)>.player-head .player-brand small{
+    display:block!important;margin-top:5px!important;font-size:9px!important;letter-spacing:.19em!important;color:#8ca9c2!important;
+  }
+  .player-shell.game-frame:has(.guest-home)>.player-head .player-head-actions{display:block!important}
+  .player-shell.game-frame:has(.guest-home)>.player-head .desktop-top-nav{display:none!important}
+  .player-shell.game-frame:has(.guest-home)>.player-head .header-login-trigger{
+    display:flex!important;
+    align-items:center!important;justify-content:center!important;
+    min-width:108px!important;height:44px!important;padding:0 20px!important;
+    border:1px solid rgba(118,219,255,.46)!important;border-radius:18px!important;
+    background:linear-gradient(145deg,rgba(30,124,188,.54),rgba(7,51,94,.78))!important;
+    color:#fff!important;font-size:14px!important;font-weight:750!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.18),0 8px 24px rgba(0,12,28,.24)!important;
+    -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
+  }
+
+  .game-home,.game-home>.game-viewer{width:100%!important;height:100%!important;min-height:0!important}
+  .game-home{position:absolute!important;inset:0!important;overflow:hidden!important}
+  .game-home>.game-viewer{position:absolute!important;inset:0!important;border-radius:0!important}
+
+  .guest-world{background:#07182d!important}
+  .guest-world-canvas{position:absolute;inset:0;z-index:0;overflow:hidden}
+  .guest-world-canvas canvas{display:block;width:100%!important;height:100%!important}
+  .guest-world-shade{
+    position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:
+      linear-gradient(180deg,rgba(2,12,28,.08) 0%,rgba(2,12,28,.02) 30%,rgba(2,12,28,.18) 62%,rgba(2,9,21,.74) 100%),
+      radial-gradient(circle at 50% 54%,transparent 0 27%,rgba(1,9,22,.08) 55%,rgba(1,7,18,.28) 100%);
+  }
+  .guest-hero{
+    position:absolute!important;z-index:4!important;
+    left:20px!important;right:20px!important;top:43%!important;
+    width:auto!important;margin:0!important;transform:translateY(-50%)!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;
+  }
+  .guest-title strong{
+    display:block!important;font-size:clamp(36px,11vw,50px)!important;line-height:.95!important;
+    font-weight:900!important;letter-spacing:.10em!important;color:#fff!important;
+    text-shadow:0 0 26px rgba(82,211,255,.24)!important;
+  }
+  .guest-title span{
+    display:block!important;margin-top:10px!important;font-size:10px!important;line-height:1!important;
+    font-weight:700!important;letter-spacing:.34em!important;color:#9db7cf!important;
+  }
+  .guest-divider{width:180px!important;margin:22px 0 13px!important}
+  .guest-hero p{margin:0 0 22px!important;font-size:16px!important;line-height:1.4!important;color:#d6e7f5!important}
+  .guest-login-button{
+    width:min(78vw,280px)!important;height:56px!important;min-height:56px!important;padding:0 24px!important;
+    border-radius:22px!important;border:1px solid rgba(130,231,255,.72)!important;
+    background:linear-gradient(145deg,rgba(27,168,232,.90),rgba(18,91,166,.92))!important;
+    color:#fff!important;font-size:16px!important;font-weight:800!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.28),0 0 0 1px rgba(71,209,255,.15),0 10px 30px rgba(0,57,108,.30),0 0 28px rgba(66,211,255,.22)!important;
+  }
+  .guest-features{
+    position:absolute!important;z-index:4!important;left:18px!important;right:18px!important;
+    bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+  .guest-features>div{gap:7px!important;padding:0 6px!important}
+  .guest-features svg{width:22px!important;height:22px!important;color:#66d9ff!important}
+  .guest-features span{font-size:8px!important;letter-spacing:.08em!important;color:#d4e1eb!important}
+
+  /* Logged-in home: exact hierarchy from the approved mockup. */
+  .game-home:not(.guest-home) .game-drawer-tab{
+    position:absolute!important;z-index:150!important;left:0!important;top:43%!important;
+    width:38px!important;height:92px!important;padding:0!important;
+    border:1px solid rgba(114,220,255,.55)!important;border-left:0!important;
+    border-radius:0 20px 20px 0!important;
+    background:linear-gradient(155deg,rgba(34,132,198,.72),rgba(8,49,91,.82))!important;
+    color:#f2fbff!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.22),0 10px 30px rgba(0,10,26,.30)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(155%);backdrop-filter:blur(18px) saturate(155%);
+  }
+  .game-home:not(.guest-home) .game-drawer-tab svg{width:21px!important;height:21px!important}
+
+  .game-home:not(.guest-home) .game-drawer-backdrop{
+    position:absolute!important;z-index:300!important;inset:0!important;
+    background:rgba(1,9,22,.54)!important;
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  }
+  .game-home:not(.guest-home) .game-drawer{
+    width:min(79vw,320px)!important;height:100%!important;padding:calc(25px + env(safe-area-inset-top,0px)) 18px calc(22px + env(safe-area-inset-bottom,0px))!important;
+    border-right:1px solid rgba(123,219,255,.24)!important;
+    background:
+      radial-gradient(circle at 18% 8%,rgba(23,117,177,.18),transparent 26%),
+      linear-gradient(180deg,rgba(4,35,63,.99),rgba(2,20,42,.995) 55%,rgba(2,14,31,.998))!important;
+    box-shadow:22px 0 70px rgba(0,4,18,.50)!important;
+  }
+  .game-drawer-head{margin-bottom:24px!important}
+  .game-drawer-head strong{font-size:21px!important;font-weight:900!important;letter-spacing:.14em!important;color:#fff!important}
+  .game-drawer-head small{font-size:9px!important;letter-spacing:.18em!important;color:#7f9db9!important}
+  .game-drawer-head>button{border:0!important;background:transparent!important;color:#a8bfd4!important}
+
+  .game-drawer-balance{
+    min-height:62px!important;margin-bottom:18px!important;padding:0 16px!important;border-radius:18px!important;
+    border:1px solid rgba(98,205,255,.20)!important;
+    background:linear-gradient(145deg,rgba(18,95,149,.34),rgba(7,39,74,.60))!important;
+  }
+  .game-drawer-balance span{font-size:14px!important;color:#edf8ff!important}
+
+  .game-drawer-nav{gap:4px!important}
+  .game-drawer-nav a,.game-drawer-nav button{
+    min-height:56px!important;padding:0 15px!important;border-radius:17px!important;
+    color:#96aec5!important;
+  }
+  .game-drawer-nav a.active{
+    color:#5fe0ff!important;
+    border-color:rgba(95,221,255,.18)!important;
+    background:linear-gradient(90deg,rgba(27,158,221,.23),rgba(11,74,126,.10))!important;
+    box-shadow:inset 2px 0 #59ddff!important;
+  }
+  .game-drawer-nav a svg,.game-drawer-nav button>svg{width:23px!important;height:23px!important}
+  .game-drawer-footer{padding-top:15px!important}
+
+  .game-home:not(.guest-home) .game-viewer.game-world{height:100%!important;min-height:100%!important}
+  .game-home:not(.guest-home) .game-controls{
+    left:14px!important;right:14px!important;bottom:calc(15px + env(safe-area-inset-bottom,0px))!important;
+    width:auto!important;margin:0!important;
+  }
+  .game-home:not(.guest-home) .monster-id{
+    top:calc(16px + env(safe-area-inset-top,0px))!important;left:14px!important;
+  }
+  .game-home:not(.guest-home) .monster-hud-right{
+    top:calc(16px + env(safe-area-inset-top,0px))!important;right:14px!important;
+  }
+}
+
+@media (min-width:900px){
+  .guest-world-canvas{position:absolute;inset:0}
+  .guest-world-canvas canvas{width:100%!important;height:100%!important}
+}
