@@ -3538,3 +3538,63 @@ html,body,#root{background:#04101f!important}
 @media (min-width:900px){
   .game-drawer-tab,.game-drawer-backdrop{display:none!important}
 }
+
+
+/* Logged-out landing: preserve access to Login while keeping the world cinematic. */
+@media (max-width:899px){
+  .game-frame:has(.guest-home)>.player-head{
+    display:flex!important;
+    position:absolute!important;z-index:120!important;top:0!important;left:0!important;right:0!important;
+    padding:calc(14px + env(safe-area-inset-top,0px)) 16px 10px!important;
+    background:linear-gradient(180deg,rgba(2,18,38,.60),transparent)!important;
+    border:0!important;box-shadow:none!important;
+  }
+  .game-frame:has(.guest-home)>.player-head .desktop-top-nav{display:none!important}
+  .game-frame:has(.guest-home)>.player-head .player-brand{display:flex!important}
+  .game-frame:has(.guest-home)>.player-head .header-login-trigger{
+    min-width:104px!important;height:44px!important;border-radius:18px!important;
+  }
+}
+.guest-home{height:100%;min-height:100%;overflow:hidden}
+.guest-world{
+  position:relative!important;height:100%!important;min-height:100%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(22,139,211,.24),transparent 28%),
+    radial-gradient(ellipse at 50% 76%,rgba(39,188,188,.13),transparent 28%),
+    linear-gradient(180deg,#071a35 0%,#08284b 42%,#061a33 72%,#030d1c 100%)!important;
+}
+.guest-world:after{
+  content:"";position:absolute;left:50%;bottom:19%;width:min(62vw,300px);height:54px;transform:translateX(-50%);
+  border:1px solid rgba(80,211,255,.38);border-radius:50%;
+  box-shadow:0 0 38px rgba(38,188,255,.12),inset 0 0 28px rgba(44,202,255,.06);
+}
+.guest-hero{
+  position:relative;z-index:3;width:min(86%,390px);margin-top:-2vh;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.guest-title strong{display:block;font-size:clamp(34px,10vw,50px);line-height:1;letter-spacing:.12em;color:#f4fbff;text-shadow:0 0 26px rgba(80,210,255,.20)}
+.guest-title span{display:block;margin-top:9px;font-size:10px;letter-spacing:.34em;color:#91abc4}
+.guest-divider{width:180px;margin:22px 0 14px;display:flex;align-items:center;gap:12px;color:#5edcff}
+.guest-divider i{height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(104,217,255,.42))}
+.guest-divider i:last-child{transform:scaleX(-1)}
+.guest-divider svg{width:15px;height:15px}
+.guest-hero p{margin:0 0 24px;color:#c1d6e8;font-size:16px;line-height:1.5;letter-spacing:.01em}
+.guest-login-button{
+  min-width:210px!important;height:54px!important;padding:0 24px!important;border-radius:22px!important;
+  border:1px solid rgba(116,228,255,.68)!important;
+  background:linear-gradient(145deg,rgba(23,163,225,.72),rgba(12,86,157,.80))!important;
+  color:white!important;font-size:15px!important;font-weight:750!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.24),0 0 28px rgba(40,195,255,.22)!important;
+}
+.guest-features{
+  position:absolute;z-index:3;left:6%;right:6%;bottom:calc(28px + env(safe-area-inset-bottom,0px));
+  display:grid;grid-template-columns:repeat(4,1fr);
+}
+.guest-features>div{min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px;color:#7bdfff;border-right:1px solid rgba(145,198,226,.20)}
+.guest-features>div:last-child{border-right:0}
+.guest-features svg{width:21px;height:21px;stroke-width:1.7}
+.guest-features span{font-size:8px;font-weight:700;letter-spacing:.08em;color:#b9ccdc;white-space:nowrap}
+@media(max-height:650px){
+  .guest-hero{margin-top:4vh}.guest-divider{margin:14px 0 10px}.guest-hero p{margin-bottom:16px}.guest-features{bottom:14px}
+}
