@@ -366,6 +366,67 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   );
 });
 
+
+export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
+  const mount = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = mount.current;
+    if (!host) return;
+    let renderer: THREE.WebGLRenderer;
+    try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); }
+    catch { return; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    host.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    const env = meadow(scene, period);
+    const hemi = new THREE.HemisphereLight(0xdff5ff, 0x314536, 2.2);
+    scene.add(hemi);
+    const key = new THREE.DirectionalLight(env.colors.light, env.colors.intensity);
+    key.position.set(3, 6, 4); scene.add(key);
+
+    const platform = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.95, 2.12, 0.18, 64),
+      new THREE.MeshStandardMaterial({ color: 0x5a6670, roughness: 0.94, metalness: 0.02 })
+    );
+    platform.position.set(0, 0.05, 0.3); scene.add(platform);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.42, 0.025, 10, 96),
+      new THREE.MeshBasicMaterial({ color: 0x65dcff, transparent: true, opacity: 0.58 })
+    );
+    ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.155, 0.3); scene.add(ring);
+    const inner = new THREE.Mesh(
+      new THREE.TorusGeometry(0.82, 0.018, 10, 96),
+      new THREE.MeshBasicMaterial({ color: 0x8be8ff, transparent: true, opacity: 0.32 })
+    );
+    inner.rotation.x = Math.PI / 2; inner.position.set(0, 0.158, 0.3); scene.add(inner);
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+    camera.position.set(0, 2.6, 6.7); camera.lookAt(0, 1.15, -0.2);
+    const resize = () => {
+      const w = Math.max(1, host.clientWidth), h = Math.max(1, host.clientHeight);
+      renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    };
+    resize();
+    const ro = new ResizeObserver(resize); ro.observe(host);
+    let raf = 0; const clock = new THREE.Clock();
+    const render = () => {
+      const t = clock.getElapsedTime();
+      ring.material.opacity = 0.48 + Math.sin(t * 1.6) * 0.1;
+      renderer.render(scene, camera); raf = requestAnimationFrame(render);
+    };
+    render();
+    return () => {
+      cancelAnimationFrame(raf); ro.disconnect(); env.dispose();
+      platform.geometry.dispose(); (platform.material as THREE.Material).dispose();
+      ring.geometry.dispose(); (ring.material as THREE.Material).dispose();
+      inner.geometry.dispose(); (inner.material as THREE.Material).dispose();
+      renderer.dispose(); renderer.domElement.remove();
+    };
+  }, [period]);
+  return <div className="guest-world-canvas" ref={mount} aria-hidden="true"/>;
+}
+
 export function EvolutionModel({
   evolution,
   action = "idle",
