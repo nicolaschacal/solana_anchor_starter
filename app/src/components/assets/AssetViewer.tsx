@@ -234,7 +234,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             (2 *
               Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
               camera.aspect *
-              0.7),
+              (w <= 700 ? 0.50 : 0.60)),
         );
         const direction = camera.position.clone().sub(controls.target).normalize();
         camera.position.copy(controls.target).addScaledVector(direction,distance);

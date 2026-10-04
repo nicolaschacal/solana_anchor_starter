@@ -8,7 +8,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
+  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
 import { EvolutionModel } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -445,7 +445,15 @@ export function PlayerHome() {
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [habitat,setHabitat]=useState(0);
-  const [reaction,setReaction]=useState("Your companion is watching you.");
+  const [speech,setSpeech]=useState({text:"",sequence:0});
+  const [speechVisible,setSpeechVisible]=useState(false);
+  const setReaction=(text:string)=>setSpeech(previous=>({text,sequence:previous.sequence+1}));
+  useEffect(()=>{
+    if(!speech.text)return;
+    setSpeechVisible(true);
+    const timer=window.setTimeout(()=>setSpeechVisible(false),4500);
+    return()=>window.clearTimeout(timer);
+  },[speech]);
   const [visualAction,setVisualAction]=useState("idle");
   const [resting,setResting]=useState(false);
   const [restPending,setRestPending]=useState(false);
@@ -467,6 +475,14 @@ export function PlayerHome() {
     :(active.condition&REBYTER_CONDITION.injured)?"I’m hurt. Please take care of me."
     :tired?"I’m tired. I need to rest."
     :"";
+
+  useEffect(()=>{
+    if(!active?.mint)return;
+    const showAmbient=()=>setReaction(needMessage||"Your companion is watching you.");
+    showAmbient();
+    const timer=window.setInterval(showAmbient,30000);
+    return()=>window.clearInterval(timer);
+  },[active?.mint,needMessage]);
 
   const stageTimer=(()=>{
     if(!active||!evolution||!tree.balance||!evolution.paths.length) return null;
@@ -530,12 +546,12 @@ export function PlayerHome() {
           <span className="den-grid-icon"><i/><i/><i/><i/></span>
         </button>
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
-          <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?"☾":worldClock.period==="Day"?"☀":"◒"}</span>
+          <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
           <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
         </div>
       </div>
 
-      <div className={`monster-speech gl-panel${needMessage?" needs-attention":""}`}>{needMessage||reaction}</div>
+      <div className={`monster-speech gl-panel${speechVisible?" is-visible":""}${needMessage&&speech.text===needMessage?" needs-attention":""}`} role="status" aria-live="polite" aria-hidden={!speechVisible}>{speech.text}</div>
 
       <div className="game-controls">
         <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
