@@ -106,8 +106,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     }
     if (landscape) {
       if (!viewState.current) {
-        camera.position.set(0, 1.95, 4.7);
-        controls.target.set(0, 1.35, 0);
+        camera.position.set(0, 2.20, 4.7);
+        controls.target.set(0, 1.60, 0);
       }
       const polar = new THREE.Spherical().setFromVector3(
         camera.position.clone().sub(controls.target),
@@ -234,7 +234,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             (2 *
               Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
               camera.aspect *
-              (w <= 700 ? 0.46 : 0.58)),
+              (w <= 700 ? 0.42 : 0.54)),
         );
         const direction = camera.position.clone().sub(controls.target).normalize();
         camera.position.copy(controls.target).addScaledVector(direction,distance);
