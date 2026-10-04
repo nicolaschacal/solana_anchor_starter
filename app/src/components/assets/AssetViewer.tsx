@@ -71,7 +71,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xd9efff, 0x384252, 2.3));
+    const ambient = new THREE.HemisphereLight(0xd9efff, 0x384252, 2.3);
+    scene.add(ambient);
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
     key.position.set(3, 5, 4);
     scene.add(key);
@@ -79,6 +80,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     if (environment) {
       key.color.setHex(environment.colors.light);
       key.intensity = environment.colors.intensity;
+      ambient.intensity = period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8;
+      ambient.color.setHex(period === "Night" ? 0x8faeff : 0xd9efff);
     }
     const root = clone(model.scene),
       stage = new THREE.Group();
@@ -380,7 +383,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const env = meadow(scene, period);
-    const hemi = new THREE.HemisphereLight(0xdff5ff, 0x314536, 2.2);
+    const hemi = new THREE.HemisphereLight(period === "Night" ? 0x8faeff : 0xdff5ff, 0x314536, period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8);
     scene.add(hemi);
     const key = new THREE.DirectionalLight(env.colors.light, env.colors.intensity);
     key.position.set(3, 6, 4); scene.add(key);

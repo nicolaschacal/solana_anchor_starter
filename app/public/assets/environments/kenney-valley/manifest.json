@@ -1,0 +1,20 @@
+{
+  "provider": "Kenney Nature Kit 2.1",
+  "source": "https://kenney.nl/assets/nature-kit",
+  "license": "CC0-1.0",
+  "models": [
+    "cliff_large_stone",
+    "cliff_waterfall_stone",
+    "flower_redA",
+    "flower_yellowA",
+    "grass",
+    "plant_bush",
+    "rock_largeA",
+    "tree_oak_dark",
+    "tree_pineTallA"
+  ],
+  "bytes": 146928,
+  "triangles": 11882,
+  "meshDraws": 2,
+  "textures": 0
+}

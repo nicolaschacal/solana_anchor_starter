@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "meshoptimizer";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 const palettes = {
   Night: {
@@ -30,12 +32,38 @@ const palettes = {
     intensity: 2,
   },
 };
+// Cache the small compressed download, not disposable GPU objects. Each mounted
+// scene parses its own resources so changing periods cannot dispose another view.
+const environmentUri = "/assets/environments/kenney-valley/valley.glb";
+let environmentBytes: Promise<ArrayBuffer> | undefined;
+function loadEnvironmentBytes() {
+  if (!environmentBytes) {
+    environmentBytes = fetch(environmentUri)
+      .then(response => {
+        if (!response.ok) throw Error(`Environment download failed: ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .catch(error => { environmentBytes = undefined; throw error; });
+  }
+  return environmentBytes;
+}
+function disposeGroup(group: THREE.Object3D) {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  group.traverse(node => {
+    const mesh = node as THREE.Mesh;
+    if (mesh.geometry) geometries.add(mesh.geometry);
+    if (mesh.material) for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) materials.add(material);
+  });
+  geometries.forEach(geometry => geometry.dispose());
+  materials.forEach(material => material.dispose());
+}
 export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const colors = palettes[period];
   const group = new THREE.Group();
   scene.add(group);
   scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.sky, 12, 48);
+  scene.fog = new THREE.Fog(colors.sky, 24, 65);
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(200, 200),
     new THREE.MeshStandardMaterial({ color: colors.ground, roughness: 1 }),
@@ -43,39 +71,29 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.02;
   group.add(floor);
-  const grass = new THREE.InstancedMesh(
-    new THREE.ConeGeometry(0.055, 0.22, 3),
-    new THREE.MeshStandardMaterial({ color: colors.grass, roughness: 1 }),
-    360,
-  );
-  const matrix = new THREE.Matrix4();
+  let disposed = false;
+  const ready = loadEnvironmentBytes()
+    .then(bytes => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(bytes, ""))
+    .then(model => {
+      if (disposed) { disposeGroup(model.scene); return false; }
+      model.scene.traverse(node => {
+        const mesh = node as THREE.Mesh;
+        if (mesh.isMesh) {
+          mesh.castShadow = false;
+          mesh.receiveShadow = false;
+        }
+      });
+      group.add(model.scene);
+      floor.visible = false;
+      return true;
+    })
+    // Keep the small clearing visible if an offline/corrupt download fails.
+    .catch(() => false);
   let seed = 12345;
   const rand = () => {
     seed = (1664525 * seed + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  for (let i = 0; i < 360; i++) {
-    const a = rand() * Math.PI * 2,
-      r = 1.7 + rand() * 15;
-    matrix.compose(
-      new THREE.Vector3(Math.cos(a) * r, 0.07, Math.sin(a) * r),
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), a),
-      new THREE.Vector3(1, 0.6 + rand(), 1),
-    );
-    grass.setMatrixAt(i, matrix);
-  }
-  group.add(grass);
-  // Broad hills close the horizon in every camera direction.
-  for (let i = 0; i < 12; i++) {
-    const a = (i * Math.PI) / 6;
-    const hill = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1, 1),
-      new THREE.MeshStandardMaterial({ color: colors.ground, roughness: 1 }),
-    );
-    hill.position.set(Math.cos(a) * 29, -1, Math.sin(a) * 29);
-    hill.scale.set(8, 2 + rand() * 3, 8);
-    group.add(hill);
-  }
   const orb = new THREE.Mesh(
     new THREE.SphereGeometry(period === "Night" ? 0.65 : 1, 20, 12),
     new THREE.MeshBasicMaterial({
@@ -126,17 +144,11 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   group.add(shadow);
   return {
     colors,
+    ready,
     dispose() {
+      disposed = true;
       texture.dispose();
-      group.traverse((n) => {
-        const m = n as THREE.Mesh;
-        if (m.geometry) m.geometry.dispose();
-        if (m.material)
-          for (const mat of Array.isArray(m.material)
-            ? m.material
-            : [m.material])
-            mat.dispose();
-      });
+      disposeGroup(group);
       scene.remove(group);
     },
   };
