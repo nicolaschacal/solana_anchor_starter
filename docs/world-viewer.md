@@ -6,7 +6,7 @@ The HUD clock replaces the compact bond badge; bond remains in the status detail
 
 `useWorldClock` reads the Solana Clock sysvar using one `getAccountInfo` request per RPC endpoint per page session. The shared promise deduplicates React StrictMode mounts and later navigation. The Unix timestamp at byte offset 32 anchors a local monotonic clock; a local one-second timer updates the UI without RPC polling. A full browser reload synchronizes again. If synchronization fails, the HUD identifies its local UTC estimate; it does not repeatedly retry. This is a visual/UI estimate, never an authoritative replacement for on-chain validation.
 
-The growth card links to the evolution Lab. It says “Ready to evolve!” only when the existing full eligibility evaluation passes, using the synchronized stage age. The separate evolution-ready button is removed. Merely meeting the timer shows “Growth complete · check traits” if other requirements remain.
+The growth card retains its original non-clickable layout, colors and progress behavior. Only the completed-timer label changes from “Time requirement met” to the subtle “Ready to evolve!”. This label reflects the timer only; full route eligibility is still checked in the evolution Lab and on-chain. The separate evolution-ready button remains removed.
 
 No GLB or Irys asset is changed by this frontend update. The existing six clips still play on the ground. The current asset does not include a walk cycle, so no fake sliding or autonomous walking is introduced.
 

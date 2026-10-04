@@ -3397,7 +3397,4 @@ html,body,#root{background:#04101f!important}
 .world-clock-face{display:grid;place-items:center;width:27px;height:27px;border:1px solid #ffffff3d;border-radius:50%;color:#ffe8af;font-size:20px;background:#142a48}
 .world-clock strong{display:block;font-size:11px;line-height:1.25;color:#f1f7ff}
 .world-clock small{display:block;font-size:8px;color:#c3d8e6;font-variant-numeric:tabular-nums;white-space:nowrap}
-.game-world button.growth-card{width:100%;cursor:pointer;text-align:left;color:inherit;font:inherit}
-.game-world button.growth-card.ready strong{color:#abffcf}
-.game-world button.growth-card:focus-visible{outline:2px solid #a0f1ff;outline-offset:3px}
 @media(max-width:380px){.world-clock{min-width:82px;padding:6px;gap:4px}.world-clock-face{width:22px;height:22px}.game-world .monster-hud-right{gap:4px}}

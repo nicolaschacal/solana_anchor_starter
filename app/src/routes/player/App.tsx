@@ -484,9 +484,7 @@ export function PlayerHome() {
       ?100
       :Math.min(100,(elapsedStageSeconds/(stageTimer*60))*100);
   const growthReady=stageTimer===null||growthProgress>=100;
-  const anyEvolutionReady=!!active&&!!evolution&&evolution.paths.some(path=>{
-    try{return evaluatePath(tree,path,{...evolutionState(active),"progression.stageAgeMinutes":Math.floor(elapsedStageSeconds/60)}).eligible}catch{return false}
-  });
+
 
   async function openDen() {
     setDenOpen(true);
@@ -538,13 +536,13 @@ export function PlayerHome() {
       <div className={`monster-speech gl-panel${needMessage?" needs-attention":""}`}>{needMessage||reaction}</div>
 
       <div className="game-controls">
-        <button type="button" onClick={()=>navigate("/lab")} className={`growth-card gl-panel${anyEvolutionReady?" ready":""}`} aria-label={anyEvolutionReady?"Ready to evolve! Open evolutions":"View evolution requirements"}>
+        <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
           <div>
             <span>Growth</span>
-            <strong>{anyEvolutionReady?"Ready to evolve!":stageTimer===null?"Fully grown":growthReady?"Growth complete · check traits":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
+            <strong>{stageTimer===null?"Fully grown":growthReady?"Ready to evolve!":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
           </div>
           <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
-        </button>
+        </div>
         <div className="care-actions">
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>{setVisualAction("play");setReaction(evolution.name+" wants to play again.");}).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
