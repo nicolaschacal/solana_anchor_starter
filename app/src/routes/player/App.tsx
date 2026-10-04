@@ -1,6 +1,8 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { modelUriFor } from "../../lib/assets/catalog";
+import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
+import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -457,6 +459,8 @@ export function PlayerHome() {
   const [visualAction,setVisualAction]=useState("idle");
   const [resting,setResting]=useState(false);
   const [restPending,setRestPending]=useState(false);
+  const [actionWarning,setActionWarning]=useState<{action:RebyterInteraction;message:string}|null>(null);
+  const [completed,setCompleted]=useState<{mint:string;action:RebyterInteraction;condition:number;stats:number}|null>(null);
   useEffect(()=>{if(visualAction==="idle")return;const id=window.setTimeout(()=>setVisualAction("idle"),2600);return()=>clearTimeout(id);},[visualAction]);
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
@@ -468,18 +472,36 @@ export function PlayerHome() {
 
 
 
-  const tired=!!active&&(((active.condition&REBYTER_CONDITION.tired)!==0)||active.energy<20);
-  const needsCare=!!active&&(((active.condition&REBYTER_CONDITION.sick)!==0)||((active.condition&REBYTER_CONDITION.injured)!==0));
-  const needMessage=!active?""
-    :(active.condition&REBYTER_CONDITION.sick)?"I don’t feel well. I need care."
-    :(active.condition&REBYTER_CONDITION.injured)?"I’m hurt. Please take care of me."
-    :tired?"I’m tired. I need to rest."
-    :"";
+  const guidance=active?careGuidance(active):null;
+  const needMessage=guidance?.message||"";
+  useEffect(()=>{
+    if(!completed||active?.mint!==completed.mint)return;
+    const cured=[];
+    if((completed.condition&REBYTER_CONDITION.sick)&&!(active.condition&REBYTER_CONDITION.sick))cured.push("sickness");
+    if((completed.condition&REBYTER_CONDITION.injured)&&!(active.condition&REBYTER_CONDITION.injured))cured.push("injury");
+    const remaining=active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured);
+    const result=cured.length?`Recovered from ${cured.join(" and ")}. `:"";
+    const hint=remaining?`Still ${[active.condition&REBYTER_CONDITION.sick?"sick":"",active.condition&REBYTER_CONDITION.injured?"injured":""].filter(Boolean).join(" and ")}. ${careGuidance(active).message}`:"";
+    if(completed.action==="care"||completed.action==="rest")setReaction(result+hint|| (completed.action==="rest"?"Energy recovered.":"Care complete. Bond updated."));
+    else if(completed.action==="train")setReaction(active.hp+active.atk+active.def+active.spd>completed.stats?"Training complete. Stats improved.":"No stat gains. "+careGuidance(active).training);
+    else if(completed.action==="feed")setReaction(active.condition&REBYTER_CONDITION.overfed?"Meal complete. Now overfed — wait before feeding again.":"Meal complete. Fullness increased.");
+    else setReaction(careGuidance(active).message||"Play complete.");
+    setCompleted(null);
+  },[completed,active]);
+
+  async function interact(action:RebyterInteraction,option=0){
+    if(!active)return;
+    const before={mint:active.mint,action,condition:active.condition,stats:active.hp+active.atk+active.def+active.spd};
+    try{
+      await player.interact(active.mint,action,option);
+      setCompleted(before);
+    }catch{setReaction("Action failed. Please check the error below.");throw new Error("Interaction failed");}
+  }
 
   useEffect(()=>{
     if(!active?.mint)return;
     const showAmbient=()=>setReaction(needMessage||"Your companion is watching you.");
-    showAmbient();
+    if(!completed)showAmbient();
     const timer=window.setInterval(showAmbient,30000);
     return()=>window.clearInterval(timer);
   },[active?.mint,needMessage]);
@@ -531,7 +553,7 @@ export function PlayerHome() {
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
       <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting} landscape period={worldClock.period}/>
-      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
+      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
         <strong>{evolution.name}</strong>
@@ -562,11 +584,11 @@ export function PlayerHome() {
           <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
         </div>
         <div className="care-actions">
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>{setVisualAction("play");setReaction(evolution.name+" wants to play again.");}).catch(()=>undefined)}><Sparkles/><span>Play</span></button>
+          <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("play");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
-          <button className={`gl-panel${needsCare?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"care").then(()=>{setVisualAction("care");setReaction(evolution.name+" feels cared for.");}).catch(()=>undefined)}><Heart/><span>{needsCare?"Care now":"Care"}</span>{needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
-          <button className={`gl-panel${tired&&!needsCare?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void player.interact(active.mint,"rest").then(()=>setReaction(evolution.name+" recovered some energy.")).catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{tired&&!needsCare?"Rest now":"Rest"}</span>{tired&&!needsCare&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("care");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
         {player.error&&<div className="interaction-error">{player.error}</div>}
@@ -592,6 +614,7 @@ export function PlayerHome() {
         </div>
         <div className="sheet-section-label">Condition</div>
         <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}<span>Care mistakes: {active.careMistakes}</span><span>DNA: {active.dnaByteLength} bytes</span></div>
+        <p className="training-intro" role="status">{guidance?.message||"Your companion feels well."} Care uses 2 energy and 1 fullness. Rest restores 30 energy and uses 2 fullness.</p>
         <div className="sheet-section-label">Learned skills</div>
         <div className="trait-pills skill-pills">{learnedSkillNames(active.learnedSkills).length?learnedSkillNames(active.learnedSkills).map(name=><span key={name}>{name}</span>):<span>None yet</span>}</div>
         <div className="sheet-section-label">Core stats</div>
@@ -653,14 +676,14 @@ export function PlayerHome() {
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
       <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
         <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}>Close</button></div>
-        <p className="training-intro">There is no cooldown. Training while exhausted reduces gains and can make your Rebyter tired, sick or injured.</p>
+        <p className="training-intro companion-guidance" role="status">{guidance?.training} Energy: {active.energy}% · Fullness: {active.fullness}%.</p>
         <div className="training-grid">
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",0).then(()=>{setReaction(evolution.name+" completed Power training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>ATK +++ · HP +</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",1).then(()=>{setReaction(evolution.name+" completed Endurance training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>HP +++ · SPD +</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",2).then(()=>{setReaction(evolution.name+" completed Defense training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>DEF +++ · HP +</small><em>Energy −18</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",3).then(()=>{setReaction(evolution.name+" completed Speed training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>SPD +++ · ATK +</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",4).then(()=>{setReaction(evolution.name+" completed Combat training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>ATK ++ · DEF + · SPD +</small><em>Energy −25 · Discipline ++</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"train",5).then(()=>{setReaction(evolution.name+" completed Balanced training.");setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>HP + · ATK + · DEF + · SPD +</small><em>Energy −16 · Discipline +</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",0).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>{trainingGains(guidance?.tier??0,[1,3,0,0])}</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",1).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>{trainingGains(guidance?.tier??0,[4,0,0,1])}</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",2).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>{trainingGains(guidance?.tier??0,[1,0,3,0])}</small><em>Energy −18</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",3).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>{trainingGains(guidance?.tier??0,[0,1,0,3])}</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",4).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>{trainingGains(guidance?.tier??0,[0,2,1,1])}</small><em>Energy −25 · Fullness −6</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",5).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>{trainingGains(guidance?.tier??0,[1,1,1,1])}</small><em>Energy −16 · Fullness −6</em></span><ChevronRight/></button>
         </div>
       </section>
     </div>}
@@ -668,18 +691,28 @@ export function PlayerHome() {
     {feeding&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
       <section className="game-sheet food-sheet" onClick={e=>e.stopPropagation()}>
         <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>Close</button></div>
+        <p className="training-intro">Fullness: {active.fullness}% · Feed only what your companion needs.</p>
         <div className="food-grid">
           {[
             ["Meat","Builds carnivore history",0],
             ["Plants","Builds herbivore history",1],
             ["Fish","Builds piscivore history",2],
             ["Fruit","Builds frugivore history",3],
-          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void player.interact(active.mint,"feed",Number(id)).then(()=>{setReaction(evolution.name+" enjoyed the meal.");setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
-            <Apple/><span><strong>{String(name)}</strong><small>{String(desc)}</small></span>
+          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
+            <Apple/><span><strong>{String(name)}</strong><small className={mealWarning(active,Number(id))?"meal-warning":""}>{mealWarning(active,Number(id))||String(desc)}</small></span>
           </button>)}
         </div>
         {player.status&&<div className="create-status">{player.status}</div>}
         {player.error&&<div className="create-error">{player.error}</div>}
+      </section>
+    </div>}
+
+    {actionWarning&&<div className="game-sheet-backdrop" onClick={()=>setActionWarning(null)}>
+      <section className="game-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="game-sheet-head"><div><small>COMPANION NEEDS</small><h2>Recover first</h2></div><button className="sheet-close-text" onClick={()=>setActionWarning(null)}>Close</button></div>
+        <p className="training-intro companion-guidance">{actionWarning.message} You can continue, but this action may not help recovery.</p>
+        <button className="den-mint-cta compact" onClick={()=>setActionWarning(null)}>Back to companion</button>
+        <button className="sheet-close-text" onClick={()=>{const action=actionWarning.action;setActionWarning(null);void interact(action).then(()=>setVisualAction(action)).catch(()=>undefined)}}>Continue anyway</button>
       </section>
     </div>}
 

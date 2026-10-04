@@ -3424,3 +3424,5 @@ html,body,#root{background:#04101f!important}
 .game-frame .monster-speech{opacity:0;visibility:hidden;pointer-events:none;white-space:normal;text-align:center;transition:opacity .25s ease,visibility .25s!important}
 .game-frame .monster-speech.is-visible{opacity:1;visibility:visible}
 @media(prefers-reduced-motion:reduce){.game-frame .monster-speech{transition:none!important}}
+.game-frame .companion-guidance{font-size:12px!important;color:#e4f2ff!important;padding:12px;border-radius:12px;background:rgba(8,24,44,.55)}
+.game-frame .food-grid button .meal-warning{font-size:11px!important;color:#ffd19a!important;line-height:1.4}
