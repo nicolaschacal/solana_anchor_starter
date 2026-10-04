@@ -4,7 +4,7 @@ import { modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
+import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
@@ -127,6 +127,8 @@ function Header() {
   const wallet = useRebytersAuth();
   const { connection } = useConnection();
   const navigate = useNavigate();
+  const {pathname}=useLocation();
+  const onAccount=pathname==="/account"||pathname.startsWith("/account/");
   const [solBalance,setSolBalance]=useState<number|null>(null);
 
   useEffect(()=>{
@@ -151,7 +153,7 @@ function Header() {
       </nav>
       {!wallet.connected
         ? <RebytersLoginButton className="user-menu-trigger header-login-trigger"/>
-        : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate("/account")} aria-label="Open account">
+        : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate(onAccount?"/":"/account")} aria-label={onAccount?"Back to home":"Open account"}>
             <CircleUserRound/><span>{balanceLabel}</span><ChevronDown className="account-chevron"/>
           </button>}
     </div>

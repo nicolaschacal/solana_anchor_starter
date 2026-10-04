@@ -3426,3 +3426,15 @@ html,body,#root{background:#04101f!important}
 @media(prefers-reduced-motion:reduce){.game-frame .monster-speech{transition:none!important}}
 .game-frame .companion-guidance{font-size:12px!important;color:#e4f2ff!important;padding:12px;border-radius:12px;background:rgba(8,24,44,.55)}
 .game-frame .food-grid button .meal-warning{font-size:11px!important;color:#ffd19a!important;line-height:1.4}
+
+/* One height for the identity, habitat, den and time chips. */
+.game-frame{--hud-chip-height:42px}
+.game-frame .monster-id,.game-frame .hud-square,.game-frame .world-clock{
+  box-sizing:border-box!important;height:var(--hud-chip-height)!important;min-height:var(--hud-chip-height)!important;max-height:var(--hud-chip-height)!important;
+}
+.game-frame .monster-id{padding:4px 12px!important}
+.game-frame .monster-id strong{line-height:1.1!important}
+@media(max-width:899px){
+  .player-bg .game-frame>.player-head{padding-left:14px!important;padding-right:14px!important}
+}
+@media(min-width:900px){.game-frame{--hud-chip-height:46px}}
