@@ -1,6 +1,4 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "meshoptimizer";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 const palettes = {
   Night: {
@@ -32,25 +30,6 @@ const palettes = {
     intensity: 2,
   },
 };
-// Cache the small compressed download, not disposable GPU objects. Each mounted
-// scene parses its own resources so changing periods cannot dispose another view.
-const environmentUri = "/assets/environments/stylized-valley/valley.glb";
-let environmentBytes: Promise<ArrayBuffer> | undefined;
-function loadEnvironmentBytes() {
-  if (!environmentBytes) {
-    environmentBytes = fetch(environmentUri)
-      .then((response) => {
-        if (!response.ok)
-          throw Error(`Environment download failed: ${response.status}`);
-        return response.arrayBuffer();
-      })
-      .catch((error) => {
-        environmentBytes = undefined;
-        throw error;
-      });
-  }
-  return environmentBytes;
-}
 function disposeGroup(group: THREE.Object3D) {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
@@ -86,34 +65,27 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.02;
   group.add(floor);
-  let disposed = false;
-  const ready = loadEnvironmentBytes()
-    .then((bytes) =>
-      new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(bytes, ""),
-    )
-    .then((model) => {
-      if (disposed) {
-        disposeGroup(model.scene);
-        return false;
-      }
-      model.scene.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (mesh.isMesh) {
-          mesh.castShadow = false;
-          mesh.receiveShadow = false;
-        }
-      });
-      group.add(model.scene);
-      floor.visible = false;
-      return true;
-    })
-    // Keep the small clearing visible if an offline/corrupt download fails.
-    .catch(() => false);
   let seed = 12345;
   const rand = () => {
     seed = (1664525 * seed + 1013904223) >>> 0;
     return seed / 4294967296;
   };
+  // Original distant meadow hills; the clearing has no grass spikes.
+  const hillHeights = [
+    2.630206529982388, 2.2325228529516608, 3.810013281647116, 2.065837584203109,
+    4.013049598783255, 2.0916186154354364, 2.184061588253826, 2.823392118094489,
+    3.4735751478001475, 2.38109595910646, 2.459535599220544, 4.201496494701132,
+  ];
+  for (let i = 0; i < hillHeights.length; i++) {
+    const angle = (i * Math.PI) / 6;
+    const hill = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1, 1),
+      new THREE.MeshStandardMaterial({ color: colors.ground, roughness: 1 }),
+    );
+    hill.position.set(Math.cos(angle) * 29, -1, Math.sin(angle) * 29);
+    hill.scale.set(8, hillHeights[i], 8);
+    group.add(hill);
+  }
   const orb = new THREE.Mesh(
     new THREE.SphereGeometry(period === "Night" ? 0.65 : 1, 20, 12),
     new THREE.MeshBasicMaterial({
@@ -164,9 +136,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   group.add(shadow);
   return {
     colors,
-    ready,
     dispose() {
-      disposed = true;
       disposeGroup(group);
       scene.remove(group);
     },

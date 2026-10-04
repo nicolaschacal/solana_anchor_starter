@@ -239,7 +239,9 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
               camera.aspect *
               (w <= 700 ? 0.42 : 0.54)),
         );
+        // Lower the companion toward Growth in portrait, keeping its feet on the ground.
         const direction = camera.position.clone().sub(controls.target).normalize();
+        controls.target.y = 1.60 + (camera.aspect < 1 ? 0.28 : 0);
         camera.position.copy(controls.target).addScaledVector(direction,distance);
         controls.maxDistance = Math.max(12, distance);
         controls.update();
