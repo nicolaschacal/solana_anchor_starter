@@ -3438,3 +3438,103 @@ html,body,#root{background:#04101f!important}
   .player-bg .game-frame>.player-head{padding-left:14px!important;padding-right:14px!important}
 }
 @media(min-width:900px){.game-frame{--hud-chip-height:46px}}
+
+
+/* ==========================================================================
+   IMMERSIVE HOME HUD — sidebar navigation
+   Keep the companion/world as the primary surface. Navigation is summoned
+   from the edge and no longer consumes permanent vertical space on Home.
+   ========================================================================== */
+@media (max-width:899px){
+  .game-frame:has(.game-home)>.player-head,
+  .game-frame:has(.game-home)>.player-nav{display:none!important}
+
+  .game-frame:has(.game-home){
+    --hud-nav-h:0px;
+    --hud-nav-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+    --hud-float-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  }
+  .game-frame .game-home{position:relative;height:100%;min-height:0;overflow:hidden}
+  .game-frame .game-home>.game-world{height:100%!important;min-height:100%!important}
+
+  .game-frame .game-controls{
+    bottom:calc(14px + env(safe-area-inset-bottom,0px))!important;
+  }
+  .game-frame .game-controls .growth-card{
+    margin-bottom:10px!important;
+    border-radius:18px!important;
+  }
+  .game-frame .care-actions>button{height:66px!important;min-height:66px!important}
+
+  .game-drawer-tab{
+    position:absolute;z-index:58;left:0;top:43%;width:34px;height:78px;padding:0;
+    display:grid;place-items:center;border:1px solid rgba(132,220,255,.46);border-left:0;
+    border-radius:0 18px 18px 0;color:#dff8ff;
+    background:linear-gradient(150deg,rgba(22,104,166,.72),rgba(5,31,63,.78));
+    box-shadow:inset 0 1px rgba(255,255,255,.18),0 8px 26px rgba(0,12,32,.26);
+    -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
+  }
+  .game-drawer-tab svg{width:20px;height:20px;stroke-width:2}
+
+  .game-drawer-backdrop{
+    position:absolute;z-index:160;inset:0;background:rgba(1,9,22,.58);
+    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+  }
+  .game-drawer{
+    width:min(78%,310px);height:100%;box-sizing:border-box;padding:calc(24px + env(safe-area-inset-top,0px)) 18px calc(22px + env(safe-area-inset-bottom,0px));
+    display:flex;flex-direction:column;color:#eaf7ff;
+    border-right:1px solid rgba(127,211,255,.22);
+    background:linear-gradient(165deg,rgba(5,37,66,.97),rgba(2,19,40,.985) 62%,rgba(2,14,31,.99));
+    box-shadow:18px 0 55px rgba(0,5,18,.42);
+    animation:rebyterDrawerIn .2s ease-out;
+  }
+  @keyframes rebyterDrawerIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+  @media(prefers-reduced-motion:reduce){.game-drawer{animation:none}}
+
+  .game-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;margin:4px 2px 26px}
+  .game-drawer-head>div{display:flex;flex-direction:column}
+  .game-drawer-head strong{font-size:20px;line-height:1;letter-spacing:.13em}
+  .game-drawer-head small{margin-top:5px;color:#6f8eab;font-size:9px;letter-spacing:.13em}
+  .game-drawer-head>button{width:38px;height:38px;display:grid;place-items:center;padding:0;border:0;background:transparent;color:#9ab4cd}
+  .game-drawer-head>button svg{width:21px}
+
+  .game-drawer-balance{
+    min-height:58px;padding:0 15px;margin-bottom:18px;display:flex;align-items:center;gap:11px;
+    border:1px solid rgba(108,206,255,.19);border-radius:18px;
+    background:linear-gradient(145deg,rgba(19,93,149,.34),rgba(7,37,71,.54));
+  }
+  .game-drawer-balance svg:first-child{width:23px;color:#66dcff}
+  .game-drawer-balance span{flex:1;font-size:13px;font-weight:700}
+  .game-drawer-balance svg:last-child{width:16px;color:#6f8da9}
+
+  .game-drawer-nav{display:flex;flex-direction:column;gap:4px}
+  .game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button{
+    width:100%;min-height:54px;padding:0 14px;box-sizing:border-box;display:flex;align-items:center;gap:14px;
+    border:1px solid transparent;border-radius:16px;background:transparent;color:#91a9c1;
+    text-decoration:none;font:inherit;text-align:left;
+  }
+  .game-drawer-nav a svg,.game-drawer-nav button>svg,.game-drawer-footer button>svg{width:22px;height:22px;stroke-width:1.8;flex:0 0 auto}
+  .game-drawer-nav a span,.game-drawer-nav button>span,.game-drawer-footer button>span{font-size:14px;font-weight:650}
+  .game-drawer-nav a.active{
+    color:#62dcff;border-color:rgba(93,215,255,.2);
+    background:linear-gradient(90deg,rgba(29,152,214,.20),rgba(18,92,153,.09));
+    box-shadow:inset 2px 0 #51d9ff;
+  }
+  .game-drawer-nav .den-grid-icon{width:22px;height:22px;display:grid;grid-template-columns:repeat(2,6px);grid-template-rows:repeat(2,6px);gap:3px;place-content:center}
+  .game-drawer-nav .den-grid-icon i{display:block;border:1.5px solid currentColor;border-radius:2px}
+
+  .game-drawer-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(120,177,220,.11)}
+  .game-drawer-footer button{min-height:48px}
+  .game-drawer-footer button small{margin-left:auto;color:#57718b;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+  .game-drawer-footer button:disabled{opacity:.5}
+
+  /* With permanent chrome gone, use the top corners only for live game state. */
+  .game-world .monster-id{top:calc(14px + env(safe-area-inset-top,0px))!important;left:14px!important}
+  .game-world .monster-hud-right{top:calc(14px + env(safe-area-inset-top,0px))!important;right:14px!important}
+  .game-world .monster-hud-right .hud-square{display:none!important}
+  .game-world .world-clock{min-width:104px!important}
+}
+
+@media (min-width:900px){
+  .game-drawer-tab,.game-drawer-backdrop{display:none!important}
+}
