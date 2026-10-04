@@ -3,12 +3,12 @@ import { useWorldClock } from "../../hooks/useWorldClock";
 import { modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
-  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X, PawPrint, Sprout, Box, Link, ArrowRight,
+  Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
@@ -23,7 +23,6 @@ import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { REBYTER_CONDITION } from "../../lib/rebyters/companions";
 import { RebytersLoginButton, useRebytersAuth } from "../../lib/rebyters/auth";
 import "./player.css";
-import { setTheme } from "../../lib/theme";
 
 const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
@@ -120,13 +119,16 @@ function Nav() {
   </nav>;
 }
 
-function Shell({children,showNav=true,immersive=false}:{children:React.ReactNode;showNav?:boolean;immersive?:boolean}) {
-  return <div className="player-bg"><div className={`player-shell game-frame${immersive?" reference-home":""}`}>{children}{showNav&&<Nav/>}</div></div>;
+function Shell({children,showNav=true}:{children:React.ReactNode;showNav?:boolean}) {
+  return <div className="player-bg"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
 }
 
-function useSolBalanceLabel() {
-  const wallet=useRebytersAuth();
-  const {connection}=useConnection();
+function Header() {
+  const wallet = useRebytersAuth();
+  const { connection } = useConnection();
+  const navigate = useNavigate();
+  const {pathname}=useLocation();
+  const onAccount=pathname==="/account"||pathname.startsWith("/account/");
   const [solBalance,setSolBalance]=useState<number|null>(null);
 
   useEffect(()=>{
@@ -139,39 +141,7 @@ function useSolBalanceLabel() {
     return()=>{cancelled=true};
   },[connection,wallet.publicKey]);
 
-  return solBalance===null?"— SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
-}
-
-function GameDrawer({onClose,onHabitat,onDen,onSettings}:{onClose:()=>void;onHabitat:()=>void;onDen:()=>void;onSettings:()=>void}) {
-  const dialog=useRef<HTMLDialogElement>(null);
-  const balance=useSolBalanceLabel();
-  const navigate=useNavigate();
-  useEffect(()=>{const element=dialog.current;element?.showModal();return()=>element?.close()},[]);
-  return <dialog ref={dialog} className="game-drawer-dialog" onCancel={onClose} onClick={event=>{if(event.target===event.currentTarget)onClose()}} aria-label="Game navigation">
-    <aside className="game-drawer">
-      <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button autoFocus onClick={onClose} aria-label="Close navigation"><X/></button></div>
-      <button className="game-drawer-balance" onClick={()=>navigate("/account")}><CircleUserRound/><span>{balance}</span><ChevronDown/></button>
-      <nav className="game-drawer-nav" aria-label="Game">
-        <NavLink end to="/" onClick={onClose}><Home/><span>Home</span></NavLink>
-        <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
-        <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>
-        <button onClick={onHabitat}><Mountain/><span>Habitats</span></button>
-      </nav>
-      <div className="game-drawer-footer">
-        <button onClick={onDen}><PawPrint/><span>My Rebyters</span></button>
-        <button onClick={()=>navigate("/account")}><CircleUserRound/><span>Account</span></button>
-        <button onClick={onSettings}><Settings/><span>Settings</span></button>
-      </div>
-    </aside>
-  </dialog>;
-}
-
-function Header() {
-  const wallet = useRebytersAuth();
-  const navigate = useNavigate();
-  const {pathname}=useLocation();
-  const onAccount=pathname==="/account"||pathname.startsWith("/account/");
-  const balanceLabel=useSolBalanceLabel();
+  const balanceLabel=solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
 
   return <header className="player-head">
     <NavLink to="/" className="player-brand"><span className="player-logo">REBYTERS</span><small>digital companions</small></NavLink>
@@ -182,7 +152,7 @@ function Header() {
         <NavLink to="/atlas" aria-label="Atlas" title="Atlas"><BookOpen/><span>Atlas</span></NavLink>
       </nav>
       {!wallet.connected
-        ? <RebytersLoginButton className="user-menu-trigger header-login-trigger" trailingIcon={<ChevronDown/>}/>
+        ? <RebytersLoginButton className="user-menu-trigger header-login-trigger"/>
         : <button className="user-menu-trigger account-direct-link wallet-balance-trigger" onClick={()=>navigate(onAccount?"/":"/account")} aria-label={onAccount?"Back to home":"Open account"}>
             <CircleUserRound/><span>{balanceLabel}</span><ChevronDown className="account-chevron"/>
           </button>}
@@ -479,8 +449,6 @@ export function PlayerHome() {
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [drawerOpen,setDrawerOpen]=useState(false);
-  const [settingsOpen,setSettingsOpen]=useState(false);
-  const [appearance,setAppearance]=useState(document.documentElement.dataset.theme||"dark");
   const [habitat,setHabitat]=useState(0);
   const [speech,setSpeech]=useState({text:"",sequence:0});
   const [speechVisible,setSpeechVisible]=useState(false);
@@ -500,6 +468,7 @@ export function PlayerHome() {
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
+  const navigate=useNavigate();
   const active = selectedCompanion(owned,activeMint,player.ownedLoadedAll&&!player.loading&&!player.error);
   useEffect(()=>{if(active && !activeMint && player.ownedLoadedAll && !player.loading && !player.error)setActiveMint(active.mint);},[active?.mint,activeMint,player.ownedLoadedAll,player.loading,player.error,setActiveMint]);
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
@@ -569,7 +538,7 @@ export function PlayerHome() {
 
   const { connected } = useRebytersAuth();
 
-  if (!connected) return <Shell immersive showNav={false}><Header/><main className="game-home guest-home">
+  if (!connected) return <Shell showNav={false}><Header/><main className="game-home guest-home">
     <section className="game-viewer game-viewer-empty guest-world">
       <GuestWorld period="Day"/>
       <div className="guest-world-shade"/>
@@ -577,18 +546,18 @@ export function PlayerHome() {
         <div className="guest-title"><strong>REBYTERS</strong><span>DIGITAL COMPANIONS</span></div>
         <div className="guest-divider"><i/><Sparkles/><i/></div>
         <p>Raise. Evolve. Own.<br/>On Solana.</p>
-        <RebytersLoginButton className="guest-login-button" trailingIcon={<ArrowRight/>}/>
+        <RebytersLoginButton className="guest-login-button"/>
       </div>
       <div className="guest-features" aria-label="Rebyters features">
-        <div><Sprout/><span>RAISE</span></div>
+        <div><Heart/><span>RAISE</span></div>
         <div><Sparkles/><span>EVOLVE</span></div>
-        <div><Box/><span>COLLECT</span></div>
-        <div><Link/><span>ON SOLANA</span></div>
+        <div><Dna/><span>COLLECT</span></div>
+        <div><Zap/><span>ON SOLANA</span></div>
       </div>
     </section>
   </main></Shell>;
 
-  if (loading && !owned.length) return <Shell immersive showNav={false}><main className="game-home">
+  if (loading && !owned.length) return <Shell showNav={false}><main className="game-home">
     <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
   </main></Shell>;
 
@@ -599,21 +568,33 @@ export function PlayerHome() {
     onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
   /></Shell>;
 
-  return <Shell immersive showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
+  return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
     <button className="game-drawer-tab" onClick={()=>setDrawerOpen(true)} aria-label="Open navigation"><ChevronRight/></button>
-    {drawerOpen&&<GameDrawer onClose={()=>setDrawerOpen(false)} onHabitat={()=>{setDrawerOpen(false);setHabitatOpen(true)}} onDen={()=>{setDrawerOpen(false);void openDen()}} onSettings={()=>{setDrawerOpen(false);setSettingsOpen(true)}}/>}
-    {settingsOpen&&<div className="game-sheet-backdrop" onClick={()=>setSettingsOpen(false)}><section className="game-sheet settings-sheet" role="dialog" aria-modal="true" aria-label="Settings" onClick={event=>event.stopPropagation()}>
-      <div className="game-sheet-head"><h2>Settings</h2><button className="sheet-close-text" onClick={()=>setSettingsOpen(false)}>Close</button></div>
-      <p>Interface appearance</p><div className="settings-options">{(["light","dark"] as const).map(theme=><button key={theme} aria-pressed={appearance===theme} onClick={()=>{setTheme(theme);setAppearance(theme)}}>{theme==="light"?<Sun/>:<MoonStar/>}{theme==="light"?"Light":"Dark"}</button>)}</div>
-    </section></div>}
+    {drawerOpen&&<div className="game-drawer-backdrop" onClick={()=>setDrawerOpen(false)}>
+      <aside className="game-drawer" onClick={event=>event.stopPropagation()} aria-label="Game navigation">
+        <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button onClick={()=>setDrawerOpen(false)} aria-label="Close navigation"><X/></button></div>
+        <div className="game-drawer-balance"><CircleUserRound/><span>Account</span><ChevronRight/></div>
+        <nav className="game-drawer-nav">
+          <NavLink end to="/" onClick={()=>setDrawerOpen(false)}><Home/><span>Home</span></NavLink>
+          <NavLink to="/lab"><Atom/><span>Lab</span></NavLink>
+          <NavLink to="/atlas"><BookOpen/><span>Atlas</span></NavLink>
+          <button onClick={()=>{setDrawerOpen(false);setHabitatOpen(true)}}><Mountain/><span>Habitats</span></button>
+          <button onClick={()=>{setDrawerOpen(false);void openDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
+        </nav>
+        <div className="game-drawer-footer">
+          <button onClick={()=>navigate("/account")}><CircleUserRound/><span>Account</span></button>
+          <button disabled title="Coming soon"><Settings/><span>Settings</span><small>soon</small></button>
+        </div>
+      </aside>
+    </div>}
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
       <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting} landscape period={worldClock.period}/>
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
-        <span className="identity-portrait"><CreatureSprite evolution={evolution}/></span>
-        <span className="identity-copy"><strong>{evolution.name}</strong><span>Lv. {active.level} · {STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}</span></span>
+        <strong>{evolution.name}</strong>
+        <span>Level {active.level} · {STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}</span>
       </button>
 
       <div className="monster-hud-right">
@@ -635,14 +616,14 @@ export function PlayerHome() {
         <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
           <div>
             <span>Growth</span>
-            <strong>{growthReady&&<Sparkles/>}{stageTimer===null?"Fully grown":growthReady?"Ready to evolve!":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
+            <strong>{stageTimer===null?"Fully grown":growthReady?"Ready to evolve!":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
           </div>
           <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
         </div>
         <div className="care-actions">
           <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("play");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel train-action" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
           <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("care");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
           <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
