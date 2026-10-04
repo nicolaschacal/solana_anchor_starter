@@ -106,8 +106,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     }
     if (landscape) {
       if (!viewState.current) {
-        camera.position.set(0, 1.68, 4.7);
-        controls.target.set(0, 1.08, 0);
+        camera.position.set(0, 1.95, 4.7);
+        controls.target.set(0, 1.35, 0);
       }
       const polar = new THREE.Spherical().setFromVector3(
         camera.position.clone().sub(controls.target),
