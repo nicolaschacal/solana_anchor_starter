@@ -12,7 +12,7 @@ import {
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
-import { EvolutionModel } from "../../components/assets/AssetViewer";
+import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
@@ -119,8 +119,8 @@ function Nav() {
   </nav>;
 }
 
-function Shell({children}:{children:React.ReactNode}) {
-  return <div className="player-bg"><div className="player-shell game-frame">{children}<Nav/></div></div>;
+function Shell({children,showNav=true}:{children:React.ReactNode;showNav?:boolean}) {
+  return <div className="player-bg"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
 }
 
 function Header() {
@@ -538,9 +538,10 @@ export function PlayerHome() {
 
   const { connected } = useRebytersAuth();
 
-  if (!connected) return <Shell><Header/><main className="game-home guest-home">
+  if (!connected) return <Shell showNav={false}><Header/><main className="game-home guest-home">
     <section className="game-viewer game-viewer-empty guest-world">
-      <div className="viewer-glow"/>
+      <GuestWorld period="Day"/>
+      <div className="guest-world-shade"/>
       <div className="guest-hero">
         <div className="guest-title"><strong>REBYTERS</strong><span>DIGITAL COMPANIONS</span></div>
         <div className="guest-divider"><i/><Sparkles/><i/></div>
@@ -556,7 +557,7 @@ export function PlayerHome() {
     </section>
   </main></Shell>;
 
-  if (loading && !owned.length) return <Shell><main className="game-home">
+  if (loading && !owned.length) return <Shell showNav={false}><main className="game-home">
     <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
   </main></Shell>;
 
@@ -567,7 +568,7 @@ export function PlayerHome() {
     onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
   /></Shell>;
 
-  return <Shell><Header/><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
+  return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
     <button className="game-drawer-tab" onClick={()=>setDrawerOpen(true)} aria-label="Open navigation"><ChevronRight/></button>
     {drawerOpen&&<div className="game-drawer-backdrop" onClick={()=>setDrawerOpen(false)}>
       <aside className="game-drawer" onClick={event=>event.stopPropagation()} aria-label="Game navigation">
