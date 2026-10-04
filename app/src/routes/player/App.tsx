@@ -1,3 +1,4 @@
+import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { modelUriFor } from "../../lib/assets/catalog";
 import { useEffect, useMemo, useState } from "react";
@@ -435,7 +436,7 @@ function MintCompanionSheet({
 export function PlayerHome() {
   const player = usePlayerCollection();
   const { owned, tree, loading, error } = player;
-  const [activeMint,setActiveMint]=useState("");
+  const [activeMint,setActiveMint]=useSelectedRebyter();
   const [minting,setMinting]=useState(false);
   const [feeding,setFeeding]=useState(false);
   const [training,setTraining]=useState(false);
@@ -453,7 +454,8 @@ export function PlayerHome() {
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
   const navigate=useNavigate();
-  const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
+  const active = selectedCompanion(owned,activeMint,player.ownedLoadedAll&&!player.loading&&!player.error);
+  useEffect(()=>{if(active && !activeMint && player.ownedLoadedAll && !player.loading && !player.error)setActiveMint(active.mint);},[active?.mint,activeMint,player.ownedLoadedAll,player.loading,player.error,setActiveMint]);
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
 
 
@@ -682,8 +684,9 @@ export function PlayerLab() {
   const player=usePlayerCollection();
   const { owned, tree, ownedLoadedAll, loadAll, playerProfile }=player;
   useEffect(()=>{ if(connected&&!ownedLoadedAll) void loadAll().catch(()=>undefined); },[connected,ownedLoadedAll,loadAll]);
-  const [activeMint,setActiveMint]=useState("");
-  const active=owned.find(x=>x.mint===activeMint)??owned[0];
+  const [activeMint,setActiveMint]=useSelectedRebyter();
+  const active=selectedCompanion(owned,activeMint,player.ownedLoadedAll&&!player.loading&&!player.error);
+  useEffect(()=>{if(active && !activeMint && player.ownedLoadedAll && !player.loading && !player.error)setActiveMint(active.mint);},[active?.mint,activeMint,player.ownedLoadedAll,player.loading,player.error,setActiveMint]);
   if (!active) return <Shell><Header/><main className="player-main lab-empty-screen">
     <div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>{connected?"Mint a companion before the Lab can evaluate evolution routes.":"Login to analyze the evolution routes of your companions."}</p></div>
     <div className="lab-empty-spacer"/>

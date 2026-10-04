@@ -346,11 +346,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         action === "idle" &&
         clips.some((c) => c.name === "touch") && (
           <button
-            className="asset-touch"
+            className="asset-touch asset-touch-accessible"
             onClick={() => reactToTouch.current()}
             aria-label="Pet your Rebyter"
           >
-            Pet · tap your Rebyter
+            Pet your Rebyter
           </button>
         )}
       {error && <div className="asset-viewer-message">{error}</div>}

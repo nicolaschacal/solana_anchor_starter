@@ -11,3 +11,9 @@ The growth card retains its original non-clickable layout, colors and progress b
 No GLB or Irys asset is changed by this frontend update. The existing six clips still play on the ground. The current asset does not include a walk cycle, so no fake sliding or autonomous walking is introduced.
 
 Validation: production build, clock UTC boundary/failure/request-deduplication tests, existing asset tests, and real-browser portrait inspection of day/night scenes.
+
+## Controls and persistent companion
+
+Home and Lab share a selected mint stored locally per wallet and RPC endpoint. Explicit selections survive navigation/reloads and reordered interaction refreshes. While ownership is incomplete, the UI does not substitute the first creature for a missing selected mint. Once a completed ownership response confirms the selected mint is absent, it may display an available companion instead. Local storage failure retains explicit selection in memory for the session.
+
+The petting instruction is visually hidden, while tapping the creature and a keyboard-focusable accessible control still work. Mobile navigation and the action row share 14px side margins, 62px controls, 16px radii, icon treatment, borders and a blue palette. Active navigation is distinguished by a brighter fill and border. Browser measurements verified identical outer widths at 375px and 440px viewports.
