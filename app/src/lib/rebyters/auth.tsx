@@ -112,10 +112,10 @@ export function useRebytersAuth(){
   return value;
 }
 
-export function RebytersLoginButton({className=""}:{className?:string}){
+export function RebytersLoginButton({className="",trailingIcon}:{className?:string;trailingIcon?:React.ReactNode}){
   const auth=useRebytersAuth();
   return <button type="button" className={className||"rebyters-login-trigger"} onClick={auth.openLogin}>
-    <CircleUserRound/><span>Login</span>
+    <CircleUserRound/><span>Login</span>{trailingIcon}
   </button>;
 }
 

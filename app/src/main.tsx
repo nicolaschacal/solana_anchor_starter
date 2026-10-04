@@ -16,6 +16,7 @@ import "./styles.css";
 import "./atlas.css";
 import "./theme.css";
 import "./rules.css";
+import "./routes/player/home.css";
 import { initializeTheme } from "./lib/theme";
 import { RebytersAuthProvider } from "./lib/rebyters/auth";
 initializeTheme();
