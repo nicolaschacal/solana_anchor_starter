@@ -117,14 +117,17 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 64;
   const ctx = canvas.getContext("2d")!;
-  const gradient = ctx.createRadialGradient(32, 32, 3, 32, 32, 32);
-  gradient.addColorStop(0, "rgba(5,18,18,.48)");
-  gradient.addColorStop(1, "rgba(5,18,18,0)");
+  const gradient = ctx.createRadialGradient(32, 32, 6, 32, 32, 32);
+  // A dense contact center and broad soft edge anchor the companion’s feet.
+  gradient.addColorStop(0, "rgba(3,10,7,.82)");
+  gradient.addColorStop(0.35, "rgba(3,10,7,.62)");
+  gradient.addColorStop(0.7, "rgba(3,10,7,.24)");
+  gradient.addColorStop(1, "rgba(3,10,7,0)");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 64, 64);
   const texture = new THREE.CanvasTexture(canvas);
   const shadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.4, 1.8),
+    new THREE.PlaneGeometry(2.55, 1.8),
     new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
