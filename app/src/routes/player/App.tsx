@@ -1,3 +1,4 @@
+import { useWorldClock } from "../../hooks/useWorldClock";
 import { modelUriFor } from "../../lib/assets/catalog";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
@@ -449,15 +450,13 @@ export function PlayerHome() {
   const [restPending,setRestPending]=useState(false);
   useEffect(()=>{if(visualAction==="idle")return;const id=window.setTimeout(()=>setVisualAction("idle"),2600);return()=>clearTimeout(id);},[visualAction]);
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
-  const [localNow,setLocalNow]=useState(()=>Date.now());
+  const worldClock=useWorldClock();
+  const localNow=worldClock.now;
   const navigate=useNavigate();
   const active = owned.find(x=>x.mint===activeMint) ?? owned[0];
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
 
-  useEffect(()=>{
-    const timer=window.setInterval(()=>setLocalNow(Date.now()),1000);
-    return()=>window.clearInterval(timer);
-  },[]);
+
 
   const tired=!!active&&(((active.condition&REBYTER_CONDITION.tired)!==0)||active.energy<20);
   const needsCare=!!active&&(((active.condition&REBYTER_CONDITION.sick)!==0)||((active.condition&REBYTER_CONDITION.injured)!==0));
@@ -486,7 +485,7 @@ export function PlayerHome() {
       :Math.min(100,(elapsedStageSeconds/(stageTimer*60))*100);
   const growthReady=stageTimer===null||growthProgress>=100;
   const anyEvolutionReady=!!active&&!!evolution&&evolution.paths.some(path=>{
-    try{return evaluatePath(tree,path,evolutionState(active)).eligible}catch{return false}
+    try{return evaluatePath(tree,path,{...evolutionState(active),"progression.stageAgeMinutes":Math.floor(elapsedStageSeconds/60)}).eligible}catch{return false}
   });
 
   async function openDen() {
@@ -513,9 +512,9 @@ export function PlayerHome() {
   /></Shell>;
 
   return <Shell><Header/><main className="game-home">
-    <section className={`game-viewer habitat-${habitat}`}>
+    <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
-      <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting}/>
+      <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting} landscape period={worldClock.period}/>
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
@@ -530,24 +529,22 @@ export function PlayerHome() {
         <button className="hud-square gl-panel" onClick={()=>void openDen()} aria-label="Open den">
           <span className="den-grid-icon"><i/><i/><i/><i/></span>
         </button>
-        <div className="bond-mini gl-panel"><Heart/><strong>{active.bond}</strong></div>
+        <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
+          <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?"☾":worldClock.period==="Day"?"☀":"◒"}</span>
+          <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
+        </div>
       </div>
 
       <div className={`monster-speech gl-panel${needMessage?" needs-attention":""}`}>{needMessage||reaction}</div>
 
       <div className="game-controls">
-        <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
+        <button type="button" onClick={()=>navigate("/lab")} className={`growth-card gl-panel${anyEvolutionReady?" ready":""}`} aria-label={anyEvolutionReady?"Ready to evolve! Open evolutions":"View evolution requirements"}>
           <div>
             <span>Growth</span>
-            <strong>{stageTimer===null?"Fully grown":growthReady?"Time requirement met":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
+            <strong>{anyEvolutionReady?"Ready to evolve!":stageTimer===null?"Fully grown":growthReady?"Growth complete · check traits":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
           </div>
           <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
-        </div>
-        {anyEvolutionReady&&<button className="home-evolve-cta" onClick={()=>navigate("/lab")}>
-          <Atom/>
-          <span><small>EVOLUTION READY</small><strong>Choose your next form</strong></span>
-          <ChevronRight/>
-        </button>}
+        </button>
         <div className="care-actions">
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>Feed</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>void player.interact(active.mint,"play").then(()=>{setVisualAction("play");setReaction(evolution.name+" wants to play again.");}).catch(()=>undefined)}><Sparkles/><span>Play</span></button>

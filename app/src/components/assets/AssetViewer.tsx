@@ -1,3 +1,5 @@
+import { meadow } from "./meadow";
+import type { WorldPeriod } from "../../hooks/useWorldClock";
 import {
   forwardRef,
   useEffect,
@@ -21,6 +23,8 @@ import "./assets.css";
 
 export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
+  landscape?: boolean;
+  period?: WorldPeriod;
   model: AssetModel;
   clips?: THREE.AnimationClip[];
   action?: string;
@@ -31,6 +35,8 @@ type Props = {
 export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   {
     model,
+    landscape = false,
+    period = "Day",
     clips = model.clips,
     action = "idle",
     skeleton = false,
@@ -69,6 +75,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
     key.position.set(3, 5, 4);
     scene.add(key);
+    const environment = landscape ? meadow(scene, period) : null;
+    if (environment) {
+      key.color.setHex(environment.colors.light);
+      key.intensity = environment.colors.intensity;
+    }
     const root = clone(model.scene),
       stage = new THREE.Group();
     stage.add(root);
@@ -93,6 +104,19 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       camera.position.copy(viewState.current.position);
       controls.target.copy(viewState.current.target);
     }
+    if (landscape) {
+      if (!viewState.current) {
+        camera.position.set(0, 1.5, 4.7);
+        controls.target.set(0, 0.9, 0);
+      }
+      const polar = new THREE.Spherical().setFromVector3(
+        camera.position.clone().sub(controls.target),
+      ).phi;
+      controls.minPolarAngle = polar;
+      controls.maxPolarAngle = polar;
+      controls.enablePan = false;
+      controls.enableZoom = false;
+    }
     controls.enableDamping = true;
     controls.minDistance = 1;
     controls.maxDistance = 12;
@@ -102,7 +126,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       new THREE.MeshStandardMaterial({ color: 0x172e54, roughness: 1 }),
     );
     ground.position.y = -0.09;
-    scene.add(ground);
+    if (!landscape) scene.add(ground);
     const helper = new THREE.SkeletonHelper(root);
     helper.visible = skeleton;
     scene.add(helper);
@@ -203,6 +227,20 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       if (!w || !h) return;
       renderer.setSize(w, h);
       camera.aspect = w / h;
+      if (landscape) {
+        const distance = Math.max(
+          4.8,
+          (size.x * scale) /
+            (2 *
+              Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+              camera.aspect *
+              0.7),
+        );
+        const direction = camera.position.clone().sub(controls.target).normalize();
+        camera.position.copy(controls.target).addScaledVector(direction,distance);
+        controls.maxDistance = Math.max(12, distance);
+        controls.update();
+      }
       camera.updateProjectionMatrix();
     };
     const observer = new ResizeObserver(resize);
@@ -284,13 +322,23 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         if ((n as THREE.SkinnedMesh).isSkinnedMesh)
           (n as THREE.SkinnedMesh).skeleton.dispose();
       });
+      environment?.dispose();
       ground.geometry.dispose();
       ground.material.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [model, clips, action, skeleton, selectedBone, sleeping]);
+  }, [
+    model,
+    clips,
+    action,
+    skeleton,
+    selectedBone,
+    sleeping,
+    landscape,
+    period,
+  ]);
   return (
     <div className="asset-viewport">
       <div ref={mount} className="asset-canvas" />
@@ -322,7 +370,11 @@ export function EvolutionModel({
   evolution,
   action = "idle",
   sleeping = false,
+  landscape = false,
+  period = "Day",
 }: {
+  landscape?: boolean;
+  period?: WorldPeriod;
   evolution: Evolution;
   action?: string;
   sleeping?: boolean;
@@ -373,7 +425,13 @@ export function EvolutionModel({
   return (
     <div className="evolution-model">
       {loaded?.uri === uri ? (
-        <AssetViewer model={loaded.model} action={action} sleeping={sleeping} />
+        <AssetViewer
+          landscape={landscape}
+          period={period}
+          model={loaded.model}
+          action={action}
+          sleeping={sleeping}
+        />
       ) : (
         <div className="asset-viewer-message">Loading companion…</div>
       )}

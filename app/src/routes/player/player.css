@@ -3387,3 +3387,17 @@ body{
 
 /* Browser chrome should meet the same dark navy at the physical viewport edge. */
 html,body,#root{background:#04101f!important}
+
+/* Grounded habitat: one continuous scene, no floating pedestal or decorative rings. */
+.game-frame .game-viewer.game-world:before,.game-frame .game-viewer.game-world:after,.game-world>.viewer-glow{display:none!important}
+.game-viewer.game-world>.evolution-model{inset:0;height:100%;z-index:0}
+.game-world .monster-id,.game-world .monster-hud-right,.game-world .monster-speech,.game-world .game-controls{z-index:3}
+.game-world .asset-touch{bottom:28%;background:#102c35b8}
+.world-clock{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:15px;min-width:98px;pointer-events:auto}
+.world-clock-face{display:grid;place-items:center;width:27px;height:27px;border:1px solid #ffffff3d;border-radius:50%;color:#ffe8af;font-size:20px;background:#142a48}
+.world-clock strong{display:block;font-size:11px;line-height:1.25;color:#f1f7ff}
+.world-clock small{display:block;font-size:8px;color:#c3d8e6;font-variant-numeric:tabular-nums;white-space:nowrap}
+.game-world button.growth-card{width:100%;cursor:pointer;text-align:left;color:inherit;font:inherit}
+.game-world button.growth-card.ready strong{color:#abffcf}
+.game-world button.growth-card:focus-visible{outline:2px solid #a0f1ff;outline-offset:3px}
+@media(max-width:380px){.world-clock{min-width:82px;padding:6px;gap:4px}.world-clock-face{width:22px;height:22px}.game-world .monster-hud-right{gap:4px}}
