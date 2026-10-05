@@ -245,28 +245,46 @@ function createTerrainTexture() {
   return texture;
 }
 
-// Opaque low-poly volumes avoid transparent sprite overlap and texture noise.
+// A single rounded silhouette, rather than intersecting lit spheres. Colors
+// are painted onto the vertices so clouds never acquire charcoal undersides.
 function createCloudGroup(own: { dispose(): void }[], color: number) {
-  const group = new THREE.Group();
-  const geometry = new THREE.SphereGeometry(1, 12, 8);
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    roughness: 1,
-    metalness: 0,
+  const shape = new THREE.Shape();
+  shape.moveTo(-1.3, -0.18);
+  shape.bezierCurveTo(-1.62, -0.13, -1.62, 0.28, -1.23, 0.32);
+  shape.bezierCurveTo(-1.24, 0.65, -0.86, 0.81, -0.6, 0.57);
+  shape.bezierCurveTo(-0.43, 1.02, 0.22, 1.05, 0.43, 0.63);
+  shape.bezierCurveTo(0.76, 0.8, 1.08, 0.53, 1.06, 0.31);
+  shape.bezierCurveTo(1.57, 0.34, 1.69, -0.17, 1.25, -0.22);
+  shape.bezierCurveTo(0.66, -0.31, -0.68, -0.31, -1.3, -0.18);
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.18,
+    bevelEnabled: true,
+    bevelThickness: 0.12,
+    bevelSize: 0.12,
+    bevelSegments: 3,
+    steps: 1,
+    curveSegments: 8,
+  });
+  const top = new THREE.Color(color);
+  const bottom = top.clone().lerp(new THREE.Color(0x9da9cb), 0.28);
+  const positions = geometry.attributes.position;
+  const vertexColors: number[] = [];
+  for (let i = 0; i < positions.count; i++) {
+    const blend = THREE.MathUtils.smoothstep(positions.getY(i), -0.35, 0.8);
+    const tint = bottom.clone().lerp(top, blend);
+    vertexColors.push(tint.r, tint.g, tint.b);
+  }
+  geometry.setAttribute(
+    "color",
+    new THREE.Float32BufferAttribute(vertexColors, 3),
+  );
+  const material = new THREE.MeshBasicMaterial({
+    vertexColors: true,
     fog: false,
   });
   own.push(geometry, material);
-  for (const [x, y, radius] of [
-    [-0.75, 0, 0.55],
-    [-0.25, 0.18, 0.73],
-    [0.38, 0.08, 0.63],
-    [0.86, -0.04, 0.42],
-  ]) {
-    const puff = new THREE.Mesh(geometry, material);
-    puff.position.set(x, y, 0);
-    puff.scale.set(radius, radius * 0.68, radius * 0.65);
-    group.add(puff);
-  }
+  const group = new THREE.Group();
+  group.add(new THREE.Mesh(geometry, material));
   return group;
 }
 
@@ -293,7 +311,10 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   scene.add(group);
   const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.horizon, 22, 70);
+  // Cool distant haze preserves mountain separation even at sunset.
+  const haze =
+    period === "Night" ? 0x263c60 : period === "Evening" ? 0x8896b2 : 0xb2d4e2;
+  scene.fog = new THREE.Fog(haze, 45, 120);
   // Resources created here (and only these) are released in dispose().
   const own: { dispose(): void }[] = [];
   const track = <T extends { dispose(): void }>(resource: T) => (
@@ -303,11 +324,12 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
 
   // World-space gradient sky, independent of lighting and below all scenery.
   const sky = new THREE.Mesh(
-    track(new THREE.SphereGeometry(90, 24, 16)),
+    track(new THREE.SphereGeometry(1, 24, 16)),
     track(
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
+        depthTest: false,
         fog: false,
         uniforms: {
           topColor: { value: new THREE.Color(colors.sky) },
@@ -316,7 +338,11 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
         vertexShader: `varying vec3 vSkyDirection;
         void main() {
           vSkyDirection = position;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          // Remove camera translation and pin depth inside the far plane.
+          // Portrait framing cannot clip holes in this background.
+          vec3 direction = mat3(viewMatrix) * position;
+          gl_Position = projectionMatrix * vec4(direction, 1.0);
+          gl_Position.z = gl_Position.w * 0.9999;
         }`,
         fragmentShader: `uniform vec3 topColor; uniform vec3 horizonColor;
         varying vec3 vSkyDirection;
@@ -330,6 +356,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
       }),
     ),
   );
+  sky.frustumCulled = false;
   sky.renderOrder = -10;
   group.add(sky);
 
@@ -445,7 +472,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     period === "Night"
       ? 0xb9c7e7
       : period === "Evening"
-        ? 0xffcfae
+        ? 0xffe4d3
         : period === "Morning"
           ? 0xffead8
           : 0xffffff;
@@ -456,9 +483,9 @@ diffuseColor.rgb *= 1.0 + macro;`,
     phase: number;
   }> = [];
   const cloudDefs = [
-    [-3.4, 9.4, -36, 2.4, 0.025, 0.2],
-    [5.0, 8.2, -34, 1.8, 0.018, 1.6],
-    [0.4, 12.0, -43, 2.1, 0.012, 2.7],
+    [-4.4, 10.1, -36, 1.55, 0.025, 0.2],
+    [5.0, 9.0, -34, 1.2, 0.018, 1.6],
+    [0.4, 12.8, -43, 1.5, 0.012, 2.7],
   ];
   cloudDefs.forEach(([x, y, z, scale, speed, phase]) => {
     const sprite = createCloudGroup(own, cloudColor);
@@ -763,7 +790,17 @@ diffuseColor.rgb += vec3(0.11, 0.16, 0.17) * ripple;`,
         const tint = (source: THREE.Material) => {
           const material = track(source.clone()) as THREE.MeshStandardMaterial;
           material.color.setHex(
-            period === "Night" ? 0x354c70 : z < -35 ? 0x86b5ca : 0x6094aa,
+            period === "Night"
+              ? z < -35
+                ? 0x43577b
+                : 0x304868
+              : period === "Evening"
+                ? z < -35
+                  ? 0x8193b6
+                  : 0x5b7898
+                : z < -35
+                  ? 0x86b5ca
+                  : 0x6094aa,
           );
           material.map = null;
           material.vertexColors = false;
@@ -854,6 +891,7 @@ diffuseColor.rgb += vec3(0.11, 0.16, 0.17) * ripple;`,
   return {
     colors,
     groundY: 0.04,
+    lightPosition: orb.position.clone(),
     update,
     dispose() {
       disposed = true;

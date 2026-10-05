@@ -105,15 +105,17 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const ambient = new THREE.HemisphereLight(0xd9efff, 0x384252, 2.3);
     scene.add(ambient);
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
-    key.position.set(-3, 5, 4);
+    key.position.set(3, 5, -4);
     const fill = new THREE.DirectionalLight(0xb9d9ff, landscape ? 0.45 : 0);
-    fill.position.set(4, 3, -3);
+    fill.position.set(-3, 2, 4);
     scene.add(fill);
     scene.add(key);
     const initialPeriod = live.current.period;
     let environment = landscape ? meadow(scene, initialPeriod) : null;
     let environmentPeriod = initialPeriod;
     if (environment) {
+      if (environment.lightPosition)
+        key.position.copy(environment.lightPosition);
       key.color.setHex(environment.colors.light);
       key.intensity = environment.colors.intensity;
       ambient.intensity =
@@ -130,6 +132,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       environment?.dispose();
       environment = landscape ? meadow(scene, next) : null;
       if (environment) {
+        if (environment.lightPosition)
+          key.position.copy(environment.lightPosition);
         key.color.setHex(environment.colors.light);
         key.intensity = environment.colors.intensity;
         ambient.intensity =
@@ -137,8 +141,29 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         ambient.color.setHex(next === "Night" ? 0x8faeff : 0xd9efff);
       }
     };
+    const creatureMaterials = new Set<THREE.Material>();
     const root = clone(model.scene),
       stage = new THREE.Group();
+    // Clone only material state: cached model materials stay untouched in Lab.
+    if (landscape)
+      root.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const matte = (source: THREE.Material) => {
+          const material = source.clone();
+          if (material instanceof THREE.MeshStandardMaterial) {
+            material.roughness = Math.max(material.roughness, 0.9);
+            material.metalness = 0;
+            material.roughnessMap = null;
+            material.metalnessMap = null;
+          }
+          creatureMaterials.add(material);
+          return material;
+        };
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map(matte)
+          : matte(mesh.material);
+      });
     stage.add(root);
     scene.add(stage);
     root.updateMatrixWorld(true);
@@ -431,6 +456,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
           (n as THREE.SkinnedMesh).skeleton.dispose();
       });
       environment?.dispose();
+      creatureMaterials.forEach((material) => material.dispose());
       ground.geometry.dispose();
       ground.material.dispose();
       renderer.dispose();
@@ -504,9 +530,9 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       env.colors.light,
       env.colors.intensity,
     );
-    key.position.set(-3, 5, 4);
+    key.position.copy(env.lightPosition);
     const fill = new THREE.DirectionalLight(0xb9d9ff, 0.45);
-    fill.position.set(4, 3, -3);
+    fill.position.set(-3, 2, 4);
     scene.add(fill);
     scene.add(key);
 
