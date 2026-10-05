@@ -156,14 +156,21 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   ]).then(([grass, pine, tree, bush, rocks, stump, log, mushrooms]) => {
     if (disposed) return;
 
-    // A continuous clearing made only from the supplied grass tile.
+    // Use the detailed supplied tile sparingly. The large plain floor underneath
+    // provides visual breathing room and avoids repeating the same rocks 25 times.
     if (grass) {
-      for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
-        const tile = normalizedGround(grass.clone(true), 4.35);
-        tile.position.set(x * 4.2, -0.025, z * 4.2);
-        tile.rotation.y = ((x + z) & 1) ? Math.PI / 2 : 0;
+      [
+        [-3.8, -2.8, 0],
+        [3.8, -3.2, Math.PI],
+        [-4.0, 3.0, Math.PI / 2],
+        [4.1, 3.2, -Math.PI / 2],
+        [0, 5.6, Math.PI],
+      ].forEach(([x, z, rotation]) => {
+        const tile = normalizedGround(grass.clone(true), 4.8);
+        tile.position.set(x, -0.025, z);
+        tile.rotation.y = rotation;
         group.add(tile);
-      }
+      });
     }
 
     // Frame the companion instead of covering it: taller assets stay on the edges/back.
@@ -200,9 +207,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
       item.object.rotation.z = Math.sin(t * 0.72 + item.phase) * item.amount;
       item.object.rotation.x = Math.sin(t * 0.48 + item.phase * 1.7) * item.amount * 0.35;
     }
-    raf = requestAnimationFrame(wind);
   };
-  raf = requestAnimationFrame(wind);
 
   return {
     colors,
