@@ -119,6 +119,75 @@ function fitGround(o: THREE.Object3D, width: number) {
   o.position.set(-c.x, -b.min.y, -c.z);
   return o;
 }
+
+function createTerrainTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 512;
+  const ctx = canvas.getContext("2d")!;
+  let seed = 90210;
+  const rand = () => {
+    seed = (1664525 * seed + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+
+  ctx.fillStyle = "#6f963f";
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Broad tonal variation: stylized, not photorealistic.
+  for (let i = 0; i < 90; i++) {
+    const x = rand() * 512, y = rand() * 512;
+    const r = 22 + rand() * 74;
+    ctx.beginPath();
+    const points = 5 + Math.floor(rand() * 4);
+    for (let p = 0; p < points; p++) {
+      const a = (p / points) * Math.PI * 2;
+      const rr = r * (0.65 + rand() * 0.45);
+      const px = x + Math.cos(a) * rr;
+      const py = y + Math.sin(a) * rr;
+      if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = rand() > 0.5 ? "rgba(139,177,72,.18)" : "rgba(50,99,47,.14)";
+    ctx.fill();
+  }
+
+  // Sparse dirt islands mixed into the grass material.
+  for (let i = 0; i < 12; i++) {
+    const x = rand() * 512, y = rand() * 512;
+    const rx = 18 + rand() * 42, ry = 10 + rand() * 28;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rand() * Math.PI);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(124,95,55,.28)";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Small angular grass flecks break the flatness without adding geometry.
+  ctx.lineCap = "round";
+  for (let i = 0; i < 320; i++) {
+    const x = rand() * 512, y = rand() * 512;
+    const len = 2 + rand() * 5;
+    ctx.strokeStyle = rand() > 0.5 ? "rgba(177,208,90,.32)" : "rgba(37,82,39,.28)";
+    ctx.lineWidth = 1 + rand() * 1.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (rand() - 0.5) * 2, y - len);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(8, 8);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 2;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 function put(src: THREE.Object3D | null, parent: THREE.Group, x: number, z: number, h: number, r = 0) {
   if (!src) return null;
   const o = fit(src.clone(true), h);
@@ -156,17 +225,48 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     terrainPositions.setZ(i, relief);
   }
   terrainGeometry.computeVertexNormals();
-  const floor = new THREE.Mesh(
-    terrainGeometry,
-    track(
-      new THREE.MeshStandardMaterial({
-        color: colors.grass,
-        roughness: 1,
-        metalness: 0,
-        flatShading: true,
-      }),
-    ),
+  const terrainTexture = track(createTerrainTexture());
+  const terrainMaterial = track(
+    new THREE.MeshStandardMaterial({
+      map: terrainTexture,
+      color: 0xffffff,
+      roughness: 0.96,
+      metalness: 0,
+      flatShading: true,
+    }),
   );
+
+  // Large-scale color variation prevents the repeated texture from reading as a grid.
+  terrainMaterial.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec3 vTerrainWorld;`,
+      )
+      .replace(
+        "#include <worldpos_vertex>",
+        `#include <worldpos_vertex>
+vTerrainWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec3 vTerrainWorld;`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+float macroA = sin(vTerrainWorld.x * 0.12) * cos(vTerrainWorld.z * 0.10);
+float macroB = sin((vTerrainWorld.x + vTerrainWorld.z) * 0.045);
+float macro = macroA * 0.055 + macroB * 0.035;
+diffuseColor.rgb *= 1.0 + macro;`,
+      );
+  };
+  terrainMaterial.customProgramCacheKey = () => "rebyters-terrain-v2";
+
+  const floor = new THREE.Mesh(terrainGeometry, terrainMaterial);
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0;
   group.add(floor);
