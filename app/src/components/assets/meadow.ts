@@ -53,6 +53,21 @@ function normalized(object: THREE.Object3D, height: number) {
   return object;
 }
 
+function normalizedGround(object: THREE.Object3D, width: number) {
+  object.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(object);
+  const size = box.getSize(new THREE.Vector3());
+  const scale = width / Math.max(size.x, size.z, 0.001);
+  object.scale.setScalar(scale);
+  object.updateMatrixWorld(true);
+  const scaled = new THREE.Box3().setFromObject(object);
+  const center = scaled.getCenter(new THREE.Vector3());
+  object.position.x -= center.x;
+  object.position.z -= center.z;
+  object.position.y -= scaled.min.y;
+  return object;
+}
+
 function place(source: THREE.Object3D, parent: THREE.Group, x: number, z: number, height: number, rotation = 0) {
   const item = normalized(source.clone(true), height);
   item.position.x += x;
@@ -144,7 +159,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     // A continuous clearing made only from the supplied grass tile.
     if (grass) {
       for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
-        const tile = normalized(grass.clone(true), 0.12);
+        const tile = normalizedGround(grass.clone(true), 4.35);
         tile.position.set(x * 4.2, -0.025, z * 4.2);
         tile.rotation.y = ((x + z) & 1) ? Math.PI / 2 : 0;
         group.add(tile);
