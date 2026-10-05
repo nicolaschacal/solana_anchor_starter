@@ -150,10 +150,25 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     }
   };
 
-  void Promise.all([
-    load("grass"), load("pine"), load("tree"), load("bush"),
-    load("rocks"), load("stump"), load("log"), load("mushrooms"),
-  ]).then(([grass, pine, tree, bush, rocks, stump, log, mushrooms]) => {
+  // Load sequentially on touch/mobile devices to avoid the large simultaneous
+  // decode/upload memory spike that can kill iOS Safari/WebViews.
+  const mobile = matchMedia("(pointer: coarse)").matches || window.innerWidth <= 700;
+  const loadEnvironment = async () => {
+    if (mobile) {
+      const result: Array<THREE.Group | null> = [];
+      for (const key of ["grass", "pine", "tree", "bush", "rocks", "stump", "log", "mushrooms"] as const) {
+        if (disposed) break;
+        result.push(await load(key));
+      }
+      return result;
+    }
+    return Promise.all([
+      load("grass"), load("pine"), load("tree"), load("bush"),
+      load("rocks"), load("stump"), load("log"), load("mushrooms"),
+    ]);
+  };
+
+  void loadEnvironment().then(([grass, pine, tree, bush, rocks, stump, log, mushrooms]) => {
     if (disposed) return;
 
     // Use the detailed supplied tile sparingly. The large plain floor underneath
@@ -174,11 +189,17 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     }
 
     // Frame the companion instead of covering it: taller assets stay on the edges/back.
-    const tall = [
-      [tree, -5.4, -5.8, 6.8, 0.18], [pine, 5.5, -6.4, 7.5, -0.22],
-      [pine, -7.2, -2.1, 6.1, 0.36], [tree, 7.1, -2.8, 6.4, -0.3],
-      [tree, -6.7, 3.5, 5.8, 0.1], [pine, 6.8, 3.7, 6.6, -0.12],
-    ] as const;
+    const tall = mobile
+      ? ([
+          [tree, -5.4, -5.8, 6.8, 0.18],
+          [pine, 5.5, -6.4, 7.5, -0.22],
+          [tree, -6.7, 3.5, 5.8, 0.1],
+        ] as const)
+      : ([
+          [tree, -5.4, -5.8, 6.8, 0.18], [pine, 5.5, -6.4, 7.5, -0.22],
+          [pine, -7.2, -2.1, 6.1, 0.36], [tree, 7.1, -2.8, 6.4, -0.3],
+          [tree, -6.7, 3.5, 5.8, 0.1], [pine, 6.8, 3.7, 6.6, -0.12],
+        ] as const);
     tall.forEach(([asset, x, z, h, r], i) => {
       if (!asset) return;
       const item = place(asset, group, x, z, h, r);
@@ -186,7 +207,10 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     });
 
     if (bush) {
-      [[-3.8,-2.8],[3.9,-3.2],[-4.5,2.2],[4.7,2.5],[-2.8,4.2],[3.0,4.5]].forEach(([x,z], i) => {
+      (mobile
+        ? [[-3.8,-2.8],[3.9,-3.2],[-2.8,4.2]]
+        : [[-3.8,-2.8],[3.9,-3.2],[-4.5,2.2],[4.7,2.5],[-2.8,4.2],[3.0,4.5]]
+      ).forEach(([x,z], i) => {
         const item = place(bush, group, x, z, 1.15 + (i % 2) * 0.2, i * 0.7);
         living.push({ object: item, phase: i * 0.63, amount: 0.022 });
       });
