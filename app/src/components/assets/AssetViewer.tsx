@@ -92,7 +92,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       return;
     }
     setError("");
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    const mobileRenderer = matchMedia("(pointer: coarse)").matches || window.innerWidth <= 700;
+    renderer.setPixelRatio(mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -140,7 +141,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     stage.scale.setScalar(scale);
     stage.position.set(
       -center.x * scale,
-      -bounds.min.y * scale,
+      -bounds.min.y * scale + (landscape ? (environment?.groundY ?? 0.18) : 0),
       -center.z * scale,
     );
     const target = new THREE.Vector3(0, size.y * scale * 0.48, 0),
@@ -333,6 +334,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ) {
         mixer.update(delta);
         controls.update();
+        environment?.update(now / 1000);
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
       } else {
