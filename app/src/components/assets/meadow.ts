@@ -13,7 +13,6 @@ const moteColors = { Night: 0xbcd4ff, Morning: 0xfff0cf, Day: 0xffffff, Evening:
 
 const ENV = "/assets/environment/";
 const files = {
-  plain: "grass-plain.glb", detail: "grass-tile.glb", dirt: "dirt-transition.glb",
   mountains: "distant-mountains.glb", pine: "pine-tree.glb", tree: "deciduous-tree.glb",
   bush: "berry-bush.glb", rocks: "mossy-rocks.glb", stump: "tree-stump.glb",
   log: "hollow-log.glb", mushrooms: "red-mushrooms.glb",
@@ -140,12 +139,36 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const own: { dispose(): void }[] = [];
   const track = <T extends { dispose(): void }>(resource: T) => (own.push(resource), resource);
 
+  // One continuous low-poly terrain. GLB tiles are intentionally NOT used as
+  // ground: Meshy's pieces have thickness/irregular borders and cannot tessellate.
+  const terrainGeometry = track(new THREE.PlaneGeometry(120, 120, 20, 20));
+  const terrainPositions = terrainGeometry.attributes.position as THREE.BufferAttribute;
+  for (let i = 0; i < terrainPositions.count; i++) {
+    const x = terrainPositions.getX(i);
+    const y = terrainPositions.getY(i);
+    const distance = Math.hypot(x, y);
+    // Flat playable clearing; gentle relief starts far away.
+    const relief =
+      distance <= 10
+        ? 0
+        : (Math.sin(x * 0.14) + Math.cos(y * 0.12)) *
+          Math.min(0.7, (distance - 10) * 0.018);
+    terrainPositions.setZ(i, relief);
+  }
+  terrainGeometry.computeVertexNormals();
   const floor = new THREE.Mesh(
-    track(new THREE.PlaneGeometry(120, 120)),
-    track(new THREE.MeshStandardMaterial({ color: colors.ground, roughness: 1 })),
+    terrainGeometry,
+    track(
+      new THREE.MeshStandardMaterial({
+        color: colors.grass,
+        roughness: 1,
+        metalness: 0,
+        flatShading: true,
+      }),
+    ),
   );
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.04;
+  floor.position.y = 0;
   group.add(floor);
 
   let seed = 12345;
@@ -184,7 +207,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
     track(new THREE.MeshBasicMaterial({ map: track(new THREE.CanvasTexture(blob)), transparent: true, depthWrite: false })),
   );
   shadow.rotation.x = -Math.PI / 2;
-  shadow.position.set(0, 0.19, 0.1);
+  shadow.position.set(0, 0.025, 0.1);
   group.add(shadow);
 
   const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
@@ -229,55 +252,31 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   }
 
   void (async () => {
+    // Only actual props are loaded. This also removes three unnecessary GLB
+    // downloads from mobile (plain/detail/dirt).
     const keys = (mobile
-      ? ["plain", "mountains", "tree", "pine", "bush", "detail", "dirt", "rocks"]
-      : ["plain", "mountains", "tree", "pine", "bush", "detail", "dirt", "rocks", "stump", "log", "mushrooms"]) as AssetKey[];
+      ? ["mountains", "tree", "pine", "bush", "rocks"]
+      : ["mountains", "tree", "pine", "bush", "rocks", "stump", "log", "mushrooms"]) as AssetKey[];
     const a: Partial<Record<AssetKey, THREE.Group | null>> = {};
-    // Sequential loading is deliberate: stable on iOS and visually progressive.
     for (const k of keys) {
       a[k] = await loadAsset(k);
       if (disposed) return;
     }
-    const plain = a.plain;
-    if (plain) {
-      const coords = mobile
-        ? [[-3.8, -3.8], [0, -3.8], [3.8, -3.8], [-3.8, 0], [0, 0], [3.8, 0], [-3.8, 3.8], [0, 3.8], [3.8, 3.8]]
-        : [[-7.6, -3.8], [-3.8, -3.8], [0, -3.8], [3.8, -3.8], [7.6, -3.8], [-7.6, 0], [-3.8, 0], [0, 0], [3.8, 0], [7.6, 0], [-7.6, 3.8], [-3.8, 3.8], [0, 3.8], [3.8, 3.8], [7.6, 3.8]];
-      coords.forEach(([x, z], i) => {
-        const t = fitGround(plain.clone(true), 4.05);
-        t.position.set(x, -0.02, z);
-        t.rotation.y = (i % 4) * Math.PI / 2;
-        group.add(t);
-      });
-    }
-    // One detailed tile and one dirt transition break repetition without clutter.
-    if (a.detail) {
-      const t = fitGround(a.detail.clone(true), 4.2);
-      t.position.set(-3.7, -0.012, 2.8);
-      t.rotation.y = Math.PI / 2;
-      group.add(t);
-    }
-    if (a.dirt) {
-      const t = fitGround(a.dirt.clone(true), 4.2);
-      t.position.set(3.6, -0.01, 2.9);
-      t.rotation.y = -Math.PI / 2;
-      group.add(t);
-    }
-    // Mountains are backdrop only; two instances create depth with a tiny asset budget.
+
+    // Mountains live on the horizon, not directly behind the companion.
     if (a.mountains) {
-      const m1 = fit(a.mountains.clone(true), mobile ? 6.5 : 8);
-      m1.position.set(-7, 0, -15);
+      const m1 = fit(a.mountains.clone(true), mobile ? 8 : 10);
+      m1.position.set(-11, -0.3, -32);
+      m1.rotation.y = 0.18;
       group.add(m1);
-      if (!mobile) {
-        const m2 = fit(a.mountains.clone(true), 7);
-        m2.position.set(7, 0, -17);
-        m2.rotation.y = Math.PI;
-        group.add(m2);
-      }
+      const m2 = fit(a.mountains.clone(true), mobile ? 7 : 9);
+      m2.position.set(11, -0.4, -38);
+      m2.rotation.y = Math.PI * 0.82;
+      group.add(m2);
     }
     const tall: [THREE.Group | null | undefined, number, number, number, number][] = mobile
-      ? [[a.tree, -5, -5.2, 5.5, 0.15], [a.pine, 5.1, -5.8, 6.2, -0.2]]
-      : [[a.tree, -5, -5.2, 6, 0.15], [a.pine, 5.2, -5.8, 6.8, -0.2], [a.pine, -7, -1, 5.5, 0.25], [a.tree, 7, -1.5, 5.8, -0.25]];
+      ? [[a.tree, -5.8, -7.2, 5.2, 0.15], [a.pine, 5.9, -8.0, 5.8, -0.2]]
+      : [[a.tree, -6, -7, 5.8, 0.15], [a.pine, 6, -8, 6.4, -0.2], [a.pine, -8, -3, 5.2, 0.25], [a.tree, 8, -3.5, 5.5, -0.25]];
     tall.forEach(([src, x, z, h, r]) => put(src ?? null, group, x, z, h, r));
     const bushes = mobile ? [[-3.8, -2.5], [3.9, -2.8]] : [[-3.8, -2.5], [3.9, -2.8], [-4.5, 2.4], [4.6, 2.1]];
     bushes.forEach(([x, z], i) => put(a.bush ?? null, group, x, z, 1.05, i * 0.7));
@@ -308,7 +307,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   };
   return {
     colors,
-    groundY: 0.18,
+    groundY: 0.04,
     update,
     dispose() {
       disposed = true;
