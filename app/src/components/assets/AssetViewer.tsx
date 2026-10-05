@@ -472,7 +472,12 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     } catch {
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    // Same budget as the creature scene: phones render at 1x to stay smooth and cool.
+    const mobileRenderer =
+      matchMedia("(pointer: coarse)").matches || window.innerWidth <= 700;
+    renderer.setPixelRatio(
+      mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5),
+    );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -541,6 +546,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     const render = () => {
       const t = clock.getElapsedTime();
       ring.material.opacity = 0.48 + Math.sin(t * 1.6) * 0.1;
+      env.update(t);
       if (!pausedRef.current && !document.hidden) {
         renderer.render(scene, camera);
         raf = requestAnimationFrame(render);
@@ -565,6 +571,9 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       inner.geometry.dispose();
       (inner.material as THREE.Material).dispose();
       renderer.dispose();
+      // Release the GPU context right away: leaving the login screen must not
+      // leave a second WebGL context alive next to the game scene on phones.
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     };
   }, [period]);
