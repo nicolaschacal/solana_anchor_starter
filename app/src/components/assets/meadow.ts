@@ -247,7 +247,11 @@ function createTerrainTexture() {
 
 // A single rounded silhouette, rather than intersecting lit spheres. Colors
 // are painted onto the vertices so clouds never acquire charcoal undersides.
-function createCloudGroup(own: { dispose(): void }[], color: number) {
+function createCloudGroup(
+  own: { dispose(): void }[],
+  color: number,
+  variant: number,
+) {
   const shape = new THREE.Shape();
   shape.moveTo(-1.3, -0.18);
   shape.bezierCurveTo(-1.62, -0.13, -1.62, 0.28, -1.23, 0.32);
@@ -270,10 +274,23 @@ function createCloudGroup(own: { dispose(): void }[], color: number) {
   const positions = geometry.attributes.position;
   const vertexColors: number[] = [];
   for (let i = 0; i < positions.count; i++) {
+    // Broad asymmetric contours, including the underside; no cloned flat bases.
+    const x = positions.getX(i),
+      y = positions.getY(i);
+    const phase = variant * 2.1;
+    positions.setY(
+      i,
+      y * (1 + 0.18 * Math.sin(x * 1.6 + phase)) +
+        0.065 * Math.sin(x * 3.2 + phase) +
+        0.03 * Math.cos(x * 5.1 - phase),
+    );
+    positions.setX(i, x + 0.07 * Math.sin(y * 2.8 + phase));
     const blend = THREE.MathUtils.smoothstep(positions.getY(i), -0.35, 0.8);
     const tint = bottom.clone().lerp(top, blend);
     vertexColors.push(tint.r, tint.g, tint.b);
   }
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
   geometry.setAttribute(
     "color",
     new THREE.Float32BufferAttribute(vertexColors, 3),
@@ -430,7 +447,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     return seed / 4294967296;
   };
   const orb = new THREE.Mesh(
-    track(new THREE.SphereGeometry(period === "Night" ? 0.48 : 0.62, 24, 16)),
+    track(new THREE.SphereGeometry(period === "Night" ? 0.8 : 1.04, 24, 16)),
     track(
       new THREE.MeshBasicMaterial({
         color: period === "Night" ? 0xe2eeff : 0xffe3af,
@@ -439,9 +456,9 @@ diffuseColor.rgb *= 1.0 + macro;`,
     ),
   );
   orb.position.set(
-    period === "Evening" ? 1.6 : 2.6,
-    period === "Evening" ? 7.2 : 9.2,
-    -32,
+    period === "Evening" ? 2.7 : 4.4,
+    period === "Evening" ? 11 : 14,
+    -64,
   );
   group.add(orb);
   const glowCanvas = document.createElement("canvas");
@@ -465,7 +482,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     ),
   );
   halo.position.copy(orb.position);
-  halo.scale.setScalar(period === "Night" ? 2.6 : 3.6);
+  halo.scale.setScalar(period === "Night" ? 4.4 : 6.0);
   group.add(halo);
 
   const cloudColor =
@@ -483,14 +500,19 @@ diffuseColor.rgb *= 1.0 + macro;`,
     phase: number;
   }> = [];
   const cloudDefs = [
-    [-4.4, 10.1, -36, 1.55, 0.025, 0.2],
-    [5.0, 9.0, -34, 1.2, 0.018, 1.6],
-    [0.4, 12.8, -43, 1.5, 0.012, 2.7],
+    [-7.0, 14.6, -64, 2.35, 0.025, 0.2],
+    [8.0, 13.2, -66, 1.95, 0.018, 1.6],
+    [0.7, 17.0, -72, 2.2, 0.012, 2.7],
   ];
-  cloudDefs.forEach(([x, y, z, scale, speed, phase]) => {
-    const sprite = createCloudGroup(own, cloudColor);
+  cloudDefs.forEach(([x, y, z, scale, speed, phase], variant) => {
+    const sprite = createCloudGroup(own, cloudColor, variant);
     sprite.position.set(x, y, z);
-    sprite.scale.setScalar(scale);
+    sprite.scale.set(
+      scale * (variant === 1 ? 1.12 : 1),
+      scale * (variant === 2 ? 0.78 : 1),
+      scale,
+    );
+    sprite.rotation.z = variant === 0 ? -0.035 : variant === 1 ? 0.025 : 0;
     group.add(sprite);
     clouds.push({ sprite, baseX: x, speed, phase });
   });
@@ -592,16 +614,16 @@ diffuseColor.rgb *= 1.0 + macro;`,
   lakeShape.bezierCurveTo(9.5, -2.7, 3, -3.1, -0.6, -2.6);
   lakeShape.bezierCurveTo(-3.5, -3.6, -6, -3.4, -7, -2.6);
   const lakeGeometry = track(new THREE.ShapeGeometry(lakeShape, 28));
+  // Painted water has no specular lobe: moving the sun cannot blow the lake
+  // out to white. Its palette follows the period and ripples provide motion.
   const waterMaterial = track(
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshBasicMaterial({
       color:
         period === "Night"
           ? 0x244b75
           : period === "Evening"
-            ? 0x658ba5
-            : 0x52b6c8,
-      roughness: 0.32,
-      metalness: 0.22,
+            ? 0x527f98
+            : 0x52aabb,
     }),
   );
   waterMaterial.onBeforeCompile = (shader) => {
@@ -623,11 +645,11 @@ diffuseColor.rgb *= 1.0 + macro;`,
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
-float ripple = pow(0.5 + 0.5 * sin(vWaterWorld.z * 12.0 + sin(vWaterWorld.x * 2.0 + uWaterTime * 0.3) + uWaterTime * 0.7), 18.0);
-diffuseColor.rgb += vec3(0.11, 0.16, 0.17) * ripple;`,
+float ripple = pow(0.5 + 0.5 * sin(vWaterWorld.z * 4.0 + sin(vWaterWorld.x * 1.4 + uWaterTime * 0.3) + uWaterTime * 0.55), 7.0);
+diffuseColor.rgb += vec3(0.025, 0.035, 0.045) * ripple;`,
       );
   };
-  waterMaterial.customProgramCacheKey = () => "rebyters-lake";
+  waterMaterial.customProgramCacheKey = () => "rebyters-lake-painted-v2";
   const bank = new THREE.Mesh(
     lakeGeometry,
     track(new THREE.MeshStandardMaterial({ color: 0x8d9c69, roughness: 1 })),
