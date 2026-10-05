@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "meshoptimizer";
+import { nightBlend } from "./twilight";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 
 const palettes = {
@@ -323,7 +324,11 @@ function put(
 }
 
 export function meadow(scene: THREE.Scene, period: WorldPeriod) {
-  const colors = palettes[period];
+  const colors = {
+    ...palettes[period],
+    ambientIntensity:
+      period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
+  };
   const group = new THREE.Group();
   scene.add(group);
   const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
@@ -451,6 +456,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     track(
       new THREE.MeshBasicMaterial({
         color: period === "Night" ? 0xe2eeff : 0xffe3af,
+        transparent: true,
         fog: false,
       }),
     ),
@@ -516,27 +522,42 @@ diffuseColor.rgb *= 1.0 + macro;`,
     group.add(sprite);
     clouds.push({ sprite, baseX: x, speed, phase });
   });
-  if (period === "Night") {
-    const p: number[] = [];
-    for (let i = 0; i < 70; i++) {
-      const a = rand() * Math.PI * 2;
-      p.push(Math.cos(a) * 35, 4 + rand() * 14, Math.sin(a) * 35);
-    }
-    const g = track(new THREE.BufferGeometry());
-    g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
-    group.add(
-      new THREE.Points(
-        g,
-        track(
-          new THREE.PointsMaterial({
-            color: 0xd4e6ff,
-            size: 0.085,
-            fog: false,
-          }),
-        ),
-      ),
-    );
+  // Stars are always allocated once and fade in with twilight, behind ridges.
+  const starPositions: number[] = [];
+  for (let i = 0; i < 85; i++) {
+    starPositions.push((rand() - 0.5) * 64, 13 + rand() * 21, -76 - rand() * 3);
   }
+  const starGeometry = track(new THREE.BufferGeometry());
+  starGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(starPositions, 3),
+  );
+  const starMaterial = track(
+    new THREE.PointsMaterial({
+      color: 0xd4e6ff,
+      size: 0.08,
+      fog: false,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0,
+    }),
+  );
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  group.add(stars);
+  const moon = new THREE.Mesh(
+    track(new THREE.SphereGeometry(0.8, 20, 12)),
+    track(
+      new THREE.MeshBasicMaterial({
+        color: 0xdbe7ff,
+        fog: false,
+        transparent: true,
+        opacity: 0,
+      }),
+    ),
+  );
+  moon.position.set(-4.4, 14, -64);
+  if (period === "Evening") group.add(moon);
+  const lightPosition = orb.position.clone();
 
   const blob = document.createElement("canvas");
   blob.width = blob.height = 64;
@@ -614,42 +635,57 @@ diffuseColor.rgb *= 1.0 + macro;`,
   lakeShape.bezierCurveTo(9.5, -2.7, 3, -3.1, -0.6, -2.6);
   lakeShape.bezierCurveTo(-3.5, -3.6, -6, -3.4, -7, -2.6);
   const lakeGeometry = track(new THREE.ShapeGeometry(lakeShape, 28));
-  // Painted water has no specular lobe: moving the sun cannot blow the lake
-  // out to white. Its palette follows the period and ripples provide motion.
+  // Analytic wave normals and bounded reflections: no screen-space reflection
+  // pass, no extra render target, and no uncontrolled white specular highlight.
   const waterMaterial = track(
-    new THREE.MeshBasicMaterial({
-      color:
-        period === "Night"
-          ? 0x244b75
-          : period === "Evening"
-            ? 0x527f98
-            : 0x52aabb,
+    new THREE.ShaderMaterial({
+      fog: true,
+      uniforms: {
+        uTime: wind.time,
+        uDeep: { value: new THREE.Color(0x245f79) },
+        uSky: { value: new THREE.Color(colors.sky) },
+        uGlint: { value: new THREE.Color(colors.light) },
+        uNight: { value: 0 },
+        ...THREE.UniformsLib.fog,
+      },
+      vertexShader: `varying vec3 vWaterWorld;
+      #include <fog_pars_vertex>
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vWaterWorld = world.xyz;
+        vec4 mvPosition = viewMatrix * world;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+      fragmentShader: `uniform float uTime; uniform float uNight;
+      uniform vec3 uDeep; uniform vec3 uSky; uniform vec3 uGlint;
+      varying vec3 vWaterWorld;
+      #include <fog_pars_fragment>
+      void main() {
+        vec2 p = vWaterWorld.xz;
+        float a = dot(p, vec2(1.4, 2.1)) + uTime * 1.25;
+        float b = dot(p, vec2(-2.7, 1.6)) - uTime * 0.95;
+        float c = dot(p, vec2(4.2, 3.3)) + uTime * 1.7;
+        vec2 slope = vec2(1.4, 2.1) * cos(a) * 0.045
+          + vec2(-2.7, 1.6) * cos(b) * 0.025
+          + vec2(4.2, 3.3) * cos(c) * 0.009;
+        vec3 normal = normalize(vec3(-slope.x, 1.0, -slope.y));
+        vec3 view = normalize(cameraPosition - vWaterWorld);
+        float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 3.0);
+        float wave = sin(a) * 0.5 + sin(b) * 0.3 + sin(c) * 0.2;
+        vec3 base = uDeep * (0.96 + wave * 0.09);
+        vec3 reflectedSky = uSky * (0.72 + normal.y * 0.15);
+        vec3 color = mix(base, reflectedSky, 0.18 + fresnel * 0.4);
+        vec3 halfDirection = normalize(view + normalize(vec3(0.15, 0.5, -1.0)));
+        float glint = pow(max(dot(normal, halfDirection), 0.0), 80.0);
+        color += uGlint * glint * mix(0.1, 0.04, uNight);
+        gl_FragColor = vec4(color, 1.0);
+        #include <fog_fragment>
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
     }),
   );
-  waterMaterial.onBeforeCompile = (shader) => {
-    shader.uniforms.uWaterTime = wind.time;
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        "#include <common>",
-        "#include <common>\nvarying vec3 vWaterWorld;",
-      )
-      .replace(
-        "#include <worldpos_vertex>",
-        "#include <worldpos_vertex>\nvWaterWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        "#include <common>",
-        "#include <common>\nvarying vec3 vWaterWorld; uniform float uWaterTime;",
-      )
-      .replace(
-        "#include <color_fragment>",
-        `#include <color_fragment>
-float ripple = pow(0.5 + 0.5 * sin(vWaterWorld.z * 4.0 + sin(vWaterWorld.x * 1.4 + uWaterTime * 0.3) + uWaterTime * 0.55), 7.0);
-diffuseColor.rgb += vec3(0.025, 0.035, 0.045) * ripple;`,
-      );
-  };
-  waterMaterial.customProgramCacheKey = () => "rebyters-lake-painted-v2";
   const bank = new THREE.Mesh(
     lakeGeometry,
     track(new THREE.MeshStandardMaterial({ color: 0x8d9c69, roughness: 1 })),
@@ -889,7 +925,69 @@ diffuseColor.rgb += vec3(0.025, 0.035, 0.045) * ripple;`,
 
   // Wind is driven by the caller's existing render loop: no second RAF.
   let lastTime = 0;
-  const update = (time: number) => {
+  const skyMaterial = sky.material;
+  const blendColor = new THREE.Color();
+  const startLight = new THREE.Color(palettes[period].light);
+  const nightLight = new THREE.Color(palettes.Night.light);
+  let lastVisualTime = -1;
+  const update = (time: number, unixMs = Date.now()) => {
+    // The synchronized world clock updates palettes without rebuilding the scene.
+    if (Math.floor(unixMs / 1000) !== lastVisualTime) {
+      lastVisualTime = Math.floor(unixMs / 1000);
+      const blend = nightBlend(period, unixMs);
+      const twilight = period === "Evening" ? blend : 0;
+      skyMaterial.uniforms.topColor.value
+        .setHex(palettes[period].sky)
+        .lerp(new THREE.Color(palettes.Night.sky), twilight);
+      skyMaterial.uniforms.horizonColor.value
+        .setHex(palettes[period].horizon)
+        .lerp(new THREE.Color(palettes.Night.horizon), twilight);
+      if (scene.fog instanceof THREE.Fog)
+        scene.fog.color.setHex(haze).lerp(new THREE.Color(0x263c60), twilight);
+      colors.light = blendColor
+        .copy(startLight)
+        .lerp(nightLight, twilight)
+        .getHex();
+      colors.intensity = THREE.MathUtils.lerp(
+        palettes[period].intensity,
+        palettes.Night.intensity,
+        twilight,
+      );
+      colors.ambientIntensity = THREE.MathUtils.lerp(
+        period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
+        0.8,
+        twilight,
+      );
+      starMaterial.opacity =
+        THREE.MathUtils.smoothstep(blend, 0.25, 0.9) * 0.85;
+      stars.visible = starMaterial.opacity > 0.01;
+      if (period === "Evening") {
+        const sunOpacity = 1 - THREE.MathUtils.smoothstep(blend, 0.3, 0.8);
+        orb.material.opacity = sunOpacity;
+        halo.material.opacity = sunOpacity;
+        orb.position.y = THREE.MathUtils.lerp(11, 5.8, blend);
+        halo.position.copy(orb.position);
+        moon.material.opacity = THREE.MathUtils.smoothstep(blend, 0.55, 0.95);
+        lightPosition.copy(
+          moon.material.opacity > 0.5 ? moon.position : orb.position,
+        );
+      }
+      for (const cloud of clouds)
+        cloud.sprite.traverse((node) => {
+          if (node instanceof THREE.Mesh)
+            (node.material as THREE.MeshBasicMaterial).color
+              .setRGB(1, 1, 1)
+              .lerp(new THREE.Color(0x64749a), blend * 0.7);
+        });
+      waterMaterial.uniforms.uDeep.value
+        .setHex(0x245f79)
+        .lerp(new THREE.Color(0x122c4d), blend);
+      waterMaterial.uniforms.uSky.value.copy(
+        skyMaterial.uniforms.horizonColor.value,
+      );
+      waterMaterial.uniforms.uGlint.value.setHex(colors.light);
+      waterMaterial.uniforms.uNight.value = blend;
+    }
     const dt = lastTime ? Math.min(time - lastTime, 0.1) : 0;
     lastTime = time;
     wind.time.value = time;
@@ -913,7 +1011,7 @@ diffuseColor.rgb += vec3(0.025, 0.035, 0.045) * ripple;`,
   return {
     colors,
     groundY: 0.04,
-    lightPosition: orb.position.clone(),
+    lightPosition,
     update,
     dispose() {
       disposed = true;

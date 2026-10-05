@@ -27,6 +27,7 @@ export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
   landscape?: boolean;
   creatureScale?: number;
+  worldTime?: number;
   period?: WorldPeriod;
   model: AssetModel;
   clips?: THREE.AnimationClip[];
@@ -40,6 +41,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     model,
     landscape = false,
     creatureScale = 1,
+    worldTime = Date.now(),
     period = "Day",
     clips = model.clips,
     action = "idle",
@@ -64,6 +66,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     skeleton,
     selectedBone,
     period,
+    worldTime,
   });
   live.current = {
     action,
@@ -73,6 +76,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     skeleton,
     selectedBone,
     period,
+    worldTime,
   };
   const changeAnimation = useRef<() => void>(() => {});
   const changeDebug = useRef<() => void>(() => {});
@@ -371,7 +375,15 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ) {
         mixer.update(delta);
         controls.update();
-        environment?.update(now / 1000);
+        environment?.update(now / 1000, live.current.worldTime);
+        if (environment) {
+          key.color.setHex(environment.colors.light);
+          key.intensity = environment.colors.intensity;
+          if (environment.lightPosition)
+            key.position.copy(environment.lightPosition);
+          if (environment.colors.ambientIntensity !== undefined)
+            ambient.intensity = environment.colors.ambientIntensity;
+        }
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
       } else {
@@ -628,7 +640,9 @@ export function EvolutionModel({
   sleeping = false,
   landscape = false,
   period = "Day",
+  worldTime,
 }: {
+  worldTime?: number;
   landscape?: boolean;
   period?: WorldPeriod;
   evolution: Evolution;
@@ -684,6 +698,7 @@ export function EvolutionModel({
         <AssetViewer
           landscape={landscape}
           period={period}
+          worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
           model={loaded.model}
           action={action}
