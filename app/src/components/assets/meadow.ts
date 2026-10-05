@@ -188,6 +188,52 @@ function createTerrainTexture() {
   return texture;
 }
 
+
+function createCloudSprite(
+  own: { dispose(): void }[],
+  color: number,
+  opacity: number,
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 192;
+  canvas.height = 96;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const puffs = [
+    [52, 58, 36],
+    [88, 45, 44],
+    [126, 57, 33],
+    [103, 65, 38],
+  ] as const;
+  for (const [x, y, r] of puffs) {
+    const g = ctx.createRadialGradient(x, y, 3, x, y, r);
+    g.addColorStop(0, "rgba(255,255,255,.95)");
+    g.addColorStop(0.55, "rgba(255,255,255,.72)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  own.push(texture);
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    color,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    depthTest: true,
+    fog: false,
+  });
+  own.push(material);
+  return new THREE.Sprite(material);
+}
+
 function put(src: THREE.Object3D | null, parent: THREE.Group, x: number, z: number, h: number, r = 0) {
   if (!src) return null;
   const o = fit(src.clone(true), h);
@@ -202,6 +248,7 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const colors = palettes[period];
   const group = new THREE.Group();
   scene.add(group);
+  const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   scene.background = new THREE.Color(colors.sky);
   scene.fog = new THREE.Fog(colors.sky, 18, 50);
   // Resources created here (and only these) are released in dispose().
@@ -280,8 +327,35 @@ diffuseColor.rgb *= 1.0 + macro;`,
     track(new THREE.SphereGeometry(period === "Night" ? 0.65 : 1, 16, 10)),
     track(new THREE.MeshBasicMaterial({ color: period === "Night" ? 0xe2eeff : 0xffe3af, fog: false })),
   );
-  orb.position.set(-3, 6, -28);
+  orb.position.set(period === "Evening" ? -2.6 : -3, period === "Evening" ? 5.6 : 6, -28);
   group.add(orb);
+
+  const cloudColor =
+    period === "Night"
+      ? 0xb9c7e7
+      : period === "Evening"
+        ? 0xffcfae
+        : period === "Morning"
+          ? 0xffead8
+          : 0xffffff;
+  const clouds: Array<{ sprite: THREE.Sprite; baseX: number; speed: number; phase: number }> = [];
+  const cloudDefs = mobile
+    ? [
+        [-6.4, 6.4, -19, 3.7, 1.55, 0.68, 0.045, 0.2],
+        [4.8, 7.3, -24, 4.6, 1.85, 0.58, 0.032, 1.6],
+      ]
+    : [
+        [-10.5, 6.8, -19, 5.2, 1.9, 0.72, 0.042, 0.2],
+        [2.8, 7.8, -24, 6.0, 2.2, 0.62, 0.030, 1.5],
+        [11.5, 6.1, -29, 4.2, 1.55, 0.50, 0.024, 2.7],
+      ];
+  cloudDefs.forEach(([x, y, z, sx, sy, opacity, speed, phase]) => {
+    const sprite = createCloudSprite(own, cloudColor, period === "Night" ? opacity * 0.35 : opacity);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(sx, sy, 1);
+    group.add(sprite);
+    clouds.push({ sprite, baseX: x, speed, phase });
+  });
   if (period === "Night") {
     const p: number[] = [];
     for (let i = 0; i < 70; i++) {
@@ -310,7 +384,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
   shadow.position.set(0, 0.025, 0.1);
   group.add(shadow);
 
-  const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   let disposed = false;
 
   // Drifting pollen/dust: a few soft points carried by the same breeze. They make
@@ -365,26 +438,53 @@ diffuseColor.rgb *= 1.0 + macro;`,
 
     // Mountains live on the horizon, not directly behind the companion.
     if (a.mountains) {
-      const m1 = fit(a.mountains.clone(true), mobile ? 8 : 10);
-      m1.position.set(-11, -0.3, -32);
-      m1.rotation.y = 0.18;
-      group.add(m1);
-      const m2 = fit(a.mountains.clone(true), mobile ? 7 : 9);
-      m2.position.set(11, -0.4, -38);
-      m2.rotation.y = Math.PI * 0.82;
-      group.add(m2);
+      const far = fit(a.mountains.clone(true), mobile ? 8.5 : 11);
+      far.position.set(mobile ? -7 : -13, -0.55, -40);
+      far.rotation.y = 0.16;
+      group.add(far);
+
+      const mid = fit(a.mountains.clone(true), mobile ? 7.2 : 9.5);
+      mid.position.set(mobile ? 9 : 12, -0.45, -34);
+      mid.rotation.y = Math.PI * 0.83;
+      group.add(mid);
+
+      if (!mobile) {
+        const center = fit(a.mountains.clone(true), 7.5);
+        center.position.set(0, -0.7, -47);
+        center.rotation.y = Math.PI * 0.11;
+        group.add(center);
+      }
     }
+
+    // Composition is intentionally asymmetrical: foreground framing, an open
+    // center for the companion, then secondary props receding into depth.
     const tall: [THREE.Group | null | undefined, number, number, number, number][] = mobile
-      ? [[a.tree, -5.8, -7.2, 5.2, 0.15], [a.pine, 5.9, -8.0, 5.8, -0.2]]
-      : [[a.tree, -6, -7, 5.8, 0.15], [a.pine, 6, -8, 6.4, -0.2], [a.pine, -8, -3, 5.2, 0.25], [a.tree, 8, -3.5, 5.5, -0.25]];
+      ? [
+          [a.tree, -5.5, -5.6, 5.8, 0.18],
+          [a.pine, 6.7, -10.8, 4.6, -0.28],
+        ]
+      : [
+          [a.tree, -7.2, -5.8, 7.2, 0.18],
+          [a.pine, 7.6, -10.2, 5.5, -0.28],
+          [a.tree, 11.2, -15.5, 4.5, -0.22],
+          [a.pine, -11.0, -15.0, 4.2, 0.22],
+        ];
     tall.forEach(([src, x, z, h, r]) => put(src ?? null, group, x, z, h, r));
-    const bushes = mobile ? [[-3.8, -2.5], [3.9, -2.8]] : [[-3.8, -2.5], [3.9, -2.8], [-4.5, 2.4], [4.6, 2.1]];
-    bushes.forEach(([x, z], i) => put(a.bush ?? null, group, x, z, 1.05, i * 0.7));
-    put(a.rocks ?? null, group, -2.9, 1.8, 0.65, 0.3);
+
+    const bushes = mobile
+      ? [[-4.2, -1.7], [4.6, -3.4]]
+      : [[-5.2, -1.8], [5.4, -3.0], [-7.8, -7.0], [8.2, -8.0]];
+    bushes.forEach(([x, z], i) => put(a.bush ?? null, group, x, z, i < 2 ? 1.0 : 0.75, i * 0.62));
+
+    // Foreground rocks deliberately graze the frame edges so the camera feels
+    // embedded in the habitat rather than looking at a stage from outside.
+    put(a.rocks ?? null, group, mobile ? 4.2 : 5.2, mobile ? 1.8 : 2.2, mobile ? 0.55 : 0.8, -0.22);
+    put(a.rocks ?? null, group, mobile ? -4.7 : -6.2, mobile ? 2.8 : 3.4, mobile ? 0.38 : 0.62, 0.42);
+
     if (!mobile) {
-      put(a.stump ?? null, group, -4, 0.2, 0.85, 0.2);
-      put(a.log ?? null, group, 4.2, 0.3, 0.75, -0.5);
-      put(a.mushrooms ?? null, group, -2, -1.8, 0.4, 0.15);
+      put(a.stump ?? null, group, -8.4, 0.9, 0.9, 0.22);
+      put(a.log ?? null, group, 8.0, 0.5, 0.9, -0.45);
+      put(a.mushrooms ?? null, group, -3.0, -0.8, 0.48, 0.12);
     }
   })();
 
@@ -394,6 +494,11 @@ diffuseColor.rgb *= 1.0 + macro;`,
     const dt = lastTime ? Math.min(time - lastTime, 0.1) : 0;
     lastTime = time;
     wind.time.value = time;
+    for (const cloud of clouds) {
+      cloud.sprite.position.x =
+        cloud.baseX +
+        Math.sin(time * cloud.speed + cloud.phase) * (mobile ? 0.65 : 1.1);
+    }
     if (!motes) return;
     for (let i = 0; i < moteCount; i++) {
       const s = moteSeed[i];
