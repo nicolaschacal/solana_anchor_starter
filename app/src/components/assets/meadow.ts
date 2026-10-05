@@ -5,32 +5,36 @@ import type { WorldPeriod } from "../../hooks/useWorldClock";
 
 const palettes = {
   Night: {
-    sky: 0x101e42,
+    sky: 0x111b3e,
+    horizon: 0x455b82,
     ground: 0x244539,
     grass: 0x41614b,
     light: 0xa9c5ff,
-    intensity: 1.4,
+    intensity: 1.1,
   },
   Morning: {
-    sky: 0x9bbfcb,
+    sky: 0x80b9df,
+    horizon: 0xffdfbd,
     ground: 0x607b40,
     grass: 0x92ab58,
     light: 0xffe4ba,
     intensity: 2.4,
   },
   Day: {
-    sky: 0x83c4e3,
+    sky: 0x559fda,
+    horizon: 0xd2edf0,
     ground: 0x5c843c,
     grass: 0x95b953,
     light: 0xfff2d5,
     intensity: 2.6,
   },
   Evening: {
-    sky: 0x696886,
+    sky: 0x656fa6,
+    horizon: 0xf1bc9d,
     ground: 0x4c6240,
     grass: 0x818453,
     light: 0xffc191,
-    intensity: 2,
+    intensity: 2.25,
   },
 };
 const moteColors = {
@@ -241,49 +245,29 @@ function createTerrainTexture() {
   return texture;
 }
 
-function createCloudSprite(
-  own: { dispose(): void }[],
-  color: number,
-  opacity: number,
-) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 192;
-  canvas.height = 96;
-  const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const puffs = [
-    [52, 58, 36],
-    [88, 45, 44],
-    [126, 57, 33],
-    [103, 65, 38],
-  ] as const;
-  for (const [x, y, r] of puffs) {
-    const g = ctx.createRadialGradient(x, y, 3, x, y, r);
-    g.addColorStop(0, "rgba(255,255,255,.95)");
-    g.addColorStop(0.55, "rgba(255,255,255,.72)");
-    g.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  own.push(texture);
-  const material = new THREE.SpriteMaterial({
-    map: texture,
+// Opaque low-poly volumes avoid transparent sprite overlap and texture noise.
+function createCloudGroup(own: { dispose(): void }[], color: number) {
+  const group = new THREE.Group();
+  const geometry = new THREE.SphereGeometry(1, 12, 8);
+  const material = new THREE.MeshStandardMaterial({
     color,
-    transparent: true,
-    opacity,
-    depthWrite: false,
-    depthTest: true,
+    roughness: 1,
+    metalness: 0,
     fog: false,
   });
-  own.push(material);
-  return new THREE.Sprite(material);
+  own.push(geometry, material);
+  for (const [x, y, radius] of [
+    [-0.75, 0, 0.55],
+    [-0.25, 0.18, 0.73],
+    [0.38, 0.08, 0.63],
+    [0.86, -0.04, 0.42],
+  ]) {
+    const puff = new THREE.Mesh(geometry, material);
+    puff.position.set(x, y, 0);
+    puff.scale.set(radius, radius * 0.68, radius * 0.65);
+    group.add(puff);
+  }
+  return group;
 }
 
 function put(
@@ -309,13 +293,45 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   scene.add(group);
   const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.sky, 28, 85);
+  scene.fog = new THREE.Fog(colors.horizon, 22, 70);
   // Resources created here (and only these) are released in dispose().
   const own: { dispose(): void }[] = [];
   const track = <T extends { dispose(): void }>(resource: T) => (
     own.push(resource),
     resource
   );
+
+  // World-space gradient sky, independent of lighting and below all scenery.
+  const sky = new THREE.Mesh(
+    track(new THREE.SphereGeometry(90, 24, 16)),
+    track(
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        fog: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(colors.sky) },
+          horizonColor: { value: new THREE.Color(colors.horizon) },
+        },
+        vertexShader: `varying vec3 vSkyDirection;
+        void main() {
+          vSkyDirection = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        fragmentShader: `uniform vec3 topColor; uniform vec3 horizonColor;
+        varying vec3 vSkyDirection;
+        void main() {
+          float height = normalize(vSkyDirection).y;
+          float blend = smoothstep(-0.04, 0.48, height);
+          gl_FragColor = vec4(mix(horizonColor, topColor, blend), 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+      }),
+    ),
+  );
+  sky.renderOrder = -10;
+  group.add(sky);
 
   // One continuous low-poly terrain. GLB tiles are intentionally NOT used as
   // ground: Meshy's pieces have thickness/irregular borders and cannot tessellate.
@@ -387,7 +403,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     return seed / 4294967296;
   };
   const orb = new THREE.Mesh(
-    track(new THREE.SphereGeometry(period === "Night" ? 0.65 : 1, 16, 10)),
+    track(new THREE.SphereGeometry(period === "Night" ? 0.48 : 0.62, 24, 16)),
     track(
       new THREE.MeshBasicMaterial({
         color: period === "Night" ? 0xe2eeff : 0xffe3af,
@@ -396,11 +412,34 @@ diffuseColor.rgb *= 1.0 + macro;`,
     ),
   );
   orb.position.set(
-    period === "Evening" ? -3.4 : 3.8,
-    period === "Evening" ? 7.8 : 10,
-    -28,
+    period === "Evening" ? 1.6 : 2.6,
+    period === "Evening" ? 7.2 : 9.2,
+    -32,
   );
   group.add(orb);
+  const glowCanvas = document.createElement("canvas");
+  glowCanvas.width = glowCanvas.height = 128;
+  const glowContext = glowCanvas.getContext("2d")!;
+  const glow = glowContext.createRadialGradient(64, 64, 5, 64, 64, 64);
+  glow.addColorStop(0, "rgba(255,255,255,0.28)");
+  glow.addColorStop(0.35, "rgba(255,255,255,0.12)");
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  glowContext.fillStyle = glow;
+  glowContext.fillRect(0, 0, 128, 128);
+  const halo = new THREE.Sprite(
+    track(
+      new THREE.SpriteMaterial({
+        map: track(new THREE.CanvasTexture(glowCanvas)),
+        color: period === "Night" ? 0xb9d3ff : 0xffda9b,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+      }),
+    ),
+  );
+  halo.position.copy(orb.position);
+  halo.scale.setScalar(period === "Night" ? 2.6 : 3.6);
+  group.add(halo);
 
   const cloudColor =
     period === "Night"
@@ -411,24 +450,20 @@ diffuseColor.rgb *= 1.0 + macro;`,
           ? 0xffead8
           : 0xffffff;
   const clouds: Array<{
-    sprite: THREE.Sprite;
+    sprite: THREE.Group;
     baseX: number;
     speed: number;
     phase: number;
   }> = [];
   const cloudDefs = [
-    [-5.4, 10.8, -27, 7.5, 2.5, 0.8, 0.028, 0.2],
-    [4.2, 8.6, -23, 6.5, 2.1, 0.72, 0.022, 1.6],
-    [0.8, 12.8, -35, 9.0, 2.4, 0.6, 0.018, 2.7],
+    [-3.4, 9.4, -36, 2.4, 0.025, 0.2],
+    [5.0, 8.2, -34, 1.8, 0.018, 1.6],
+    [0.4, 12.0, -43, 2.1, 0.012, 2.7],
   ];
-  cloudDefs.forEach(([x, y, z, sx, sy, opacity, speed, phase]) => {
-    const sprite = createCloudSprite(
-      own,
-      cloudColor,
-      period === "Night" ? opacity * 0.35 : opacity,
-    );
+  cloudDefs.forEach(([x, y, z, scale, speed, phase]) => {
+    const sprite = createCloudGroup(own, cloudColor);
     sprite.position.set(x, y, z);
-    sprite.scale.set(sx, sy, 1);
+    sprite.scale.setScalar(scale);
     group.add(sprite);
     clouds.push({ sprite, baseX: x, speed, phase });
   });

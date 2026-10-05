@@ -26,6 +26,7 @@ import "./assets.css";
 export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
   landscape?: boolean;
+  creatureScale?: number;
   period?: WorldPeriod;
   model: AssetModel;
   clips?: THREE.AnimationClip[];
@@ -38,6 +39,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   {
     model,
     landscape = false,
+    creatureScale = 1,
     period = "Day",
     clips = model.clips,
     action = "idle",
@@ -103,7 +105,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const ambient = new THREE.HemisphereLight(0xd9efff, 0x384252, 2.3);
     scene.add(ambient);
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
-    key.position.set(3, 5, 4);
+    key.position.set(-3, 5, 4);
+    const fill = new THREE.DirectionalLight(0xb9d9ff, landscape ? 0.45 : 0);
+    fill.position.set(4, 3, -3);
+    scene.add(fill);
     scene.add(key);
     const initialPeriod = live.current.period;
     let environment = landscape ? meadow(scene, initialPeriod) : null;
@@ -113,10 +118,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       key.intensity = environment.colors.intensity;
       ambient.intensity =
         initialPeriod === "Night"
-          ? 0.65
+          ? 0.8
           : initialPeriod === "Evening"
-            ? 1.2
-            : 1.8;
+            ? 1.5
+            : 1.9;
       ambient.color.setHex(initialPeriod === "Night" ? 0x8faeff : 0xd9efff);
     }
     changePeriod.current = (next) => {
@@ -128,7 +133,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         key.color.setHex(environment.colors.light);
         key.intensity = environment.colors.intensity;
         ambient.intensity =
-          next === "Night" ? 0.65 : next === "Evening" ? 1.2 : 1.8;
+          next === "Night" ? 0.8 : next === "Evening" ? 1.5 : 1.9;
         ambient.color.setHex(next === "Night" ? 0x8faeff : 0xd9efff);
       }
     };
@@ -140,7 +145,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const bounds = new THREE.Box3().setFromObject(root),
       size = bounds.getSize(new THREE.Vector3()),
       center = bounds.getCenter(new THREE.Vector3());
-    const scale = 2 / Math.max(size.x, size.y, size.z, 0.001);
+    const framingScale = 2 / Math.max(size.x, size.y, size.z, 0.001);
+    const scale = framingScale * (landscape ? creatureScale : 1);
     stage.scale.setScalar(scale);
     stage.position.set(
       -center.x * scale,
@@ -298,7 +304,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       if (landscape) {
         const distance = Math.max(
           camera.aspect < 1 ? 4.8 : 6.8,
-          (size.x * scale) /
+          (size.x * framingScale) /
             (2 *
               Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
               camera.aspect *
@@ -431,7 +437,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [model, landscape]);
+  }, [model, landscape, creatureScale]);
   useEffect(() => changeAnimation.current(), [action, clips]);
   useEffect(() => changeDebug.current(), [skeleton, selectedBone]);
   useEffect(() => changePeriod.current(period), [period]);
@@ -491,14 +497,17 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     const hemi = new THREE.HemisphereLight(
       period === "Night" ? 0x8faeff : 0xdff5ff,
       0x314536,
-      period === "Night" ? 0.65 : period === "Evening" ? 1.2 : 1.8,
+      period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
     );
     scene.add(hemi);
     const key = new THREE.DirectionalLight(
       env.colors.light,
       env.colors.intensity,
     );
-    key.position.set(3, 6, 4);
+    key.position.set(-3, 5, 4);
+    const fill = new THREE.DirectionalLight(0xb9d9ff, 0.45);
+    fill.position.set(4, 3, -3);
+    scene.add(fill);
     scene.add(key);
 
     const platform = new THREE.Mesh(
@@ -649,6 +658,7 @@ export function EvolutionModel({
         <AssetViewer
           landscape={landscape}
           period={period}
+          creatureScale={evolution.stage === 0 ? 0.8 : 1}
           model={loaded.model}
           action={action}
           sleeping={sleeping}
