@@ -158,13 +158,16 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         camera.position.set(0, 2.2, 4.7);
         controls.target.set(0, 1.6, 0);
       }
-      const polar = new THREE.Spherical().setFromVector3(
+      const spherical = new THREE.Spherical().setFromVector3(
         camera.position.clone().sub(controls.target),
-      ).phi;
-      controls.minPolarAngle = polar;
-      controls.maxPolarAngle = polar;
+      );
+      controls.minPolarAngle = spherical.phi;
+      controls.maxPolarAngle = spherical.phi;
+      controls.minAzimuthAngle = spherical.theta;
+      controls.maxAzimuthAngle = spherical.theta;
       controls.enablePan = false;
       controls.enableZoom = false;
+      controls.enableRotate = false;
     }
     controls.enableDamping = true;
     controls.minDistance = 1;
