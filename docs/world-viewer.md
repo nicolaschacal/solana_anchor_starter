@@ -1,6 +1,6 @@
 # Grounded game viewer
 
-The player Home uses a procedural grassy ground with a continuous horizon, low-poly hills, contact shadow, and time-dependent sky/lighting. Night includes moon and stars. The Design Lab keeps its workshop platform. The camera preserves a fixed elevation, disables pan and zoom, and permits horizontal orbit only. Responsive framing fits the creature to approximately 70% of the portrait width.
+The player Home uses a procedural grassy ground with a continuous horizon, low-poly hills, contact shadow, and time-dependent sky/lighting. Night includes moon and stars. The Design Lab keeps its workshop platform. The camera preserves a fixed elevation, disables pan and zoom, and locks both horizontal and vertical orbit. Responsive framing fits the creature to approximately 70% of the portrait width.
 
 The HUD clock replaces the compact bond badge; bond remains in the status details. All times are UTC, matching `utc_time_bucket` in the program: Night 00–06, Morning 06–12, Day 12–18, Evening 18–24.
 
@@ -24,7 +24,15 @@ The same `meadow()` composition is used by the signed-out login scene (`GuestWor
 
 - **Wind.** Trees, pines and berry bushes bend in the vertex shader, weighted by height so trunks stay planted, plus a few pollen/dust motes drifting with the breeze. No extra render loop or draw calls. `prefers-reduced-motion` lowers sway to 30% and hides the motes.
 - **Shared cache.** Each environment GLB is downloaded, decoded and uploaded once per page; the login scene, the companion scene and day/night changes reuse it. Cached assets are never disposed by a scene.
-- **Mobile.** Phones render at pixel ratio 1 and load 8 of the 11 props with fewer tiles and motes. The login scene releases its WebGL context when it unmounts.
+- **Mobile.** Phones render at pixel ratio 1, reuse the same cached props as desktop, and reduce woodland repeats, instanced grass and motes. The login scene releases its WebGL context when it unmounts.
 - **Asset budget.** All 14 environment GLBs total about 1 MB (about 65-90 KB each): 128-256 px WebP colour map, no metallic-roughness map, quantized + Meshopt geometry. Regenerate with `node scripts/assets/optimize-environment.mjs`.
 - **Never ship raw Meshy exports.** They carry two 4096x4096 PNG textures (about 21 MB per model) that exhaust GPU memory on phones. Optimize first, then place the result in `app/public/assets/environment/`.
 - **GLB padding.** `node scripts/assets/fix-glb-json-padding.mjs FILE.glb` repairs GLBs whose JSON chunk is padded with NUL bytes; three.js rejects those without a visible error in the scene.
+
+## Layered lakeside composition
+
+The fixed-camera habitat has foreground bushes, stones, mushrooms and instanced flowers; an open companion clearing; asymmetric tree framing; a winding trail and animated lake; a wooded far bank; and three overlapping mountain silhouettes. Clouds, foliage, narrow grass blades, water ripples and airborne motes use the existing animation loop. The camera pulls back in landscape view to keep the companion grounded and fully visible.
+
+Imported props are normalized inside a separate pivot before placement and rotation. Mountain depth is constrained to keep the model's terrain apron behind the lake. Fog begins behind the near woodland and gradually separates the distant ridges. Mobile uses the same scene structure with fewer repeated plants. Scene disposal releases procedural meshes, instanced buffers and cloned mountain materials while preserving cached GLB resources.
+
+No additional asset is required. An optional low-poly ruined tower or stone arch on the far bank would add a landmark resembling the reference; export it with a ground-level pivot and optimize it before use.

@@ -4,18 +4,53 @@ import { MeshoptDecoder } from "meshoptimizer";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 
 const palettes = {
-  Night: { sky: 0x101e42, ground: 0x244539, grass: 0x41614b, light: 0xa9c5ff, intensity: 1.4 },
-  Morning: { sky: 0x9bbfcb, ground: 0x607b40, grass: 0x92ab58, light: 0xffe4ba, intensity: 2.4 },
-  Day: { sky: 0x83c4e3, ground: 0x5c843c, grass: 0x95b953, light: 0xfff2d5, intensity: 2.6 },
-  Evening: { sky: 0x696886, ground: 0x4c6240, grass: 0x818453, light: 0xffc191, intensity: 2 },
+  Night: {
+    sky: 0x101e42,
+    ground: 0x244539,
+    grass: 0x41614b,
+    light: 0xa9c5ff,
+    intensity: 1.4,
+  },
+  Morning: {
+    sky: 0x9bbfcb,
+    ground: 0x607b40,
+    grass: 0x92ab58,
+    light: 0xffe4ba,
+    intensity: 2.4,
+  },
+  Day: {
+    sky: 0x83c4e3,
+    ground: 0x5c843c,
+    grass: 0x95b953,
+    light: 0xfff2d5,
+    intensity: 2.6,
+  },
+  Evening: {
+    sky: 0x696886,
+    ground: 0x4c6240,
+    grass: 0x818453,
+    light: 0xffc191,
+    intensity: 2,
+  },
 };
-const moteColors = { Night: 0xbcd4ff, Morning: 0xfff0cf, Day: 0xffffff, Evening: 0xffd9b0 };
+const moteColors = {
+  Night: 0xbcd4ff,
+  Morning: 0xfff0cf,
+  Day: 0xffffff,
+  Evening: 0xffd9b0,
+};
 
 const ENV = "/assets/environment/";
 const files = {
-  mountains: "distant-mountains.glb", pine: "pine-tree.glb", tree: "deciduous-tree.glb",
-  bush: "berry-bush.glb", rocks: "mossy-rocks.glb", stump: "tree-stump.glb",
-  log: "hollow-log.glb", mushrooms: "red-mushrooms.glb",
+  mountains: "distant-mountains.glb",
+  pine: "pine-tree.glb",
+  tree: "deciduous-tree.glb",
+  bush: "berry-bush.glb",
+  rocks: "mossy-rocks.glb",
+  stump: "tree-stump.glb",
+  log: "hollow-log.glb",
+  mushrooms: "red-mushrooms.glb",
+  shore: "water-shore-straight.glb",
 } as const;
 type AssetKey = keyof typeof files;
 
@@ -34,7 +69,8 @@ function loadAsset(key: AssetKey): Promise<THREE.Group | null> {
     pending = sharedLoader
       .loadAsync(ENV + files[key])
       .then((gltf) => {
-        if (key === "tree" || key === "pine" || key === "bush") addWind(gltf.scene, windStrength[key]);
+        if (key === "tree" || key === "pine" || key === "bush")
+          addWind(gltf.scene, windStrength[key]);
         return gltf.scene;
       })
       .catch((error) => {
@@ -52,7 +88,8 @@ function loadAsset(key: AssetKey): Promise<THREE.Group | null> {
 // model's base, so trunks stay planted while crowns sway. It costs no CPU work
 // and no extra draw calls. One uniform drives every patched material.
 const reducedMotion =
-  typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof matchMedia === "function" &&
+  matchMedia("(prefers-reduced-motion: reduce)").matches;
 const wind = { time: { value: 0 }, gain: { value: reducedMotion ? 0.3 : 1 } };
 const windStrength = { tree: 0.035, pine: 0.028, bush: 0.045 } as const;
 
@@ -60,7 +97,12 @@ function addWind(root: THREE.Object3D, strength: number) {
   const patched = new Set<THREE.Material>();
   root.traverse((node) => {
     const mesh = node as THREE.Mesh;
-    if (!mesh.isMesh || Array.isArray(mesh.material) || patched.has(mesh.material)) return;
+    if (
+      !mesh.isMesh ||
+      Array.isArray(mesh.material) ||
+      patched.has(mesh.material)
+    )
+      return;
     const material = mesh.material as THREE.MeshStandardMaterial;
     mesh.geometry.computeBoundingBox();
     // Decoded attribute space (quantized models are decoded to roughly -1..1).
@@ -97,27 +139,31 @@ transformed.z += cos(uTime * 0.7 + windPhase) * windH * uAmp * 0.5 * uGain;`,
 }
 
 // ---- Helpers ----------------------------------------------------------------
+// Normalize inside a separate pivot. Rotating an imported Meshy root after
+// recentering it otherwise rotates its original offset back out of the frame.
+function normalize(o: THREE.Object3D, extent: number, ground = false) {
+  o.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(o);
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+  const scale =
+    extent / Math.max(ground ? Math.max(size.x, size.z) : size.y, 0.001);
+  const pivot = new THREE.Group();
+  o.scale.multiplyScalar(scale);
+  o.position.multiplyScalar(scale);
+  o.position.add(
+    new THREE.Vector3(-center.x, -bounds.min.y, -center.z).multiplyScalar(
+      scale,
+    ),
+  );
+  pivot.add(o);
+  return pivot;
+}
 function fit(o: THREE.Object3D, height: number) {
-  o.updateMatrixWorld(true);
-  let b = new THREE.Box3().setFromObject(o);
-  const s = b.getSize(new THREE.Vector3());
-  o.scale.setScalar(height / Math.max(s.y, 0.001));
-  o.updateMatrixWorld(true);
-  b = new THREE.Box3().setFromObject(o);
-  const c = b.getCenter(new THREE.Vector3());
-  o.position.set(-c.x, -b.min.y, -c.z);
-  return o;
+  return normalize(o, height);
 }
 function fitGround(o: THREE.Object3D, width: number) {
-  o.updateMatrixWorld(true);
-  let b = new THREE.Box3().setFromObject(o);
-  const s = b.getSize(new THREE.Vector3());
-  o.scale.setScalar(width / Math.max(s.x, s.z, 0.001));
-  o.updateMatrixWorld(true);
-  b = new THREE.Box3().setFromObject(o);
-  const c = b.getCenter(new THREE.Vector3());
-  o.position.set(-c.x, -b.min.y, -c.z);
-  return o;
+  return normalize(o, width, true);
 }
 
 function createTerrainTexture() {
@@ -135,7 +181,8 @@ function createTerrainTexture() {
 
   // Broad tonal variation: stylized, not photorealistic.
   for (let i = 0; i < 90; i++) {
-    const x = rand() * 512, y = rand() * 512;
+    const x = rand() * 512,
+      y = rand() * 512;
     const r = 22 + rand() * 74;
     ctx.beginPath();
     const points = 5 + Math.floor(rand() * 4);
@@ -144,17 +191,21 @@ function createTerrainTexture() {
       const rr = r * (0.65 + rand() * 0.45);
       const px = x + Math.cos(a) * rr;
       const py = y + Math.sin(a) * rr;
-      if (p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      if (p === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
     }
     ctx.closePath();
-    ctx.fillStyle = rand() > 0.5 ? "rgba(139,177,72,.18)" : "rgba(50,99,47,.14)";
+    ctx.fillStyle =
+      rand() > 0.5 ? "rgba(139,177,72,.18)" : "rgba(50,99,47,.14)";
     ctx.fill();
   }
 
   // Sparse dirt islands mixed into the grass material.
   for (let i = 0; i < 12; i++) {
-    const x = rand() * 512, y = rand() * 512;
-    const rx = 18 + rand() * 42, ry = 10 + rand() * 28;
+    const x = rand() * 512,
+      y = rand() * 512;
+    const rx = 18 + rand() * 42,
+      ry = 10 + rand() * 28;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rand() * Math.PI);
@@ -168,9 +219,11 @@ function createTerrainTexture() {
   // Small angular grass flecks break the flatness without adding geometry.
   ctx.lineCap = "round";
   for (let i = 0; i < 320; i++) {
-    const x = rand() * 512, y = rand() * 512;
+    const x = rand() * 512,
+      y = rand() * 512;
     const len = 2 + rand() * 5;
-    ctx.strokeStyle = rand() > 0.5 ? "rgba(177,208,90,.32)" : "rgba(37,82,39,.28)";
+    ctx.strokeStyle =
+      rand() > 0.5 ? "rgba(177,208,90,.32)" : "rgba(37,82,39,.28)";
     ctx.lineWidth = 1 + rand() * 1.4;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -187,7 +240,6 @@ function createTerrainTexture() {
   texture.needsUpdate = true;
   return texture;
 }
-
 
 function createCloudSprite(
   own: { dispose(): void }[],
@@ -234,7 +286,14 @@ function createCloudSprite(
   return new THREE.Sprite(material);
 }
 
-function put(src: THREE.Object3D | null, parent: THREE.Group, x: number, z: number, h: number, r = 0) {
+function put(
+  src: THREE.Object3D | null,
+  parent: THREE.Group,
+  x: number,
+  z: number,
+  h: number,
+  r = 0,
+) {
   if (!src) return null;
   const o = fit(src.clone(true), h);
   o.position.x += x;
@@ -250,15 +309,19 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   scene.add(group);
   const mobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   scene.background = new THREE.Color(colors.sky);
-  scene.fog = new THREE.Fog(colors.sky, 18, 50);
+  scene.fog = new THREE.Fog(colors.sky, 28, 85);
   // Resources created here (and only these) are released in dispose().
   const own: { dispose(): void }[] = [];
-  const track = <T extends { dispose(): void }>(resource: T) => (own.push(resource), resource);
+  const track = <T extends { dispose(): void }>(resource: T) => (
+    own.push(resource),
+    resource
+  );
 
   // One continuous low-poly terrain. GLB tiles are intentionally NOT used as
   // ground: Meshy's pieces have thickness/irregular borders and cannot tessellate.
   const terrainGeometry = track(new THREE.PlaneGeometry(120, 120, 20, 20));
-  const terrainPositions = terrainGeometry.attributes.position as THREE.BufferAttribute;
+  const terrainPositions = terrainGeometry.attributes
+    .position as THREE.BufferAttribute;
   for (let i = 0; i < terrainPositions.count; i++) {
     const x = terrainPositions.getX(i);
     const y = terrainPositions.getY(i);
@@ -325,9 +388,18 @@ diffuseColor.rgb *= 1.0 + macro;`,
   };
   const orb = new THREE.Mesh(
     track(new THREE.SphereGeometry(period === "Night" ? 0.65 : 1, 16, 10)),
-    track(new THREE.MeshBasicMaterial({ color: period === "Night" ? 0xe2eeff : 0xffe3af, fog: false })),
+    track(
+      new THREE.MeshBasicMaterial({
+        color: period === "Night" ? 0xe2eeff : 0xffe3af,
+        fog: false,
+      }),
+    ),
   );
-  orb.position.set(period === "Evening" ? -2.6 : -3, period === "Evening" ? 5.6 : 6, -28);
+  orb.position.set(
+    period === "Evening" ? -3.4 : 3.8,
+    period === "Evening" ? 7.8 : 10,
+    -28,
+  );
   group.add(orb);
 
   const cloudColor =
@@ -338,19 +410,23 @@ diffuseColor.rgb *= 1.0 + macro;`,
         : period === "Morning"
           ? 0xffead8
           : 0xffffff;
-  const clouds: Array<{ sprite: THREE.Sprite; baseX: number; speed: number; phase: number }> = [];
-  const cloudDefs = mobile
-    ? [
-        [-6.4, 6.4, -19, 3.7, 1.55, 0.68, 0.045, 0.2],
-        [4.8, 7.3, -24, 4.6, 1.85, 0.58, 0.032, 1.6],
-      ]
-    : [
-        [-10.5, 6.8, -19, 5.2, 1.9, 0.72, 0.042, 0.2],
-        [2.8, 7.8, -24, 6.0, 2.2, 0.62, 0.030, 1.5],
-        [11.5, 6.1, -29, 4.2, 1.55, 0.50, 0.024, 2.7],
-      ];
+  const clouds: Array<{
+    sprite: THREE.Sprite;
+    baseX: number;
+    speed: number;
+    phase: number;
+  }> = [];
+  const cloudDefs = [
+    [-5.4, 10.8, -27, 7.5, 2.5, 0.8, 0.028, 0.2],
+    [4.2, 8.6, -23, 6.5, 2.1, 0.72, 0.022, 1.6],
+    [0.8, 12.8, -35, 9.0, 2.4, 0.6, 0.018, 2.7],
+  ];
   cloudDefs.forEach(([x, y, z, sx, sy, opacity, speed, phase]) => {
-    const sprite = createCloudSprite(own, cloudColor, period === "Night" ? opacity * 0.35 : opacity);
+    const sprite = createCloudSprite(
+      own,
+      cloudColor,
+      period === "Night" ? opacity * 0.35 : opacity,
+    );
     sprite.position.set(x, y, z);
     sprite.scale.set(sx, sy, 1);
     group.add(sprite);
@@ -364,7 +440,18 @@ diffuseColor.rgb *= 1.0 + macro;`,
     }
     const g = track(new THREE.BufferGeometry());
     g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
-    group.add(new THREE.Points(g, track(new THREE.PointsMaterial({ color: 0xd4e6ff, size: 0.085, fog: false }))));
+    group.add(
+      new THREE.Points(
+        g,
+        track(
+          new THREE.PointsMaterial({
+            color: 0xd4e6ff,
+            size: 0.085,
+            fog: false,
+          }),
+        ),
+      ),
+    );
   }
 
   const blob = document.createElement("canvas");
@@ -378,7 +465,13 @@ diffuseColor.rgb *= 1.0 + macro;`,
   ctx.fillRect(0, 0, 64, 64);
   const shadow = new THREE.Mesh(
     track(new THREE.PlaneGeometry(2.7, 1.7)),
-    track(new THREE.MeshBasicMaterial({ map: track(new THREE.CanvasTexture(blob)), transparent: true, depthWrite: false })),
+    track(
+      new THREE.MeshBasicMaterial({
+        map: track(new THREE.CanvasTexture(blob)),
+        transparent: true,
+        depthWrite: false,
+      }),
+    ),
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.set(0, 0.025, 0.1);
@@ -415,8 +508,12 @@ diffuseColor.rgb *= 1.0 + macro;`,
       geometry,
       track(
         new THREE.PointsMaterial({
-          color: moteColors[period], size: 0.075, map: track(new THREE.CanvasTexture(dot)),
-          transparent: true, opacity: period === "Night" ? 0.5 : 0.6, depthWrite: false,
+          color: moteColors[period],
+          size: 0.075,
+          map: track(new THREE.CanvasTexture(dot)),
+          transparent: true,
+          opacity: period === "Night" ? 0.5 : 0.6,
+          depthWrite: false,
         }),
       ),
     );
@@ -424,67 +521,275 @@ diffuseColor.rgb *= 1.0 + macro;`,
     group.add(motes);
   }
 
+  // A lake and a winding trail lead the eye from the clearing into the valley.
+  // The lake is an irregular silhouette, not a rectangular terrain tile.
+  const lakeShape = new THREE.Shape();
+  lakeShape.moveTo(-7, -2.6);
+  lakeShape.bezierCurveTo(-8, -0.5, -4, 2.4, -1.4, 2.7);
+  lakeShape.bezierCurveTo(2.5, 3.5, 8, 2.6, 8.8, 0.3);
+  lakeShape.bezierCurveTo(9.5, -2.7, 3, -3.1, -0.6, -2.6);
+  lakeShape.bezierCurveTo(-3.5, -3.6, -6, -3.4, -7, -2.6);
+  const lakeGeometry = track(new THREE.ShapeGeometry(lakeShape, 28));
+  const waterMaterial = track(
+    new THREE.MeshStandardMaterial({
+      color:
+        period === "Night"
+          ? 0x244b75
+          : period === "Evening"
+            ? 0x658ba5
+            : 0x52b6c8,
+      roughness: 0.32,
+      metalness: 0.22,
+    }),
+  );
+  waterMaterial.onBeforeCompile = (shader) => {
+    shader.uniforms.uWaterTime = wind.time;
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec3 vWaterWorld;",
+      )
+      .replace(
+        "#include <worldpos_vertex>",
+        "#include <worldpos_vertex>\nvWaterWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec3 vWaterWorld; uniform float uWaterTime;",
+      )
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+float ripple = pow(0.5 + 0.5 * sin(vWaterWorld.z * 12.0 + sin(vWaterWorld.x * 2.0 + uWaterTime * 0.3) + uWaterTime * 0.7), 18.0);
+diffuseColor.rgb += vec3(0.11, 0.16, 0.17) * ripple;`,
+      );
+  };
+  waterMaterial.customProgramCacheKey = () => "rebyters-lake";
+  const bank = new THREE.Mesh(
+    lakeGeometry,
+    track(new THREE.MeshStandardMaterial({ color: 0x8d9c69, roughness: 1 })),
+  );
+  bank.rotation.x = -Math.PI / 2;
+  bank.position.set(1, 0.012, -13);
+  bank.scale.set(1.05, 1.08, 1);
+  group.add(bank);
+  const lake = new THREE.Mesh(lakeGeometry, waterMaterial);
+  lake.rotation.x = -Math.PI / 2;
+  lake.position.set(1, 0.025, -13);
+  group.add(lake);
+
+  const trail = new THREE.Shape();
+  trail.moveTo(1.1, 2);
+  trail.bezierCurveTo(2.9, 4, 1.6, 5.4, 3.1, 7.4);
+  trail.bezierCurveTo(4.5, 8.7, 4.5, 9.2, 4.7, 10);
+  trail.lineTo(5.1, 10);
+  trail.bezierCurveTo(5, 8.7, 5.3, 8.4, 3.8, 7.1);
+  trail.bezierCurveTo(2.5, 5.3, 4.4, 3.5, 2.3, 2);
+  trail.closePath();
+  const path = new THREE.Mesh(
+    track(new THREE.ShapeGeometry(trail, 24)),
+    track(new THREE.MeshStandardMaterial({ color: 0xb6a777, roughness: 1 })),
+  );
+  path.rotation.x = -Math.PI / 2;
+  path.position.y = 0.018;
+  group.add(path);
+
+  // Batched grass and flowers add near-field scale cues with five draw calls.
+  const grassGeometry = track(new THREE.BufferGeometry());
+  grassGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      [
+        -0.025, 0, 0, 0.025, 0, 0, 0.035, 0.23, 0, -0.025, 0, 0, 0.035, 0.23, 0,
+        0.005, 0.23, 0, 0.005, 0.23, 0, 0.035, 0.23, 0, 0.065, 0.34, 0, 0, 0,
+        -0.02, 0, 0, 0.02, 0.02, 0.19, 0.01, 0, 0, -0.02, 0.02, 0.19, 0.01,
+        0.02, 0.19, -0.015, 0.02, 0.19, -0.015, 0.02, 0.19, 0.01, 0.035, 0.26,
+        -0.03,
+      ],
+      3,
+    ),
+  );
+  grassGeometry.computeVertexNormals();
+  const grassMaterial = track(
+    new THREE.MeshStandardMaterial({
+      color: 0x749e3c,
+      side: THREE.DoubleSide,
+      roughness: 1,
+    }),
+  );
+  const tuftCount = mobile ? 180 : 320;
+  const tufts = new THREE.InstancedMesh(
+    grassGeometry,
+    grassMaterial,
+    tuftCount,
+  );
+  const matrix = new THREE.Object3D();
+  const flowerLocations: THREE.Vector3[] = [];
+  for (let i = 0; i < tuftCount; i++) {
+    const z = -7 + rand() * 10;
+    const x = (rand() < 0.5 ? -1 : 1) * (1.65 + rand() * 6.5);
+    matrix.position.set(x, 0.03, z);
+    matrix.rotation.set(0, rand() * Math.PI, 0);
+    matrix.scale.setScalar(0.6 + rand() * 0.8);
+    matrix.updateMatrix();
+    tufts.setMatrixAt(i, matrix.matrix);
+    tufts.setColorAt(
+      i,
+      new THREE.Color().setHSL(
+        0.22 + rand() * 0.06,
+        0.42,
+        0.28 + rand() * 0.16,
+      ),
+    );
+    if (i % 4 === 0 && Math.abs(x) < 5)
+      flowerLocations.push(new THREE.Vector3(x, 0.16 + rand() * 0.14, z));
+  }
+  addWind(tufts, 0.09);
+  tufts.instanceMatrix.needsUpdate = true;
+  track(tufts);
+  group.add(tufts);
+  const petalGeometry = track(new THREE.SphereGeometry(1, 5, 3));
+  const petals = new THREE.InstancedMesh(
+    petalGeometry,
+    track(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 })),
+    flowerLocations.length * 5,
+  );
+  const centers = new THREE.InstancedMesh(
+    petalGeometry,
+    track(new THREE.MeshStandardMaterial({ color: 0xf7c94b, roughness: 1 })),
+    flowerLocations.length,
+  );
+  flowerLocations.forEach((p, i) => {
+    const color = new THREE.Color(i % 3 === 0 ? 0xffc1db : 0xfff4d6);
+    for (let k = 0; k < 5; k++) {
+      const angle = (k * Math.PI * 2) / 5;
+      matrix.position.set(
+        p.x + Math.cos(angle) * 0.07,
+        p.y,
+        p.z + Math.sin(angle) * 0.07,
+      );
+      matrix.rotation.set(0, -angle, 0);
+      matrix.scale.set(0.073, 0.02, 0.042);
+      matrix.updateMatrix();
+      petals.setMatrixAt(i * 5 + k, matrix.matrix);
+      petals.setColorAt(i * 5 + k, color);
+    }
+    matrix.position.copy(p);
+    matrix.scale.set(0.04, 0.025, 0.04);
+    matrix.updateMatrix();
+    centers.setMatrixAt(i, matrix.matrix);
+  });
+  petals.instanceMatrix.needsUpdate = centers.instanceMatrix.needsUpdate = true;
+  track(petals);
+  track(centers);
+  group.add(petals, centers);
+
+  // Load all reusable props concurrently. Mobile keeps the same composition;
+  // only repeated vegetation and ground-detail density differ.
   void (async () => {
-    // Only actual props are loaded. This also removes three unnecessary GLB
-    // downloads from mobile (plain/detail/dirt).
-    const keys = (mobile
-      ? ["mountains", "tree", "pine", "bush", "rocks"]
-      : ["mountains", "tree", "pine", "bush", "rocks", "stump", "log", "mushrooms"]) as AssetKey[];
-    const a: Partial<Record<AssetKey, THREE.Group | null>> = {};
-    for (const k of keys) {
-      a[k] = await loadAsset(k);
-      if (disposed) return;
-    }
-
-    // Mountains live on the horizon, not directly behind the companion.
-    if (a.mountains) {
-      const far = fit(a.mountains.clone(true), mobile ? 8.5 : 11);
-      far.position.set(mobile ? -7 : -13, -0.55, -40);
-      far.rotation.y = 0.16;
-      group.add(far);
-
-      const mid = fit(a.mountains.clone(true), mobile ? 7.2 : 9.5);
-      mid.position.set(mobile ? 9 : 12, -0.45, -34);
-      mid.rotation.y = Math.PI * 0.83;
-      group.add(mid);
-
-      if (!mobile) {
-        const center = fit(a.mountains.clone(true), 7.5);
-        center.position.set(0, -0.7, -47);
-        center.rotation.y = Math.PI * 0.11;
-        group.add(center);
+    const keys = Object.keys(files) as AssetKey[];
+    const loaded = await Promise.all(keys.map(loadAsset));
+    if (disposed) return;
+    const a = Object.fromEntries(
+      keys.map((key, i) => [key, loaded[i]]),
+    ) as Record<AssetKey, THREE.Group | null>;
+    const plant = (key: AssetKey, x: number, z: number, h: number, r = 0) => {
+      const prop = put(a[key], group, x, z, h, r);
+      if (prop && key !== "mountains" && key !== "shore") {
+        const contact = new THREE.Mesh(shadow.geometry, shadow.material);
+        contact.position.set(x, 0.022, z);
+        contact.rotation.x = -Math.PI / 2;
+        contact.scale.set(h * 0.36, h * 0.3, 1);
+        group.add(contact);
       }
+      return prop;
+    };
+    // Three overlapping ridgelines, readable through a gentle aerial haze.
+    for (const [x, z, h, r] of [
+      [-8, -32, 10, 0.25],
+      [7, -28, 8.5, 2.6],
+      [0, -43, 12, 0.1],
+    ]) {
+      const mountain = plant("mountains", x, z, h, r);
+      if (mountain) {
+        mountain.updateMatrixWorld(true);
+        const extent = new THREE.Box3()
+          .setFromObject(mountain)
+          .getSize(new THREE.Vector3());
+        // This asset includes a broad terrain apron. Compress its depth so it
+        // stays behind the woodland instead of swallowing the lake and clearing.
+        mountain.scale.x = 25 / Math.max(extent.x, 0.001);
+        mountain.scale.z = 5 / Math.max(extent.z, 0.001);
+      }
+      mountain?.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const tint = (source: THREE.Material) => {
+          const material = track(source.clone()) as THREE.MeshStandardMaterial;
+          material.color.setHex(
+            period === "Night" ? 0x354c70 : z < -35 ? 0x86b5ca : 0x6094aa,
+          );
+          material.map = null;
+          material.vertexColors = false;
+          material.roughness = 1;
+          return material;
+        };
+        mesh.material = Array.isArray(mesh.material)
+          ? mesh.material.map(tint)
+          : tint(mesh.material);
+      });
     }
-
-    // Composition is intentionally asymmetrical: foreground framing, an open
-    // center for the companion, then secondary props receding into depth.
-    const tall: [THREE.Group | null | undefined, number, number, number, number][] = mobile
-      ? [
-          [a.tree, -5.5, -5.6, 5.8, 0.18],
-          [a.pine, 6.7, -10.8, 4.6, -0.28],
-        ]
-      : [
-          [a.tree, -7.2, -5.8, 7.2, 0.18],
-          [a.pine, 7.6, -10.2, 5.5, -0.28],
-          [a.tree, 11.2, -15.5, 4.5, -0.22],
-          [a.pine, -11.0, -15.0, 4.2, 0.22],
-        ];
-    tall.forEach(([src, x, z, h, r]) => put(src ?? null, group, x, z, h, r));
-
-    const bushes = mobile
-      ? [[-4.2, -1.7], [4.6, -3.4]]
-      : [[-5.2, -1.8], [5.4, -3.0], [-7.8, -7.0], [8.2, -8.0]];
-    bushes.forEach(([x, z], i) => put(a.bush ?? null, group, x, z, i < 2 ? 1.0 : 0.75, i * 0.62));
-
-    // Foreground rocks deliberately graze the frame edges so the camera feels
-    // embedded in the habitat rather than looking at a stage from outside.
-    put(a.rocks ?? null, group, mobile ? 4.2 : 5.2, mobile ? 1.8 : 2.2, mobile ? 0.55 : 0.8, -0.22);
-    put(a.rocks ?? null, group, mobile ? -4.7 : -6.2, mobile ? 2.8 : 3.4, mobile ? 0.38 : 0.62, 0.42);
-
-    if (!mobile) {
-      put(a.stump ?? null, group, -8.4, 0.9, 0.9, 0.22);
-      put(a.log ?? null, group, 8.0, 0.5, 0.9, -0.45);
-      put(a.mushrooms ?? null, group, -3.0, -0.8, 0.48, 0.12);
+    // Far woodland gives the lake a shoreline and connects it to the mountains.
+    const forest = mobile ? 10 : 18;
+    for (let i = 0; i < forest; i++) {
+      const x = -13 + (i * 26) / (forest - 1);
+      plant(
+        i % 3 === 0 ? "tree" : "pine",
+        x,
+        -19 - rand() * 5,
+        2.8 + rand() * 2.8,
+        rand() * 6,
+      );
+    }
+    // Middle ground: trunks inside the portrait frustum, crowns frame the sky.
+    plant("tree", -3.0, -5.8, 6.6, 0.28);
+    plant("pine", 3.3, -7.6, 6.0, -0.35);
+    plant("tree", -6.8, -11, 5.0, 0.7);
+    plant("pine", 7.8, -13.5, 4.9, 0.5);
+    plant("pine", -3.8, -15.8, 3.6, 0.2);
+    plant("tree", 5.8, -18, 3.4, 2.4);
+    // Outer wings fill widescreen without blocking the clear central habitat.
+    plant("tree", -10, -5, 7.8, -0.3);
+    plant("pine", 10.7, -7, 7.0, 0.4);
+    for (const [x, z, h] of [
+      [-2.9, -3.2, 1.0],
+      [3.2, -4.2, 1.2],
+      [-4.8, -7, 1.2],
+      [5.2, -8, 0.9],
+      [-1.95, 1.5, 0.65],
+      [2.05, 1.0, 0.7],
+      [-7, 0, 1.5],
+      [7.3, -1, 1.3],
+    ]) {
+      plant("bush", x, z, h, rand() * 6);
+    }
+    plant("rocks", 2.5, -2.7, 0.6, -0.4);
+    plant("rocks", -2.2, 1.4, 0.43, 0.6);
+    plant("rocks", 3.4, -9.7, 0.7, 0.4);
+    plant("stump", -2.6, -1.6, 0.65, 0.3);
+    plant("log", 3.4, -5.2, 0.65, -0.8);
+    plant("mushrooms", -1.75, -0.7, 0.28, 0.2);
+    plant("mushrooms", 2.25, 0.5, 0.22, -0.3);
+    if (a.shore) {
+      const shore = fitGround(a.shore.clone(true), 4.6);
+      shore.updateMatrixWorld(true);
+      // Sink the thick tile into the continuous terrain: only the bank is visible.
+      const bounds = new THREE.Box3().setFromObject(shore);
+      shore.position.y -= bounds.max.y - 0.12;
+      shore.position.x += -4.5;
+      shore.position.z += -11.4;
+      group.add(shore);
     }
   })();
 
@@ -508,7 +813,8 @@ diffuseColor.rgb *= 1.0 + macro;`,
       motePos[i * 3 + 1] += Math.sin(time * 0.8 + s * 3) * 0.1 * dt;
       motePos[i * 3 + 2] += Math.cos(time * 0.55 + s * 2) * 0.08 * dt;
     }
-    (motes.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+    (motes.geometry.attributes.position as THREE.BufferAttribute).needsUpdate =
+      true;
   };
   return {
     colors,

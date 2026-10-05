@@ -92,8 +92,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       return;
     }
     setError("");
-    const mobileRenderer = matchMedia("(pointer: coarse)").matches || window.innerWidth <= 700;
-    renderer.setPixelRatio(mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5));
+    const mobileRenderer =
+      matchMedia("(pointer: coarse)").matches || window.innerWidth <= 700;
+    renderer.setPixelRatio(
+      mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5),
+    );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
@@ -294,7 +297,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       camera.aspect = w / h;
       if (landscape) {
         const distance = Math.max(
-          4.8,
+          camera.aspect < 1 ? 4.8 : 6.8,
           (size.x * scale) /
             (2 *
               Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *

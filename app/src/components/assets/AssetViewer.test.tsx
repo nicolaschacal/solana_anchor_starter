@@ -50,6 +50,7 @@ vi.mock("three/addons/controls/OrbitControls.js", () => ({
 vi.mock("./meadow", () => ({
   meadow: () => ({
     colors: { light: 0xffffff, intensity: 2 },
+    update: vi.fn(),
     dispose() {
       state.environmentDisposals++;
     },
@@ -65,6 +66,7 @@ beforeEach(() => {
     environmentDisposals: 0,
   });
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
   frames = new Map();
   sequence = 0;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
