@@ -11,14 +11,14 @@ const palettes = {
 
 const ENV = "/assets/environment/";
 const assetFiles = {
-  grass: "grass-tile.glb",
-  pine: "pine-tree.glb",
-  tree: "deciduous-tree.glb",
-  bush: "berry-bush.glb",
-  rocks: "mossy-rocks.glb",
-  stump: "tree-stump.glb",
-  log: "hollow-log.glb",
-  mushrooms: "red-mushrooms.glb",
+  grass: "Meshy_AI_Grass_Tile_Lowpoly_1005170932_texture.glb",
+  pine: "Meshy_AI_Pine_Tree_Lowpoly_1005170925_texture.glb",
+  tree: "Meshy_AI_Deciduous_Tree_Lowpol_1005170903_texture.glb",
+  bush: "Meshy_AI_Berry_Bush_Lowpoly_1005170937_texture.glb",
+  rocks: "Meshy_AI_Mossy_Rocks_Lowpoly_1005170910_texture.glb",
+  stump: "Meshy_AI_Tree_Stump_Lowpoly_1005170918_texture.glb",
+  log: "Meshy_AI_Hollow_Log_Lowpoly_1005170832_texture.glb",
+  mushrooms: "Meshy_AI_Red_Mushrooms_Lowpoly_1005170840_texture.glb",
 } as const;
 
 function disposeGroup(group: THREE.Object3D) {
