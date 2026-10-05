@@ -17,3 +17,14 @@ Validation: production build, clock UTC boundary/failure/request-deduplication t
 Home and Lab share a selected mint stored locally per wallet and RPC endpoint. Explicit selections survive navigation/reloads and reordered interaction refreshes. While ownership is incomplete, the UI does not substitute the first creature for a missing selected mint. Once a completed ownership response confirms the selected mint is absent, it may display an available companion instead. Local storage failure retains explicit selection in memory for the session.
 
 The petting instruction is visually hidden, while tapping the creature and a keyboard-focusable accessible control still work. Mobile navigation and the action row share 14px side margins, 62px controls, 16px radii, icon treatment, borders and a blue palette. Active navigation is distinguished by a brighter fill and border. Browser measurements verified identical outer widths at 375px and 440px viewports.
+
+## Meadow scene, wind and mobile budget
+
+The same `meadow()` composition is used by the signed-out login scene (`GuestWorld`) and by the companion scene (`AssetViewer` with `landscape`).
+
+- **Wind.** Trees, pines and berry bushes bend in the vertex shader, weighted by height so trunks stay planted, plus a few pollen/dust motes drifting with the breeze. No extra render loop or draw calls. `prefers-reduced-motion` lowers sway to 30% and hides the motes.
+- **Shared cache.** Each environment GLB is downloaded, decoded and uploaded once per page; the login scene, the companion scene and day/night changes reuse it. Cached assets are never disposed by a scene.
+- **Mobile.** Phones render at pixel ratio 1 and load 8 of the 11 props with fewer tiles and motes. The login scene releases its WebGL context when it unmounts.
+- **Asset budget.** All 14 environment GLBs total about 1 MB (about 65-90 KB each): 128-256 px WebP colour map, no metallic-roughness map, quantized + Meshopt geometry. Regenerate with `node scripts/assets/optimize-environment.mjs`.
+- **Never ship raw Meshy exports.** They carry two 4096x4096 PNG textures (about 21 MB per model) that exhaust GPU memory on phones. Optimize first, then place the result in `app/public/assets/environment/`.
+- **GLB padding.** `node scripts/assets/fix-glb-json-padding.mjs FILE.glb` repairs GLBs whose JSON chunk is padded with NUL bytes; three.js rejects those without a visible error in the scene.
