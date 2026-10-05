@@ -501,33 +501,26 @@ diffuseColor.rgb *= 1.0 + macro;`,
           : 0xffffff;
   const clouds: Array<{
     sprite: THREE.Group;
+    baseX: number;
     speed: number;
+    phase: number;
   }> = [];
   const cloudDefs = [
-    [-7.0, 14.6, -64, 2.35, 0.045],
-    [8.0, 13.2, -66, 1.95, 0.032],
-    [0.7, 17.0, -72, 2.2, 0.022],
+    [-7.0, 14.6, -64, 2.35, 0.025, 0.2],
+    [8.0, 13.2, -66, 1.95, 0.018, 1.6],
+    [0.7, 17.0, -72, 2.2, 0.012, 2.7],
   ];
-  cloudDefs.forEach(([x, y, z, scale, speed], variant) => {
+  cloudDefs.forEach(([x, y, z, scale, speed, phase], variant) => {
     const sprite = createCloudGroup(own, cloudColor, variant);
-    sprite.position.set(0, y, z);
+    sprite.position.set(x, y, z);
     sprite.scale.set(
       scale * (variant === 1 ? 1.12 : 1),
       scale * (variant === 2 ? 0.78 : 1),
       scale,
     );
     sprite.rotation.z = variant === 0 ? -0.035 : variant === 1 ? 0.025 : 0;
-    // Repeated shared meshes keep the drift seamless even on wide displays.
-    const layer = new THREE.Group();
-    layer.position.x = x;
-    layer.add(sprite);
-    for (const offset of [-64, 64]) {
-      const copy = sprite.clone(true);
-      copy.position.x = offset;
-      layer.add(copy);
-    }
-    group.add(layer);
-    clouds.push({ sprite: layer, speed });
+    group.add(sprite);
+    clouds.push({ sprite, baseX: x, speed, phase });
   });
   // Stars are always allocated once and fade in with twilight, behind ridges.
   const starPositions: number[] = [];
@@ -999,12 +992,9 @@ diffuseColor.rgb *= 1.0 + macro;`,
     lastTime = time;
     wind.time.value = time;
     for (const cloud of clouds) {
-      // A steady breeze carries clouds in one direction rather than rocking them.
-      // Capped frame time prevents jumps after returning from a hidden tab.
-      if (!reducedMotion) {
-        cloud.sprite.position.x += cloud.speed * dt;
-        if (cloud.sprite.position.x >= 32) cloud.sprite.position.x -= 64;
-      }
+      cloud.sprite.position.x =
+        cloud.baseX +
+        Math.sin(time * cloud.speed + cloud.phase) * (mobile ? 0.65 : 1.1);
     }
     if (!motes) return;
     for (let i = 0; i < moteCount; i++) {
