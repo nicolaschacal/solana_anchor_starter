@@ -4,6 +4,8 @@ import {
   FileJson,
   Grid3X3,
   MousePointer2,
+  Monitor,
+  Smartphone,
   Move3D,
   Rotate3D,
   Save,
@@ -15,10 +17,12 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
+import { MeshoptDecoder } from "meshoptimizer";
+import { MAMMAL_PILOT } from "../../lib/assets/catalog";
 
 type TransformMode = "translate" | "rotate" | "scale";
+type PreviewMode = "web" | "mobile";
 
 type HabitatObject = {
   id: string;
@@ -101,7 +105,8 @@ export function HabitatEditor() {
   const groundRef = useRef<THREE.Mesh | null>(null);
   const transformRef = useRef<TransformControls | null>(null);
   const selectedRef = useRef<THREE.Object3D | null>(null);
-  const loaderRef = useRef(new GLTFLoader());
+  const loaderRef = useRef(new GLTFLoader().setMeshoptDecoder(MeshoptDecoder));
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const importedUrls = useRef<string[]>([]);
   const [name, setName] = useState("My Habitat");
   const [groundWidth, setGroundWidth] = useState(24);
@@ -109,6 +114,7 @@ export function HabitatEditor() {
   const [objects, setObjects] = useState<HabitatObject[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [mode, setMode] = useState<TransformMode>("translate");
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("web");
   const [status, setStatus] = useState("Build a modular habitat. Sky, clouds and stars stay game-side.");
 
   const syncObjects = () => {
@@ -131,12 +137,8 @@ export function HabitatEditor() {
     renderer.shadowMap.enabled = true;
     host.appendChild(renderer.domElement);
 
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 200);
-    camera.position.set(8, 7, 10);
-
-    const orbit = new OrbitControls(camera, renderer.domElement);
-    orbit.target.set(0, 0, 0);
-    orbit.enableDamping = true;
+    const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 200);
+    cameraRef.current = camera;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0x49634b, 2.2);
     scene.add(hemi);
@@ -169,9 +171,6 @@ export function HabitatEditor() {
 
     const transform = new TransformControls(camera, renderer.domElement);
     transform.setMode(mode);
-    transform.addEventListener("dragging-changed", (event: any) => {
-      orbit.enabled = !event.value;
-    });
     transform.addEventListener("objectChange", syncObjects);
     scene.add(transform.getHelper());
     transformRef.current = transform;
@@ -200,20 +199,60 @@ export function HabitatEditor() {
     };
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
 
-    const resize = () => {
+    const frameCamera = () => {
       const w = Math.max(1, host.clientWidth);
       const h = Math.max(1, host.clientHeight);
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
+      const portrait = camera.aspect < 0.8;
+      const target = new THREE.Vector3(0, portrait ? 1.15 : 1.05, -1.25);
+      camera.position.set(0, portrait ? 2.1 : 2.35, portrait ? 6.25 : 5.85);
+      camera.lookAt(target);
       camera.updateProjectionMatrix();
     };
+    const resize = frameCamera;
     const observer = new ResizeObserver(resize);
     observer.observe(host);
     resize();
 
+    let referenceCreature: THREE.Object3D | null = null;
+    void loaderRef.current.loadAsync(MAMMAL_PILOT.modelUri).then((gltf) => {
+      const root = gltf.scene;
+      root.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(root);
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+      const scale = (2 / Math.max(size.x, size.y, size.z, 0.001)) * 0.8;
+      root.scale.setScalar(scale);
+      root.position.set(
+        -center.x * scale,
+        -bounds.min.y * scale + 0.04,
+        -center.z * scale - 1.25,
+      );
+      root.userData.habitatReference = true;
+      root.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        if (material?.isMeshStandardMaterial) {
+          material.roughness = Math.max(material.roughness || 0.75, 0.78);
+          if (material.map) {
+            material.emissive.set(0xffffff);
+            material.emissiveMap = material.map;
+            material.emissiveIntensity = 0.07;
+          }
+        }
+      });
+      referenceCreature = root;
+      scene.add(root);
+    }).catch(() => {
+      setStatus("Environment assets work, but the reference Rebyter could not be loaded.");
+    });
+
     let raf = 0;
     const render = () => {
-      orbit.update();
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
     };
@@ -224,7 +263,8 @@ export function HabitatEditor() {
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       transform.dispose();
-      orbit.dispose();
+      referenceCreature?.removeFromParent();
+      cameraRef.current = null;
       ground.geometry.dispose();
       (ground.material as THREE.Material).dispose();
       renderer.dispose();
@@ -275,7 +315,7 @@ export function HabitatEditor() {
       syncObjects();
       setStatus(`${displayName} added. Move, rotate or scale it in the viewport.`);
     } catch {
-      setStatus(`Could not load ${displayName}.`);
+      setStatus(`Could not load ${displayName}. Check the GLB decoder or asset file.`);
     }
   }
 
@@ -397,6 +437,10 @@ export function HabitatEditor() {
           <button className={mode === "scale" ? "active" : ""} onClick={() => setMode("scale")}><Scale3D size={16}/>Scale</button>
           <button disabled={!selectedId} onClick={deleteSelected}><Trash2 size={16}/>Delete</button>
         </div>
+        <div className="habitat-preview-switch" aria-label="Game preview size">
+          <button className={previewMode === "web" ? "active" : ""} onClick={() => setPreviewMode("web")}><Monitor size={15}/>Web</button>
+          <button className={previewMode === "mobile" ? "active" : ""} onClick={() => setPreviewMode("mobile")}><Smartphone size={15}/>Mobile</button>
+        </div>
         <span>{status}</span>
       </div>
 
@@ -429,9 +473,14 @@ export function HabitatEditor() {
           </label>
         </aside>
 
-        <div className="habitat-stage">
-          <div ref={mount} className="habitat-canvas" />
-          <div className="habitat-stage-hint"><MousePointer2 size={14}/>Select an object · drag empty space to orbit</div>
+        <div className={`habitat-stage preview-${previewMode}`}>
+          <div className="habitat-preview-frame">
+            <div ref={mount} className="habitat-canvas" />
+            <div className="habitat-safe habitat-safe-top"><span>TOP GUI SAFE AREA</span></div>
+            <div className="habitat-safe habitat-safe-bottom"><span>ACTIONS + NAV SAFE AREA</span></div>
+            <div className="habitat-companion-guide"><span>REBYTER ZONE</span></div>
+          </div>
+          <div className="habitat-stage-hint"><MousePointer2 size={14}/>Fixed player camera · select assets to transform them</div>
         </div>
 
         <aside className="habitat-inspector">
