@@ -628,9 +628,19 @@ export function PlayerHome() {
       <EvolutionModel evolution={evolution} action={companionAction} onActionComplete={()=>setVisualAction("idle")} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
-      <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
-        <strong>{evolution.name}</strong>
-        <span>Level {active.level} · {STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}</span>
+      <button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
+        <span className="monster-id-thumb"><CreatureSprite evolution={evolution}/></span>
+        <span className="monster-id-copy">
+          <strong>{evolution.name}</strong>
+          <span className="monster-id-level">
+            {growthReady
+              ?"Ready to evolve!"
+              :`Level ${active.level} - ${evolution.stage===0?"Bit":STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}`}
+          </span>
+          <span className="monster-id-growth" aria-label={`Growth ${Math.round(growthProgress)}%`}>
+            <i style={{width:`${growthProgress}%`}}/>
+          </span>
+        </span>
       </button>
 
       <div className="monster-hud-right">
@@ -649,13 +659,6 @@ export function PlayerHome() {
       <div className={`monster-speech gl-panel${speechVisible?" is-visible":""}${needMessage&&speech.text===needMessage?" needs-attention":""}`} role="status" aria-live="polite" aria-hidden={!speechVisible}>{speech.text}</div>
 
       <div className="game-controls">
-        <div className={`growth-card gl-panel${growthReady?" ready":""}`}>
-          <div>
-            <span>Growth</span>
-            <strong>{stageTimer===null?"Fully grown":growthReady?"Ready to evolve!":`${Math.max(0,Math.ceil((stageTimer*60-elapsedStageSeconds)/60))} min remaining`}</strong>
-          </div>
-          <div className="growth-track"><i style={{width:`${growthProgress}%`}}/></div>
-        </div>
         <div className="care-actions">
           <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("play");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
