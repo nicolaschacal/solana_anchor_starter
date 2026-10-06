@@ -13,7 +13,7 @@ import {
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
-import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
+import { EvolutionModel, GuestWorld, preloadModelAsset } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
@@ -450,9 +450,7 @@ export function PlayerHome() {
   useEffect(() => {
     let timer = 0;
     const warm = () => {
-      void fetch(MAMMAL_PILOT.modelUri, { cache: "force-cache" }).catch(
-        () => undefined,
-      );
+      void preloadModelAsset(MAMMAL_PILOT.modelUri);
     };
     if ("requestIdleCallback" in window) {
       const idle = window.requestIdleCallback(warm, { timeout: 900 });
