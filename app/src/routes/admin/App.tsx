@@ -315,6 +315,7 @@ function Family({ state }: { state: RegistryState }) {
     [preview, setPreview] = useState(false),
     [editing, setEditing] = useState<Evolution | null>(null),
     [assetFile, setAssetFile] = useState<File | null>(null),
+    [modelFile, setModelFile] = useState<File | null>(null),
     [storageError, setStorageError] = useState("");
   useEffect(() => {
     setDraft(null);
@@ -503,6 +504,32 @@ function Family({ state }: { state: RegistryState }) {
       evolutions: tree.evolutions.map((e) => (e.id === next.id ? next : e)),
     });
   }
+
+  async function publishEditingModel() {
+    if (!tree || !editing || !modelFile) return;
+    if (!modelFile.name.toLowerCase().endsWith(".glb"))
+      throw new Error("Choose a self-contained .glb file.");
+    if (modelFile.size > 500 * 1024)
+      throw new Error(`Optimized model must be 500 KB or smaller (selected ${Math.ceil(modelFile.size / 1024)} KB).`);
+
+    const assets = await tx.publishEvolutionModel(
+      editing,
+      await modelFile.arrayBuffer(),
+    );
+    if (!assets) return;
+    const next: Evolution = {
+      ...editing,
+      modelUri: assets.modelUri ?? editing.modelUri,
+      assets,
+    };
+    setEditing(next);
+    setModelFile(null);
+    edit({
+      ...tree,
+      evolutions: tree.evolutions.map((e) => (e.id === next.id ? next : e)),
+    });
+  }
+
 
   async function publish() {
     if (!journal) return;
@@ -763,7 +790,7 @@ function Family({ state }: { state: RegistryState }) {
           <EvolutionGraphEditor
             tree={tree}
             editable={editable && !tx.busy}
-            onEditEvolution={(id) => { const e=tree.evolutions.find(x=>x.id===id); if(e) { setAssetFile(null); setEditing(structuredClone(e)); } }}
+            onEditEvolution={(id) => { const e=tree.evolutions.find(x=>x.id===id); if(e) { setAssetFile(null); setModelFile(null); setEditing(structuredClone(e)); } }}
             selectedId={selected?.id}
             onClearSelection={() =>
               navigate(`/admin/families/${family}${familyQuery}`)
@@ -863,6 +890,37 @@ function Family({ state }: { state: RegistryState }) {
                 <div className="specimen-asset-links">
                   {editing.assets?.imageUri && <a href={editing.assets.imageUri} target="_blank" rel="noreferrer">Image URI <ExternalLink size={11}/></a>}
                   {editing.assets?.metadataUri && <a href={editing.assets.metadataUri} target="_blank" rel="noreferrer">Metadata URI <ExternalLink size={11}/></a>}
+                </div>
+              )}
+            </div>
+            <div className="specimen-asset-publisher specimen-model-publisher">
+              <div>
+                <strong>Optimized 3D model → Irys</strong>
+                <small>Choose the optimized GLB (≤500 KB). Admin uploads it to Irys, creates fresh metadata with animation_url, and stages the new model URI in the next atlas version.</small>
+              </div>
+              <input
+                type="file"
+                accept=".glb,model/gltf-binary"
+                disabled={!editable || tx.busy}
+                onChange={(event) => setModelFile(event.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                disabled={!editable || tx.busy || !modelFile}
+                onClick={() => void publishEditingModel()}
+              >
+                <Upload size={15}/>
+                {tx.busy ? "Publishing..." : "Push 3D + metadata to Irys"}
+              </button>
+              {modelFile && (
+                <small className={modelFile.size > 500 * 1024 ? "notice error" : "muted"}>
+                  {modelFile.name} · {Math.ceil(modelFile.size / 1024)} KB
+                  {modelFile.size > 500 * 1024 ? " · too large" : " · ready"}
+                </small>
+              )}
+              {editing.assets?.modelUri && (
+                <div className="specimen-asset-links">
+                  <a href={editing.assets.modelUri} target="_blank" rel="noreferrer">3D model URI <ExternalLink size={11}/></a>
                 </div>
               )}
             </div>
