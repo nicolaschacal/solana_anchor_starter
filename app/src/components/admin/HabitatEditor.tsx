@@ -10,6 +10,7 @@ import {
   Rotate3D,
   Save,
   Scale3D,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -19,7 +20,9 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { MeshoptDecoder } from "meshoptimizer";
-import { MAMMAL_PILOT } from "../../lib/assets/catalog";
+import { modelUriFor } from "../../lib/assets/catalog";
+import { useEvolutionTree } from "../../hooks/useEvolutionTree";
+import type { Registry } from "../../lib/rebyters/types";
 
 type TransformMode = "translate" | "rotate" | "scale";
 type PreviewMode = "web" | "mobile";
@@ -98,7 +101,12 @@ function objectToRecord(object: THREE.Object3D): HabitatObject {
   };
 }
 
-export function HabitatEditor() {
+export function HabitatEditor({ registry }: { registry: Registry }) {
+  const atlas = useEvolutionTree(0, registry.activeVersions[0] ?? 0, false);
+  const mammalExe = atlas.tree?.evolutions.find((e) =>
+    e.key === "mammal.exe" || e.name.toLowerCase() === "mammal.exe",
+  );
+  const referenceModelUri = mammalExe ? modelUriFor(mammalExe) : "";
   const mount = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const objectRootRef = useRef<THREE.Group | null>(null);
@@ -107,6 +115,9 @@ export function HabitatEditor() {
   const selectedRef = useRef<THREE.Object3D | null>(null);
   const loaderRef = useRef(new GLTFLoader().setMeshoptDecoder(MeshoptDecoder));
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const referenceCreatureRef = useRef<THREE.Object3D | null>(null);
+  const referenceSizeRef = useRef(new THREE.Vector3(1, 1, 1));
+  const resizePreviewRef = useRef<() => void>(() => {});
   const importedUrls = useRef<string[]>([]);
   const [name, setName] = useState("My Habitat");
   const [groundWidth, setGroundWidth] = useState(24);
@@ -204,52 +215,36 @@ export function HabitatEditor() {
       const h = Math.max(1, host.clientHeight);
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      const portrait = camera.aspect < 0.8;
-      const target = new THREE.Vector3(0, portrait ? 1.15 : 1.05, -1.25);
-      camera.position.set(0, portrait ? 2.1 : 2.35, portrait ? 6.25 : 5.85);
+
+      // Mirror the fixed habitat camera used by the actual game viewer.
+      const sourceSize = referenceSizeRef.current;
+      const framingScale =
+        2 / Math.max(sourceSize.x, sourceSize.y, sourceSize.z, 0.001);
+      const distance = Math.max(
+        camera.aspect < 1 ? 4.8 : 6.8,
+        (sourceSize.x * framingScale) /
+          (2 *
+            Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+            camera.aspect *
+            (w <= 700 ? 0.42 : 0.54)),
+      );
+      const direction = new THREE.Vector3(0, 2.2, 4.7)
+        .sub(new THREE.Vector3(0, 1.6, 0))
+        .normalize();
+      const target = new THREE.Vector3(
+        0,
+        1.6 + (camera.aspect < 1 ? 0.7 + 1.25 * 0.22 : 0),
+        0,
+      );
+      camera.position.copy(target).addScaledVector(direction, distance);
       camera.lookAt(target);
       camera.updateProjectionMatrix();
     };
+    resizePreviewRef.current = frameCamera;
     const resize = frameCamera;
     const observer = new ResizeObserver(resize);
     observer.observe(host);
     resize();
-
-    let referenceCreature: THREE.Object3D | null = null;
-    void loaderRef.current.loadAsync(MAMMAL_PILOT.modelUri).then((gltf) => {
-      const root = gltf.scene;
-      root.updateMatrixWorld(true);
-      const bounds = new THREE.Box3().setFromObject(root);
-      const size = bounds.getSize(new THREE.Vector3());
-      const center = bounds.getCenter(new THREE.Vector3());
-      const scale = (2 / Math.max(size.x, size.y, size.z, 0.001)) * 0.8;
-      root.scale.setScalar(scale);
-      root.position.set(
-        -center.x * scale,
-        -bounds.min.y * scale + 0.04,
-        -center.z * scale - 1.25,
-      );
-      root.userData.habitatReference = true;
-      root.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        const material = mesh.material as THREE.MeshStandardMaterial;
-        if (material?.isMeshStandardMaterial) {
-          material.roughness = Math.max(material.roughness || 0.75, 0.78);
-          if (material.map) {
-            material.emissive.set(0xffffff);
-            material.emissiveMap = material.map;
-            material.emissiveIntensity = 0.07;
-          }
-        }
-      });
-      referenceCreature = root;
-      scene.add(root);
-    }).catch(() => {
-      setStatus("Environment assets work, but the reference Rebyter could not be loaded.");
-    });
 
     let raf = 0;
     const render = () => {
@@ -263,7 +258,7 @@ export function HabitatEditor() {
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       transform.dispose();
-      referenceCreature?.removeFromParent();
+      resizePreviewRef.current = () => {};
       cameraRef.current = null;
       ground.geometry.dispose();
       (ground.material as THREE.Material).dispose();
@@ -273,6 +268,78 @@ export function HabitatEditor() {
       importedUrls.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene || !referenceModelUri) return;
+    let cancelled = false;
+    let loaded: THREE.Object3D | null = null;
+    setStatus("Loading active mammal.exe from the Atlas…");
+
+    void loaderRef.current
+      .loadAsync(referenceModelUri)
+      .then((gltf) => {
+        if (cancelled) return;
+        referenceCreatureRef.current?.removeFromParent();
+        const root = gltf.scene;
+        root.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(root);
+        const size = bounds.getSize(new THREE.Vector3());
+        const center = bounds.getCenter(new THREE.Vector3());
+        referenceSizeRef.current.copy(size);
+        const framingScale =
+          2 / Math.max(size.x, size.y, size.z, 0.001);
+        const scale = framingScale * 0.8;
+        root.scale.setScalar(scale);
+        root.position.set(
+          -center.x * scale,
+          -bounds.min.y * scale + 0.04,
+          -center.z * scale - 1.25,
+        );
+        root.userData.habitatReference = true;
+        root.traverse((node) => {
+          const mesh = node as THREE.Mesh;
+          if (!mesh.isMesh) return;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          const materials = Array.isArray(mesh.material)
+            ? mesh.material
+            : [mesh.material];
+          mesh.material = materials.map((source) => {
+            const material = source.clone();
+            if (material instanceof THREE.MeshStandardMaterial) {
+              material.metalness = 0;
+              material.metalnessMap = null;
+              material.roughness = Math.max(material.roughness || 0.75, 0.78);
+              if (material.map) {
+                material.emissive.set(0xffffff);
+                material.emissiveMap = material.map;
+                material.emissiveIntensity = 0.07;
+              }
+            }
+            return material;
+          });
+          if (!Array.isArray((mesh as any).material) && materials.length === 1)
+            mesh.material = (mesh.material as THREE.Material[])[0];
+        });
+        loaded = root;
+        referenceCreatureRef.current = root;
+        scene.add(root);
+        resizePreviewRef.current();
+        setStatus("Using the active mammal.exe model from the Atlas / Irys.");
+      })
+      .catch(() => {
+        if (!cancelled)
+          setStatus("Could not load the active mammal.exe model from its Atlas URI.");
+      });
+
+    return () => {
+      cancelled = true;
+      if (loaded) loaded.removeFromParent();
+      if (referenceCreatureRef.current === loaded)
+        referenceCreatureRef.current = null;
+    };
+  }, [referenceModelUri]);
 
   useEffect(() => {
     transformRef.current?.setMode(mode);
@@ -285,29 +352,81 @@ export function HabitatEditor() {
     ground.geometry = new THREE.PlaneGeometry(groundWidth, groundDepth);
   }, [groundWidth, groundDepth]);
 
+  async function loadHabitatAsset(asset: string, displayName: string) {
+    const gltf = await loaderRef.current.loadAsync(asset);
+    const root = gltf.scene;
+    root.userData.habitatId = crypto.randomUUID();
+    root.userData.habitatName = displayName;
+    root.userData.asset = asset;
+    root.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (mesh.isMesh) {
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const extent = Math.max(size.x, size.y, size.z, 0.001);
+    const normalized = Math.min(2.4 / extent, 1.6);
+    root.scale.setScalar(normalized);
+    root.position.set(
+      -center.x * normalized,
+      -box.min.y * normalized,
+      -center.z * normalized,
+    );
+    return root;
+  }
+
+  async function generateStarterLayout() {
+    const objectRoot = objectRootRef.current;
+    if (!objectRoot) return;
+    if (
+      objectRoot.children.length &&
+      !window.confirm("Replace the current habitat objects with a new random starter layout?")
+    )
+      return;
+
+    transformRef.current?.detach();
+    selectedRef.current = null;
+    setSelectedId("");
+    objectRoot.clear();
+    setStatus("Generating a starter habitat…");
+
+    const count = 12;
+    for (let index = 0; index < count; index++) {
+      const item = BUILTIN_ASSETS[Math.floor(Math.random() * BUILTIN_ASSETS.length)];
+      try {
+        const object = await loadHabitatAsset(item.asset, item.name);
+        let x = 0;
+        let z = 0;
+        // Keep a generous protected clearing around mammal.exe and the HUD focus.
+        do {
+          x = (Math.random() * 2 - 1) * 8.5;
+          z = -8 + Math.random() * 11;
+        } while (Math.hypot(x, z + 1.25) < 3.2);
+
+        const baseScale = object.scale.x;
+        const variation = 0.72 + Math.random() * 0.65;
+        object.scale.setScalar(baseScale * variation);
+        object.position.x += x;
+        object.position.z += z;
+        object.rotation.y = Math.random() * Math.PI * 2;
+        objectRoot.add(object);
+      } catch {
+        // One broken decorative asset should not abort the whole starter layout.
+      }
+    }
+    syncObjects();
+    setStatus("Random starter layout generated. Every piece remains editable.");
+  }
+
   async function addAsset(asset: string, displayName: string) {
     try {
       setStatus(`Loading ${displayName}…`);
-      const gltf = await loaderRef.current.loadAsync(asset);
-      const root = gltf.scene;
-      root.userData.habitatId = crypto.randomUUID();
-      root.userData.habitatName = displayName;
-      root.userData.asset = asset;
-      root.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (mesh.isMesh) {
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-        }
-      });
-      root.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(root);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const extent = Math.max(size.x, size.y, size.z, 0.001);
-      const normalized = Math.min(2.4 / extent, 1.6);
-      root.scale.setScalar(normalized);
-      root.position.set(-center.x * normalized, -box.min.y * normalized, -center.z * normalized);
+      const root = await loadHabitatAsset(asset, displayName);
       objectRootRef.current?.add(root);
       selectedRef.current = root;
       transformRef.current?.attach(root);
@@ -450,6 +569,7 @@ export function HabitatEditor() {
             <span className="eyebrow">ASSET LIBRARY</span>
             <h2>Environment</h2>
             <p>Click an asset to place it at the habitat origin, then position it in the viewport.</p>
+            <button className="habitat-randomize" onClick={() => void generateStarterLayout()}><Sparkles size={16}/>Generate starter layout</button>
           </div>
           <div className="habitat-assets">
             {BUILTIN_ASSETS.map((item) => (
@@ -480,7 +600,7 @@ export function HabitatEditor() {
             <div className="habitat-safe habitat-safe-bottom"><span>ACTIONS + NAV SAFE AREA</span></div>
             <div className="habitat-companion-guide"><span>REBYTER ZONE</span></div>
           </div>
-          <div className="habitat-stage-hint"><MousePointer2 size={14}/>Fixed player camera · select assets to transform them</div>
+          <div className="habitat-stage-hint"><MousePointer2 size={14}/>Exact game camera · active mammal.exe · select assets to transform them</div>
         </div>
 
         <aside className="habitat-inspector">
