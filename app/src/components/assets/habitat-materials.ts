@@ -238,7 +238,7 @@ export function lakeMaterial(wind: Wind, sky: number, light: number) {
     fog: true,
     uniforms: {
       uTime: wind.time,
-      uDeep: { value: new THREE.Color(0x167f96) },
+      uDeep: { value: new THREE.Color(0x118fb6) },
       uSky: { value: new THREE.Color(sky) },
       uGlint: { value: new THREE.Color(light) },
       uNight: { value: 0 },
@@ -271,7 +271,8 @@ export function lakeMaterial(wind: Wind, sky: number, light: number) {
         vec3 view = normalize(cameraPosition - vWaterWorld);
         float fresnel = pow(1.0 - max(dot(normal, view), 0.0), 3.0);
         float wave = sin(a) * 0.5 + sin(b) * 0.3 + sin(c) * 0.2;
-        vec3 color = mix(uDeep * (0.93 + wave * 0.13), uSky, 0.15 + fresnel * 0.38);
+        vec3 color = mix(uDeep * (0.96 + wave * 0.14), uSky, 0.12 + fresnel * 0.30);
+        color = mix(color, vec3(0.055, 0.22, 0.48), uNight * 0.20);
         vec3 halfDirection = normalize(view + uLightDirection);
         float specular = pow(max(dot(normal, halfDirection), 0.0), 72.0);
         // Broken horizontal glimmers form a moon path instead of parallel neon lines.
@@ -281,7 +282,13 @@ export function lakeMaterial(wind: Wind, sky: number, light: number) {
         float corridor = exp(-pow((p.x - axis) / width, 2.0));
         float crest = pow(0.5 + 0.5 * sin(p.y * 21.0 + sin(p.x * 7.0 + uTime * 0.4) + uTime * 1.4), 12.0);
         float breakup = smoothstep(-0.35, 0.8, sin(p.x * 13.0 - p.y * 5.0 + uTime * 0.55));
-        color += uGlint * (specular * 0.22 + corridor * crest * breakup * mix(0.2, 0.65, uNight));
+        float moonPath = corridor * crest * breakup;
+        float nightSparkle = pow(max(dot(normal, halfDirection), 0.0), 42.0);
+        color += uGlint * (
+          specular * mix(0.18, 0.38, uNight)
+          + moonPath * mix(0.10, 1.05, uNight)
+          + nightSparkle * uNight * 0.16
+        );
         gl_FragColor = vec4(color, 1.0);
         #include <fog_fragment>
         #include <tonemapping_fragment>
