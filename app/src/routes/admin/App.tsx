@@ -22,6 +22,7 @@ import {
   GitBranch,
   LayoutDashboard,
   Palette,
+  Trees,
   Network,
   Pencil,
   Save,
@@ -65,6 +66,7 @@ import { EvolutionGraphEditor } from "../../components/admin/EvolutionGraphEdito
 import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { EvolutionModel } from "../../components/assets/AssetViewer";
 const DesignLab = lazy(() => import("../../components/admin/DesignLab").then(module => ({default: module.DesignLab})));
+const HabitatEditor = lazy(() => import("../../components/admin/HabitatEditor").then(module => ({default: module.HabitatEditor})));
 import { CoreBenchmark } from "./CoreBenchmark";
 
 const short = (s: string) =>
@@ -118,6 +120,7 @@ export default function App() {
           <NavLink to="/admin/families/0"><Network size={17}/>Atlas</NavLink>
           <NavLink end to="/admin/families"><LayoutDashboard size={17}/>Collections</NavLink>
           <NavLink to="/admin/design-lab"><Palette size={17}/>Design Lab</NavLink>
+          <NavLink to="/admin/habitat-editor"><Trees size={17}/>Habitat Editor</NavLink>
         </nav>
 
         <div className="top-actions">
@@ -132,6 +135,7 @@ export default function App() {
           <Route index element={<Navigate to="families/0" replace />} />
           <Route path="families" element={<Home state={state} />} />
           <Route path="design-lab" element={<Suspense fallback={<div className="notice">Loading asset workshop…</div>}><DesignLab registry={state.registry!} /></Suspense>} />
+          <Route path="habitat-editor" element={<Suspense fallback={<div className="notice">Loading habitat editor…</div>}><HabitatEditor /></Suspense>} />
           <Route path="core-benchmark" element={<CoreBenchmark />} />
           <Route path="families/:familyId" element={<Family state={state} />} />
           <Route
