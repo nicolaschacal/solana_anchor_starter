@@ -65,6 +65,7 @@ import { EvolutionEditor } from "../../components/admin/EvolutionEditor";
 import { EvolutionGraphEditor } from "../../components/admin/EvolutionGraphEditor";
 import { ThemeToggle } from "../../components/admin/ThemeToggle";
 import { EvolutionModel } from "../../components/assets/AssetViewer";
+import { renderEvolutionPreview } from "../../lib/assets/render-evolution-preview";
 const DesignLab = lazy(() => import("../../components/admin/DesignLab").then(module => ({default: module.DesignLab})));
 const HabitatEditor = lazy(() => import("../../components/admin/HabitatEditor").then(module => ({default: module.HabitatEditor})));
 import { CoreBenchmark } from "./CoreBenchmark";
@@ -320,6 +321,10 @@ function Family({ state }: { state: RegistryState }) {
     [editing, setEditing] = useState<Evolution | null>(null),
     [assetFile, setAssetFile] = useState<File | null>(null),
     [modelFile, setModelFile] = useState<File | null>(null),
+    [modelPreview, setModelPreview] = useState<Blob | null>(null),
+    [modelPreviewUrl, setModelPreviewUrl] = useState(""),
+    [modelPreviewBusy, setModelPreviewBusy] = useState(false),
+    [modelPreviewError, setModelPreviewError] = useState(""),
     [storageError, setStorageError] = useState("");
   useEffect(() => {
     setDraft(null);
@@ -338,6 +343,62 @@ function Family({ state }: { state: RegistryState }) {
       setStorageError("Saved draft could not be recovered.");
     }
   }, [key, family]);
+
+  useEffect(() => {
+    return () => {
+      if (modelPreviewUrl) URL.revokeObjectURL(modelPreviewUrl);
+    };
+  }, [modelPreviewUrl]);
+
+  useEffect(() => {
+    setModelFile(null);
+    setModelPreview(null);
+    setModelPreviewError("");
+    setModelPreviewBusy(false);
+    setModelPreviewUrl("");
+  }, [editing?.id]);
+
+  async function selectModelFile(file: File | null) {
+    setModelFile(file);
+    setModelPreview(null);
+    setModelPreviewError("");
+    setModelPreviewBusy(false);
+    setModelPreviewUrl("");
+
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".glb")) {
+      setModelPreviewError("Choose a .glb file.");
+      return;
+    }
+    if (file.size > 700 * 1024) {
+      setModelPreviewError(
+        `Model is ${Math.ceil(file.size / 1024)} KB. Maximum is 700 KB.`,
+      );
+      return;
+    }
+
+    setModelPreviewBusy(true);
+    try {
+      const preview = await renderEvolutionPreview(await file.arrayBuffer());
+      setModelPreview(preview);
+      setModelPreviewUrl(URL.createObjectURL(preview));
+    } catch (error) {
+      setModelPreviewError(
+        error instanceof Error ? error.message : "Could not generate model preview.",
+      );
+    } finally {
+      setModelPreviewBusy(false);
+    }
+  }
+
+  function clearModelDraft() {
+    setModelFile(null);
+    setModelPreview(null);
+    setModelPreviewError("");
+    setModelPreviewBusy(false);
+    setModelPreviewUrl("");
+  }
+
   function save(j: PublishJournal) {
     setJournal({ ...j });
     setDraft(structuredClone(j.tree));
@@ -510,13 +571,14 @@ function Family({ state }: { state: RegistryState }) {
   }
 
   async function publishEditingModel() {
-    if (!tree || !editing || !modelFile) return;
+    if (!tree || !editing || !modelFile || !modelPreview) return;
     if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
     if (modelFile.size > 700 * 1024) return;
 
     const assets = await tx.publishEvolutionModel(
       editing,
       await modelFile.arrayBuffer(),
+      modelPreview,
     );
     if (!assets) return;
     const next: Evolution = {
@@ -525,7 +587,7 @@ function Family({ state }: { state: RegistryState }) {
       assets,
     };
     setEditing(next);
-    setModelFile(null);
+    clearModelDraft();
     edit({
       ...tree,
       evolutions: tree.evolutions.map((e) => (e.id === next.id ? next : e)),
@@ -539,11 +601,12 @@ function Family({ state }: { state: RegistryState }) {
     let next = editing;
     if (modelFile) {
       if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
-      if (modelFile.size > 700 * 1024) return;
+      if (modelFile.size > 700 * 1024 || !modelPreview) return;
 
       const assets = await tx.publishEvolutionModel(
         editing,
         await modelFile.arrayBuffer(),
+        modelPreview,
       );
       if (!assets) return;
 
@@ -552,7 +615,7 @@ function Family({ state }: { state: RegistryState }) {
         modelUri: assets.modelUri ?? editing.modelUri,
         assets,
       };
-      setModelFile(null);
+      clearModelDraft();
     }
 
     edit({
@@ -929,45 +992,98 @@ function Family({ state }: { state: RegistryState }) {
             </div>
             <div className="specimen-asset-publisher specimen-model-publisher">
               <div>
-                <strong>Optimized 3D model → Irys</strong>
-                <small>Choose the optimized GLB (≤700 KB). Admin uploads it to Irys, creates fresh metadata with animation_url, and stages the new model URI in the next atlas version.</small>
+                <strong>3D model + automatic front preview → Irys</strong>
+                <small>Choose the optimized GLB (≤700 KB). Admin generates a consistently lit front portrait, uses it for image + thumbnail, then publishes the GLB and fresh metadata with animation_url.</small>
               </div>
               <input
                 type="file"
                 accept=".glb,model/gltf-binary"
-                disabled={!editable || tx.busy}
-                onChange={(event) => setModelFile(event.target.files?.[0] ?? null)}
+                disabled={!editable || tx.busy || modelPreviewBusy}
+                onChange={(event) => void selectModelFile(event.target.files?.[0] ?? null)}
               />
+              {modelPreviewBusy && (
+                <div className="model-preview-generating">
+                  <span className="muted">Generating front preview…</span>
+                </div>
+              )}
+              {modelPreviewUrl && (
+                <div className="generated-model-preview">
+                  <img src={modelPreviewUrl} alt={`Generated front preview of ${editing.name}`} />
+                  <div>
+                    <strong>Generated image + thumbnail</strong>
+                    <small>Front view · studio lighting · 768 × 768 PNG</small>
+                  </div>
+                </div>
+              )}
+              {modelPreviewError && (
+                <small className="notice error">{modelPreviewError}</small>
+              )}
               <button
                 type="button"
-                disabled={!editable || tx.busy || !modelFile || modelFile.size > 700 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")}
+                disabled={
+                  !editable ||
+                  tx.busy ||
+                  modelPreviewBusy ||
+                  !modelFile ||
+                  !modelPreview ||
+                  modelFile.size > 700 * 1024 ||
+                  !modelFile.name.toLowerCase().endsWith(".glb")
+                }
                 onClick={() => void publishEditingModel()}
               >
                 <Upload size={15}/>
-                {tx.busy ? "Publishing..." : "Push 3D + metadata to Irys"}
+                {tx.busy ? "Publishing..." : "Push 3D + preview + metadata to Irys"}
               </button>
               {modelFile && (
-                <small className={modelFile.size > 700 * 1024 ? "notice error" : "muted"}>
+                <small className={modelFile.size > 700 * 1024 || modelPreviewError ? "notice error" : "muted"}>
                   {modelFile.name} · {Math.ceil(modelFile.size / 1024)} KB
-                  {modelFile.size > 700 * 1024 ? " · too large" : " · ready"}
+                  {modelFile.size > 700 * 1024
+                    ? " · too large"
+                    : modelPreview
+                      ? " · preview ready"
+                      : modelPreviewBusy
+                        ? " · generating preview"
+                        : " · preview required"}
                 </small>
               )}
-              {editing.assets?.modelUri && (
+              {(editing.assets?.modelUri || editing.assets?.imageUri) && (
                 <div className="specimen-asset-links">
-                  <a href={editing.assets.modelUri} target="_blank" rel="noreferrer">3D model URI <ExternalLink size={11}/></a>
+                  {editing.assets?.modelUri && <a href={editing.assets.modelUri} target="_blank" rel="noreferrer">3D model URI <ExternalLink size={11}/></a>}
+                  {editing.assets?.imageUri && <a href={editing.assets.imageUri} target="_blank" rel="noreferrer">Generated image URI <ExternalLink size={11}/></a>}
                 </div>
               )}
             </div>
             <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
             <div className="specimen-edit-actions">
-              <button onClick={() => setEditing(null)}>Cancel</button>
+              <button onClick={() => {
+                clearModelDraft();
+                setEditing(null);
+              }}>Cancel</button>
               <button
                 className="primary"
-                disabled={!editable || tx.busy || !!(modelFile && (modelFile.size > 700 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")))}
+                disabled={
+                  !editable ||
+                  tx.busy ||
+                  modelPreviewBusy ||
+                  !!(
+                    modelFile &&
+                    (
+                      modelFile.size > 700 * 1024 ||
+                      !modelFile.name.toLowerCase().endsWith(".glb") ||
+                      !modelPreview
+                    )
+                  )
+                }
                 onClick={() => void saveEditingChanges()}
               >
                 <Save size={15}/>
-                {tx.busy ? "Saving..." : modelFile ? "Upload + save changes" : "Save changes"}
+                {tx.busy
+                  ? "Saving..."
+                  : modelPreviewBusy
+                    ? "Generating preview..."
+                    : modelFile
+                      ? "Upload model + portrait + save"
+                      : "Save changes"}
               </button>
             </div>
           </section>
