@@ -2068,3 +2068,224 @@ body:has(.admin-console){
     min-height:620px!important;
   }
 }
+
+
+/* Habitat Editor ----------------------------------------------------------- */
+.habitat-editor {
+  display: grid;
+  gap: 18px;
+}
+.habitat-editor-heading,
+.habitat-export {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+}
+.habitat-editor-heading h1 {
+  margin: 6px 0 8px;
+  font-size: 30px;
+  font-weight: 650;
+}
+.habitat-editor-heading p,
+.habitat-library p,
+.habitat-export p {
+  margin: 0;
+  max-width: 720px;
+  color: #74867a;
+  line-height: 1.55;
+  font-size: 12px;
+}
+.habitat-heading-actions,
+.habitat-export-actions,
+.habitat-toolset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.habitat-toolbar {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 8px;
+  border: 1px solid #dce5de;
+  border-radius: 8px;
+  background: #fff;
+}
+.habitat-toolbar > span {
+  padding-right: 10px;
+  color: #74867a;
+  font-size: 11px;
+  text-align: right;
+}
+.habitat-toolset button {
+  min-height: 34px;
+}
+.habitat-toolset button.active {
+  border-color: #4b8765;
+  background: #e6f1ea;
+  color: #1f5e3e;
+}
+.habitat-layout {
+  display: grid;
+  grid-template-columns: 215px minmax(0, 1fr) 235px;
+  gap: 12px;
+  min-height: 650px;
+}
+.habitat-library,
+.habitat-inspector,
+.habitat-stage {
+  border: 1px solid #dce5de;
+  border-radius: 9px;
+  background: #fff;
+  overflow: hidden;
+}
+.habitat-library,
+.habitat-inspector {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+.habitat-library h2,
+.habitat-inspector h2,
+.habitat-export h2 {
+  margin: 5px 0 8px;
+}
+.habitat-assets {
+  display: grid;
+  gap: 7px;
+}
+.habitat-assets button {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 43px;
+  background: #f8faf8;
+}
+.habitat-assets button:hover {
+  border-color: #8eaa97;
+  background: #eef5f0;
+}
+.habitat-import {
+  margin-top: auto;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px dashed #a9bcae;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #416c51;
+  font-weight: 700;
+}
+.habitat-import input {
+  display: none;
+}
+.habitat-stage {
+  min-width: 0;
+  min-height: 650px;
+  position: relative;
+  background: #9bcbe7;
+}
+.habitat-canvas,
+.habitat-canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.habitat-stage-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px solid #ffffff44;
+  border-radius: 6px;
+  background: #173126cc;
+  color: #eff7f1;
+  font-size: 10px;
+  pointer-events: none;
+}
+.habitat-ground-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.habitat-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #eef4ef;
+  border-radius: 6px;
+}
+.habitat-summary strong,
+.habitat-summary small,
+.habitat-selected strong,
+.habitat-selected small {
+  display: block;
+}
+.habitat-summary small {
+  color: #809086;
+  margin-top: 3px;
+}
+.habitat-selected {
+  border-top: 1px solid #e5ebe6;
+  padding-top: 15px;
+}
+.habitat-selected small {
+  margin-bottom: 6px;
+  color: #87978d;
+  font-size: 9px;
+  font-weight: 700;
+}
+.habitat-export {
+  padding: 18px 20px;
+  border: 1px solid #dce5de;
+  border-radius: 9px;
+  background: #fff;
+  align-items: center;
+}
+.habitat-export-actions {
+  justify-content: flex-end;
+}
+@media (max-width: 1050px) {
+  .habitat-layout {
+    grid-template-columns: 190px minmax(0, 1fr);
+  }
+  .habitat-inspector {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+@media (max-width: 760px) {
+  .habitat-editor-heading,
+  .habitat-export,
+  .habitat-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .habitat-layout {
+    grid-template-columns: 1fr;
+  }
+  .habitat-stage {
+    min-height: 520px;
+    order: -1;
+  }
+  .habitat-inspector {
+    display: flex;
+  }
+  .habitat-toolbar > span {
+    text-align: left;
+    padding: 0 4px 4px;
+  }
+}
