@@ -23,6 +23,26 @@ import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
 
+const clipAliases: Record<string, string[]> = {
+  idle: ["idle", "Idle_Blinking", "Idle"],
+  touch: ["touch", "Bounce_Happy", "Happy"],
+  sad: ["sad", "Sad"],
+  feed: ["feed", "Feeding"],
+  play: ["play", "Bounce_Happy"],
+  train: ["train", "Attack_Slam"],
+  care: ["care", "Bounce_Happy"],
+};
+
+function normalizeClipName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function findActionClip(clips: THREE.AnimationClip[], action: string) {
+  const names = clipAliases[action] ?? [action];
+  const normalized = new Set(names.map(normalizeClipName));
+  return clips.find((clip) => normalized.has(normalizeClipName(clip.name)));
+}
+
 export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
   landscape?: boolean;
@@ -246,8 +266,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       touching = false;
       mixer.stopAllAction();
       clip =
-        live.current.clips.find((c) => c.name === live.current.action) ??
-        live.current.clips.find((c) => c.name === "idle");
+        findActionClip(live.current.clips, live.current.action) ??
+        findActionClip(live.current.clips, "idle");
       if (clip) mixer.clipAction(clip).reset().play();
     };
     changeAnimation.current();
@@ -259,8 +279,9 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     mixer.addEventListener("finished", returnToIdle);
     reactToTouch.current = () => {
       const { sleeping, paused, action, clips } = live.current;
-      const touchClip = clips.find((c) => c.name === "touch");
-      if (sleeping || paused || action !== "idle" || touching || !touchClip)
+      const touchClip = findActionClip(clips, "touch");
+      const touchableState = action === "idle" || action === "sad";
+      if (sleeping || paused || !touchableState || touching || !touchClip)
         return;
       touching = true;
       mixer.stopAllAction();
@@ -499,8 +520,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     <div className="asset-viewport">
       <div ref={mount} className="asset-canvas" />
       {!sleeping &&
-        action === "idle" &&
-        clips.some((c) => c.name === "touch") && (
+        (action === "idle" || action === "sad") &&
+        !!findActionClip(clips, "touch") && (
           <button
             className="asset-touch asset-touch-accessible"
             onClick={() => reactToTouch.current()}
