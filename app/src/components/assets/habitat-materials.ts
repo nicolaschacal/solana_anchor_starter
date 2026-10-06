@@ -102,7 +102,7 @@ function grassTexture() {
   });
 }
 
-export function grassCarpet(mobile: boolean, wind: Wind, track: Track) {
+export function grassCarpet(\n  mobile: boolean,\n  wind: Wind,\n  track: Track,\n  exclusions: { x: number; z: number; radius: number }[] = [],\n) {
   // Two crossed, alpha-cutout cards per tuft: the texture supplies soft, curved
   // leaf silhouettes. There are no cone, wedge or pyramid-shaped grass meshes.
   const geometry = track(new THREE.BufferGeometry());
@@ -148,17 +148,25 @@ transformed.z += cos(uGrassTime * 0.8 + origin.y) * height * 0.018 * uGrassGain;
   const flowers: THREE.Vector3[] = [];
   for (let i = 0; i < count; i++) {
     let x = 0, z = 0;
-    for (let attempt = 0; attempt < 16; attempt++) {
+    let valid = false;
+    for (let attempt = 0; attempt < 32; attempt++) {
       const farBank = i > count * 0.88;
       x = (rand() - 0.5) * (farBank ? 23 : 17);
       z = farBank ? -18 - rand() * 7 : -8.8 + rand() * 13;
-      // Keep the companion's face/feet readable, and leave the winding trail open.
+      // Keep the companion's face/feet readable, leave the winding trail open,
+      // and never grow grass through a solid pedestal.
       const nearCompanion = Math.abs(x) < 1.1 && z > -0.8 && z < 1.3;
       const pathCenter = 2.1 + (-z - 2) * 0.3;
       const onTrail = z < -2 && z > -10 && Math.abs(x - pathCenter) < 0.65;
-      if (!nearCompanion && !onTrail) break;
+      const insidePedestal = exclusions.some(
+        (area) => Math.hypot(x - area.x, z - area.z) < area.radius,
+      );
+      if (!nearCompanion && !onTrail && !insidePedestal) {
+        valid = true;
+        break;
+      }
     }
-    const scale = 0.7 + rand() * 0.65;
+    const scale = valid ? 0.7 + rand() * 0.65 : 0;
     transform.position.set(x, 0.012, z);
     transform.rotation.set(0, rand() * Math.PI, 0);
     transform.scale.set(scale, scale * (z < -17 ? 0.8 : 1), scale);
