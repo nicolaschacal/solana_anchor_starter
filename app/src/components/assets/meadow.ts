@@ -11,32 +11,32 @@ const palettes = {
     horizon: 0x315c91,
     ground: 0x2b4d42,
     grass: 0x496a54,
-    light: 0xb9d9ff,
-    intensity: 2.15,
+    light: 0xa9cfff,
+    intensity: 1.35,
   },
   Morning: {
     sky: 0x80b9df,
     horizon: 0xffdfbd,
     ground: 0x607b40,
     grass: 0x92ab58,
-    light: 0xffe4ba,
-    intensity: 2.4,
+    light: 0xffe2b5,
+    intensity: 1.72,
   },
   Day: {
     sky: 0x559fda,
     horizon: 0xd2edf0,
     ground: 0x5c843c,
     grass: 0x95b953,
-    light: 0xfff2d5,
-    intensity: 2.6,
+    light: 0xffefd5,
+    intensity: 1.62,
   },
   Evening: {
     sky: 0x656fa6,
     horizon: 0xf1bc9d,
     ground: 0x4c6240,
     grass: 0x818453,
-    light: 0xffc191,
-    intensity: 2.25,
+    light: 0xffc58f,
+    intensity: 1.48,
   },
 };
 const moteColors = {
@@ -194,12 +194,14 @@ export function meadow(
 ) {
   const colors = {
     ...palettes[period],
+    // Lower ambient/fill levels preserve facet shading and give the scene
+    // cinematic depth instead of washing every surface with equal light.
     ambientIntensity:
-      period === "Night" ? 1.35 : period === "Evening" ? 1.5 : 1.9,
+      period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
     fillIntensity:
-      period === "Night" ? 0.9 : period === "Evening" ? 0.7 : 0.55,
-    moonIntensity: period === "Night" ? 0.25 : 0,
-    rimIntensity: period === "Night" ? 0.55 : 0,
+      period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
+    moonIntensity: period === "Night" ? 0.52 : 0,
+    rimIntensity: period === "Night" ? 0.42 : period === "Evening" ? 0.18 : 0.08,
   };
   const group = new THREE.Group();
   let shadowsDirty = true;
@@ -683,7 +685,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
       );
     }
     // Middle ground: trunks inside the portrait frustum, crowns frame the sky.
-    plant("tree", -3.0, -5.8, 6.6, 0.28);
     plant("pine", 3.3, -7.6, 6.0, -0.35);
     plant("tree", -6.8, -11, 5.0, 0.7);
     plant("pine", 7.8, -13.5, 4.9, 0.5);
@@ -712,14 +713,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
     plant("mushrooms", -1.75, -0.7, 0.28, 0.2);
     plant("mushrooms", 2.25, 0.5, 0.22, -0.3);
 
-    // Visible but restrained portrait accents. These sit inside the mobile
-    // frustum, away from the clean hero zone around the Rebyter.
-    plant("rocks", -3.35, -6.0, 0.56, 0.28);
-    plant("wildflowers", -3.05, -5.25, 0.52, -0.18);
-    plant("reeds", 3.35, -10.7, 0.72, 0.18);
-    plant("wildflowers", 3.15, -5.75, 0.48, 0.36);
-    plant("grass", 3.45, -3.65, 0.50, -0.3);
-    plant("mushrooms", 3.05, -2.85, 0.32, 0.12);
     shadowsDirty = true;
   })();
 
@@ -754,27 +747,31 @@ diffuseColor.rgb *= 1.0 + macro;`,
         twilight,
       );
       colors.ambientIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 1.35 : period === "Evening" ? 1.5 : 1.9,
-        1.35,
+        period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
+        0.72,
         twilight,
       );
       colors.fillIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.9 : period === "Evening" ? 0.7 : 0.55,
-        0.9,
+        period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
+        0.38,
         twilight,
       );
       colors.moonIntensity =
         period === "Night"
-          ? 0.25
+          ? 0.52
           : period === "Evening"
-            ? THREE.MathUtils.smoothstep(blend, 0.45, 0.95) * 0.25
+            ? THREE.MathUtils.smoothstep(blend, 0.42, 0.92) * 0.52
             : 0;
       colors.rimIntensity =
         period === "Night"
-          ? 0.55
+          ? 0.42
           : period === "Evening"
-            ? THREE.MathUtils.smoothstep(blend, 0.5, 0.95) * 0.55
-            : 0;
+            ? THREE.MathUtils.lerp(
+                0.18,
+                0.42,
+                THREE.MathUtils.smoothstep(blend, 0.42, 0.92),
+              )
+            : 0.08;
       starMaterial.opacity =
         THREE.MathUtils.smoothstep(blend, 0.2, 0.85) * 1.0;
       stars.visible = starMaterial.opacity > 0.01;
