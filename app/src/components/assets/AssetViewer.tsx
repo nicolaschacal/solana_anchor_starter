@@ -18,7 +18,7 @@ import {
   inspectModel,
   type AssetModel,
 } from "../../lib/assets/rig";
-import { modelUriFor } from "../../lib/assets/catalog";
+import { isMammalPilot, modelUriFor } from "../../lib/assets/catalog";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
@@ -47,6 +47,8 @@ export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
   landscape?: boolean;
   creatureScale?: number;
+  creatureYOffset?: number;
+  creatureVisualBoost?: boolean;
   worldTime?: number;
   period?: WorldPeriod;
   model: AssetModel;
@@ -61,6 +63,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     model,
     landscape = false,
     creatureScale = 1,
+    creatureYOffset = 0,
+    creatureVisualBoost = false,
     worldTime = Date.now(),
     period = "Day",
     clips = model.clips,
@@ -187,10 +191,27 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         const matte = (source: THREE.Material) => {
           const material = source.clone();
           if (material instanceof THREE.MeshStandardMaterial) {
-            material.roughness = Math.max(material.roughness, 0.9);
             material.metalness = 0;
-            material.roughnessMap = null;
             material.metalnessMap = null;
+
+            if (creatureVisualBoost) {
+              // The mobile-optimized Mammal textures are intentionally tiny.
+              // Keep more specular response and add a very small texture-backed
+              // emissive lift so the creature does not look washed out in the
+              // habitat, especially at night.
+              material.roughness = Math.min(material.roughness || 0.75, 0.72);
+              if (material.map) {
+                material.emissive.set(0xffffff);
+                material.emissiveMap = material.map;
+                material.emissiveIntensity = 0.16;
+              } else {
+                material.emissive.copy(material.color);
+                material.emissiveIntensity = 0.08;
+              }
+            } else {
+              material.roughness = Math.max(material.roughness, 0.9);
+              material.roughnessMap = null;
+            }
           }
           creatureMaterials.add(material);
           return material;
@@ -210,7 +231,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     stage.scale.setScalar(scale);
     stage.position.set(
       -center.x * scale,
-      -bounds.min.y * scale + (landscape ? (environment?.groundY ?? 0.18) : 0),
+      -bounds.min.y * scale +
+        (landscape ? (environment?.groundY ?? 0.18) + creatureYOffset : 0),
       -center.z * scale,
     );
     const target = new THREE.Vector3(0, size.y * scale * 0.48, 0),
@@ -512,7 +534,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [model, landscape, creatureScale]);
+  }, [model, landscape, creatureScale, creatureYOffset, creatureVisualBoost]);
   useEffect(() => changeAnimation.current(), [action, clips]);
   useEffect(() => changeDebug.current(), [skeleton, selectedBone]);
   useEffect(() => changePeriod.current(period), [period]);
@@ -756,6 +778,8 @@ export function EvolutionModel({
           period={period}
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
+          creatureYOffset={landscape && isMammalPilot(evolution) ? 0.28 : 0}
+          creatureVisualBoost={landscape && isMammalPilot(evolution)}
           model={loaded.model}
           action={action}
           sleeping={sleeping}
