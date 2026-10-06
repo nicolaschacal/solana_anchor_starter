@@ -2434,3 +2434,76 @@ body:has(.admin-console){
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+
+
+/* Habitat terrain tools ---------------------------------------------------- */
+.habitat-toolbar-multiline {
+  flex-wrap: wrap;
+}
+.terrain-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid #dce5de;
+  border-radius: 8px;
+  background: #f7faf8;
+}
+.terrain-controls > strong {
+  font-size: 11px;
+  color: #395f49;
+  white-space: nowrap;
+}
+.terrain-controls label {
+  display: grid;
+  grid-template-columns: auto minmax(120px, 190px) 36px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.terrain-controls input[type="range"] {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  accent-color: #2f7650;
+}
+.terrain-controls label span {
+  font: 10px "IBM Plex Mono", monospace;
+  color: #667b6d;
+}
+.terrain-paints {
+  display: flex;
+  gap: 6px;
+}
+.terrain-paints button,
+.habitat-inspector-tools button {
+  min-height: 31px;
+  padding: 5px 9px;
+  text-transform: capitalize;
+}
+.terrain-paints button.active,
+.habitat-inspector-tools button.active {
+  background: #173126;
+  color: #fff;
+  border-color: #173126;
+}
+.habitat-inspector-tools {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.habitat-stage-hint {
+  z-index: 6;
+}
+.habitat-toolset {
+  row-gap: 6px;
+}
+@media (max-width: 760px) {
+  .terrain-controls {
+    align-items: stretch;
+  }
+  .terrain-controls label {
+    grid-template-columns: 55px minmax(0, 1fr) 34px;
+  }
+}
