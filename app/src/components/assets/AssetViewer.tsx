@@ -112,8 +112,11 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     key.position.set(3, 5, -4);
     const fill = new THREE.DirectionalLight(0xb9d9ff, landscape ? 0.45 : 0);
     fill.position.set(-3, 2, 4);
-    scene.add(fill);
-    scene.add(key);
+    const moonLight = new THREE.DirectionalLight(0xcfe2ff, 0);
+    moonLight.position.set(-4.5, 7, -5);
+    const rimLight = new THREE.DirectionalLight(0x91b7ff, 0);
+    rimLight.position.set(0, 3.8, -7);
+    scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
     let environment = landscape ? meadow(scene, initialPeriod) : null;
     let environmentPeriod = initialPeriod;
@@ -128,7 +131,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
           : initialPeriod === "Evening"
             ? 1.5
             : 1.9;
-      ambient.color.setHex(initialPeriod === "Night" ? 0x8faeff : 0xd9efff);
+      ambient.color.setHex(initialPeriod === "Night" ? 0xa9c7ff : 0xd9efff);
+      fill.intensity = environment.colors.fillIntensity ?? 0.45;
+      moonLight.intensity = environment.colors.moonIntensity ?? 0;
+      rimLight.intensity = environment.colors.rimIntensity ?? 0;
     }
     changePeriod.current = (next) => {
       if (next === environmentPeriod) return;
@@ -142,7 +148,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         key.intensity = environment.colors.intensity;
         ambient.intensity =
           next === "Night" ? 0.8 : next === "Evening" ? 1.5 : 1.9;
-        ambient.color.setHex(next === "Night" ? 0x8faeff : 0xd9efff);
+        ambient.color.setHex(next === "Night" ? 0xa9c7ff : 0xd9efff);
+        fill.intensity = environment.colors.fillIntensity ?? 0.45;
+        moonLight.intensity = environment.colors.moonIntensity ?? 0;
+        rimLight.intensity = environment.colors.rimIntensity ?? 0;
       }
     };
     const creatureMaterials = new Set<THREE.Material>();
@@ -383,6 +392,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             key.position.copy(environment.lightPosition);
           if (environment.colors.ambientIntensity !== undefined)
             ambient.intensity = environment.colors.ambientIntensity;
+          if (environment.colors.fillIntensity !== undefined)
+            fill.intensity = environment.colors.fillIntensity;
+          moonLight.intensity = environment.colors.moonIntensity ?? 0;
+          rimLight.intensity = environment.colors.rimIntensity ?? 0;
         }
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
@@ -533,9 +546,9 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     const scene = new THREE.Scene();
     const env = meadow(scene, period);
     const hemi = new THREE.HemisphereLight(
-      period === "Night" ? 0x8faeff : 0xdff5ff,
+      period === "Night" ? 0xa9c7ff : 0xdff5ff,
       0x314536,
-      period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
+      env.colors.ambientIntensity ?? (period === "Night" ? 1.05 : period === "Evening" ? 1.5 : 1.9),
     );
     scene.add(hemi);
     const key = new THREE.DirectionalLight(
@@ -543,10 +556,22 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       env.colors.intensity,
     );
     key.position.copy(env.lightPosition);
-    const fill = new THREE.DirectionalLight(0xb9d9ff, 0.45);
+    const fill = new THREE.DirectionalLight(
+      0xb9d9ff,
+      env.colors.fillIntensity ?? 0.45,
+    );
     fill.position.set(-3, 2, 4);
-    scene.add(fill);
-    scene.add(key);
+    const moonLight = new THREE.DirectionalLight(
+      0xcfe2ff,
+      env.colors.moonIntensity ?? 0,
+    );
+    moonLight.position.set(-4.5, 7, -5);
+    const rimLight = new THREE.DirectionalLight(
+      0x91b7ff,
+      env.colors.rimIntensity ?? 0,
+    );
+    rimLight.position.set(0, 3.8, -7);
+    scene.add(fill, moonLight, rimLight, key);
 
     const platform = new THREE.Mesh(
       new THREE.CylinderGeometry(1.95, 2.12, 0.18, 64),
@@ -600,6 +625,13 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       const t = clock.getElapsedTime();
       ring.material.opacity = 0.48 + Math.sin(t * 1.6) * 0.1;
       env.update(t);
+      key.color.setHex(env.colors.light);
+      key.intensity = env.colors.intensity;
+      key.position.copy(env.lightPosition);
+      hemi.intensity = env.colors.ambientIntensity ?? hemi.intensity;
+      fill.intensity = env.colors.fillIntensity ?? fill.intensity;
+      moonLight.intensity = env.colors.moonIntensity ?? 0;
+      rimLight.intensity = env.colors.rimIntensity ?? 0;
       if (!pausedRef.current && !document.hidden) {
         renderer.render(scene, camera);
         raf = requestAnimationFrame(render);
