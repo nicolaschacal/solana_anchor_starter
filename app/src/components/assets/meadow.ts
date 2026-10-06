@@ -459,6 +459,9 @@ diffuseColor.rgb *= 1.0 + macro;`,
   );
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.set(0, 0.025, 0.1);
+  // The blob is a contact shadow for the companion, not scenery. Keep it hidden
+  // until the creature viewer supplies the companion's actual world position.
+  shadow.visible = false;
   group.add(shadow);
 
   let disposed = false;
@@ -813,6 +816,11 @@ diffuseColor.rgb *= 1.0 + macro;`,
       return dirty;
     },
     groundY: 0.04,
+    setCompanionShadowPosition(x: number, z: number, visible = true) {
+      shadow.position.x = x;
+      shadow.position.z = z;
+      shadow.visible = visible;
+    },
     lightPosition,
     update,
     dispose() {
