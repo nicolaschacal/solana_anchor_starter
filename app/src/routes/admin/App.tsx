@@ -507,10 +507,8 @@ function Family({ state }: { state: RegistryState }) {
 
   async function publishEditingModel() {
     if (!tree || !editing || !modelFile) return;
-    if (!modelFile.name.toLowerCase().endsWith(".glb"))
-      throw new Error("Choose a self-contained .glb file.");
-    if (modelFile.size > 500 * 1024)
-      throw new Error(`Optimized model must be 500 KB or smaller (selected ${Math.ceil(modelFile.size / 1024)} KB).`);
+    if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
+    if (modelFile.size > 500 * 1024) return;
 
     const assets = await tx.publishEvolutionModel(
       editing,
@@ -906,7 +904,7 @@ function Family({ state }: { state: RegistryState }) {
               />
               <button
                 type="button"
-                disabled={!editable || tx.busy || !modelFile}
+                disabled={!editable || tx.busy || !modelFile || modelFile.size > 500 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")}
                 onClick={() => void publishEditingModel()}
               >
                 <Upload size={15}/>
