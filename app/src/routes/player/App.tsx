@@ -586,7 +586,7 @@ export function PlayerHome() {
     </section>
   </main></Shell>;
 
-  if (loading && !owned.length) return <Shell showNav={false}><main className="game-home">
+  if (loading && (!owned.length || !active || !evolution)) return <Shell showNav={false}><main className="game-home">
     <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
   </main></Shell>;
 
