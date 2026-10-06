@@ -6,12 +6,12 @@ import type { WorldPeriod } from "../../hooks/useWorldClock";
 
 const palettes = {
   Night: {
-    sky: 0x111b3e,
-    horizon: 0x455b82,
-    ground: 0x244539,
-    grass: 0x41614b,
-    light: 0xa9c5ff,
-    intensity: 1.1,
+    sky: 0x15234a,
+    horizon: 0x526b96,
+    ground: 0x2b4d42,
+    grass: 0x496a54,
+    light: 0xc8dbff,
+    intensity: 1.28,
   },
   Morning: {
     sky: 0x80b9df,
@@ -327,7 +327,11 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   const colors = {
     ...palettes[period],
     ambientIntensity:
-      period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
+      period === "Night" ? 1.05 : period === "Evening" ? 1.5 : 1.9,
+    fillIntensity:
+      period === "Night" ? 0.58 : period === "Evening" ? 0.5 : 0.45,
+    moonIntensity: period === "Night" ? 0.95 : 0,
+    rimIntensity: period === "Night" ? 0.34 : 0,
   };
   const group = new THREE.Group();
   scene.add(group);
@@ -336,7 +340,11 @@ export function meadow(scene: THREE.Scene, period: WorldPeriod) {
   // Cool distant haze preserves mountain separation even at sunset.
   const haze =
     period === "Night" ? 0x263c60 : period === "Evening" ? 0x8896b2 : 0xb2d4e2;
-  scene.fog = new THREE.Fog(haze, 45, 120);
+  scene.fog = new THREE.Fog(
+    haze,
+    period === "Night" ? 55 : 45,
+    period === "Night" ? 138 : 120,
+  );
   // Resources created here (and only these) are released in dispose().
   const own: { dispose(): void }[] = [];
   const track = <T extends { dispose(): void }>(resource: T) => (
@@ -534,11 +542,12 @@ diffuseColor.rgb *= 1.0 + macro;`,
   );
   const starMaterial = track(
     new THREE.PointsMaterial({
-      color: 0xd4e6ff,
-      size: 0.08,
+      color: 0xeaf2ff,
+      size: 0.105,
       fog: false,
       transparent: true,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
       opacity: 0,
     }),
   );
@@ -954,12 +963,29 @@ diffuseColor.rgb *= 1.0 + macro;`,
         twilight,
       );
       colors.ambientIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.8 : period === "Evening" ? 1.5 : 1.9,
-        0.8,
+        period === "Night" ? 1.05 : period === "Evening" ? 1.5 : 1.9,
+        1.05,
         twilight,
       );
+      colors.fillIntensity = THREE.MathUtils.lerp(
+        period === "Night" ? 0.58 : period === "Evening" ? 0.5 : 0.45,
+        0.58,
+        twilight,
+      );
+      colors.moonIntensity =
+        period === "Night"
+          ? 0.95
+          : period === "Evening"
+            ? THREE.MathUtils.smoothstep(blend, 0.45, 0.95) * 0.95
+            : 0;
+      colors.rimIntensity =
+        period === "Night"
+          ? 0.34
+          : period === "Evening"
+            ? THREE.MathUtils.smoothstep(blend, 0.5, 0.95) * 0.3
+            : 0;
       starMaterial.opacity =
-        THREE.MathUtils.smoothstep(blend, 0.25, 0.9) * 0.85;
+        THREE.MathUtils.smoothstep(blend, 0.2, 0.85) * 1.0;
       stars.visible = starMaterial.opacity > 0.01;
       if (period === "Evening") {
         const sunOpacity = 1 - THREE.MathUtils.smoothstep(blend, 0.3, 0.8);
