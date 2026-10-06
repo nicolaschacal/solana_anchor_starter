@@ -156,7 +156,13 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     rimLight.position.set(0, 3.8, -7);
     scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
-    let environment = landscape ? meadow(scene, initialPeriod) : null;
+    const meadowOptions =
+      landscape && creatureVisualBoost
+        ? { grassExclusions: [{ x: 0, z: creatureZOffset, radius: 1.35 }] }
+        : undefined;
+    let environment = landscape
+      ? meadow(scene, initialPeriod, meadowOptions)
+      : null;
     let environmentPeriod = initialPeriod;
     if (environment) {
       if (environment.lightPosition)
@@ -179,7 +185,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       if (next === environmentPeriod) return;
       environmentPeriod = next;
       environment?.dispose();
-      environment = landscape ? meadow(scene, next) : null;
+      environment = landscape ? meadow(scene, next, meadowOptions) : null;
       if (environment) {
         if (environment.lightPosition)
           key.position.copy(environment.lightPosition);
