@@ -246,6 +246,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         (landscape ? (environment?.groundY ?? 0.18) + creatureYOffset : 0),
       -center.z * scale + (landscape ? creatureZOffset : 0),
     );
+    environment?.setCompanionShadowPosition?.(stage.position.x, stage.position.z);
     const baseStagePosition = stage.position.clone();
     const baseStageRotationY = stage.rotation.y;
     const trainingRockGeometry = new THREE.DodecahedronGeometry(0.34, 0);
@@ -522,7 +523,14 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
           .clone()
           .sub(controls.target)
           .normalize();
-        controls.target.y = 1.6 + (camera.aspect < 1 ? 0.7 : 0);
+        // Moving the companion deeper into the world naturally makes it climb
+        // in screen space. Aim slightly higher in portrait so it stays visually
+        // low near the HUD without lifting it off the terrain.
+        controls.target.y =
+          1.6 +
+          (camera.aspect < 1
+            ? 0.7 + Math.max(0, -creatureZOffset) * 0.22
+            : 0);
         camera.position
           .copy(controls.target)
           .addScaledVector(direction, distance);
@@ -705,6 +713,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         }
 
         mixer.update(delta);
+        environment?.setCompanionShadowPosition?.(
+          stage.position.x,
+          stage.position.z,
+        );
         controls.update();
         environment?.update(now / 1000, live.current.worldTime);
         if (environment) {
