@@ -3973,3 +3973,39 @@ html,body,#root{background:#04101f!important}
     line-height:13px!important;
   }
 }
+
+
+/* iOS-safe native growth progress: the third row of the Rebyter chip. */
+.monster-id-growth{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  display:block!important;
+  width:100%!important;
+  height:5px!important;
+  min-height:5px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:999px!important;
+  overflow:hidden!important;
+  background:rgba(255,255,255,.14)!important;
+}
+.monster-id-growth::-webkit-progress-bar{
+  background:rgba(255,255,255,.14)!important;
+  border-radius:999px!important;
+}
+.monster-id-growth::-webkit-progress-value{
+  background:linear-gradient(90deg,#38a7ff,#52ddff)!important;
+  border-radius:999px!important;
+  box-shadow:0 0 8px rgba(74,215,255,.26)!important;
+}
+.monster-id-growth::-moz-progress-bar{
+  background:linear-gradient(90deg,#38a7ff,#52ddff)!important;
+  border-radius:999px!important;
+}
+.monster-id.ready .monster-id-growth::-webkit-progress-value{
+  background:linear-gradient(90deg,#45d6ff,#66f2ff)!important;
+}
+.monster-id.ready .monster-id-growth::-moz-progress-bar{
+  background:linear-gradient(90deg,#45d6ff,#66f2ff)!important;
+}
