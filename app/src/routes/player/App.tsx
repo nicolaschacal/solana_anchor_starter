@@ -448,15 +448,12 @@ export function PlayerHome() {
   // screen. Later GLTFLoader requests hit the browser cache instead of starting
   // a new network transfer after authentication.
   useEffect(() => {
-    let timer = 0;
-    const warm = () => {
+    // Safari/iOS does not consistently expose requestIdleCallback in every
+    // WebView. A short deferred preload is portable and still finishes well
+    // before most users complete authentication.
+    const timer = window.setTimeout(() => {
       void preloadModelAsset(MAMMAL_PILOT.modelUri);
-    };
-    if ("requestIdleCallback" in window) {
-      const idle = window.requestIdleCallback(warm, { timeout: 900 });
-      return () => window.cancelIdleCallback(idle);
-    }
-    timer = window.setTimeout(warm, 250);
+    }, 180);
     return () => window.clearTimeout(timer);
   }, []);
 
