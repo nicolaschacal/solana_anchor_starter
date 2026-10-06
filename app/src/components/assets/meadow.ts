@@ -56,6 +56,9 @@ const files = {
   stump: "tree-stump.glb",
   log: "hollow-log.glb",
   mushrooms: "red-mushrooms.glb",
+  grass: "grass_clump_mobile.glb",
+  wildflowers: "wildflowers_mobile.glb",
+  reeds: "water_reeds_mobile.glb",
 } as const;
 type AssetKey = keyof typeof files;
 
@@ -668,7 +671,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
       });
     }
     // Far woodland gives the lake a shoreline and connects it to the mountains.
-    const forest = mobile ? 10 : 18;
+    const forest = mobile ? 14 : 18;
     for (let i = 0; i < forest; i++) {
       const x = -13 + (i * 26) / (forest - 1);
       plant(
@@ -708,6 +711,15 @@ diffuseColor.rgb *= 1.0 + macro;`,
     plant("log", 3.4, -5.2, 0.65, -0.8);
     plant("mushrooms", -1.75, -0.7, 0.28, 0.2);
     plant("mushrooms", 2.25, 0.5, 0.22, -0.3);
+
+    // Small color/detail accents for the portrait composition. Keep the hero
+    // zone around the Rebyter clean and avoid the long shoreline rock strip.
+    plant("rocks", -4.5, -7.6, 0.38, 0.35);
+    plant("wildflowers", -4.0, -6.7, 0.34, -0.2);
+    plant("reeds", 4.9, -10.2, 0.48, 0.22);
+    plant("wildflowers", 4.2, -4.9, 0.30, 0.4);
+    plant("grass", 4.7, -2.2, 0.36, -0.35);
+    plant("mushrooms", 4.0, -1.35, 0.20, 0.15);
     shadowsDirty = true;
   })();
 
