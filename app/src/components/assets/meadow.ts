@@ -684,12 +684,12 @@ diffuseColor.rgb *= 1.0 + macro;`,
         rand() * 6,
       );
     }
-    // Middle ground: trunks inside the portrait frustum, crowns frame the sky.
+    // Middle ground: keep the foreground broadleaf framing, but remove the
+    // two large broadleaf trees from the distant background. Pines remain.
+    plant("tree", -3.0, -5.8, 6.6, 0.28);
     plant("pine", 3.3, -7.6, 6.0, -0.35);
-    plant("tree", -6.8, -11, 5.0, 0.7);
     plant("pine", 7.8, -13.5, 4.9, 0.5);
     plant("pine", -3.8, -15.8, 3.6, 0.2);
-    plant("tree", 5.8, -18, 3.4, 2.4);
     // Outer wings fill widescreen without blocking the clear central habitat.
     plant("tree", -10, -5, 7.8, -0.3);
     plant("pine", 10.7, -7, 7.0, 0.4);
