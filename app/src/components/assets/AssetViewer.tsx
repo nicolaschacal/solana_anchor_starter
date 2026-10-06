@@ -135,7 +135,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     renderer.setPixelRatio(
       mobileRenderer
         ? landscape && creatureVisualBoost
-          ? Math.min(window.devicePixelRatio, 1.3)
+          ? Math.min(window.devicePixelRatio, 1.4)
           : 1
         : Math.min(window.devicePixelRatio, 1.5),
     );
@@ -154,6 +154,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     moonLight.position.set(-4.5, 7, -5);
     const rimLight = new THREE.DirectionalLight(0x88dbff, 0);
     rimLight.position.set(0, 3.8, -7);
+    let companionRim: THREE.SpotLight | null = null;
+    let companionRimTarget: THREE.Object3D | null = null;
     scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
     const meadowOptions =
@@ -164,6 +166,31 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ? meadow(scene, initialPeriod, meadowOptions)
       : null;
     let environmentPeriod = initialPeriod;
+    const applyCinematicPeriod = (next: WorldPeriod) => {
+      renderer.toneMappingExposure =
+        next === "Night" ? 0.98 : next === "Evening" ? 1.01 : next === "Morning" ? 1.07 : 1.05;
+      fill.color.setHex(
+        next === "Evening" ? 0xffd9b3 : next === "Night" ? 0xaecbff : 0xffefd9,
+      );
+      moonLight.color.setHex(0xcfe2ff);
+      rimLight.color.setHex(
+        next === "Evening" ? 0xffd1ad : next === "Night" ? 0x8fcaff : 0xccecff,
+      );
+      if (companionRim) {
+        companionRim.color.setHex(
+          next === "Evening"
+            ? 0xffd0ac
+            : next === "Night"
+              ? 0xa9d6ff
+              : next === "Morning"
+                ? 0xffe1bf
+                : 0xd8f2ff,
+        );
+        companionRim.intensity =
+          next === "Night" ? 0.88 : next === "Evening" ? 0.68 : next === "Morning" ? 0.48 : 0.52;
+      }
+    };
+    applyCinematicPeriod(initialPeriod);
     if (environment) {
       if (environment.lightPosition)
         key.position.copy(environment.lightPosition);
@@ -184,6 +211,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     changePeriod.current = (next) => {
       if (next === environmentPeriod) return;
       environmentPeriod = next;
+      applyCinematicPeriod(next);
       environment?.dispose();
       environment = landscape ? meadow(scene, next, meadowOptions) : null;
       if (environment) {
@@ -230,10 +258,10 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
                 material.map.needsUpdate = true;
                 material.emissive.set(0xffffff);
                 material.emissiveMap = material.map;
-                material.emissiveIntensity = 0.035;
+                material.emissiveIntensity = 0.015;
               } else {
                 material.emissive.copy(material.color);
-                material.emissiveIntensity = 0.025;
+                material.emissiveIntensity = 0.01;
               }
             } else {
               material.roughness = Math.max(material.roughness, 0.9);
@@ -270,15 +298,13 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     // Short-range back/rim light for the companion only visually: positioned
     // directly behind the Rebyter and aimed at its center so the forest does
     // not receive a broad lighting change.
-    let companionRim: THREE.SpotLight | null = null;
-    let companionRimTarget: THREE.Object3D | null = null;
     if (landscape && creatureVisualBoost) {
       companionRim = new THREE.SpotLight(
-        0xbfe8ff,
-        1.55,
-        4.6,
-        Math.PI / 4.7,
-        0.72,
+        0xd8f2ff,
+        0.52,
+        4.8,
+        Math.PI / 5,
+        0.7,
         2,
       );
       companionRim.position.set(
@@ -295,6 +321,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       scene.add(companionRimTarget);
       companionRim.target = companionRimTarget;
       scene.add(companionRim);
+      applyCinematicPeriod(environmentPeriod);
     }
 
     const baseStagePosition = stage.position.clone();
