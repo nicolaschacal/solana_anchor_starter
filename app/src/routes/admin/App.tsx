@@ -512,7 +512,7 @@ function Family({ state }: { state: RegistryState }) {
   async function publishEditingModel() {
     if (!tree || !editing || !modelFile) return;
     if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
-    if (modelFile.size > 500 * 1024) return;
+    if (modelFile.size > 700 * 1024) return;
 
     const assets = await tx.publishEvolutionModel(
       editing,
@@ -898,7 +898,7 @@ function Family({ state }: { state: RegistryState }) {
             <div className="specimen-asset-publisher specimen-model-publisher">
               <div>
                 <strong>Optimized 3D model → Irys</strong>
-                <small>Choose the optimized GLB (≤500 KB). Admin uploads it to Irys, creates fresh metadata with animation_url, and stages the new model URI in the next atlas version.</small>
+                <small>Choose the optimized GLB (≤700 KB). Admin uploads it to Irys, creates fresh metadata with animation_url, and stages the new model URI in the next atlas version.</small>
               </div>
               <input
                 type="file"
@@ -908,16 +908,16 @@ function Family({ state }: { state: RegistryState }) {
               />
               <button
                 type="button"
-                disabled={!editable || tx.busy || !modelFile || modelFile.size > 500 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")}
+                disabled={!editable || tx.busy || !modelFile || modelFile.size > 700 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")}
                 onClick={() => void publishEditingModel()}
               >
                 <Upload size={15}/>
                 {tx.busy ? "Publishing..." : "Push 3D + metadata to Irys"}
               </button>
               {modelFile && (
-                <small className={modelFile.size > 500 * 1024 ? "notice error" : "muted"}>
+                <small className={modelFile.size > 700 * 1024 ? "notice error" : "muted"}>
                   {modelFile.name} · {Math.ceil(modelFile.size / 1024)} KB
-                  {modelFile.size > 500 * 1024 ? " · too large" : " · ready"}
+                  {modelFile.size > 700 * 1024 ? " · too large" : " · ready"}
                 </small>
               )}
               {editing.assets?.modelUri && (
