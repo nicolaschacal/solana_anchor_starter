@@ -280,8 +280,9 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     reactToTouch.current = () => {
       const { sleeping, paused, action, clips } = live.current;
       const touchClip = findActionClip(clips, "touch");
-      const touchableState = action === "idle" || action === "sad";
-      if (sleeping || paused || !touchableState || touching || !touchClip)
+      // Negative care states are persistent: touching an injured, sick,
+      // hungry or overfed Rebyter must not override the Sad animation.
+      if (sleeping || paused || action !== "idle" || touching || !touchClip)
         return;
       touching = true;
       mixer.stopAllAction();
@@ -520,7 +521,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     <div className="asset-viewport">
       <div ref={mount} className="asset-canvas" />
       {!sleeping &&
-        (action === "idle" || action === "sad") &&
+        action === "idle" &&
         !!findActionClip(clips, "touch") && (
           <button
             className="asset-touch asset-touch-accessible"
