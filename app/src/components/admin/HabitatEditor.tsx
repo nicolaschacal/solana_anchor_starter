@@ -80,14 +80,21 @@ const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
 };
 
 const BUILTIN_ASSETS: HabitatAssetDefinition[] = [
+  { name: "Mountain ridge", asset: "/assets/environment/mountain_ridge_mobile.glb", category: "Background", targetExtent: 15 },
   { name: "Distant mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 13 },
+  { name: "Hero tree", asset: "/assets/environment/hero_tree_mobile.glb", category: "Nature", targetExtent: 4.8 },
   { name: "Pine tree", asset: "/assets/environment/pine-tree.glb", category: "Nature", targetExtent: 2.8 },
   { name: "Deciduous tree", asset: "/assets/environment/deciduous-tree.glb", category: "Nature", targetExtent: 3.2 },
   { name: "Berry bush", asset: "/assets/environment/berry-bush.glb", category: "Nature", targetExtent: 1.7 },
   { name: "Mossy rocks", asset: "/assets/environment/mossy-rocks.glb", category: "Nature", targetExtent: 1.6 },
+  { name: "Shore rocks", asset: "/assets/environment/shore_rocks_strip_mobile.glb", category: "Nature", targetExtent: 3.4 },
   { name: "Tree stump", asset: "/assets/environment/tree-stump.glb", category: "Nature", targetExtent: 1.4 },
   { name: "Hollow log", asset: "/assets/environment/hollow-log.glb", category: "Nature", targetExtent: 1.8 },
   { name: "Red mushrooms", asset: "/assets/environment/red-mushrooms.glb", category: "Nature", targetExtent: 1.1 },
+  { name: "Grass clump", asset: "/assets/environment/grass_clump_mobile.glb", category: "Nature", targetExtent: 0.8 },
+  { name: "Water reeds", asset: "/assets/environment/water_reeds_mobile.glb", category: "Nature", targetExtent: 1.35 },
+  { name: "Wildflowers", asset: "/assets/environment/wildflowers_mobile.glb", category: "Nature", targetExtent: 1.15 },
+  { name: "Enchanted lantern", asset: "/assets/environment/enchanted_lantern_mobile.glb", category: "Nature", targetExtent: 1.1 },
   { name: "Grass tile", asset: "/assets/environment/grass-tile.glb", category: "Terrain", targetExtent: 7 },
   { name: "Dirt transition", asset: "/assets/environment/dirt-transition.glb", category: "Terrain", targetExtent: 7 },
   { name: "Water tile", asset: "/assets/environment/water-center.glb", category: "Water", targetExtent: 8 },
@@ -668,27 +675,98 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
   async function loadExampleHabitat() {
     const root = objectRootRef.current;
-    if (!root) return;
+    const waterRoot = waterRootRef.current;
+    const terrain = terrainRef.current;
+    if (!root || !waterRoot || !terrain) return;
+
     if (
-      root.children.length &&
-      !window.confirm("Replace current props with the example habitat?")
+      (root.children.length || waterRoot.children.length) &&
+      !window.confirm("Replace current scene with the curated example habitat?")
     )
       return;
+
+    setStatus("Building a curated diorama…");
+    setTool("objects");
     transformRef.current?.detach();
+    selectedRef.current = null;
+    setSelectedId("");
     root.clear();
+    waterRoot.clear();
+
+    // Sculpt a gentle amphitheatre: the Rebyter stays on a flat hero area,
+    // side banks rise slightly, and the back of the diorama rises toward the mountains.
+    const geometry = terrain.geometry;
+    const position = geometry.attributes.position as THREE.BufferAttribute;
+    const color = geometry.attributes.color as THREE.BufferAttribute;
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i);
+      const z = position.getZ(i);
+
+      const backRise = THREE.MathUtils.smoothstep(-z, 3.0, 11.5) * 0.72;
+      const sideRise = Math.pow(Math.min(1, Math.abs(x) / 10), 2) * 0.32;
+      const heroFlatten = Math.exp(-((x / 3.0) ** 2 + ((z + 1.25) / 3.2) ** 2));
+      const pondDip = Math.exp(-(((x - 4.2) / 3.3) ** 2 + ((z + 5.0) / 2.3) ** 2)) * 0.42;
+      let y = backRise + sideRise - pondDip;
+      y *= 1 - heroFlatten * 0.92;
+      position.setY(i, y);
+
+      // A centered dirt path crosses the Rebyter hero zone and narrows into the background.
+      const pathCenter = 0.18 * Math.sin((z + 2.5) * 0.45);
+      const pathWidth = THREE.MathUtils.lerp(1.65, 0.72, THREE.MathUtils.clamp((-z - 1) / 10, 0, 1));
+      const pathMask = Math.exp(-Math.pow((x - pathCenter) / pathWidth, 4));
+      const pondMask = Math.exp(-(((x - 4.2) / 3.5) ** 2 + ((z + 5.0) / 2.5) ** 2));
+      const edgeVariation = 0.05 * Math.sin(x * 1.7 + z * 0.9);
+
+      const grass = TERRAIN_COLORS.grass.clone().offsetHSL(0, 0, edgeVariation);
+      const dirt = TERRAIN_COLORS.dirt.clone().offsetHSL(0, 0, 0.04 * Math.sin(z * 1.1));
+      const wet = new THREE.Color(0x526b3f);
+      const mixed = grass.clone().lerp(dirt, THREE.MathUtils.clamp(pathMask * 0.92, 0, 1));
+      mixed.lerp(wet, THREE.MathUtils.clamp(pondMask * 0.42, 0, 0.42));
+      color.setXYZ(i, mixed.r, mixed.g, mixed.b);
+    }
+    position.needsUpdate = true;
+    color.needsUpdate = true;
+    geometry.computeVertexNormals();
+
+    // Small pond on the rear-right: visible from camera but outside the Rebyter hero zone.
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(4.2, 0.08, -5.0);
+    water.scale.set(5.2, 3.2, 1);
+    water.userData.waterId = crypto.randomUUID();
+    waterRoot.add(water);
 
     const placements = [
-      { asset: "Distant mountains", x: 0, z: -13.5, scale: 1.05, rotation: 0 },
-      { asset: "Pine tree", x: -6.2, z: -7.2, scale: 1.55, rotation: 0.25 },
-      { asset: "Pine tree", x: 6.6, z: -7.8, scale: 1.7, rotation: -0.3 },
-      { asset: "Deciduous tree", x: -4.7, z: -4.8, scale: 1.35, rotation: 0.5 },
-      { asset: "Deciduous tree", x: 4.9, z: -5.3, scale: 1.25, rotation: -0.45 },
-      { asset: "Berry bush", x: -3.9, z: -2.2, scale: 1.05, rotation: 0.2 },
-      { asset: "Mossy rocks", x: 3.7, z: -2.7, scale: 1, rotation: -0.25 },
-      { asset: "Tree stump", x: -5.3, z: 0.5, scale: 0.9, rotation: 0.35 },
-      { asset: "Hollow log", x: 5.1, z: 0.2, scale: 0.9, rotation: -0.55 },
-      { asset: "Red mushrooms", x: -3.1, z: 1.2, scale: 0.75, rotation: 0.1 },
-      { asset: "Berry bush", x: 3.4, z: 1.4, scale: 0.78, rotation: -0.2 },
+      // Backdrop.
+      { asset: "Mountain ridge", x: 0.5, z: -14.0, scale: 1.18, rotation: 0.0 },
+      { asset: "Distant mountains", x: -5.5, z: -13.4, scale: 0.72, rotation: 0.08 },
+
+      // Strong framing silhouettes.
+      { asset: "Hero tree", x: -7.0, z: -4.5, scale: 1.18, rotation: 0.30 },
+      { asset: "Deciduous tree", x: 7.2, z: -5.2, scale: 1.16, rotation: -0.38 },
+      { asset: "Pine tree", x: -4.1, z: -8.0, scale: 1.28, rotation: 0.12 },
+      { asset: "Pine tree", x: 3.0, z: -8.5, scale: 1.18, rotation: -0.16 },
+
+      // Mid-ground landmarks.
+      { asset: "Tree stump", x: -4.3, z: -2.8, scale: 0.92, rotation: 0.28 },
+      { asset: "Hollow log", x: 4.4, z: -1.8, scale: 0.90, rotation: -0.72 },
+      { asset: "Mossy rocks", x: -3.6, z: -5.7, scale: 1.0, rotation: 0.18 },
+      { asset: "Shore rocks", x: 3.7, z: -3.8, scale: 0.92, rotation: -0.08 },
+
+      // Pond integration.
+      { asset: "Water reeds", x: 3.0, z: -4.5, scale: 0.92, rotation: 0.15 },
+      { asset: "Water reeds", x: 5.5, z: -5.7, scale: 0.78, rotation: -0.22 },
+      { asset: "Berry bush", x: 6.2, z: -3.0, scale: 0.84, rotation: -0.35 },
+
+      // Foreground / ground detail, intentionally outside the hero centre.
+      { asset: "Wildflowers", x: -2.9, z: -0.2, scale: 0.62, rotation: 0.22 },
+      { asset: "Wildflowers", x: 2.8, z: 0.5, scale: 0.52, rotation: -0.12 },
+      { asset: "Grass clump", x: -3.3, z: 1.5, scale: 0.72, rotation: 0.4 },
+      { asset: "Grass clump", x: 3.5, z: 1.7, scale: 0.65, rotation: -0.3 },
+      { asset: "Red mushrooms", x: -5.0, z: -0.1, scale: 0.76, rotation: 0.1 },
+
+      // One magical accent only; avoids turning the scene into a theme park.
+      { asset: "Enchanted lantern", x: -2.55, z: -3.2, scale: 0.82, rotation: 0.05 },
     ];
 
     for (const placement of placements) {
@@ -701,11 +779,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         object.scale.multiplyScalar(placement.scale);
         object.rotation.y = placement.rotation;
         root.add(object);
-      } catch {}
+      } catch {
+        // A missing decorative prop should not prevent the rest of the diorama from loading.
+      }
     }
 
     syncObjects();
-    setStatus("Example habitat loaded.");
+    syncWater();
+    setStatus("Curated example loaded: centered dirt path, pond, layered vegetation and mountain backdrop.");
   }
 
   function deleteSelected() {
