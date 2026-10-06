@@ -3903,3 +3903,73 @@ html,body,#root{background:#04101f!important}
   .monster-id-level{font-size:8px!important}
   .monster-id-growth{height:4px!important;margin-top:4px!important}
 }
+
+
+/* Rebyter identity chip: fixed three-line hierarchy */
+.monster-id{
+  min-height:68px!important;
+  grid-template-columns:50px minmax(0,1fr)!important;
+  padding:8px 12px 8px 8px!important;
+  column-gap:10px!important;
+}
+.monster-id-thumb{
+  width:50px!important;
+  height:50px!important;
+  border-radius:14px!important;
+}
+.monster-id-copy{
+  display:grid!important;
+  grid-template-rows:18px 14px 5px!important;
+  row-gap:3px!important;
+  align-content:center!important;
+  min-width:0!important;
+}
+.monster-id-copy>strong{
+  margin:0!important;
+  font-size:15px!important;
+  line-height:18px!important;
+}
+.monster-id-level{
+  margin:0!important;
+  font-size:9px!important;
+  line-height:14px!important;
+}
+.monster-id-growth{
+  display:block!important;
+  margin:0!important;
+  width:100%!important;
+  height:5px!important;
+  min-height:5px!important;
+  align-self:end!important;
+  border-radius:999px!important;
+  overflow:hidden!important;
+  background:rgba(255,255,255,.14)!important;
+}
+.monster-id-growth i{
+  display:block!important;
+  min-width:2px!important;
+  height:100%!important;
+}
+@media(max-width:420px){
+  .monster-id{
+    min-height:64px!important;
+    grid-template-columns:46px minmax(0,1fr)!important;
+    padding:7px 10px 7px 7px!important;
+  }
+  .monster-id-thumb{
+    width:46px!important;
+    height:46px!important;
+  }
+  .monster-id-copy{
+    grid-template-rows:17px 13px 5px!important;
+    row-gap:3px!important;
+  }
+  .monster-id-copy>strong{
+    font-size:14px!important;
+    line-height:17px!important;
+  }
+  .monster-id-level{
+    font-size:8px!important;
+    line-height:13px!important;
+  }
+}
