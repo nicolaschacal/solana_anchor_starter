@@ -500,7 +500,16 @@ export function PlayerHome() {
       setActiveMint(active.mint);
   },[active?.mint,activeMint,player.ownedLoadedAll,player.error,setActiveMint]);
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
-
+  const needsSadAnimation = !!active && (
+    active.fullness < 20 ||
+    !!(active.condition & (
+      REBYTER_CONDITION.sick |
+      REBYTER_CONDITION.injured |
+      REBYTER_CONDITION.overfed
+    ))
+  );
+  const companionAction =
+    visualAction === "idle" && needsSadAnimation ? "sad" : visualAction;
 
 
   const guidance=active?careGuidance(active):null;
@@ -617,7 +626,7 @@ export function PlayerHome() {
     </div>}
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
-      <EvolutionModel evolution={evolution} action={visualAction} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
+      <EvolutionModel evolution={evolution} action={companionAction} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
