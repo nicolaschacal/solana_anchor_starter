@@ -17,7 +17,7 @@ import {
   Upload,
   Waves,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -175,6 +175,10 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const importedUrls = useRef<string[]>([]);
   const brushDown = useRef(false);
   const flattenHeight = useRef(0);
+  const toolRef = useRef<EditorTool>("objects");
+  const paintMaterialRef = useRef<PaintMaterial>("grass");
+  const brushSizeRef = useRef(2.4);
+  const brushStrengthRef = useRef(0.18);
 
   const [name, setName] = useState("My Habitat");
   const [groundWidth, setGroundWidth] = useState(24);
@@ -192,6 +196,11 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     "Build a habitat with editable terrain, water and modular props.",
   );
 
+  useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { paintMaterialRef.current = paintMaterial; }, [paintMaterial]);
+  useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
+  useEffect(() => { brushStrengthRef.current = brushStrength; }, [brushStrength]);
+
   const syncObjects = () => {
     const root = objectRootRef.current;
     if (!root) return;
@@ -205,7 +214,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       root.children.map((object) => ({
         id: object.userData.waterId,
         position: [object.position.x, object.position.y, object.position.z],
-        size: [object.scale.x, object.scale.z],
+        size: [object.scale.x, object.scale.y],
       })),
     );
   };
@@ -225,7 +234,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     };
   };
 
-  const manifest = useMemo<HabitatManifest>(() => {
+  const buildManifest = (): HabitatManifest => {
     const terrain = serializeTerrain();
     return {
       schema: "rebyters-habitat-v2",
@@ -237,10 +246,15 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         segments: TERRAIN_SEGMENTS,
         ...terrain,
       },
-      objects,
-      water: waterAreas,
+      objects: objectRootRef.current?.children.map(objectToRecord) ?? objects,
+      water:
+        waterRootRef.current?.children.map((object) => ({
+          id: object.userData.waterId,
+          position: [object.position.x, object.position.y, object.position.z],
+          size: [object.scale.x, object.scale.y],
+        })) ?? waterAreas,
     };
-  }, [name, groundWidth, groundDepth, objects, waterAreas]);
+  };
 
   useEffect(() => {
     const host = mount.current;
@@ -320,7 +334,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       const color = geometry.attributes.color as THREE.BufferAttribute;
       const local = terrain.worldToLocal(hit.point.clone());
 
-      if (initial && tool === "flatten") flattenHeight.current = local.y;
+      if (initial && toolRef.current === "flatten") flattenHeight.current = local.y;
 
       const nextHeights = new Float32Array(position.count);
       for (let i = 0; i < position.count; i++) nextHeights[i] = position.getY(i);
@@ -329,21 +343,21 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         const dx = position.getX(i) - local.x;
         const dz = position.getZ(i) - local.z;
         const distance = Math.hypot(dx, dz);
-        if (distance > brushSize) continue;
-        const falloff = Math.pow(1 - distance / brushSize, 2);
-        const amount = brushStrength * falloff;
+        if (distance > brushSizeRef.current) continue;
+        const falloff = Math.pow(1 - distance / brushSizeRef.current, 2);
+        const amount = brushStrengthRef.current * falloff;
 
-        if (tool === "raise") nextHeights[i] += amount;
-        if (tool === "lower") nextHeights[i] -= amount;
-        if (tool === "flatten")
+        if (toolRef.current === "raise") nextHeights[i] += amount;
+        if (toolRef.current === "lower") nextHeights[i] -= amount;
+        if (toolRef.current === "flatten")
           nextHeights[i] = THREE.MathUtils.lerp(
             nextHeights[i],
             flattenHeight.current,
             Math.min(1, amount * 2.5),
           );
 
-        if (tool === "paint") {
-          const target = TERRAIN_COLORS[paintMaterial];
+        if (toolRef.current === "paint") {
+          const target = TERRAIN_COLORS[paintMaterialRef.current];
           color.setXYZ(
             i,
             THREE.MathUtils.lerp(color.getX(i), target.r, Math.min(1, amount * 3)),
@@ -353,13 +367,13 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         }
       }
 
-      if (tool === "smooth") {
+      if (toolRef.current === "smooth") {
         const cols = TERRAIN_SEGMENTS + 1;
         for (let i = 0; i < position.count; i++) {
           const x = position.getX(i) - local.x;
           const z = position.getZ(i) - local.z;
           const distance = Math.hypot(x, z);
-          if (distance > brushSize) continue;
+          if (distance > brushSizeRef.current) continue;
           const row = Math.floor(i / cols);
           const col = i % cols;
           let sum = 0;
@@ -373,16 +387,16 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
               count++;
             }
           }
-          const falloff = Math.pow(1 - distance / brushSize, 2);
+          const falloff = Math.pow(1 - distance / brushSizeRef.current, 2);
           nextHeights[i] = THREE.MathUtils.lerp(
             position.getY(i),
             sum / Math.max(1, count),
-            Math.min(1, brushStrength * falloff * 4),
+            Math.min(1, brushStrengthRef.current * falloff * 4),
           );
         }
       }
 
-      if (tool !== "paint") {
+      if (toolRef.current !== "paint") {
         for (let i = 0; i < position.count; i++) position.setY(i, nextHeights[i]);
         position.needsUpdate = true;
         geometry.computeVertexNormals();
@@ -394,7 +408,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const onPointerDown = (event: PointerEvent) => {
       if ((transform as any).dragging) return;
 
-      if (tool !== "objects") {
+      if (toolRef.current !== "objects") {
         brushDown.current = true;
         applyBrush(event, true);
         return;
@@ -432,7 +446,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      if (brushDown.current && tool !== "objects") applyBrush(event, false);
+      if (brushDown.current && toolRef.current !== "objects") applyBrush(event, false);
     };
     const onPointerUp = () => {
       brushDown.current = false;
@@ -642,7 +656,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(0, 0.06, -4);
-    mesh.scale.set(6, 1, 3.5);
+    mesh.scale.set(6, 3.5, 1);
     mesh.userData.waterId = crypto.randomUUID();
     root.add(mesh);
     selectedRef.current = mesh;
@@ -706,7 +720,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   }
 
   function saveDraft() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(manifest));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildManifest()));
     setStatus("Habitat draft saved in this browser.");
   }
 
@@ -752,7 +766,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.fromArray(area.position);
-        mesh.scale.set(area.size[0], 1, area.size[1]);
+        mesh.scale.set(area.size[0], area.size[1], 1);
         mesh.userData.waterId = area.id;
         waterRootRef.current?.add(mesh);
       }
@@ -767,8 +781,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
   function exportManifest() {
     download(
-      new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }),
-      `${manifest.id}.habitat.json`,
+      new Blob([JSON.stringify(buildManifest(), null, 2)], { type: "application/json" }),
+      `${buildManifest().id}.habitat.json`,
     );
   }
 
@@ -794,7 +808,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const data = await exporter.parseAsync(scene, { binary: true });
     download(
       new Blob([data as ArrayBuffer], { type: "model/gltf-binary" }),
-      `${manifest.id}.glb`,
+      `${buildManifest().id}.glb`,
     );
   }
 
