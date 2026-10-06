@@ -16,6 +16,7 @@ import {
 } from "../lib/rebyters/companions";
 
 const PLAYER_CACHE_TTL_MS = 30_000;
+const FAMILY_TREE_CACHE_TTL_MS = 5 * 60_000;
 
 type PlayerSnapshot = {
   owned: OnchainRebyter[];
@@ -25,28 +26,70 @@ type PlayerSnapshot = {
 
 const playerSnapshotCache = new Map<string, { at: number; value: PlayerSnapshot }>();
 const playerSnapshotInflight = new Map<string, Promise<PlayerSnapshot>>();
+const familyTreeCache = new Map<string, { at: number; value: TreeJson }>();
+const familyTreeInflight = new Map<string, Promise<TreeJson | null>>();
+
+async function getCachedFamilyTree(
+  connection: ReturnType<typeof useConnection>["connection"],
+  familyId: number,
+): Promise<TreeJson | null> {
+  const key = `${connection.rpcEndpoint}:${familyId}`;
+  const cached = familyTreeCache.get(key);
+  if (cached && Date.now() - cached.at < FAMILY_TREE_CACHE_TTL_MS)
+    return cached.value;
+
+  const inflight = familyTreeInflight.get(key);
+  if (inflight) return inflight;
+
+  const promise = fetchActiveFamilyTree(connection, familyId)
+    .then((family) => {
+      familyTreeCache.set(key, { at: Date.now(), value: family.tree });
+      return family.tree;
+    })
+    .catch(() => null)
+    .finally(() => {
+      if (familyTreeInflight.get(key) === promise)
+        familyTreeInflight.delete(key);
+    });
+
+  familyTreeInflight.set(key, promise);
+  return promise;
+}
 
 async function getPlayerSnapshot(
   connection: ReturnType<typeof useConnection>["connection"],
   owner: PublicKey,
   force = false,
+  onOwned?: (owned: OnchainRebyter[]) => void,
 ): Promise<PlayerSnapshot> {
   const key = owner.toBase58();
   const cached = playerSnapshotCache.get(key);
-  if (!force && cached && Date.now() - cached.at < PLAYER_CACHE_TTL_MS) return cached.value;
+  if (!force && cached && Date.now() - cached.at < PLAYER_CACHE_TTL_MS) {
+    onOwned?.(cached.value.owned);
+    return cached.value;
+  }
 
   const pending = playerSnapshotInflight.get(key);
-  if (!force && pending) return pending;
+  if (!force && pending)
+    return pending.then((value) => {
+      onOwned?.(value.owned);
+      return value;
+    });
+
+  const ownedPromise = fetchOwnedRebyters(connection, owner).then((owned) => {
+    onOwned?.(owned);
+    return owned;
+  });
 
   const promise = Promise.all([
-    fetchOwnedRebyters(connection, owner),
+    ownedPromise,
     fetchPlayerProfile(connection, owner).catch(() => null),
-    fetchActiveFamilyTree(connection, 0).catch(() => null),
-  ]).then(([owned, playerProfile, family]) => {
+    getCachedFamilyTree(connection, 0),
+  ]).then(([owned, playerProfile, tree]) => {
     const value: PlayerSnapshot = {
       owned,
       playerProfile,
-      mammalTree: family?.tree ?? null,
+      mammalTree: tree,
     };
     playerSnapshotCache.set(key, { at: Date.now(), value });
     return value;
@@ -77,6 +120,18 @@ export function usePlayerRebyters() {
   const [error, setError] = useState("");
   const [interactingMint, setInteractingMint] = useState("");
 
+  // The atlas is public data. Warm it while the guest/login screen is visible so
+  // authentication does not have to wait for registry + Irys verification.
+  useEffect(() => {
+    let cancelled = false;
+    void getCachedFamilyTree(connection, 0).then((tree) => {
+      if (!cancelled && tree) setMammalTree(tree);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [connection]);
+
   const refresh = useCallback(async (force = false) => {
     setError("");
     if (!auth.publicKey) {
@@ -87,7 +142,15 @@ export function usePlayerRebyters() {
     }
     setLoading(true);
     try {
-      const snapshot = await getPlayerSnapshot(connection, auth.publicKey, force);
+      const snapshot = await getPlayerSnapshot(
+        connection,
+        auth.publicKey,
+        force,
+        (earlyOwned) => {
+          setOwned(earlyOwned);
+          setOwnedLoadedAll(true);
+        },
+      );
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
@@ -114,7 +177,15 @@ export function usePlayerRebyters() {
     setLoading(true);
     setError("");
     try {
-      const snapshot = await getPlayerSnapshot(connection, auth.publicKey, force);
+      const snapshot = await getPlayerSnapshot(
+        connection,
+        auth.publicKey,
+        force,
+        (earlyOwned) => {
+          setOwned(earlyOwned);
+          setOwnedLoadedAll(true);
+        },
+      );
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
