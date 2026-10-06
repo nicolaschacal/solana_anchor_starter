@@ -80,7 +80,7 @@ const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
 };
 
 const BUILTIN_ASSETS: HabitatAssetDefinition[] = [
-  { name: "Mountain ridge", asset: "/assets/environment/mountain_ridge_mobile.glb", category: "Background", targetExtent: 15 },
+  { name: "Mountain ridge", asset: "/assets/environment/mountain_ridge_mobile.glb", category: "Background", targetExtent: 20 },
   { name: "Distant mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 13 },
   { name: "Hero tree", asset: "/assets/environment/hero_tree_mobile.glb", category: "Nature", targetExtent: 4.8 },
   { name: "Pine tree", asset: "/assets/environment/pine-tree.glb", category: "Nature", targetExtent: 2.8 },
@@ -737,9 +737,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     waterRoot.add(water);
 
     const placements = [
-      // Backdrop.
-      { asset: "Mountain ridge", x: 0.5, z: -14.0, scale: 1.18, rotation: 0.0 },
-      { asset: "Distant mountains", x: -5.5, z: -13.4, scale: 0.72, rotation: 0.08 },
+      // Backdrop: one large mountain ridge, kept behind the forest so it reads
+      // as distant scenery instead of a small decorative prop.
+      { asset: "Mountain ridge", x: 0.0, z: -16.8, scale: 1.62, rotation: 0.0 },
 
       // Strong framing silhouettes.
       { asset: "Hero tree", x: -7.0, z: -4.5, scale: 1.18, rotation: 0.30 },
@@ -786,7 +786,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
     syncObjects();
     syncWater();
-    setStatus("Curated example loaded: centered dirt path, pond, layered vegetation and mountain backdrop.");
+    setStatus("Example loaded with the new mountain ridge as the main backdrop.");
   }
 
   function deleteSelected() {
