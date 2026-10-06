@@ -2416,3 +2416,21 @@ body:has(.admin-console){
 .habitat-randomize:hover {
   background: #deece3;
 }
+
+.habitat-asset-group {
+  display: grid;
+  gap: 7px;
+  padding-top: 8px;
+  border-top: 1px solid #e8eee9;
+}
+.habitat-asset-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.habitat-asset-group > small {
+  padding: 0 2px;
+  color: #819187;
+  font: 700 9px "IBM Plex Mono", monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
