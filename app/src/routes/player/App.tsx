@@ -625,7 +625,24 @@ export function PlayerHome() {
     </div>}
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
-      <EvolutionModel evolution={evolution} action={companionAction} onActionComplete={()=>setVisualAction("idle")} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
+      <EvolutionModel
+        evolution={evolution}
+        action={companionAction}
+        onActionComplete={(completedAction)=>{
+          // Play and Care always end with the Rebyter's own happy/touch
+          // reaction. The touch clip is global, so every species can express
+          // happiness differently while the game keeps one behavior contract.
+          if(completedAction==="play"||completedAction==="care"){
+            setVisualAction("touch");
+            return;
+          }
+          setVisualAction("idle");
+        }}
+        sleeping={resting}
+        landscape
+        period={worldClock.period}
+        worldTime={worldClock.now}
+      />
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
