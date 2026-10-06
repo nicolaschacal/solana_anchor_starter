@@ -25,14 +25,17 @@ import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
 
 const clipAliases: Record<string, string[]> = {
+  // Canonical clips are the lowercase action names. The legacy/export aliases
+  // stay supported so existing Rebyters keep working while new GLBs can use one
+  // strict naming convention.
   idle: ["idle", "Idle_Blinking", "Idle"],
-  touch: ["touch", "Bounce_Happy", "Happy"],
+  touch: ["touch", "Touch_Spin", "Bounce_Happy", "Happy"],
   sad: ["sad", "Sad"],
   feed: ["feed", "Feeding"],
-  play: ["play", "Bounce_Happy"],
-  train: ["train", "Attack_Slam"],
-  walk: ["walk", "Walk_Bounce"],
-  care: ["care", "Bounce_Happy"],
+  play: ["play", "Play_Happy", "Bounce_Happy", "Happy"],
+  train: ["train", "Attack_Slam", "Training", "Train"],
+  walk: ["walk", "Walk_Quadruped", "Walk_Bounce"],
+  care: ["care", "Care_Happy", "Bounce_Happy", "Happy"],
 };
 
 function normalizeClipName(name: string) {
@@ -231,49 +234,57 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const creatureMaterials = new Set<THREE.Material>();
     const root = clone(model.scene),
       stage = new THREE.Group();
-    // Clone only material state: cached model materials stay untouched in Lab.
+    // Clone material state for the live scene and preserve authored PBR maps.
+    // Lighting is global; individual Rebyters should not need hand-tuned
+    // roughness/emissive patches just to look correct in the habitat.
     if (landscape)
       root.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
         mesh.receiveShadow = true;
-        const matte = (source: THREE.Material) => {
+        mesh.castShadow = true;
+
+        const prepareTexture = (
+          texture: THREE.Texture | null,
+          colorTexture = false,
+        ) => {
+          if (!texture) return null;
+          const next = texture.clone();
+          next.magFilter = THREE.LinearFilter;
+          next.minFilter = THREE.LinearMipmapLinearFilter;
+          next.anisotropy = Math.min(
+            4,
+            renderer.capabilities.getMaxAnisotropy(),
+          );
+          next.generateMipmaps = true;
+          if (colorTexture) next.colorSpace = THREE.SRGBColorSpace;
+          next.needsUpdate = true;
+          return next;
+        };
+
+        const prepareMaterial = (source: THREE.Material) => {
           const material = source.clone();
           if (material instanceof THREE.MeshStandardMaterial) {
-            material.metalness = 0;
-            material.metalnessMap = null;
+            material.map = prepareTexture(material.map, true);
+            material.roughnessMap = prepareTexture(material.roughnessMap);
+            material.metalnessMap = prepareTexture(material.metalnessMap);
+            material.normalMap = prepareTexture(material.normalMap);
+            material.aoMap = prepareTexture(material.aoMap);
+            material.emissiveMap = prepareTexture(material.emissiveMap, true);
 
-            if (creatureVisualBoost) {
-              // Preserve the low-poly look while making the small mobile texture
-              // a little cleaner at the fixed game camera.
-              material.roughness = Math.max(material.roughness || 0.8, 0.84);
-              if (material.map) {
-                material.map.magFilter = THREE.LinearFilter;
-                material.map.minFilter = THREE.LinearMipmapLinearFilter;
-                material.map.anisotropy = Math.min(
-                  4,
-                  renderer.capabilities.getMaxAnisotropy(),
-                );
-                material.map.generateMipmaps = true;
-                material.map.needsUpdate = true;
-                material.emissive.set(0xffffff);
-                material.emissiveMap = material.map;
-                material.emissiveIntensity = 0.015;
-              } else {
-                material.emissive.copy(material.color);
-                material.emissiveIntensity = 0.01;
-              }
-            } else {
-              material.roughness = Math.max(material.roughness, 0.9);
-              material.roughnessMap = null;
-            }
+            // Preserve the GLB's authored PBR response. A very small emissive
+            // lift is only used when the model already authored emissive data.
+            if (!material.emissiveMap && material.emissive.getHex() === 0)
+              material.emissiveIntensity = 0;
+            material.needsUpdate = true;
           }
           creatureMaterials.add(material);
           return material;
         };
+
         mesh.material = Array.isArray(mesh.material)
-          ? mesh.material.map(matte)
-          : matte(mesh.material);
+          ? mesh.material.map(prepareMaterial)
+          : prepareMaterial(mesh.material);
       });
     stage.add(root);
     scene.add(stage);
@@ -298,7 +309,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     // Short-range back/rim light for the companion only visually: positioned
     // directly behind the Rebyter and aimed at its center so the forest does
     // not receive a broad lighting change.
-    if (landscape && creatureVisualBoost) {
+    if (landscape) {
       companionRim = new THREE.SpotLight(
         0xd8f2ff,
         0.52,
@@ -1118,8 +1129,8 @@ export function EvolutionModel({
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.9 : 1}
           creatureYOffset={0}
-          creatureZOffset={landscape && isMammalPilot(evolution) ? -2.97 : 0}
-          creatureVisualBoost={landscape && isMammalPilot(evolution)}
+          creatureZOffset={landscape ? -2.97 : 0}
+          creatureVisualBoost={landscape}
           model={loaded.model}
           action={action}
           sleeping={sleeping}
