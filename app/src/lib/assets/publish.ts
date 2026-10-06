@@ -79,6 +79,7 @@ export async function publishAssetBundle(
 export async function publishModelReplacement(
   evolution: Evolution,
   glb: ArrayBuffer,
+  preview: Blob | undefined,
   uploader: Uploader,
   gateway: string,
   progress: (s: string) => void,
@@ -86,9 +87,8 @@ export async function publishModelReplacement(
   if (glb.byteLength > 700 * 1024)
     throw new Error(`3D model must be 700 KB or smaller (received ${Math.ceil(glb.byteLength / 1024)} KB)`);
 
-  const imageUri = evolution.assets?.imageUri ?? evolution.assets?.thumbnailUri;
-  if (!imageUri)
-    throw new Error("Publish/reference an image for this Rebyter before replacing its 3D model.");
+  const existingImageUri =
+    evolution.assets?.imageUri ?? evolution.assets?.thumbnailUri;
 
   const upload = async (data: string | Uint8Array, type: string, kind: string) => {
     const receipt = await uploader.upload(data, {
@@ -112,8 +112,18 @@ export async function publishModelReplacement(
     "evolution-model",
   );
 
+  let imageUri = existingImageUri;
   let imageContentType = "image/png";
-  if (evolution.assets?.metadataUri) {
+
+  if (preview) {
+    progress("Uploading generated front preview…");
+    imageContentType = preview.type || "image/png";
+    imageUri = await upload(
+      new Uint8Array(await preview.arrayBuffer()),
+      imageContentType,
+      "evolution-image",
+    );
+  } else if (evolution.assets?.metadataUri && imageUri) {
     try {
       const response = await fetch(evolution.assets.metadataUri);
       if (response.ok) {
@@ -130,10 +140,13 @@ export async function publishModelReplacement(
     }
   }
 
+  if (!imageUri)
+    throw new Error("Generate or publish an image for this Rebyter before saving the model.");
+
   const nextEvolution: Evolution = {
     ...evolution,
     modelUri,
-    assets: { ...evolution.assets, modelUri },
+    assets: { ...evolution.assets, modelUri, imageUri, thumbnailUri: imageUri },
   };
   const metadata = {
     ...evolutionMetadata(nextEvolution, imageUri, imageContentType),
@@ -160,6 +173,6 @@ export async function publishModelReplacement(
     modelUri,
     metadataUri,
     imageUri,
-    thumbnailUri: evolution.assets?.thumbnailUri ?? imageUri,
+    thumbnailUri: imageUri,
   };
 }
