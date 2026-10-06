@@ -11,6 +11,7 @@ import { publishTree, type PublishJournal } from "../lib/rebyters/publish";
 import { IRYS_GATEWAY } from "../lib/rebyters/config";
 import type { Evolution } from "../lib/rebyters/types";
 import { uploadEvolutionAssetToIrys } from "../lib/rebyters/irys-assets";
+import { publishModelReplacement } from "../lib/assets/publish";
 export function usePublishTree() {
   const { connection } = useConnection(),
     wallet = useWallet(),
@@ -62,6 +63,23 @@ export function usePublishTree() {
       );
       progress(`Published ${evolution.name} image + metadata`);
       return result;
+    });
+  }
+
+  async function publishEvolutionModel(
+    evolution: Evolution,
+    glb: ArrayBuffer,
+  ) {
+    return run(async () => {
+      const { browserUploader } = await import("../lib/rebyters/irys-browser");
+      const uploader = await browserUploader(wallet);
+      return publishModelReplacement(
+        evolution,
+        glb,
+        uploader,
+        IRYS_GATEWAY,
+        progress,
+      );
     });
   }
 
@@ -119,5 +137,15 @@ export function usePublishTree() {
       ),
     );
   }
-  return { busy, status, error, run, writer, publish, publishEvolutionAsset, publishLocalEvolutionAssets };
+  return {
+    busy,
+    status,
+    error,
+    run,
+    writer,
+    publish,
+    publishEvolutionAsset,
+    publishEvolutionModel,
+    publishLocalEvolutionAssets,
+  };
 }
