@@ -50,6 +50,7 @@ type Props = {
   landscape?: boolean;
   creatureScale?: number;
   creatureYOffset?: number;
+  creatureZOffset?: number;
   creatureVisualBoost?: boolean;
   worldTime?: number;
   period?: WorldPeriod;
@@ -67,6 +68,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     landscape = false,
     creatureScale = 1,
     creatureYOffset = 0,
+    creatureZOffset = 0,
     creatureVisualBoost = false,
     worldTime = Date.now(),
     period = "Day",
@@ -242,7 +244,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       -center.x * scale,
       -bounds.min.y * scale +
         (landscape ? (environment?.groundY ?? 0.18) + creatureYOffset : 0),
-      -center.z * scale,
+      -center.z * scale + (landscape ? creatureZOffset : 0),
     );
     const baseStagePosition = stage.position.clone();
     const baseStageRotationY = stage.rotation.y;
@@ -813,7 +815,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [model, landscape, creatureScale, creatureYOffset, creatureVisualBoost]);
+  }, [model, landscape, creatureScale, creatureYOffset, creatureZOffset, creatureVisualBoost]);
   useEffect(() => changeAnimation.current(), [action, clips]);
   useEffect(() => changeDebug.current(), [skeleton, selectedBone]);
   useEffect(() => changePeriod.current(period), [period]);
@@ -1063,7 +1065,8 @@ export function EvolutionModel({
           period={period}
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
-          creatureYOffset={landscape && isMammalPilot(evolution) ? 0.80 : 0}
+          creatureYOffset={0}
+          creatureZOffset={landscape && isMammalPilot(evolution) ? -0.75 : 0}
           creatureVisualBoost={landscape && isMammalPilot(evolution)}
           model={loaded.model}
           action={action}
