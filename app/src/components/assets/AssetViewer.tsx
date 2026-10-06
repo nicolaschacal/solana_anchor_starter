@@ -153,7 +153,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
     const landscapeMeadowOptions = landscape
-      ? { grassExclusions: [{ x: 0, z: creatureZOffset, radius: 2.26 }] }
+      ? { grassExclusions: [{ x: 0, z: creatureZOffset, radius: 2.58 }] }
       : undefined;
     let environment = landscape
       ? meadow(scene, initialPeriod, landscapeMeadowOptions)
@@ -946,7 +946,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     configureHabitatRenderer(renderer);
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    const env = meadow(scene, period, { grassExclusions: [{ x: 0, z: 0.3, radius: 2.26 }] });
+    const env = meadow(scene, period, { grassExclusions: [{ x: 0, z: 0.3, radius: 2.58 }] });
     const hemi = new THREE.HemisphereLight(
       period === "Night" ? 0xa9c7ff : 0xdff5ff,
       0x314536,
