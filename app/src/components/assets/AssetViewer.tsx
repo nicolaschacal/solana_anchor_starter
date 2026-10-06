@@ -362,11 +362,17 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       transientAction = null;
       stage.position.copy(baseStagePosition);
       stage.rotation.y = baseStageRotationY;
+
+      // Camera looks from +Z toward the origin, so negative Z is visually
+      // "deeper into" the habitat. Drop the rock about three creature-steps
+      // behind the companion, then walk there in a straight line.
       const groundY = (environment?.groundY ?? 0.18) + 0.26;
+      const trainingDepth = 1.72;
+      const walkTargetZ = baseStagePosition.z - trainingDepth;
       trainingRock.position.set(
-        baseStagePosition.x + 0.95,
+        baseStagePosition.x + 0.88,
         groundY + 2.8,
-        baseStagePosition.z - 0.6,
+        walkTargetZ,
       );
       trainingRock.rotation.set(0.18, 0.4, -0.12);
       trainingRock.visible = true;
@@ -541,17 +547,22 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ) {
         if (powerTraining) {
           const elapsed = now / 1000 - powerTraining.startedAt;
-          const dropEnd = 0.65;
-          const walkEnd = 2.15;
-          const turnEnd = 2.5;
-          const attackEnd = turnEnd + powerTraining.attackDuration;
-          const holdEnd = attackEnd + 0.28;
-          const returnEnd = holdEnd + 1.35;
-          const settleEnd = returnEnd + 0.3;
+          const dropEnd = 0.68;
+          const faceBackEnd = 1.0;
+          const walkEnd = 2.75;
+          const faceRockEnd = 3.1;
+          const attackEnd = faceRockEnd + powerTraining.attackDuration;
+          const recoverEnd = attackEnd + 0.28;
+          const faceHomeEnd = recoverEnd + 0.34;
+          const returnEnd = faceHomeEnd + 1.7;
+          const settleEnd = returnEnd + 0.28;
+
           const groundY = (environment?.groundY ?? 0.18) + 0.26;
+          const trainingDepth = 1.72;
           const approach = baseStagePosition
             .clone()
-            .add(new THREE.Vector3(-0.08, 0, -0.48));
+            .add(new THREE.Vector3(0, 0, -trainingDepth));
+          const rockBaseX = baseStagePosition.x + 0.88;
 
           if (elapsed < dropEnd) {
             const u = THREE.MathUtils.clamp(elapsed / dropEnd, 0, 1);
@@ -563,68 +574,119 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             trainingRock.position.y = groundY;
           }
 
-          if (elapsed >= dropEnd && elapsed < walkEnd) {
+          if (elapsed >= dropEnd && elapsed < faceBackEnd) {
             if (powerTraining.phase < 1) {
               powerTraining.phase = 1;
-              playClip(findActionClip(live.current.clips, "walk"), false);
+              playClip(findActionClip(live.current.clips, "idle"), false);
             }
             const u = THREE.MathUtils.smoothstep(
-              (elapsed - dropEnd) / (walkEnd - dropEnd),
+              (elapsed - dropEnd) / (faceBackEnd - dropEnd),
               0,
               1,
             );
-            stage.position.lerpVectors(baseStagePosition, approach, u);
-          } else if (elapsed >= walkEnd && elapsed < turnEnd) {
+            stage.position.copy(baseStagePosition);
+            stage.rotation.y = THREE.MathUtils.lerp(
+              baseStageRotationY,
+              baseStageRotationY + Math.PI,
+              u,
+            );
+          } else if (elapsed >= faceBackEnd && elapsed < walkEnd) {
             if (powerTraining.phase < 2) {
               powerTraining.phase = 2;
+              playClip(findActionClip(live.current.clips, "walk"), false);
+            }
+            const u = THREE.MathUtils.smoothstep(
+              (elapsed - faceBackEnd) / (walkEnd - faceBackEnd),
+              0,
+              1,
+            );
+            // Only move along Z: the Rebyter walks straight back into the world,
+            // roughly three visible steps, without drifting sideways.
+            stage.position.x = baseStagePosition.x;
+            stage.position.y = baseStagePosition.y;
+            stage.position.z = THREE.MathUtils.lerp(
+              baseStagePosition.z,
+              approach.z,
+              u,
+            );
+            stage.rotation.y = baseStageRotationY + Math.PI;
+          } else if (elapsed >= walkEnd && elapsed < faceRockEnd) {
+            if (powerTraining.phase < 3) {
+              powerTraining.phase = 3;
               playClip(findActionClip(live.current.clips, "idle"), false);
             }
             stage.position.copy(approach);
             const u = THREE.MathUtils.smoothstep(
-              (elapsed - walkEnd) / (turnEnd - walkEnd),
+              (elapsed - walkEnd) / (faceRockEnd - walkEnd),
               0,
               1,
             );
+            // Rock is to his right at the end of the walk. Turn from facing
+            // into the scene to a clean side profile facing +X.
             stage.rotation.y = THREE.MathUtils.lerp(
-              baseStageRotationY,
+              baseStageRotationY + Math.PI,
               baseStageRotationY + Math.PI / 2,
               u,
             );
-          } else if (elapsed >= turnEnd && elapsed < attackEnd) {
-            if (powerTraining.phase < 3) {
-              powerTraining.phase = 3;
+          } else if (elapsed >= faceRockEnd && elapsed < attackEnd) {
+            if (powerTraining.phase < 4) {
+              powerTraining.phase = 4;
               playClip(findActionClip(live.current.clips, "train"), true, 0.1);
             }
             stage.position.copy(approach);
             stage.rotation.y = baseStageRotationY + Math.PI / 2;
-            const attackU = (elapsed - turnEnd) / powerTraining.attackDuration;
+            const attackU =
+              (elapsed - faceRockEnd) / powerTraining.attackDuration;
             if (attackU > 0.52) {
-              const impact = THREE.MathUtils.clamp((attackU - 0.52) / 0.18, 0, 1);
-              trainingRock.position.x =
-                baseStagePosition.x + 0.95 + impact * 0.18;
+              const impact = THREE.MathUtils.clamp(
+                (attackU - 0.52) / 0.18,
+                0,
+                1,
+              );
+              trainingRock.position.x = rockBaseX + impact * 0.18;
               trainingRock.rotation.z = -0.12 - impact * 0.28;
             }
-          } else if (elapsed >= attackEnd && elapsed < holdEnd) {
-            if (powerTraining.phase < 4) {
-              powerTraining.phase = 4;
-              playClip(findActionClip(live.current.clips, "idle"), false);
-            }
-          } else if (elapsed >= holdEnd && elapsed < returnEnd) {
+          } else if (elapsed >= attackEnd && elapsed < recoverEnd) {
             if (powerTraining.phase < 5) {
               powerTraining.phase = 5;
-              playClip(findActionClip(live.current.clips, "walk"), false);
+              playClip(findActionClip(live.current.clips, "idle"), false);
             }
+            stage.position.copy(approach);
+            stage.rotation.y = baseStageRotationY + Math.PI / 2;
+          } else if (elapsed >= recoverEnd && elapsed < faceHomeEnd) {
+            if (powerTraining.phase < 6) {
+              powerTraining.phase = 6;
+              playClip(findActionClip(live.current.clips, "idle"), false);
+            }
+            stage.position.copy(approach);
             const u = THREE.MathUtils.smoothstep(
-              (elapsed - holdEnd) / (returnEnd - holdEnd),
+              (elapsed - recoverEnd) / (faceHomeEnd - recoverEnd),
               0,
               1,
             );
-            stage.position.lerpVectors(approach, baseStagePosition, u);
             stage.rotation.y = THREE.MathUtils.lerp(
-              baseStageRotationY - Math.PI / 2,
+              baseStageRotationY + Math.PI / 2,
               baseStageRotationY,
               u,
             );
+          } else if (elapsed >= faceHomeEnd && elapsed < returnEnd) {
+            if (powerTraining.phase < 7) {
+              powerTraining.phase = 7;
+              playClip(findActionClip(live.current.clips, "walk"), false);
+            }
+            const u = THREE.MathUtils.smoothstep(
+              (elapsed - faceHomeEnd) / (returnEnd - faceHomeEnd),
+              0,
+              1,
+            );
+            stage.position.x = baseStagePosition.x;
+            stage.position.y = baseStagePosition.y;
+            stage.position.z = THREE.MathUtils.lerp(
+              approach.z,
+              baseStagePosition.z,
+              u,
+            );
+            stage.rotation.y = baseStageRotationY;
           } else if (elapsed >= returnEnd && elapsed < settleEnd) {
             stage.position.copy(baseStagePosition);
             stage.rotation.y = baseStageRotationY;
