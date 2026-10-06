@@ -637,9 +637,12 @@ export function PlayerHome() {
               ?"Ready to evolve!"
               :`Level ${active.level} - ${evolution.stage===0?"Bit":STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}`}
           </span>
-          <span className="monster-id-growth" aria-label={`Growth ${Math.round(growthProgress)}%`}>
-            <i style={{width:`${growthProgress}%`}}/>
-          </span>
+          <progress
+            className="monster-id-growth"
+            max={100}
+            value={growthProgress}
+            aria-label={`Growth ${Math.round(growthProgress)}%`}
+          />
         </span>
       </button>
 
