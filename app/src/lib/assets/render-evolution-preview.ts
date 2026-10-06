@@ -106,8 +106,9 @@ export async function renderEvolutionPreview(
           );
           standard.map.needsUpdate = true;
         }
-        if ("roughness" in standard)
-          standard.roughness = Math.max(standard.roughness ?? 0.7, 0.72);
+        // Keep the authored roughness/metalness response. The preview and
+        // the live game should differ only by lighting, not by per-creature
+        // material overrides.
         material.needsUpdate = true;
       }
     });
