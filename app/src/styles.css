@@ -2403,3 +2403,16 @@ body:has(.admin-console){
   width: 38%;
   bottom: 23%;
 }
+
+.habitat-randomize {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 38px;
+  justify-content: center;
+  border-color: #80a58d;
+  background: #eaf3ed;
+  color: #28583e;
+}
+.habitat-randomize:hover {
+  background: #deece3;
+}
