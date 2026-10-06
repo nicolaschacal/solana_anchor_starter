@@ -4004,3 +4004,18 @@ html,body,#root{background:#04101f!important}
     min-height:6px!important;
   }
 }
+
+
+/* Identity chip needs three visible rows; do not inherit the 42px HUD-chip cap. */
+.game-frame .game-world .monster-id{
+  height:auto!important;
+  min-height:68px!important;
+  max-height:none!important;
+}
+@media(max-width:420px){
+  .game-frame .game-world .monster-id{
+    height:auto!important;
+    min-height:64px!important;
+    max-height:none!important;
+  }
+}
