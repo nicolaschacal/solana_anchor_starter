@@ -485,7 +485,6 @@ export function PlayerHome() {
   const [restPending,setRestPending]=useState(false);
   const [actionWarning,setActionWarning]=useState<{action:RebyterInteraction;message:string}|null>(null);
   const [completed,setCompleted]=useState<{mint:string;action:RebyterInteraction;condition:number;stats:number}|null>(null);
-  useEffect(()=>{if(visualAction==="idle")return;const id=window.setTimeout(()=>setVisualAction("idle"),2600);return()=>clearTimeout(id);},[visualAction]);
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
@@ -626,7 +625,7 @@ export function PlayerHome() {
     </div>}
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
-      <EvolutionModel evolution={evolution} action={companionAction} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
+      <EvolutionModel evolution={evolution} action={companionAction} onActionComplete={()=>setVisualAction("idle")} sleeping={resting} landscape period={worldClock.period} worldTime={worldClock.now}/>
       {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className="monster-id gl-panel" onClick={()=>setDetailOpen(true)}>
@@ -752,7 +751,7 @@ export function PlayerHome() {
         <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}>Close</button></div>
         <p className="training-intro companion-guidance" role="status">{guidance?.training} Energy: {active.energy}% · Fullness: {active.fullness}%.</p>
         <div className="training-grid">
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",0).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>{trainingGains(guidance?.tier??0,[1,3,0,0])}</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
+          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",0).then(()=>{setTraining(false);setVisualAction("train-power");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>{trainingGains(guidance?.tier??0,[1,3,0,0])}</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
           <button disabled={!!player.interactingMint} onClick={()=>void interact("train",1).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>{trainingGains(guidance?.tier??0,[4,0,0,1])}</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
           <button disabled={!!player.interactingMint} onClick={()=>void interact("train",2).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>{trainingGains(guidance?.tier??0,[1,0,3,0])}</small><em>Energy −18</em></span><ChevronRight/></button>
           <button disabled={!!player.interactingMint} onClick={()=>void interact("train",3).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>{trainingGains(guidance?.tier??0,[0,1,0,3])}</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
