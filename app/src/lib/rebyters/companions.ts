@@ -254,6 +254,7 @@ export async function fetchFirstOwnedRebyter(
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
+  onFound?: (rebyter: OnchainRebyter) => void,
 ): Promise<OnchainRebyter[]> {
   const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
     owner,
@@ -306,7 +307,7 @@ export async function fetchOwnedRebyters(
         continue;
       }
 
-      decoded[index] = {
+      const rebyter: OnchainRebyter = {
         address: mintString,
         dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
         owner: owner.toBase58(),
@@ -332,6 +333,8 @@ export async function fetchOwnedRebyters(
         learnedSkills: dnaState.learnedSkills,
         metadataUri: metadata.uri,
       };
+      decoded[index] = rebyter;
+      onFound?.(rebyter);
     }
   };
 
