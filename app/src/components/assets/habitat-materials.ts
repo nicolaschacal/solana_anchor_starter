@@ -102,7 +102,12 @@ function grassTexture() {
   });
 }
 
-export function grassCarpet(\n  mobile: boolean,\n  wind: Wind,\n  track: Track,\n  exclusions: { x: number; z: number; radius: number }[] = [],\n) {
+export function grassCarpet(
+  mobile: boolean,
+  wind: Wind,
+  track: Track,
+  exclusions: { x: number; z: number; radius: number }[] = [],
+) {
   // Two crossed, alpha-cutout cards per tuft: the texture supplies soft, curved
   // leaf silhouettes. There are no cone, wedge or pyramid-shaped grass meshes.
   const geometry = track(new THREE.BufferGeometry());
