@@ -69,6 +69,7 @@ export function usePublishTree() {
   async function publishEvolutionModel(
     evolution: Evolution,
     glb: ArrayBuffer,
+    preview?: Blob,
   ) {
     return run(async () => {
       const { browserUploader } = await import("../lib/rebyters/irys-browser");
@@ -76,6 +77,7 @@ export function usePublishTree() {
       return publishModelReplacement(
         evolution,
         glb,
+        preview,
         uploader,
         IRYS_GATEWAY,
         progress,
