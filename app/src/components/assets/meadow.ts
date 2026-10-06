@@ -184,7 +184,11 @@ function put(
   return o;
 }
 
-export function meadow(scene: THREE.Scene, period: WorldPeriod) {
+export function meadow(
+  scene: THREE.Scene,
+  period: WorldPeriod,
+  options: { grassExclusions?: { x: number; z: number; radius: number }[] } = {},
+) {
   const colors = {
     ...palettes[period],
     ambientIntensity:
@@ -550,7 +554,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
   path.receiveShadow = true;
   group.add(path);
 
-  const carpet = grassCarpet(mobile, wind, track);
+  const carpet = grassCarpet(mobile, wind, track, options.grassExclusions ?? []);
   group.add(carpet.mesh);
   const flowerLocations = carpet.flowers;
   const matrix = new THREE.Object3D();
