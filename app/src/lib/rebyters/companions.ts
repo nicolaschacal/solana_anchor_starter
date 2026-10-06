@@ -269,61 +269,75 @@ export async function fetchOwnedRebyters(
       mints.add(parsed.mint);
   }
 
-  const result: OnchainRebyter[] = [];
-  for (const mintString of mints) {
-    const mint = new PublicKey(mintString);
-    let metadata;
-    try {
-      metadata = await getTokenMetadata(
-        connection,
-        mint,
-        "confirmed",
-        TOKEN_2022_PROGRAM_ID,
-      );
-    } catch {
-      continue;
+  const mintList = [...mints];
+  const decoded: Array<OnchainRebyter | null> = new Array(mintList.length).fill(null);
+  let cursor = 0;
+
+  // Token-2022 metadata used to be fetched strictly one mint at a time.
+  // A small worker pool dramatically reduces login latency while avoiding a
+  // burst large enough to trip public RPC rate limits.
+  const worker = async () => {
+    while (true) {
+      const index = cursor++;
+      if (index >= mintList.length) return;
+      const mintString = mintList[index];
+      const mint = new PublicKey(mintString);
+      let metadata;
+      try {
+        metadata = await getTokenMetadata(
+          connection,
+          mint,
+          "confirmed",
+          TOKEN_2022_PROGRAM_ID,
+        );
+      } catch {
+        continue;
+      }
+      if (!metadata) continue;
+
+      const fields = metadataMap((metadata as any).additionalMetadata);
+      const dnaField = fields.get("DNA");
+      if (!dnaField) continue;
+
+      let dnaState;
+      try {
+        dnaState = effectiveDnaState(decodeDna(dnaField));
+      } catch {
+        continue;
+      }
+
+      decoded[index] = {
+        address: mintString,
+        dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
+        owner: owner.toBase58(),
+        mint: mintString,
+        evolutionId: dnaState.evolutionId,
+        dnaBase58: dnaField,
+        careMistakes: dnaState.careMistakes,
+        weight: dnaState.weight,
+        bond: dnaState.bond,
+        discipline: dnaState.discipline,
+        fullness: dnaState.fullness,
+        energy: dnaState.energy,
+        condition: dnaState.condition,
+        diet: dnaState.diet,
+        timeInteractions: dnaState.timeInteractions,
+        cycle: dnaState.cycle,
+        lastStateAt: dnaState.lastStateAt,
+        stageEnteredAt: dnaState.stageEnteredAt,
+        hp: dnaState.hp,
+        atk: dnaState.atk,
+        def: dnaState.def,
+        spd: dnaState.spd,
+        learnedSkills: dnaState.learnedSkills,
+        metadataUri: metadata.uri,
+      };
     }
-    if (!metadata) continue;
+  };
 
-    const fields = metadataMap((metadata as any).additionalMetadata);
-    const dnaField = fields.get("DNA");
-    if (!dnaField) continue;
-
-    let dnaState;
-    try {
-      dnaState = effectiveDnaState(decodeDna(dnaField));
-    } catch {
-      continue;
-    }
-
-    result.push({
-      address: mintString,
-      dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
-      owner: owner.toBase58(),
-      mint: mintString,
-      evolutionId: dnaState.evolutionId,
-      dnaBase58: dnaField,
-      careMistakes: dnaState.careMistakes,
-      weight: dnaState.weight,
-      bond: dnaState.bond,
-      discipline: dnaState.discipline,
-      fullness: dnaState.fullness,
-      energy: dnaState.energy,
-      condition: dnaState.condition,
-      diet: dnaState.diet,
-      timeInteractions: dnaState.timeInteractions,
-      cycle: dnaState.cycle,
-      lastStateAt: dnaState.lastStateAt,
-      stageEnteredAt: dnaState.stageEnteredAt,
-      hp: dnaState.hp,
-      atk: dnaState.atk,
-      def: dnaState.def,
-      spd: dnaState.spd,
-      learnedSkills: dnaState.learnedSkills,
-      metadataUri: metadata.uri,
-    });
-  }
-  return result;
+  const workers = Math.min(5, mintList.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return decoded.filter((item): item is OnchainRebyter => item !== null);
 }
 
 export async function fetchActiveFamilyTree(
