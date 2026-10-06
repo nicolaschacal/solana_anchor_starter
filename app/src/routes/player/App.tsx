@@ -13,7 +13,7 @@ import {
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
 } from "lucide-react";
-import { EvolutionModel, GuestWorld, preloadModelAsset } from "../../components/assets/AssetViewer";
+import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
@@ -452,7 +452,9 @@ export function PlayerHome() {
     // WebView. A short deferred preload is portable and still finishes well
     // before most users complete authentication.
     const timer = window.setTimeout(() => {
-      void preloadModelAsset(MAMMAL_PILOT.modelUri);
+      void fetch(MAMMAL_PILOT.modelUri, { cache: "force-cache" }).catch(
+        () => undefined,
+      );
     }, 180);
     return () => window.clearTimeout(timer);
   }, []);
