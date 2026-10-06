@@ -158,15 +158,15 @@ transformed.z += cos(uGrassTime * 0.8 + origin.y) * height * 0.018 * uGrassGain;
       const farBank = i > count * 0.88;
       x = (rand() - 0.5) * (farBank ? 23 : 17);
       z = farBank ? -18 - rand() * 7 : -8.8 + rand() * 13;
-      // Keep the companion's face/feet readable, leave the winding trail open,
-      // and never grow grass through a solid pedestal.
+      // Keep the original center readable, leave the winding trail open,
+      // and honor caller-provided clear zones such as the active Rebyter position.
       const nearCompanion = Math.abs(x) < 1.1 && z > -0.8 && z < 1.3;
       const pathCenter = 2.1 + (-z - 2) * 0.3;
       const onTrail = z < -2 && z > -10 && Math.abs(x - pathCenter) < 0.65;
-      const insidePedestal = exclusions.some(
+      const insideExclusion = exclusions.some(
         (area) => Math.hypot(x - area.x, z - area.z) < area.radius,
       );
-      if (!nearCompanion && !onTrail && !insidePedestal) {
+      if (!nearCompanion && !onTrail && !insideExclusion) {
         valid = true;
         break;
       }
