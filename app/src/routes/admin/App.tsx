@@ -135,7 +135,7 @@ export default function App() {
           <Route index element={<Navigate to="families/0" replace />} />
           <Route path="families" element={<Home state={state} />} />
           <Route path="design-lab" element={<Suspense fallback={<div className="notice">Loading asset workshop…</div>}><DesignLab registry={state.registry!} /></Suspense>} />
-          <Route path="habitat-editor" element={<Suspense fallback={<div className="notice">Loading habitat editor…</div>}><HabitatEditor /></Suspense>} />
+          <Route path="habitat-editor" element={<Suspense fallback={<div className="notice">Loading habitat editor…</div>}><HabitatEditor registry={state.registry!} /></Suspense>} />
           <Route path="core-benchmark" element={<CoreBenchmark />} />
           <Route path="families/:familyId" element={<Family state={state} />} />
           <Route
