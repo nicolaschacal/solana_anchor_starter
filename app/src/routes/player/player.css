@@ -4019,3 +4019,15 @@ html,body,#root{background:#04101f!important}
     max-height:none!important;
   }
 }
+
+
+/* Final world-scene guard: never show the legacy HUD halo/ring on game entry. */
+.game-frame .game-viewer.game-world::before,
+.game-frame .game-viewer.game-world::after,
+.game-frame .game-world > .viewer-glow{
+  content:none!important;
+  display:none!important;
+  border:0!important;
+  box-shadow:none!important;
+  background:none!important;
+}
