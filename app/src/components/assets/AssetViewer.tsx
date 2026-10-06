@@ -126,11 +126,12 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       key.color.setHex(environment.colors.light);
       key.intensity = environment.colors.intensity;
       ambient.intensity =
-        initialPeriod === "Night"
-          ? 0.8
+        environment.colors.ambientIntensity ??
+        (initialPeriod === "Night"
+          ? 1.05
           : initialPeriod === "Evening"
             ? 1.5
-            : 1.9;
+            : 1.9);
       ambient.color.setHex(initialPeriod === "Night" ? 0xa9c7ff : 0xd9efff);
       fill.intensity = environment.colors.fillIntensity ?? 0.45;
       moonLight.intensity = environment.colors.moonIntensity ?? 0;
@@ -147,7 +148,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         key.color.setHex(environment.colors.light);
         key.intensity = environment.colors.intensity;
         ambient.intensity =
-          next === "Night" ? 0.8 : next === "Evening" ? 1.5 : 1.9;
+          environment.colors.ambientIntensity ??
+          (next === "Night" ? 1.05 : next === "Evening" ? 1.5 : 1.9);
         ambient.color.setHex(next === "Night" ? 0xa9c7ff : 0xd9efff);
         fill.intensity = environment.colors.fillIntensity ?? 0.45;
         moonLight.intensity = environment.colors.moonIntensity ?? 0;
