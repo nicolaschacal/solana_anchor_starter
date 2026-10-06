@@ -152,7 +152,12 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     rimLight.position.set(0, 3.8, -7);
     scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
-    let environment = landscape ? meadow(scene, initialPeriod) : null;
+    const landscapeMeadowOptions = landscape
+      ? { grassExclusions: [{ x: 0, z: creatureZOffset, radius: 2.26 }] }
+      : undefined;
+    let environment = landscape
+      ? meadow(scene, initialPeriod, landscapeMeadowOptions)
+      : null;
     let environmentPeriod = initialPeriod;
     if (environment) {
       if (environment.lightPosition)
@@ -175,7 +180,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       if (next === environmentPeriod) return;
       environmentPeriod = next;
       environment?.dispose();
-      environment = landscape ? meadow(scene, next) : null;
+      environment = landscape ? meadow(scene, next, landscapeMeadowOptions) : null;
       if (environment) {
         if (environment.lightPosition)
           key.position.copy(environment.lightPosition);
@@ -246,6 +251,52 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         (landscape ? (environment?.groundY ?? 0.18) + creatureYOffset : 0),
       -center.z * scale + (landscape ? creatureZOffset : 0),
     );
+
+    // Reuse the exact login pedestal geometry in the live habitat.
+    // It stays fixed at the Rebyter's home position while actions can move the creature.
+    let habitatPlatform: THREE.Mesh | null = null;
+    let habitatRing: THREE.Mesh | null = null;
+    let habitatInner: THREE.Mesh | null = null;
+    if (landscape && creatureVisualBoost) {
+      const groundY = environment?.groundY ?? 0.04;
+      habitatPlatform = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.95, 2.12, 0.18, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0x5a6670,
+          roughness: 0.94,
+          metalness: 0.02,
+        }),
+      );
+      habitatPlatform.position.set(stage.position.x, groundY + 0.01, stage.position.z);
+      habitatPlatform.receiveShadow = true;
+      habitatPlatform.castShadow = true;
+      scene.add(habitatPlatform);
+
+      habitatRing = new THREE.Mesh(
+        new THREE.TorusGeometry(1.42, 0.025, 10, 96),
+        new THREE.MeshBasicMaterial({
+          color: 0x65dcff,
+          transparent: true,
+          opacity: 0.58,
+        }),
+      );
+      habitatRing.rotation.x = Math.PI / 2;
+      habitatRing.position.set(stage.position.x, groundY + 0.115, stage.position.z);
+      scene.add(habitatRing);
+
+      habitatInner = new THREE.Mesh(
+        new THREE.TorusGeometry(0.82, 0.018, 10, 96),
+        new THREE.MeshBasicMaterial({
+          color: 0x8be8ff,
+          transparent: true,
+          opacity: 0.32,
+        }),
+      );
+      habitatInner.rotation.x = Math.PI / 2;
+      habitatInner.position.set(stage.position.x, groundY + 0.118, stage.position.z);
+      scene.add(habitatInner);
+    }
+
     environment?.setCompanionShadowPosition?.(stage.position.x, stage.position.z);
     const baseStagePosition = stage.position.clone();
     const baseStageRotationY = stage.rotation.y;
@@ -553,6 +604,9 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const tick = (now: number) => {
       const delta = Math.min((now - last) / 1000, 0.05);
       last = now;
+      if (habitatRing)
+        (habitatRing.material as THREE.MeshBasicMaterial).opacity =
+          0.48 + Math.sin(now / 1000 * 1.6) * 0.1;
       if (
         visible &&
         !document.hidden &&
@@ -823,6 +877,14 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ground.material.dispose();
       trainingRockGeometry.dispose();
       trainingRockMaterial.dispose();
+      for (const pedestalPart of [habitatPlatform, habitatRing, habitatInner]) {
+        if (!pedestalPart) continue;
+        pedestalPart.geometry.dispose();
+        const materials = Array.isArray(pedestalPart.material)
+          ? pedestalPart.material
+          : [pedestalPart.material];
+        materials.forEach((material) => material.dispose());
+      }
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
@@ -884,7 +946,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     configureHabitatRenderer(renderer);
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    const env = meadow(scene, period);
+    const env = meadow(scene, period, { grassExclusions: [{ x: 0, z: 0.3, radius: 2.26 }] });
     const hemi = new THREE.HemisphereLight(
       period === "Night" ? 0xa9c7ff : 0xdff5ff,
       0x314536,
@@ -1077,7 +1139,7 @@ export function EvolutionModel({
           period={period}
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
-          creatureYOffset={0}
+          creatureYOffset={landscape && isMammalPilot(evolution) ? 0.1 : 0}
           creatureZOffset={landscape && isMammalPilot(evolution) ? -2.97 : 0}
           creatureVisualBoost={landscape && isMammalPilot(evolution)}
           model={loaded.model}
