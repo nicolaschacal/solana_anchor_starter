@@ -630,20 +630,20 @@ export function PlayerHome() {
 
       <button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
         <span className="monster-id-thumb"><CreatureSprite evolution={evolution}/></span>
-        <span className="monster-id-copy">
+        <div className="monster-id-copy">
           <strong>{evolution.name}</strong>
           <span className="monster-id-level">
             {growthReady
               ?"Ready to evolve!"
               :`Level ${active.level} - ${evolution.stage===0?"Bit":STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}`}
           </span>
-          <progress
-            className="monster-id-growth"
-            max={100}
-            value={growthProgress}
+          <div
+            className="growth-track monster-id-growth"
             aria-label={`Growth ${Math.round(growthProgress)}%`}
-          />
-        </span>
+          >
+            <i style={{width:`${growthProgress}%`}}/>
+          </div>
+        </div>
       </button>
 
       <div className="monster-hud-right">
