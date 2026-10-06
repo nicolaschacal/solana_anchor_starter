@@ -151,8 +151,20 @@ export function usePlayerRebyters() {
         auth.publicKey,
         force,
         (earlyOwned, complete) => {
-          setOwned(earlyOwned);
-          setOwnedLoadedAll(complete);
+          if (complete) {
+            setOwned(earlyOwned);
+            setOwnedLoadedAll(true);
+            return;
+          }
+          // Preserve already-loaded companions during a post-interaction refresh.
+          // Replacing the collection with a partial RPC scan can temporarily drop
+          // the selected mint and unmount the whole 3D scene.
+          setOwned((current) => {
+            const merged = new Map(current.map((item) => [item.mint, item]));
+            for (const item of earlyOwned) merged.set(item.mint, item);
+            return [...merged.values()];
+          });
+          setOwnedLoadedAll(false);
         },
       );
       setOwned(snapshot.owned);
@@ -186,8 +198,20 @@ export function usePlayerRebyters() {
         auth.publicKey,
         force,
         (earlyOwned, complete) => {
-          setOwned(earlyOwned);
-          setOwnedLoadedAll(complete);
+          if (complete) {
+            setOwned(earlyOwned);
+            setOwnedLoadedAll(true);
+            return;
+          }
+          // Preserve already-loaded companions during a post-interaction refresh.
+          // Replacing the collection with a partial RPC scan can temporarily drop
+          // the selected mint and unmount the whole 3D scene.
+          setOwned((current) => {
+            const merged = new Map(current.map((item) => [item.mint, item]));
+            for (const item of earlyOwned) merged.set(item.mint, item);
+            return [...merged.values()];
+          });
+          setOwnedLoadedAll(false);
         },
       );
       setOwned(snapshot.owned);
