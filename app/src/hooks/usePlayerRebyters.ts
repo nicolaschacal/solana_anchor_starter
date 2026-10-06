@@ -60,24 +60,28 @@ async function getPlayerSnapshot(
   connection: ReturnType<typeof useConnection>["connection"],
   owner: PublicKey,
   force = false,
-  onOwned?: (owned: OnchainRebyter[]) => void,
+  onOwned?: (owned: OnchainRebyter[], complete: boolean) => void,
 ): Promise<PlayerSnapshot> {
   const key = owner.toBase58();
   const cached = playerSnapshotCache.get(key);
   if (!force && cached && Date.now() - cached.at < PLAYER_CACHE_TTL_MS) {
-    onOwned?.(cached.value.owned);
+    onOwned?.(cached.value.owned, true);
     return cached.value;
   }
 
   const pending = playerSnapshotInflight.get(key);
   if (!force && pending)
     return pending.then((value) => {
-      onOwned?.(value.owned);
+      onOwned?.(value.owned, true);
       return value;
     });
 
-  const ownedPromise = fetchOwnedRebyters(connection, owner).then((owned) => {
-    onOwned?.(owned);
+  const partialOwned = new Map<string, OnchainRebyter>();
+  const ownedPromise = fetchOwnedRebyters(connection, owner, (rebyter) => {
+    partialOwned.set(rebyter.mint, rebyter);
+    onOwned?.([...partialOwned.values()], false);
+  }).then((owned) => {
+    onOwned?.(owned, true);
     return owned;
   });
 
@@ -146,9 +150,9 @@ export function usePlayerRebyters() {
         connection,
         auth.publicKey,
         force,
-        (earlyOwned) => {
+        (earlyOwned, complete) => {
           setOwned(earlyOwned);
-          setOwnedLoadedAll(true);
+          setOwnedLoadedAll(complete);
         },
       );
       setOwned(snapshot.owned);
@@ -181,9 +185,9 @@ export function usePlayerRebyters() {
         connection,
         auth.publicKey,
         force,
-        (earlyOwned) => {
+        (earlyOwned, complete) => {
           setOwned(earlyOwned);
-          setOwnedLoadedAll(true);
+          setOwnedLoadedAll(complete);
         },
       );
       setOwned(snapshot.owned);
