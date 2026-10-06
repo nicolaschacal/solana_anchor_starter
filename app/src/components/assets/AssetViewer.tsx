@@ -19,7 +19,7 @@ import {
   inspectModel,
   type AssetModel,
 } from "../../lib/assets/rig";
-import { isMammalPilot, modelUriFor } from "../../lib/assets/catalog";
+import { modelUriFor } from "../../lib/assets/catalog";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
