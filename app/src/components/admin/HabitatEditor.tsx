@@ -173,6 +173,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const objectRootRef = useRef<THREE.Group | null>(null);
   const waterRootRef = useRef<THREE.Group | null>(null);
   const terrainRef = useRef<THREE.Mesh | null>(null);
+  const gridRef = useRef<THREE.GridHelper | null>(null);
   const transformRef = useRef<TransformControls | null>(null);
   const selectedRef = useRef<THREE.Object3D | null>(null);
   const loaderRef = useRef(new GLTFLoader().setMeshoptDecoder(MeshoptDecoder));
@@ -299,9 +300,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     scene.add(terrain);
     terrainRef.current = terrain;
 
-    const grid = new THREE.GridHelper(40, 40, 0x6f9278, 0xb5c8ba);
+    // Keep the editor grid exactly aligned with the editable terrain.
+    // A unit grid scaled to Width/Depth avoids the old 40x40 grid extending
+    // beyond a smaller terrain and looking like the ground was cut in half.
+    const grid = new THREE.GridHelper(1, TERRAIN_SEGMENTS, 0x6f9278, 0xb5c8ba);
+    grid.scale.set(groundWidth, 1, groundDepth);
     grid.position.y = 0.015;
     scene.add(grid);
+    gridRef.current = grid;
 
     const objectRoot = new THREE.Group();
     objectRoot.name = "HabitatObjects";
@@ -516,6 +522,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       cameraRef.current = null;
       terrain.geometry.dispose();
       (terrain.material as THREE.Material).dispose();
+      grid.geometry.dispose();
+      (grid.material as THREE.Material).dispose();
+      gridRef.current = null;
       waterRoot.children.forEach((child) => {
         const mesh = child as THREE.Mesh;
         mesh.geometry?.dispose();
@@ -609,6 +618,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     }
     terrain.geometry = next;
     old.dispose();
+    gridRef.current?.scale.set(groundWidth, 1, groundDepth);
   }, [groundWidth, groundDepth]);
 
   async function loadHabitatAsset(asset: string, displayName: string) {
