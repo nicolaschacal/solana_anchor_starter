@@ -3799,3 +3799,107 @@ html,body,#root{background:#04101f!important}
 .player-panel-header :is(a,button):focus-visible{outline:2px solid #66dcff;outline-offset:2px}
 @media(min-width:900px){.player-panel-backdrop{padding:82px 24px 24px}.player-panel-content{padding:24px}}
 @media(max-width:400px){.player-panel-header{gap:6px;padding:10px}.player-panel-header nav a{gap:4px;padding:10px 5px;font-size:12px}}
+
+
+/* Home HUD: compact Rebyter identity + growth progress --------------------- */
+.monster-id{
+  min-width:0!important;
+  width:auto!important;
+  max-width:min(245px,calc(100vw - 154px))!important;
+  min-height:58px!important;
+  padding:7px 10px 7px 7px!important;
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  text-align:left!important;
+  overflow:hidden!important;
+}
+.monster-id-thumb{
+  width:44px!important;
+  height:44px!important;
+  border-radius:13px!important;
+  overflow:hidden!important;
+  display:grid!important;
+  place-items:center!important;
+  background:rgba(115,205,255,.12)!important;
+  border:1px solid rgba(123,220,255,.24)!important;
+}
+.monster-id-thumb .creature-sprite{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+}
+.monster-id-copy{
+  min-width:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+}
+.monster-id-copy>strong{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:15px!important;
+  line-height:1.08!important;
+}
+.monster-id-level{
+  margin-top:2px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:9px!important;
+  line-height:1.15!important;
+  color:var(--rb-muted)!important;
+}
+.monster-id.ready .monster-id-level{
+  color:#67e6ff!important;
+  font-weight:700!important;
+}
+.monster-id-growth{
+  display:block!important;
+  width:100%!important;
+  height:5px!important;
+  margin-top:5px!important;
+  border-radius:999px!important;
+  overflow:hidden!important;
+  background:rgba(255,255,255,.11)!important;
+}
+.monster-id-growth i{
+  display:block!important;
+  height:100%!important;
+  border-radius:999px!important;
+  background:linear-gradient(90deg,#38a7ff,#52ddff)!important;
+  box-shadow:0 0 8px rgba(74,215,255,.24)!important;
+}
+.monster-id.ready .monster-id-growth i{
+  background:linear-gradient(90deg,#45d6ff,#66f2ff)!important;
+}
+
+/* Growth now lives in the top identity chip, leaving only actions at bottom. */
+.game-controls{
+  gap:0!important;
+}
+.game-controls>.growth-card{
+  display:none!important;
+}
+@media(max-width:420px){
+  .monster-id{
+    left:10px!important;
+    top:10px!important;
+    grid-template-columns:40px minmax(0,1fr)!important;
+    min-height:54px!important;
+    padding:6px 9px 6px 6px!important;
+    column-gap:8px!important;
+    max-width:calc(100vw - 148px)!important;
+  }
+  .monster-id-thumb{
+    width:40px!important;
+    height:40px!important;
+    border-radius:12px!important;
+  }
+  .monster-id-copy>strong{font-size:14px!important}
+  .monster-id-level{font-size:8px!important}
+  .monster-id-growth{height:4px!important;margin-top:4px!important}
+}
