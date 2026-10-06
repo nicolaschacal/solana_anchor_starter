@@ -30,6 +30,7 @@ const clipAliases: Record<string, string[]> = {
   feed: ["feed", "Feeding"],
   play: ["play", "Bounce_Happy"],
   train: ["train", "Attack_Slam"],
+  walk: ["walk", "Walk_Bounce"],
   care: ["care", "Bounce_Happy"],
 };
 
@@ -57,6 +58,7 @@ type Props = {
   skeleton?: boolean;
   selectedBone?: string;
   sleeping?: boolean;
+  onActionComplete?: (action: string) => void;
 };
 export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   {
@@ -72,6 +74,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     skeleton = false,
     selectedBone = "",
     sleeping = false,
+    onActionComplete,
   },
   ref,
 ) {
@@ -91,6 +94,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     selectedBone,
     period,
     worldTime,
+    onActionComplete,
   });
   live.current = {
     action,
@@ -101,6 +105,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     selectedBone,
     period,
     worldTime,
+    onActionComplete,
   };
   const changeAnimation = useRef<() => void>(() => {});
   const changeDebug = useRef<() => void>(() => {});
@@ -235,6 +240,21 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         (landscape ? (environment?.groundY ?? 0.18) + creatureYOffset : 0),
       -center.z * scale,
     );
+    const baseStagePosition = stage.position.clone();
+    const baseStageRotationY = stage.rotation.y;
+    const trainingRockGeometry = new THREE.DodecahedronGeometry(0.34, 0);
+    const trainingRockMaterial = new THREE.MeshStandardMaterial({
+      color: 0x6b6255,
+      roughness: 1,
+      metalness: 0,
+    });
+    const trainingRock = new THREE.Mesh(
+      trainingRockGeometry,
+      trainingRockMaterial,
+    );
+    trainingRock.scale.set(1.22, 0.88, 1);
+    trainingRock.visible = false;
+    scene.add(trainingRock);
     const target = new THREE.Vector3(0, size.y * scale * 0.48, 0),
       camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
     camera.position.set(3, 2.3, 4);
@@ -283,22 +303,117 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     changeDebug.current();
     const mixer = new THREE.AnimationMixer(root);
     let clip: THREE.AnimationClip | undefined;
+    let currentMixerAction: THREE.AnimationAction | null = null;
+    let transientAction: THREE.AnimationAction | null = null;
+    let touchAction: THREE.AnimationAction | null = null;
     let touching = false;
+    let powerTraining: {
+      startedAt: number;
+      phase: number;
+      attackDuration: number;
+    } | null = null;
+
+    const playClip = (
+      nextClip: THREE.AnimationClip | undefined,
+      once = false,
+      fade = 0.14,
+    ) => {
+      if (!nextClip) return null;
+      const next = mixer.clipAction(nextClip);
+      if (currentMixerAction && currentMixerAction !== next)
+        currentMixerAction.fadeOut(fade);
+      next
+        .reset()
+        .setEffectiveTimeScale(1)
+        .setEffectiveWeight(1)
+        .setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity);
+      next.clampWhenFinished = false;
+      next.fadeIn(fade).play();
+      currentMixerAction = next;
+      clip = nextClip;
+      return next;
+    };
+
+    const playBaseAnimation = () => {
+      transientAction = null;
+      const base =
+        findActionClip(
+          live.current.clips,
+          live.current.action === "sad" ? "sad" : "idle",
+        ) ?? findActionClip(live.current.clips, "idle");
+      playClip(base, false);
+    };
+
+    const resetPowerTraining = () => {
+      powerTraining = null;
+      trainingRock.visible = false;
+      stage.position.copy(baseStagePosition);
+      stage.rotation.y = baseStageRotationY;
+    };
+
+    const startPowerTraining = () => {
+      const walkClip = findActionClip(live.current.clips, "walk");
+      const slamClip = findActionClip(live.current.clips, "train");
+      if (!walkClip || !slamClip || !landscape) {
+        transientAction = playClip(slamClip, true);
+        return;
+      }
+      touching = false;
+      transientAction = null;
+      stage.position.copy(baseStagePosition);
+      stage.rotation.y = baseStageRotationY;
+      const groundY = (environment?.groundY ?? 0.18) + 0.26;
+      trainingRock.position.set(
+        baseStagePosition.x + 0.95,
+        groundY + 2.8,
+        baseStagePosition.z - 0.6,
+      );
+      trainingRock.rotation.set(0.18, 0.4, -0.12);
+      trainingRock.visible = true;
+      powerTraining = {
+        startedAt: performance.now() / 1000,
+        phase: 0,
+        attackDuration: Math.max(0.8, slamClip.duration || 2),
+      };
+      playClip(findActionClip(live.current.clips, "idle"), false);
+    };
+
     changeAnimation.current = () => {
       touching = false;
-      mixer.stopAllAction();
+      touchAction = null;
+      transientAction = null;
+      if (live.current.action !== "train-power") resetPowerTraining();
+
+      if (live.current.action === "train-power") {
+        startPowerTraining();
+        return;
+      }
+
       clip =
         findActionClip(live.current.clips, live.current.action) ??
         findActionClip(live.current.clips, "idle");
-      if (clip) mixer.clipAction(clip).reset().play();
+      const loop =
+        live.current.action === "idle" || live.current.action === "sad";
+      if (loop) playClip(clip, false);
+      else transientAction = playClip(clip, true);
     };
     changeAnimation.current();
-    const returnToIdle = () => {
-      touching = false;
-      mixer.stopAllAction();
-      if (clip) mixer.clipAction(clip).reset().play();
+
+    const onFinished = (event: any) => {
+      if (touchAction && event.action === touchAction) {
+        touching = false;
+        touchAction = null;
+        playBaseAnimation();
+        return;
+      }
+      if (transientAction && event.action === transientAction) {
+        const completedAction = live.current.action;
+        transientAction = null;
+        live.current.onActionComplete?.(completedAction);
+      }
     };
-    mixer.addEventListener("finished", returnToIdle);
+    mixer.addEventListener("finished", onFinished);
+
     reactToTouch.current = () => {
       const { sleeping, paused, action, clips } = live.current;
       const touchClip = findActionClip(clips, "touch");
@@ -307,11 +422,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       if (sleeping || paused || action !== "idle" || touching || !touchClip)
         return;
       touching = true;
-      mixer.stopAllAction();
-      const reaction = mixer.clipAction(touchClip);
-      reaction.reset().setLoop(THREE.LoopOnce, 1);
-      reaction.clampWhenFinished = true;
-      reaction.play();
+      touchAction = playClip(touchClip, true);
     };
     let pointer: {
       id: number;
@@ -428,6 +539,103 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         !live.current.sleeping &&
         !live.current.paused
       ) {
+        if (powerTraining) {
+          const elapsed = now / 1000 - powerTraining.startedAt;
+          const dropEnd = 0.65;
+          const walkEnd = 2.15;
+          const turnEnd = 2.5;
+          const attackEnd = turnEnd + powerTraining.attackDuration;
+          const holdEnd = attackEnd + 0.28;
+          const returnEnd = holdEnd + 1.35;
+          const settleEnd = returnEnd + 0.3;
+          const groundY = (environment?.groundY ?? 0.18) + 0.26;
+          const approach = baseStagePosition
+            .clone()
+            .add(new THREE.Vector3(-0.08, 0, -0.48));
+
+          if (elapsed < dropEnd) {
+            const u = THREE.MathUtils.clamp(elapsed / dropEnd, 0, 1);
+            const eased = 1 - Math.pow(1 - u, 3);
+            trainingRock.position.y =
+              THREE.MathUtils.lerp(groundY + 2.8, groundY, eased) +
+              (u > 0.88 ? Math.sin((u - 0.88) * 38) * 0.045 * (1 - u) : 0);
+          } else {
+            trainingRock.position.y = groundY;
+          }
+
+          if (elapsed >= dropEnd && elapsed < walkEnd) {
+            if (powerTraining.phase < 1) {
+              powerTraining.phase = 1;
+              playClip(findActionClip(live.current.clips, "walk"), false);
+            }
+            const u = THREE.MathUtils.smoothstep(
+              (elapsed - dropEnd) / (walkEnd - dropEnd),
+              0,
+              1,
+            );
+            stage.position.lerpVectors(baseStagePosition, approach, u);
+          } else if (elapsed >= walkEnd && elapsed < turnEnd) {
+            if (powerTraining.phase < 2) {
+              powerTraining.phase = 2;
+              playClip(findActionClip(live.current.clips, "idle"), false);
+            }
+            stage.position.copy(approach);
+            const u = THREE.MathUtils.smoothstep(
+              (elapsed - walkEnd) / (turnEnd - walkEnd),
+              0,
+              1,
+            );
+            stage.rotation.y = THREE.MathUtils.lerp(
+              baseStageRotationY,
+              baseStageRotationY + Math.PI / 2,
+              u,
+            );
+          } else if (elapsed >= turnEnd && elapsed < attackEnd) {
+            if (powerTraining.phase < 3) {
+              powerTraining.phase = 3;
+              playClip(findActionClip(live.current.clips, "train"), true, 0.1);
+            }
+            stage.position.copy(approach);
+            stage.rotation.y = baseStageRotationY + Math.PI / 2;
+            const attackU = (elapsed - turnEnd) / powerTraining.attackDuration;
+            if (attackU > 0.52) {
+              const impact = THREE.MathUtils.clamp((attackU - 0.52) / 0.18, 0, 1);
+              trainingRock.position.x =
+                baseStagePosition.x + 0.95 + impact * 0.18;
+              trainingRock.rotation.z = -0.12 - impact * 0.28;
+            }
+          } else if (elapsed >= attackEnd && elapsed < holdEnd) {
+            if (powerTraining.phase < 4) {
+              powerTraining.phase = 4;
+              playClip(findActionClip(live.current.clips, "idle"), false);
+            }
+          } else if (elapsed >= holdEnd && elapsed < returnEnd) {
+            if (powerTraining.phase < 5) {
+              powerTraining.phase = 5;
+              playClip(findActionClip(live.current.clips, "walk"), false);
+            }
+            const u = THREE.MathUtils.smoothstep(
+              (elapsed - holdEnd) / (returnEnd - holdEnd),
+              0,
+              1,
+            );
+            stage.position.lerpVectors(approach, baseStagePosition, u);
+            stage.rotation.y = THREE.MathUtils.lerp(
+              baseStageRotationY - Math.PI / 2,
+              baseStageRotationY,
+              u,
+            );
+          } else if (elapsed >= returnEnd && elapsed < settleEnd) {
+            stage.position.copy(baseStagePosition);
+            stage.rotation.y = baseStageRotationY;
+          } else if (elapsed >= settleEnd) {
+            const completedAction = live.current.action;
+            resetPowerTraining();
+            playClip(findActionClip(live.current.clips, "idle"), false);
+            live.current.onActionComplete?.(completedAction);
+          }
+        }
+
         mixer.update(delta);
         controls.update();
         environment?.update(now / 1000, live.current.worldTime);
@@ -516,7 +724,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.domElement.removeEventListener("pointermove", move);
       renderer.domElement.removeEventListener("pointerup", up);
       renderer.domElement.removeEventListener("pointercancel", cancel);
-      mixer.removeEventListener("finished", returnToIdle);
+      mixer.removeEventListener("finished", onFinished);
       controls.dispose();
       mixer.stopAllAction();
       mixer.uncacheRoot(root);
@@ -530,6 +738,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       creatureMaterials.forEach((material) => material.dispose());
       ground.geometry.dispose();
       ground.material.dispose();
+      trainingRockGeometry.dispose();
+      trainingRockMaterial.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
@@ -719,6 +929,7 @@ export function EvolutionModel({
   landscape = false,
   period = "Day",
   worldTime,
+  onActionComplete,
 }: {
   worldTime?: number;
   landscape?: boolean;
@@ -726,6 +937,7 @@ export function EvolutionModel({
   evolution: Evolution;
   action?: string;
   sleeping?: boolean;
+  onActionComplete?: (action: string) => void;
 }) {
   const uri = modelUriFor(evolution);
   const [loaded, setLoaded] = useState<{
@@ -783,6 +995,7 @@ export function EvolutionModel({
           model={loaded.model}
           action={action}
           sleeping={sleeping}
+          onActionComplete={onActionComplete}
         />
       ) : (
         <div className="asset-viewer-message">Loading companion…</div>
