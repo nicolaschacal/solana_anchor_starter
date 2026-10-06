@@ -210,14 +210,14 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
               // Keep more specular response and add a very small texture-backed
               // emissive lift so the creature does not look washed out in the
               // habitat, especially at night.
-              material.roughness = Math.min(material.roughness || 0.75, 0.68);
+              material.roughness = Math.max(material.roughness || 0.75, 0.78);
               if (material.map) {
                 material.emissive.set(0xffffff);
                 material.emissiveMap = material.map;
-                material.emissiveIntensity = 0.20;
+                material.emissiveIntensity = 0.07;
               } else {
                 material.emissive.copy(material.color);
-                material.emissiveIntensity = 0.10;
+                material.emissiveIntensity = 0.05;
               }
             } else {
               material.roughness = Math.max(material.roughness, 0.9);
@@ -1078,7 +1078,7 @@ export function EvolutionModel({
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
           creatureYOffset={0}
-          creatureZOffset={landscape && isMammalPilot(evolution) ? -0.75 : 0}
+          creatureZOffset={landscape && isMammalPilot(evolution) ? -1.25 : 0}
           creatureVisualBoost={landscape && isMammalPilot(evolution)}
           model={loaded.model}
           action={action}
