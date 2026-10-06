@@ -260,6 +260,37 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
 
 
     environment?.setCompanionShadowPosition?.(stage.position.x, stage.position.z);
+
+    // Short-range back/rim light for the companion only visually: positioned
+    // directly behind the Rebyter and aimed at its center so the forest does
+    // not receive a broad lighting change.
+    let companionRim: THREE.SpotLight | null = null;
+    let companionRimTarget: THREE.Object3D | null = null;
+    if (landscape && creatureVisualBoost) {
+      companionRim = new THREE.SpotLight(
+        0xbfe8ff,
+        1.55,
+        4.6,
+        Math.PI / 4.7,
+        0.72,
+        2,
+      );
+      companionRim.position.set(
+        stage.position.x - 0.15,
+        (environment?.groundY ?? 0.18) + 2.45,
+        stage.position.z - 2.15,
+      );
+      companionRimTarget = new THREE.Object3D();
+      companionRimTarget.position.set(
+        stage.position.x,
+        (environment?.groundY ?? 0.18) + size.y * scale * 0.52,
+        stage.position.z,
+      );
+      scene.add(companionRimTarget);
+      companionRim.target = companionRimTarget;
+      scene.add(companionRim);
+    }
+
     const baseStagePosition = stage.position.clone();
     const baseStageRotationY = stage.rotation.y;
     const trainingRockGeometry = new THREE.DodecahedronGeometry(0.34, 0);
@@ -836,6 +867,9 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       ground.material.dispose();
       trainingRockGeometry.dispose();
       trainingRockMaterial.dispose();
+      companionRim?.removeFromParent();
+      companionRimTarget?.removeFromParent();
+      companionRim?.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
