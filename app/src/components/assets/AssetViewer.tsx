@@ -13,7 +13,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import {
-  disposeModel,
   loader,
   inspectModel,
   type AssetModel,
@@ -22,6 +21,37 @@ import { modelUriFor } from "../../lib/assets/catalog";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import "./assets.css";
+
+const modelAssetCache = new Map<string, Promise<AssetModel>>();
+
+function resolvedModelUrl(uri: string) {
+  return uri.startsWith("ipfs://")
+    ? `https://ipfs.io/ipfs/${uri.slice(7)}`
+    : uri;
+}
+
+function getCachedModelAsset(uri: string): Promise<AssetModel> {
+  let pending = modelAssetCache.get(uri);
+  if (pending) return pending;
+
+  const l = loader();
+  pending = l.gltf
+    .loadAsync(resolvedModelUrl(uri))
+    .then((g) => inspectModel(g))
+    .catch((error) => {
+      modelAssetCache.delete(uri);
+      throw error;
+    })
+    .finally(() => l.dispose());
+
+  modelAssetCache.set(uri, pending);
+  return pending;
+}
+
+export function preloadModelAsset(uri: string) {
+  if (!uri) return Promise.resolve();
+  return getCachedModelAsset(uri).then(() => undefined).catch(() => undefined);
+}
 
 export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
@@ -691,26 +721,17 @@ export function EvolutionModel({
     [failed, setFailed] = useState("");
   useEffect(() => {
     if (!uri) return;
-    let cancelled = false,
-      resource: AssetModel | undefined;
-    const l = loader();
-    const url = uri.startsWith("ipfs://")
-      ? `https://ipfs.io/ipfs/${uri.slice(7)}`
-      : uri;
-    l.gltf
-      .loadAsync(url)
-      .then((g) => {
-        resource = inspectModel(g);
-        if (cancelled) disposeModel(resource);
-        else setLoaded({ uri, model: resource });
+    let cancelled = false;
+    setFailed("");
+    void getCachedModelAsset(uri)
+      .then((model) => {
+        if (!cancelled) setLoaded({ uri, model });
       })
       .catch(() => {
         if (!cancelled) setFailed(uri);
       });
     return () => {
       cancelled = true;
-      l.dispose();
-      if (resource) disposeModel(resource);
     };
   }, [uri]);
   if (!uri || failed === uri)
