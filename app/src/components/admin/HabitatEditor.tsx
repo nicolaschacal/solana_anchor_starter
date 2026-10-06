@@ -48,15 +48,31 @@ type HabitatManifest = {
   objects: HabitatObject[];
 };
 
-const BUILTIN_ASSETS = [
-  { name: "Pine tree", asset: "/assets/environment/pine-tree.glb" },
-  { name: "Deciduous tree", asset: "/assets/environment/deciduous-tree.glb" },
-  { name: "Berry bush", asset: "/assets/environment/berry-bush.glb" },
-  { name: "Mossy rocks", asset: "/assets/environment/mossy-rocks.glb" },
-  { name: "Tree stump", asset: "/assets/environment/tree-stump.glb" },
-  { name: "Hollow log", asset: "/assets/environment/hollow-log.glb" },
-  { name: "Red mushrooms", asset: "/assets/environment/red-mushrooms.glb" },
+type HabitatAssetDefinition = {
+  name: string;
+  asset: string;
+  category: "Terrain" | "Water" | "Nature" | "Background";
+  targetExtent: number;
+};
+
+const BUILTIN_ASSETS: HabitatAssetDefinition[] = [
+  { name: "Grass plain", asset: "/assets/environment/grass-plain.glb", category: "Terrain", targetExtent: 8 },
+  { name: "Grass tile", asset: "/assets/environment/grass-tile.glb", category: "Terrain", targetExtent: 7 },
+  { name: "Dirt transition", asset: "/assets/environment/dirt-transition.glb", category: "Terrain", targetExtent: 7 },
+  { name: "Water", asset: "/assets/environment/water-center.glb", category: "Water", targetExtent: 8 },
+  { name: "Water shore", asset: "/assets/environment/water-shore-straight.glb", category: "Water", targetExtent: 8 },
+  { name: "Water corner", asset: "/assets/environment/water-shore-corner.glb", category: "Water", targetExtent: 8 },
+  { name: "Distant mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 13 },
+  { name: "Pine tree", asset: "/assets/environment/pine-tree.glb", category: "Nature", targetExtent: 2.8 },
+  { name: "Deciduous tree", asset: "/assets/environment/deciduous-tree.glb", category: "Nature", targetExtent: 3.2 },
+  { name: "Berry bush", asset: "/assets/environment/berry-bush.glb", category: "Nature", targetExtent: 1.7 },
+  { name: "Mossy rocks", asset: "/assets/environment/mossy-rocks.glb", category: "Nature", targetExtent: 1.6 },
+  { name: "Tree stump", asset: "/assets/environment/tree-stump.glb", category: "Nature", targetExtent: 1.4 },
+  { name: "Hollow log", asset: "/assets/environment/hollow-log.glb", category: "Nature", targetExtent: 1.8 },
+  { name: "Red mushrooms", asset: "/assets/environment/red-mushrooms.glb", category: "Nature", targetExtent: 1.1 },
 ];
+
+const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
 
 const STORAGE_KEY = "rebyters:habitat-editor:draft";
 
@@ -276,8 +292,15 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     let loaded: THREE.Object3D | null = null;
     setStatus("Loading active mammal.exe from the Atlas…");
 
-    void loaderRef.current
-      .loadAsync(referenceModelUri)
+    const loadReference = async () => {
+      try {
+        return await loaderRef.current.loadAsync(LOCAL_REFERENCE_MODEL);
+      } catch {
+        return loaderRef.current.loadAsync(referenceModelUri);
+      }
+    };
+
+    void loadReference()
       .then((gltf) => {
         if (cancelled) return;
         referenceCreatureRef.current?.removeFromParent();
@@ -326,11 +349,11 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         referenceCreatureRef.current = root;
         scene.add(root);
         resizePreviewRef.current();
-        setStatus("Using the active mammal.exe model from the Atlas / Irys.");
+        setStatus("mammal.exe loaded for habitat preview.");
       })
       .catch(() => {
         if (!cancelled)
-          setStatus("Could not load the active mammal.exe model from its Atlas URI.");
+          setStatus("mammal.exe preview missing. Add companion.glb to /public/assets/rebyters/mammal-current/ or check the Atlas URI.");
       });
 
     return () => {
@@ -370,7 +393,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const extent = Math.max(size.x, size.y, size.z, 0.001);
-    const normalized = Math.min(2.4 / extent, 1.6);
+    const definition = BUILTIN_ASSETS.find((item) => item.asset === asset);
+    const targetExtent = definition?.targetExtent ?? 2.4;
+    const normalized = Math.min(targetExtent / extent, definition ? 3.5 : 1.6);
     root.scale.setScalar(normalized);
     root.position.set(
       -center.x * normalized,
@@ -380,12 +405,12 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     return root;
   }
 
-  async function generateStarterLayout() {
+  async function loadExampleHabitat() {
     const objectRoot = objectRootRef.current;
     if (!objectRoot) return;
     if (
       objectRoot.children.length &&
-      !window.confirm("Replace the current habitat objects with a new random starter layout?")
+      !window.confirm("Replace the current habitat objects with the curated example scene?")
     )
       return;
 
@@ -393,34 +418,44 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     selectedRef.current = null;
     setSelectedId("");
     objectRoot.clear();
-    setStatus("Generating a starter habitat…");
+    setStatus("Building the example habitat…");
 
-    const count = 12;
-    for (let index = 0; index < count; index++) {
-      const item = BUILTIN_ASSETS[Math.floor(Math.random() * BUILTIN_ASSETS.length)];
+    const placements = [
+      // Background composition.
+      { asset: "Distant mountains", x: 0, z: -13.5, scale: 1.05, rotation: 0 },
+      { asset: "Pine tree", x: -6.2, z: -7.2, scale: 1.55, rotation: 0.25 },
+      { asset: "Pine tree", x: 6.6, z: -7.8, scale: 1.7, rotation: -0.3 },
+      { asset: "Deciduous tree", x: -4.7, z: -4.8, scale: 1.35, rotation: 0.5 },
+      { asset: "Deciduous tree", x: 4.9, z: -5.3, scale: 1.25, rotation: -0.45 },
+
+      // Mid-ground framing: asymmetrical, but balanced around the companion.
+      { asset: "Berry bush", x: -3.9, z: -2.2, scale: 1.05, rotation: 0.2 },
+      { asset: "Mossy rocks", x: 3.7, z: -2.7, scale: 1.0, rotation: -0.25 },
+      { asset: "Tree stump", x: -5.3, z: 0.5, scale: 0.9, rotation: 0.35 },
+      { asset: "Hollow log", x: 5.1, z: 0.2, scale: 0.9, rotation: -0.55 },
+
+      // Small foreground accents, kept outside the Rebyter/HUD safe zone.
+      { asset: "Red mushrooms", x: -3.1, z: 1.2, scale: 0.75, rotation: 0.1 },
+      { asset: "Berry bush", x: 3.4, z: 1.4, scale: 0.78, rotation: -0.2 },
+    ];
+
+    for (const placement of placements) {
+      const definition = BUILTIN_ASSETS.find((item) => item.name === placement.asset);
+      if (!definition) continue;
       try {
-        const object = await loadHabitatAsset(item.asset, item.name);
-        let x = 0;
-        let z = 0;
-        // Keep a generous protected clearing around mammal.exe and the HUD focus.
-        do {
-          x = (Math.random() * 2 - 1) * 8.5;
-          z = -8 + Math.random() * 11;
-        } while (Math.hypot(x, z + 1.25) < 3.2);
-
-        const baseScale = object.scale.x;
-        const variation = 0.72 + Math.random() * 0.65;
-        object.scale.setScalar(baseScale * variation);
-        object.position.x += x;
-        object.position.z += z;
-        object.rotation.y = Math.random() * Math.PI * 2;
+        const object = await loadHabitatAsset(definition.asset, definition.name);
+        object.position.x += placement.x;
+        object.position.z += placement.z;
+        object.scale.multiplyScalar(placement.scale);
+        object.rotation.y = placement.rotation;
         objectRoot.add(object);
       } catch {
-        // One broken decorative asset should not abort the whole starter layout.
+        // Keep building the scene even if one decorative asset is unavailable.
       }
     }
+
     syncObjects();
-    setStatus("Random starter layout generated. Every piece remains editable.");
+    setStatus("Example habitat loaded. Every piece can now be moved, rotated or scaled.");
   }
 
   async function addAsset(asset: string, displayName: string) {
@@ -569,14 +604,19 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
             <span className="eyebrow">ASSET LIBRARY</span>
             <h2>Environment</h2>
             <p>Click an asset to place it at the habitat origin, then position it in the viewport.</p>
-            <button className="habitat-randomize" onClick={() => void generateStarterLayout()}><Sparkles size={16}/>Generate starter layout</button>
+            <button className="habitat-randomize" onClick={() => void loadExampleHabitat()}><Sparkles size={16}/>Load example habitat</button>
           </div>
           <div className="habitat-assets">
-            {BUILTIN_ASSETS.map((item) => (
-              <button key={item.asset} onClick={() => void addAsset(item.asset, item.name)}>
-                <Box size={18}/>
-                <span>{item.name}</span>
-              </button>
+            {(["Terrain", "Water", "Background", "Nature"] as const).map((category) => (
+              <div className="habitat-asset-group" key={category}>
+                <small>{category}</small>
+                {BUILTIN_ASSETS.filter((item) => item.category === category).map((item) => (
+                  <button key={item.asset} onClick={() => void addAsset(item.asset, item.name)}>
+                    <Box size={18}/>
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
           <label className="habitat-import">
