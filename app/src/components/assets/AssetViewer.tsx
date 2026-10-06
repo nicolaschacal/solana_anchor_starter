@@ -1,4 +1,5 @@
 import { meadow } from "./meadow";
+import { configureHabitatRenderer, configureHabitatShadow } from "./habitat-lighting";
 import { ScenePausedContext } from "./scene-visibility";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
 import {
@@ -133,17 +134,19 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5),
     );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    if (landscape) configureHabitatRenderer(renderer);
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
-    const ambient = new THREE.HemisphereLight(0xd9efff, 0x384252, 2.3);
+    const ambient = new THREE.HemisphereLight(0xd9efff, 0x3b5c42, 2.3);
     scene.add(ambient);
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
+    if (landscape) configureHabitatShadow(key, mobileRenderer);
     key.position.set(3, 5, -4);
-    const fill = new THREE.DirectionalLight(0xb9d9ff, landscape ? 0.45 : 0);
+    const fill = new THREE.DirectionalLight(0xffefd9, landscape ? 0.45 : 0);
     fill.position.set(-3, 2, 4);
     const moonLight = new THREE.DirectionalLight(0xcfe2ff, 0);
     moonLight.position.set(-4.5, 7, -5);
-    const rimLight = new THREE.DirectionalLight(0x91b7ff, 0);
+    const rimLight = new THREE.DirectionalLight(0x88dbff, 0);
     rimLight.position.set(0, 3.8, -7);
     scene.add(fill, moonLight, rimLight, key);
     const initialPeriod = live.current.period;
@@ -193,6 +196,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       root.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
+        mesh.receiveShadow = true;
         const matte = (source: THREE.Material) => {
           const material = source.clone();
           if (material instanceof THREE.MeshStandardMaterial) {
@@ -712,6 +716,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             fill.intensity = environment.colors.fillIntensity;
           moonLight.intensity = environment.colors.moonIntensity ?? 0;
           rimLight.intensity = environment.colors.rimIntensity ?? 0;
+          if (environment.consumeShadowUpdate?.())
+            renderer.shadowMap.needsUpdate = true;
         }
         renderer.render(scene, camera);
         raf = requestAnimationFrame(tick);
@@ -797,6 +803,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
           (n as THREE.SkinnedMesh).skeleton.dispose();
       });
       environment?.dispose();
+      key.shadow.dispose();
       creatureMaterials.forEach((material) => material.dispose());
       ground.geometry.dispose();
       ground.material.dispose();
@@ -860,6 +867,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       mobileRenderer ? 1 : Math.min(window.devicePixelRatio, 1.5),
     );
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    configureHabitatRenderer(renderer);
     host.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const env = meadow(scene, period);
@@ -873,9 +881,10 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       env.colors.light,
       env.colors.intensity,
     );
+    configureHabitatShadow(key, mobileRenderer);
     key.position.copy(env.lightPosition);
     const fill = new THREE.DirectionalLight(
-      0xb9d9ff,
+      0xffefd9,
       env.colors.fillIntensity ?? 0.45,
     );
     fill.position.set(-3, 2, 4);
@@ -885,7 +894,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
     );
     moonLight.position.set(-4.5, 7, -5);
     const rimLight = new THREE.DirectionalLight(
-      0x91b7ff,
+      0x88dbff,
       env.colors.rimIntensity ?? 0,
     );
     rimLight.position.set(0, 3.8, -7);
@@ -950,6 +959,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       fill.intensity = env.colors.fillIntensity ?? fill.intensity;
       moonLight.intensity = env.colors.moonIntensity ?? 0;
       rimLight.intensity = env.colors.rimIntensity ?? 0;
+      if (env.consumeShadowUpdate()) renderer.shadowMap.needsUpdate = true;
       if (!pausedRef.current && !document.hidden) {
         renderer.render(scene, camera);
         raf = requestAnimationFrame(render);
@@ -967,6 +977,7 @@ export function GuestWorld({ period = "Day" }: { period?: WorldPeriod }) {
       cancelAnimationFrame(raf);
       ro.disconnect();
       env.dispose();
+      key.shadow.dispose();
       platform.geometry.dispose();
       (platform.material as THREE.Material).dispose();
       ring.geometry.dispose();

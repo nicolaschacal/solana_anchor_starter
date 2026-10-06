@@ -25,6 +25,7 @@ vi.mock("three", async (original) => {
     ...actual,
     WebGLRenderer: class {
       domElement = document.createElement("canvas");
+      shadowMap = { enabled: false, autoUpdate: true, needsUpdate: false };
       constructor() {
         state.created++;
       }

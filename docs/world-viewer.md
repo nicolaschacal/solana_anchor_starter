@@ -36,3 +36,14 @@ The fixed-camera habitat has foreground bushes, stones, mushrooms and instanced 
 Imported props are normalized inside a separate pivot before placement and rotation. Mountain depth is constrained to keep the model's terrain apron behind the lake. Fog begins behind the near woodland and gradually separates the distant ridges. Mobile uses the same scene structure with fewer repeated plants. Scene disposal releases procedural meshes, instanced buffers and cloned mountain materials while preserving cached GLB resources.
 
 No additional asset is required. An optional low-poly ruined tower or stone arch on the far bank would add a landmark resembling the reference; export it with a ground-level pivot and optimize it before use.
+
+
+## Painted grass and moonlit habitat
+
+The lawn now combines a seamless 512px canvas-painted texture (one tile per 3m) with 950 mobile / 1,800 desktop instanced tufts. Each tuft uses two alpha-cutout cards carrying curved painted leaves, with upward shading and a height-weighted breeze. Textures are cached across scenes and period changes; no extra GLBs or network texture downloads are needed.
+
+The playable clearing and lake basin stay flat through a radius of 28m, so the terrain cannot cover the water. The lake uses analytic wave normals, Fresnel sky color and broken highlights forming a moonlight path. The overlapping shore tile is removed. Clouds use three cached 256×128 painted sprites behind the mountains; the moon has subtle surface detail and stars remain depth-tested.
+
+Night uses a higher moonlight angle, soft warm frontal fill, cyan edge light, blue atmospheric separation and neutral tone mapping. One 512px mobile / 1024px desktop shadow map is refreshed only when the scenery is assembled or the period changes. Animated creatures use the existing contact shadow rather than entering the static shadow map. Terrain and near props receive the scenery shadows.
+
+Implementation is in `habitat-materials.ts`, `habitat-lighting.ts`, `meadow.ts` and the shared viewer. Existing animation, training and account logic is retained. Real-device frame timing and visual comparison still require a browser review; a successful Vercel build checks TypeScript and bundling, not WebGL shader rendering.
