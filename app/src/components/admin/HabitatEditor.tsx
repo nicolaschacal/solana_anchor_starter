@@ -81,6 +81,7 @@ const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
 
 const BUILTIN_ASSETS: HabitatAssetDefinition[] = [
   { name: "Mountain ridge", asset: "/assets/environment/mountain_ridge_mobile.glb", category: "Background", targetExtent: 20 },
+  { name: "Production mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 12 },
   { name: "Distant mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 13 },
   { name: "Hero tree", asset: "/assets/environment/hero_tree_mobile.glb", category: "Nature", targetExtent: 4.8 },
   { name: "Pine tree", asset: "/assets/environment/pine-tree.glb", category: "Nature", targetExtent: 2.8 },
@@ -651,6 +652,38 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     return root;
   }
 
+  async function loadProductionAsset(asset: string, displayName: string, height: number) {
+    const gltf = await loaderRef.current.loadAsync(asset);
+    const source = gltf.scene;
+    source.userData.habitatId = crypto.randomUUID();
+    source.userData.habitatName = displayName;
+    source.userData.asset = asset;
+    source.updateMatrixWorld(true);
+
+    const bounds = new THREE.Box3().setFromObject(source);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const scale = height / Math.max(size.y, 0.001);
+
+    const pivot = new THREE.Group();
+    pivot.userData.habitatId = source.userData.habitatId;
+    pivot.userData.habitatName = displayName;
+    pivot.userData.asset = asset;
+    source.scale.multiplyScalar(scale);
+    source.position.multiplyScalar(scale);
+    source.position.add(
+      new THREE.Vector3(-center.x, -bounds.min.y, -center.z).multiplyScalar(scale),
+    );
+    source.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    });
+    pivot.add(source);
+    return pivot;
+  }
+
   async function addAsset(asset: string, displayName: string) {
     try {
       setTool("objects");
@@ -691,11 +724,11 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
     if (
       (root.children.length || waterRoot.children.length) &&
-      !window.confirm("Replace current scene with the curated example habitat?")
+      !window.confirm("Replace current scene with the exact production meadow layout?")
     )
       return;
 
-    setStatus("Building a curated diorama…");
+    setStatus("Loading the production Rebyters meadow…");
     setTool("objects");
     transformRef.current?.detach();
     selectedRef.current = null;
@@ -703,100 +736,182 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     root.clear();
     waterRoot.clear();
 
-    // Sculpt a gentle amphitheatre: the Rebyter stays on a flat hero area,
-    // side banks rise slightly, and the back of the diorama rises toward the mountains.
-    const geometry = terrain.geometry;
+    // Production uses a 120x120 world. Keep the editor in the same coordinate system.
+    setGroundWidth(120);
+    setGroundDepth(120);
+    gridRef.current?.scale.set(120, 1, 120);
+
+    const oldGeometry = terrain.geometry;
+    const geometry = buildTerrain(120, 120);
     const position = geometry.attributes.position as THREE.BufferAttribute;
     const color = geometry.attributes.color as THREE.BufferAttribute;
+
+    // Same production terrain rule: flat playable clearing, gentle relief only far away.
     for (let i = 0; i < position.count; i++) {
       const x = position.getX(i);
       const z = position.getZ(i);
-
-      const backRise = THREE.MathUtils.smoothstep(-z, 3.0, 11.5) * 0.72;
-      const sideRise = Math.pow(Math.min(1, Math.abs(x) / 10), 2) * 0.32;
-      const heroFlatten = Math.exp(-((x / 3.0) ** 2 + ((z + 1.25) / 3.2) ** 2));
-      const pondDip = Math.exp(-(((x - 4.2) / 3.3) ** 2 + ((z + 5.0) / 2.3) ** 2)) * 0.42;
-      let y = backRise + sideRise - pondDip;
-      y *= 1 - heroFlatten * 0.92;
-      position.setY(i, y);
-
-      // A centered dirt path crosses the Rebyter hero zone and narrows into the background.
-      const pathCenter = 0.18 * Math.sin((z + 2.5) * 0.45);
-      const pathWidth = THREE.MathUtils.lerp(1.65, 0.72, THREE.MathUtils.clamp((-z - 1) / 10, 0, 1));
-      const pathMask = Math.exp(-Math.pow((x - pathCenter) / pathWidth, 4));
-      const pondMask = Math.exp(-(((x - 4.2) / 3.5) ** 2 + ((z + 5.0) / 2.5) ** 2));
-      const edgeVariation = 0.05 * Math.sin(x * 1.7 + z * 0.9);
-
-      const grass = TERRAIN_COLORS.grass.clone().offsetHSL(0, 0, edgeVariation);
-      const dirt = TERRAIN_COLORS.dirt.clone().offsetHSL(0, 0, 0.04 * Math.sin(z * 1.1));
-      const wet = new THREE.Color(0x526b3f);
-      const mixed = grass.clone().lerp(dirt, THREE.MathUtils.clamp(pathMask * 0.92, 0, 1));
-      mixed.lerp(wet, THREE.MathUtils.clamp(pondMask * 0.42, 0, 0.42));
-      color.setXYZ(i, mixed.r, mixed.g, mixed.b);
+      const distance = Math.hypot(x, z);
+      const relief =
+        distance <= 28
+          ? 0
+          : (Math.sin(x * 0.14) + Math.cos(z * 0.12)) *
+            Math.min(0.7, (distance - 28) * 0.018);
+      position.setY(i, relief);
+      color.setXYZ(
+        i,
+        TERRAIN_COLORS.grass.r,
+        TERRAIN_COLORS.grass.g,
+        TERRAIN_COLORS.grass.b,
+      );
     }
     position.needsUpdate = true;
     color.needsUpdate = true;
     geometry.computeVertexNormals();
+    terrain.geometry = geometry;
+    oldGeometry.dispose();
 
-    // Small pond on the rear-right: visible from camera but outside the Rebyter hero zone.
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
-    water.rotation.x = -Math.PI / 2;
-    water.position.set(4.2, 0.08, -5.0);
-    water.scale.set(5.2, 3.2, 1);
-    water.userData.waterId = crypto.randomUUID();
-    waterRoot.add(water);
+    // Exact irregular lake silhouette from meadow.ts.
+    const lakeShape = new THREE.Shape();
+    lakeShape.moveTo(-7, -2.6);
+    lakeShape.bezierCurveTo(-8, -0.5, -4, 2.4, -1.4, 2.7);
+    lakeShape.bezierCurveTo(2.5, 3.5, 8, 2.6, 8.8, 0.3);
+    lakeShape.bezierCurveTo(9.5, -2.7, 3, -3.1, -0.6, -2.6);
+    lakeShape.bezierCurveTo(-3.5, -3.6, -6, -3.4, -7, -2.6);
+    const lakeGeometry = new THREE.ShapeGeometry(lakeShape, 28);
 
-    const placements = [
-      // Backdrop: one large mountain ridge, kept behind the forest so it reads
-      // as distant scenery instead of a small decorative prop.
-      { asset: "Mountain ridge", x: 0.0, z: -16.8, scale: 1.62, rotation: 0.0 },
+    const bank = new THREE.Mesh(
+      lakeGeometry.clone(),
+      new THREE.MeshStandardMaterial({ color: 0x64805b, roughness: 1 }),
+    );
+    bank.rotation.x = -Math.PI / 2;
+    bank.position.set(1, 0.035, -13);
+    bank.scale.set(1.035, 1.045, 1);
+    bank.userData.waterId = crypto.randomUUID();
+    waterRoot.add(bank);
 
-      // Strong framing silhouettes.
-      { asset: "Hero tree", x: -7.0, z: -4.5, scale: 1.18, rotation: 0.30 },
-      { asset: "Deciduous tree", x: 7.2, z: -5.2, scale: 1.16, rotation: -0.38 },
-      { asset: "Pine tree", x: -4.1, z: -8.0, scale: 1.28, rotation: 0.12 },
-      { asset: "Pine tree", x: 3.0, z: -8.5, scale: 1.18, rotation: -0.16 },
+    const lake = new THREE.Mesh(lakeGeometry, waterMaterial());
+    lake.rotation.x = -Math.PI / 2;
+    lake.position.set(1, 0.05, -13);
+    lake.userData.waterId = crypto.randomUUID();
+    waterRoot.add(lake);
 
-      // Mid-ground landmarks.
-      { asset: "Tree stump", x: -4.3, z: -2.8, scale: 0.92, rotation: 0.28 },
-      { asset: "Hollow log", x: 4.4, z: -1.8, scale: 0.90, rotation: -0.72 },
-      { asset: "Mossy rocks", x: -3.6, z: -5.7, scale: 1.0, rotation: 0.18 },
-      { asset: "Shore rocks", x: 3.7, z: -3.8, scale: 0.92, rotation: -0.08 },
+    // Exact production trail shape and placement.
+    const trail = new THREE.Shape();
+    trail.moveTo(1.1, 2);
+    trail.bezierCurveTo(2.9, 4, 1.6, 5.4, 3.1, 7.4);
+    trail.bezierCurveTo(4.5, 8.7, 4.5, 9.2, 4.7, 10);
+    trail.lineTo(5.1, 10);
+    trail.bezierCurveTo(5, 8.7, 5.3, 8.4, 3.8, 7.1);
+    trail.bezierCurveTo(2.5, 5.3, 4.4, 3.5, 2.3, 2);
+    trail.closePath();
+    const pathMesh = new THREE.Mesh(
+      new THREE.ShapeGeometry(trail, 24),
+      new THREE.MeshStandardMaterial({ color: 0xb6a777, roughness: 1 }),
+    );
+    pathMesh.rotation.x = -Math.PI / 2;
+    pathMesh.position.y = 0.018;
+    pathMesh.userData.habitatId = crypto.randomUUID();
+    pathMesh.userData.habitatName = "Production trail";
+    pathMesh.userData.asset = "__production_trail__";
+    root.add(pathMesh);
 
-      // Pond integration.
-      { asset: "Water reeds", x: 3.0, z: -4.5, scale: 0.92, rotation: 0.15 },
-      { asset: "Water reeds", x: 5.5, z: -5.7, scale: 0.78, rotation: -0.22 },
-      { asset: "Berry bush", x: 6.2, z: -3.0, scale: 0.84, rotation: -0.35 },
+    const byName = (name: string) =>
+      BUILTIN_ASSETS.find((item) => item.name === name)!;
 
-      // Foreground / ground detail, intentionally outside the hero centre.
-      { asset: "Wildflowers", x: -2.9, z: -0.2, scale: 0.62, rotation: 0.22 },
-      { asset: "Wildflowers", x: 2.8, z: 0.5, scale: 0.52, rotation: -0.12 },
-      { asset: "Grass clump", x: -3.3, z: 1.5, scale: 0.72, rotation: 0.4 },
-      { asset: "Grass clump", x: 3.5, z: 1.7, scale: 0.65, rotation: -0.3 },
-      { asset: "Red mushrooms", x: -5.0, z: -0.1, scale: 0.76, rotation: 0.1 },
-
-      // One magical accent only; avoids turning the scene into a theme park.
-      { asset: "Enchanted lantern", x: -2.55, z: -3.2, scale: 0.82, rotation: 0.05 },
-    ];
-
-    for (const placement of placements) {
-      const def = BUILTIN_ASSETS.find((item) => item.name === placement.asset);
-      if (!def) continue;
+    const plant = async (
+      name: string,
+      x: number,
+      z: number,
+      h: number,
+      r = 0,
+    ) => {
+      const def = byName(name);
+      if (!def) return null;
       try {
-        const object = await loadHabitatAsset(def.asset, def.name);
-        object.position.x += placement.x;
-        object.position.z += placement.z;
-        object.scale.multiplyScalar(placement.scale);
-        object.rotation.y = placement.rotation;
+        const object = await loadProductionAsset(def.asset, def.name, h);
+        object.position.x += x;
+        object.position.z += z;
+        object.rotation.y = r;
         root.add(object);
+        return object;
       } catch {
-        // A missing decorative prop should not prevent the rest of the diorama from loading.
+        return null;
+      }
+    };
+
+    // Same deterministic random sequence used by production.
+    let seed = 12345;
+    const rand = () => {
+      seed = (1664525 * seed + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+
+    // Production mountain placement. This intentionally uses the current production
+    // mountain asset, not the experimental replacement, so the editor is a true baseline.
+    for (const [x, z, h, r] of [
+      [-8, -32, 10, 0.25],
+      [7, -28, 8.5, 2.6],
+      [0, -43, 12, 0.1],
+    ] as const) {
+      const mountain = await plant("Production mountains", x, z, h, r);
+      if (mountain) {
+        mountain.updateMatrixWorld(true);
+        const extent = new THREE.Box3()
+          .setFromObject(mountain)
+          .getSize(new THREE.Vector3());
+        mountain.scale.x = 25 / Math.max(extent.x, 0.001);
+        mountain.scale.z = 5 / Math.max(extent.z, 0.001);
       }
     }
 
+    // Same far woodland distribution. Use desktop density because the editor is
+    // intended to show the full production composition; mobile can still preview its crop.
+    const forest = 18;
+    for (let i = 0; i < forest; i++) {
+      const x = -13 + (i * 26) / (forest - 1);
+      await plant(
+        i % 3 === 0 ? "Deciduous tree" : "Pine tree",
+        x,
+        -19 - rand() * 5,
+        2.8 + rand() * 2.8,
+        rand() * 6,
+      );
+    }
+
+    // Exact middle-ground and outer-wing landmarks.
+    await plant("Deciduous tree", -3.0, -5.8, 6.6, 0.28);
+    await plant("Pine tree", 3.3, -7.6, 6.0, -0.35);
+    await plant("Deciduous tree", -6.8, -11, 5.0, 0.7);
+    await plant("Pine tree", 7.8, -13.5, 4.9, 0.5);
+    await plant("Pine tree", -3.8, -15.8, 3.6, 0.2);
+    await plant("Deciduous tree", 5.8, -18, 3.4, 2.4);
+    await plant("Deciduous tree", -10, -5, 7.8, -0.3);
+    await plant("Pine tree", 10.7, -7, 7.0, 0.4);
+
+    for (const [x, z, h] of [
+      [-2.9, -3.2, 1.0],
+      [3.2, -4.2, 1.2],
+      [-4.8, -7, 1.2],
+      [5.2, -8, 0.9],
+      [-1.95, 1.5, 0.65],
+      [2.05, 1.0, 0.7],
+      [-7, 0, 1.5],
+      [7.3, -1, 1.3],
+    ] as const) {
+      await plant("Berry bush", x, z, h, rand() * 6);
+    }
+
+    await plant("Mossy rocks", 2.5, -2.7, 0.6, -0.4);
+    await plant("Mossy rocks", -2.2, 1.4, 0.43, 0.6);
+    await plant("Mossy rocks", 3.4, -9.7, 0.7, 0.4);
+    await plant("Tree stump", -2.6, -1.6, 0.65, 0.3);
+    await plant("Hollow log", 3.4, -5.2, 0.65, -0.8);
+    await plant("Red mushrooms", -1.75, -0.7, 0.28, 0.2);
+    await plant("Red mushrooms", 2.25, 0.5, 0.22, -0.3);
+
     syncObjects();
     syncWater();
-    setStatus("Example loaded with the new mountain ridge as the main backdrop.");
+    setStatus("Production meadow loaded exactly from meadow.ts layout.");
   }
 
   function deleteSelected() {
