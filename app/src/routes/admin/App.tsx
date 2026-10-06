@@ -530,6 +530,38 @@ function Family({ state }: { state: RegistryState }) {
       ...tree,
       evolutions: tree.evolutions.map((e) => (e.id === next.id ? next : e)),
     });
+    return next;
+  }
+
+  async function saveEditingChanges() {
+    if (!tree || !editing || tx.busy) return;
+
+    let next = editing;
+    if (modelFile) {
+      if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
+      if (modelFile.size > 700 * 1024) return;
+
+      const assets = await tx.publishEvolutionModel(
+        editing,
+        await modelFile.arrayBuffer(),
+      );
+      if (!assets) return;
+
+      next = {
+        ...editing,
+        modelUri: assets.modelUri ?? editing.modelUri,
+        assets,
+      };
+      setModelFile(null);
+    }
+
+    edit({
+      ...tree,
+      evolutions: tree.evolutions.map((old) =>
+        old.id === next.id ? next : old,
+      ),
+    });
+    setEditing(null);
   }
 
 
@@ -929,10 +961,14 @@ function Family({ state }: { state: RegistryState }) {
             <EvolutionEditor tree={tree} evolution={editing} readOnly={!editable || tx.busy} onChange={setEditing}/>
             <div className="specimen-edit-actions">
               <button onClick={() => setEditing(null)}>Cancel</button>
-              <button className="primary" disabled={!editable || tx.busy} onClick={() => {
-                edit({...tree,evolutions:tree.evolutions.map(old=>old.id===editing.id?editing:old)});
-                setEditing(null);
-              }}><Save size={15}/> Save changes</button>
+              <button
+                className="primary"
+                disabled={!editable || tx.busy || !!(modelFile && (modelFile.size > 700 * 1024 || !modelFile.name.toLowerCase().endsWith(".glb")))}
+                onClick={() => void saveEditingChanges()}
+              >
+                <Save size={15}/>
+                {tx.busy ? "Saving..." : modelFile ? "Upload + save changes" : "Save changes"}
+              </button>
             </div>
           </section>
         </div>
