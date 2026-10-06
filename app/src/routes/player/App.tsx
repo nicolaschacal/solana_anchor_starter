@@ -628,16 +628,7 @@ export function PlayerHome() {
       <EvolutionModel
         evolution={evolution}
         action={companionAction}
-        onActionComplete={(completedAction)=>{
-          // Play and Care always end with the Rebyter's own happy/touch
-          // reaction. The touch clip is global, so every species can express
-          // happiness differently while the game keeps one behavior contract.
-          if(completedAction==="play"||completedAction==="care"){
-            setVisualAction("touch");
-            return;
-          }
-          setVisualAction("idle");
-        }}
+        onActionComplete={()=>setVisualAction("idle")}
         sleeping={resting}
         landscape
         period={worldClock.period}
@@ -681,9 +672,9 @@ export function PlayerHome() {
       <div className="game-controls">
         <div className="care-actions">
           <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span></button>
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("play");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
-          <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("care");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
           <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
@@ -808,7 +799,7 @@ export function PlayerHome() {
         <div className="game-sheet-head"><div><small>COMPANION NEEDS</small><h2>Recover first</h2></div><button className="sheet-close-text" onClick={()=>setActionWarning(null)}>Close</button></div>
         <p className="training-intro companion-guidance">{actionWarning.message} You can continue, but this action may not help recovery.</p>
         <button className="den-mint-cta compact" onClick={()=>setActionWarning(null)}>Back to companion</button>
-        <button className="sheet-close-text" onClick={()=>{const action=actionWarning.action;setActionWarning(null);void interact(action).then(()=>setVisualAction(action)).catch(()=>undefined)}}>Continue anyway</button>
+        <button className="sheet-close-text" onClick={()=>{const action=actionWarning.action;setActionWarning(null);void interact(action).then(()=>setVisualAction(action==="play"||action==="care"?"touch":action)).catch(()=>undefined)}}>Continue anyway</button>
       </section>
     </div>}
 
