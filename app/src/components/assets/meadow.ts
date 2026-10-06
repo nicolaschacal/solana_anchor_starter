@@ -712,14 +712,14 @@ diffuseColor.rgb *= 1.0 + macro;`,
     plant("mushrooms", -1.75, -0.7, 0.28, 0.2);
     plant("mushrooms", 2.25, 0.5, 0.22, -0.3);
 
-    // Small color/detail accents for the portrait composition. Keep the hero
-    // zone around the Rebyter clean and avoid the long shoreline rock strip.
-    plant("rocks", -4.5, -7.6, 0.38, 0.35);
-    plant("wildflowers", -4.0, -6.7, 0.34, -0.2);
-    plant("reeds", 4.9, -10.2, 0.48, 0.22);
-    plant("wildflowers", 4.2, -4.9, 0.30, 0.4);
-    plant("grass", 4.7, -2.2, 0.36, -0.35);
-    plant("mushrooms", 4.0, -1.35, 0.20, 0.15);
+    // Visible but restrained portrait accents. These sit inside the mobile
+    // frustum, away from the clean hero zone around the Rebyter.
+    plant("rocks", -3.35, -6.0, 0.56, 0.28);
+    plant("wildflowers", -3.05, -5.25, 0.52, -0.18);
+    plant("reeds", 3.35, -10.7, 0.72, 0.18);
+    plant("wildflowers", 3.15, -5.75, 0.48, 0.36);
+    plant("grass", 3.45, -3.65, 0.50, -0.3);
+    plant("mushrooms", 3.05, -2.85, 0.32, 0.12);
     shadowsDirty = true;
   })();
 
@@ -795,12 +795,13 @@ diffuseColor.rgb *= 1.0 + macro;`,
               .lerp(new THREE.Color(0x829dcd), twilight);
         });
       waterMaterial.uniforms.uDeep.value
-        .setHex(0x197d91)
-        .lerp(new THREE.Color(0x17457d), blend);
-      waterMaterial.uniforms.uSky.value.copy(
-        skyMaterial.uniforms.horizonColor.value,
-      );
-      waterMaterial.uniforms.uGlint.value.setHex(colors.light);
+        .setHex(0x118fb6)
+        .lerp(new THREE.Color(0x0b4f94), blend);
+      waterMaterial.uniforms.uSky.value
+        .setHex(0x49b6db)
+        .lerp(new THREE.Color(0x315f9f), blend);
+      waterMaterial.uniforms.uGlint.value
+        .setHex(period === "Night" || blend > 0.55 ? 0xd8ecff : 0xbfefff);
       waterMaterial.uniforms.uNight.value = blend;
       waterMaterial.uniforms.uLightDirection.value.copy(lightPosition).normalize();
     }
