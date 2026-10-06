@@ -1,6 +1,6 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
-import { modelUriFor } from "../../lib/assets/catalog";
+import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { useContext, useEffect, useMemo, useState } from "react";
@@ -444,6 +444,24 @@ function MintCompanionSheet({
 }
 
 export function PlayerHome() {
+  // Warm the bundled origin model while the user is looking at the login/guest
+  // screen. Later GLTFLoader requests hit the browser cache instead of starting
+  // a new network transfer after authentication.
+  useEffect(() => {
+    let timer = 0;
+    const warm = () => {
+      void fetch(MAMMAL_PILOT.modelUri, { cache: "force-cache" }).catch(
+        () => undefined,
+      );
+    };
+    if ("requestIdleCallback" in window) {
+      const idle = window.requestIdleCallback(warm, { timeout: 900 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    timer = window.setTimeout(warm, 250);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const player = usePlayerCollection();
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useSelectedRebyter();
@@ -475,8 +493,15 @@ export function PlayerHome() {
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
   const navigate=useNavigate();
-  const active = selectedCompanion(owned,activeMint,player.ownedLoadedAll&&!player.loading&&!player.error);
-  useEffect(()=>{if(active && !activeMint && player.ownedLoadedAll && !player.loading && !player.error)setActiveMint(active.mint);},[active?.mint,activeMint,player.ownedLoadedAll,player.loading,player.error,setActiveMint]);
+  const active = selectedCompanion(
+    owned,
+    activeMint,
+    player.ownedLoadedAll && !player.error,
+  );
+  useEffect(()=>{
+    if(active && !activeMint && player.ownedLoadedAll && !player.error)
+      setActiveMint(active.mint);
+  },[active?.mint,activeMint,player.ownedLoadedAll,player.error,setActiveMint]);
   const evolution = tree.evolutions.find(e=>e.id===active?.evolutionId);
 
 
