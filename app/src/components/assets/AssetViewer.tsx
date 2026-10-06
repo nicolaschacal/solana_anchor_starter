@@ -778,7 +778,7 @@ export function EvolutionModel({
           period={period}
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.8 : 1}
-          creatureYOffset={landscape && isMammalPilot(evolution) ? 0.28 : 0}
+          creatureYOffset={landscape && isMammalPilot(evolution) ? 0.60 : 0}
           creatureVisualBoost={landscape && isMammalPilot(evolution)}
           model={loaded.model}
           action={action}
