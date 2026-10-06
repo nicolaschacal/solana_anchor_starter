@@ -10,8 +10,8 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useRebytersAuth } from "../../lib/rebyters/auth";
 import {
   ArrowLeft,
   ArrowRight,
@@ -74,9 +74,9 @@ const short = (s: string) =>
 type RegistryState = ReturnType<typeof useRegistry>;
 export default function App() {
   const state = useRegistry();
-  const wallet = useWallet();
+  const auth = useRebytersAuth();
   const authority = state.registry?.authority ?? null;
-  const connected = wallet.publicKey?.toBase58() ?? null;
+  const connected = auth.publicKey?.toBase58() ?? null;
   const authorized = !!authority && connected === authority;
 
   if (state.loading && !state.registry) {
@@ -94,7 +94,7 @@ export default function App() {
         <div className="admin-gate-orb"><LockKeyhole/></div>
         <small>REBYTERS ADMIN</small>
         <h1>Authority required</h1>
-        <p>{!wallet.connected
+        <p>{!auth.connected
           ? "Connect the registry authority wallet to open the evolution console."
           : "This wallet does not control the Rebyters registry."}</p>
         {authority&&<div className="admin-authority-hint">
@@ -102,7 +102,7 @@ export default function App() {
           <code>{short(authority)}</code>
         </div>}
         <WalletMultiButton>
-          <><WalletCards size={17}/><span>{wallet.connected?"Change wallet":"Connect admin wallet"}</span></>
+          <><WalletCards size={17}/><span>{auth.connected?"Change wallet":"Connect admin wallet"}</span></>
         </WalletMultiButton>
       </section>
     </div>;
@@ -149,10 +149,10 @@ export default function App() {
   );
 }
 function Home({ state }: { state: RegistryState }) {
-  const wallet = useWallet(),
+  const auth = useRebytersAuth(),
     tx = usePublishTree(),
     [newAuthority, setNewAuthority] = useState("");
-  const authorized = state.registry?.authority === wallet.publicKey?.toBase58();
+  const authorized = state.registry?.authority === auth.publicKey?.toBase58();
   return (
     <>
       <div className="page-heading">
@@ -172,7 +172,7 @@ function Home({ state }: { state: RegistryState }) {
       <div className="identity-strip">
         <div>
           <small>CONNECTED WALLET</small>
-          <strong>{short(wallet.publicKey?.toBase58() || "")}</strong>
+          <strong>{short(auth.publicKey?.toBase58() || "")}</strong>
         </div>
         <div>
           <small>REGISTRY AUTHORITY</small>
@@ -198,7 +198,7 @@ function Home({ state }: { state: RegistryState }) {
       {!state.loading && !state.registry && !state.error && (
         <div className="notice">
           Registry not initialized.
-          {wallet.connected && (
+          {auth.connected && (
             <button
               disabled={tx.busy}
               onClick={() =>
@@ -305,15 +305,15 @@ function Family({ state }: { state: RegistryState }) {
   const { familyId, evolutionId } = useParams(),
     [params] = useSearchParams(),
     navigate = useNavigate(),
-    wallet = useWallet(),
+    auth = useRebytersAuth(),
     tx = usePublishTree();
   const family = Number(familyId),
     sample = params.get("sample") === "1",
-    authorized = state.registry?.authority === wallet.publicKey?.toBase58();
+    authorized = state.registry?.authority === auth.publicKey?.toBase58();
   const familyQuery = sample ? "?sample=1" : family === 0 ? "?sample=0" : "";
   const active = state.registry?.activeVersions[family] ?? 0,
     data = useEvolutionTree(family, active);
-  const key = `rebyters:draft:${RPC_URL}:${PROGRAM_ID}:${wallet.publicKey?.toBase58() ?? "anonymous"}:${family}:mammal-chart-v2:${sample ? "sample" : "chain"}`;
+  const key = `rebyters:draft:${RPC_URL}:${PROGRAM_ID}:${auth.publicKey?.toBase58() ?? "anonymous"}:${family}:mammal-chart-v2:${sample ? "sample" : "chain"}`;
   const [draft, setDraft] = useState<TreeJson | null>(null),
     [journal, setJournal] = useState<PublishJournal | null>(null),
     [preview, setPreview] = useState(false),
