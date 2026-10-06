@@ -400,6 +400,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     let clip: THREE.AnimationClip | undefined;
     let currentMixerAction: THREE.AnimationAction | null = null;
     let transientAction: THREE.AnimationAction | null = null;
+    let transientAutoCompleteAt: number | null = null;
+    let transientAutoCompleteAction: string | null = null;
     let touchAction: THREE.AnimationAction | null = null;
     let touching = false;
     let powerTraining: {
@@ -483,6 +485,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       touching = false;
       touchAction = null;
       transientAction = null;
+      transientAutoCompleteAt = null;
+      transientAutoCompleteAction = null;
       if (live.current.action !== "train-power") resetPowerTraining();
 
       if (live.current.action === "train-power") {
@@ -495,8 +499,19 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
         findActionClip(live.current.clips, "idle");
       const loop =
         live.current.action === "idle" || live.current.action === "sad";
-      if (loop) playClip(clip, false);
-      else transientAction = playClip(clip, true);
+      if (loop) {
+        playClip(clip, false);
+      } else {
+        transientAction = playClip(clip, true);
+        // Feeding clips often contain several repeated chewing cycles. Show the
+        // readable first part, then blend back to idle instead of waiting for
+        // the full authored clip or cutting it abruptly.
+        if (live.current.action === "feed" && clip) {
+          transientAutoCompleteAction = "feed";
+          transientAutoCompleteAt =
+            performance.now() / 1000 + Math.min(2.2, Math.max(1.55, clip.duration * 0.58));
+        }
+      }
     };
     changeAnimation.current();
 
@@ -798,6 +813,19 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             playClip(findActionClip(live.current.clips, "idle"), false);
             live.current.onActionComplete?.(completedAction);
           }
+        }
+
+        if (
+          transientAutoCompleteAt !== null &&
+          now / 1000 >= transientAutoCompleteAt
+        ) {
+          const completedAction = transientAutoCompleteAction;
+          transientAutoCompleteAt = null;
+          transientAutoCompleteAction = null;
+          transientAction = null;
+          playClip(findActionClip(live.current.clips, "idle"), false, 0.22);
+          if (completedAction)
+            live.current.onActionComplete?.(completedAction);
         }
 
         mixer.update(delta);
