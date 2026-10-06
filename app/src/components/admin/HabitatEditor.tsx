@@ -572,7 +572,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         root.position.set(
           -center.x * scale,
           -bounds.min.y * scale + 0.04,
-          -center.z * scale - 1.25,
+          -center.z * scale - 2.97,
         );
         root.userData.habitatReference = true;
         root.traverse((node) => {
