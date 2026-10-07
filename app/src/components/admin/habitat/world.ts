@@ -170,6 +170,7 @@ export class HabitatWorld {
   private readonly views: Record<ViewId, ViewState>;
   private creatureSpan = 1.4;
   private creatureModel: AssetModel | null = null;
+  private creatureClip: THREE.AnimationClip | null = null;
   private baseTop: THREE.Mesh | null = null;
   private baseSides: THREE.Mesh | null = null;
   private generation = 0;
@@ -826,6 +827,7 @@ diffuseColor.rgb = painted;`,
     this.creatureRoot = root;
     const normalize = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const idle = model.clips.find((c) => clipNames.includes(normalize(c.name)));
+    this.creatureClip = idle ?? null;
     this.mixer = new THREE.AnimationMixer(root);
     if (idle) this.mixer.clipAction(idle).play();
     this.placeCreature(true);
@@ -1127,6 +1129,109 @@ diffuseColor.rgb = painted;`,
     this.select(null);
     this.clearCreatureWater();
     this.refreshTerrain();
+  }
+
+  // ---- Export -----------------------------------------------------------------
+
+  /**
+   * The diorama as a binary glTF, centred on the origin, in metres, Y up. Ground is
+   * baked into vertex colours (the editor's shader has no glTF equivalent); props,
+   * water and the creature (with its idle animation) come along as they stand.
+   */
+  async exportGlb(options: { creature: boolean; carpet: boolean }): Promise<ArrayBuffer> {
+    if (this.kind !== "diorama") throw new Error("Solo se pueden descargar los dioramas.");
+    const { GLTFExporter } = await import("three/addons/exporters/GLTFExporter.js");
+    const root = new THREE.Group();
+    root.name = `diorama-${this.size}x${this.size}`;
+    const c = this.centre;
+    root.position.set(-c.x, 0, -c.z);
+
+    const grass = new THREE.Color(0x5b7d33),
+      path = new THREE.Color(0xb6a777),
+      sand = new THREE.Color(0xd3c28a),
+      rock = new THREE.Color(0x7e877f),
+      earth = new THREE.Color(0x8c6c46);
+    const ground = new THREE.Group();
+    ground.name = "ground";
+    if (this.baseTop) {
+      const top = new THREE.Mesh(this.baseTop.geometry, new THREE.MeshStandardMaterial({ color: grass, roughness: 1 }));
+      top.name = "ground-top";
+      ground.add(top);
+    }
+    if (this.baseSides) {
+      const sides = new THREE.Mesh(this.baseSides.geometry, this.baseSides.material);
+      sides.name = "ground-sides";
+      ground.add(sides);
+    }
+    if (this.overlay.visible) {
+      const geometry = this.overlay.geometry.clone();
+      const mix = geometry.getAttribute("aMix");
+      const colors = new Float32Array(mix.count * 3);
+      const tmp = new THREE.Color();
+      for (let k = 0; k < mix.count; k++) {
+        tmp.copy(grass)
+          .lerp(path, mix.getX(k))
+          .lerp(sand, mix.getY(k))
+          .lerp(rock, mix.getZ(k))
+          .lerp(earth, mix.getW(k));
+        colors.set([tmp.r, tmp.g, tmp.b], k * 3);
+      }
+      geometry.deleteAttribute("aMix");
+      geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+      const mesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide }),
+      );
+      mesh.name = "ground-relief";
+      ground.add(mesh);
+    }
+    root.add(ground);
+
+    if (this.lakeMesh?.visible) {
+      const water = new THREE.Mesh(
+        this.lakeMesh.geometry,
+        new THREE.MeshStandardMaterial({ color: 0x3aa6d0, roughness: 0.25, transparent: true, opacity: 0.88 }),
+      );
+      water.name = "water";
+      root.add(water);
+    }
+    if (this.bankMesh?.visible) {
+      const bank = new THREE.Mesh(this.bankMesh.geometry, new THREE.MeshStandardMaterial({ color: 0xa89466, roughness: 1 }));
+      bank.name = "shore";
+      root.add(bank);
+    }
+
+    const props = new THREE.Group();
+    props.name = "props";
+    for (const entry of this.entries) {
+      if (!entry.prop) continue;
+      const node = entry.prop.node.clone(true);
+      node.name = entry.key;
+      props.add(node);
+    }
+    root.add(props);
+
+    if (options.carpet) {
+      const carpet = this.env.grass.clone();
+      carpet.name = "grass-carpet";
+      root.add(carpet);
+    }
+
+    let animations: THREE.AnimationClip[] = [];
+    if (options.creature && this.creatureRoot) {
+      const copy = clone(this.creatureRoot);
+      const holder = new THREE.Group();
+      holder.name = "mammal.exe";
+      holder.position.copy(this.stage.position);
+      holder.scale.copy(this.stage.scale);
+      holder.add(copy);
+      root.add(holder);
+      if (this.creatureClip) animations = [this.creatureClip];
+    }
+    root.updateMatrixWorld(true);
+    const result = await new GLTFExporter().parseAsync(root, { binary: true, onlyVisible: true, animations });
+    if (!(result instanceof ArrayBuffer)) throw new Error("No se pudo generar el GLB.");
+    return result;
   }
 
   // ---- Views -----------------------------------------------------------------

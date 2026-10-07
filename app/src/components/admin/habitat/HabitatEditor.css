@@ -50,3 +50,10 @@
   .hx-tool{min-width:74px}
   .hx-light{width:calc(100% - 20px)}
 }
+
+/* Download menu */
+.hx-menu{position:relative}
+.hx-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:20;width:290px;display:flex;flex-direction:column;gap:10px;padding:14px;background:#101a33;border:1px solid #2b3d6c;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.hx-pop strong{font-size:13px;color:#f4c542}
+.hx-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#cbd7f5;cursor:pointer}
+.hx-check input{accent-color:#f4c542}

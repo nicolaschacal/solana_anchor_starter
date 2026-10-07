@@ -252,6 +252,10 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const [lighting, setLightingState] = useState<Lighting>({ ...DEFAULT_LIGHTING });
   const [lightOpen, setLightOpen] = useState(false);
   const [grid, setGrid] = useState(true);
+  const [dlOpen, setDlOpen] = useState(false);
+  const [dlBusy, setDlBusy] = useState(false);
+  const [dlCreature, setDlCreature] = useState(true);
+  const [dlCarpet, setDlCarpet] = useState(true);
   const [playerView, setPlayerView] = useState(false);
   const gridBefore = useRef(true);
   const [selected, setSelected] = useState<PropEntry | null>(null);
@@ -713,6 +717,27 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const download = (blob: Blob, name: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const exportGlb = async () => {
+    const w = worldRef.current;
+    if (!w || previewing) return;
+    setDlBusy(true);
+    try {
+      const bytes = await w.exportGlb({ creature: dlCreature, carpet: dlCarpet });
+      download(new Blob([bytes], { type: "model/gltf-binary" }), `diorama-${w.size}x${w.size}.glb`);
+      setDlOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo generar el GLB.");
+    }
+    setDlBusy(false);
+  };
   const importJson = async (file: File | undefined) => {
     const world = worldRef.current;
     if (!file || !world) return;
@@ -785,9 +810,43 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           <button type="button" className="hx-icon" disabled={previewing} onClick={() => void clearAll()} title="Vaciar diorama">
             <Trash2 size={17} />
           </button>
-          <button type="button" className="hx-icon" disabled={previewing} onClick={exportJson} title="Exportar diorama (.json)">
-            <Download size={17} />
-          </button>
+          <div className="hx-menu">
+            <button
+              type="button"
+              className={`hx-seg${dlOpen ? " on" : ""}`}
+              disabled={previewing}
+              onClick={() => setDlOpen(!dlOpen)}
+              title="Descargar el diorama"
+            >
+              <Download size={16} /> Descargar
+            </button>
+            {dlOpen && (
+              <div className="hx-pop">
+                <strong>Descargar diorama</strong>
+                <label className="hx-check">
+                  <input type="checkbox" checked={dlCreature} onChange={(e) => setDlCreature(e.target.checked)} />
+                  Incluir a la criatura (con su animación)
+                </label>
+                <label className="hx-check">
+                  <input type="checkbox" checked={dlCarpet} onChange={(e) => setDlCarpet(e.target.checked)} />
+                  Incluir la alfombra de pasto
+                </label>
+                <button type="button" className="hx-seg on" disabled={dlBusy} onClick={() => void exportGlb()}>
+                  {dlBusy ? "Generando…" : "Modelo 3D (.glb)"}
+                </button>
+                <button
+                  type="button"
+                  className="hx-seg"
+                  onClick={() => {
+                    exportJson();
+                    setDlOpen(false);
+                  }}
+                >
+                  Datos para volver a editar (.json)
+                </button>
+              </div>
+            )}
+          </div>
           <label className="hx-icon" title="Importar diorama (.json)">
             <Upload size={17} />
             <input
