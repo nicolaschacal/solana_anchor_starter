@@ -1,0 +1,20 @@
+.hx{display:grid;grid-template-columns:268px minmax(0,1fr);gap:12px;height:calc(100vh - 150px);min-height:560px;color:#e8eefc;font-family:Outfit,system-ui,sans-serif}
+.hx-panel{background:#101a33;border:1px solid #24345e;border-radius:14px;padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.hx-panel h3{margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8fa3d6;font-weight:600}
+.hx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.hx-grid.three{grid-template-columns:repeat(3,1fr)}
+.hx-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;border-radius:9px;border:1px solid #2b3d6c;background:#17254a;color:#dbe5ff;font:inherit;font-size:13px;cursor:pointer}
+.hx-btn:hover{background:#1e305e}
+.hx-btn.on{background:#f4c542;border-color:#f4c542;color:#1b1500;font-weight:600}
+.hx-btn:disabled{opacity:.4;cursor:default}
+.hx-btn.danger{color:#ff9d9d}
+.hx-field{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#aab9e0}
+.hx-field input[type=range]{width:100%}
+.hx-stage{position:relative;min-width:0;min-height:0;border-radius:14px;overflow:hidden;background:#0a1226;border:1px solid #24345e}
+.hx-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hx-label{position:absolute;padding:3px 8px;font-size:11px;border-radius:0 0 8px 0;background:rgba(10,18,38,.72);color:#dbe5ff;pointer-events:none;letter-spacing:.06em;text-transform:uppercase}
+.hx-label.active{background:#f4c542;color:#1b1500}
+.hx-status{position:absolute;left:10px;bottom:10px;right:10px;font-size:12px;color:#dbe5ff;background:rgba(10,18,38,.78);padding:6px 10px;border-radius:9px;pointer-events:none}
+.hx-loading{position:absolute;inset:0;display:grid;place-items:center;color:#dbe5ff;background:#0a1226;font-size:14px}
+.hx-hint{font-size:11.5px;color:#8fa3d6;line-height:1.45;margin:0}
+@media(max-width:860px){.hx{grid-template-columns:1fr;grid-template-rows:minmax(360px,60vh) auto;height:auto}.hx-panel{order:2}}

@@ -1,1812 +1,659 @@
 import {
-  Box,
   Download,
   Droplets,
-  FileJson,
+  Eraser,
   Grid3X3,
-  Layers3,
-  Monitor,
-  Move3D,
+  Hand,
+  Layers,
+  Mountain,
+  MousePointer2,
   Paintbrush,
-  Route,
-  Rotate3D,
-  Sprout,
-  Save,
-  Scale3D,
-  Smartphone,
-  Sparkles,
-  Trash2,
+  PawPrint,
+  Redo2,
+  Trees,
+  Undo2,
   Upload,
-  Waves,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { TransformControls } from "three/addons/controls/TransformControls.js";
-import { MeshoptDecoder } from "meshoptimizer";
-import { modelUriFor } from "../../lib/assets/catalog";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { PERIODS, type WorldPeriod } from "../../hooks/useWorldClock";
 import { useEvolutionTree } from "../../hooks/useEvolutionTree";
+import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
+import { inspectModel, loader } from "../../lib/assets/rig";
 import type { Registry } from "../../lib/rebyters/types";
+import type { AssetKey } from "../assets/meadow";
+import "./habitat/HabitatEditor.css";
+import {
+  HabitatWorld,
+  PROP_CATALOG,
+  type Pane,
+  type PropEntry,
+  type SceneData,
+  type ViewId,
+  type ViewMode,
+} from "./habitat/world";
+import type { Ground } from "./habitat/tiles";
 
-type TransformMode = "translate" | "rotate" | "scale";
-type PreviewMode = "web" | "mobile";
-type EditorTool = "objects" | "tiles" | "assets" | "raise" | "lower" | "smooth" | "flatten" | "paint";
-type PaintMaterial = "grass" | "dirt" | "rock";
-type TileMaterial = "grass" | "water" | "path" | "dirt" | "rock" | "empty";
+type Tool = "ground" | "water" | "relief" | "object" | "select" | "creature" | "erase" | "nav";
+type Sub = "path" | "sand" | "rock" | "grass" | "add" | "remove" | "up" | "down";
 
-type HabitatTile = {
-  x: number;
-  z: number;
-  material: Exclude<TileMaterial, "empty">;
+const STORAGE = "habitat-editor-scene-v1";
+const PERIOD_LABEL: Record<WorldPeriod, string> = {
+  Night: "Noche",
+  Morning: "Mañana",
+  Day: "Día",
+  Evening: "Atardecer",
 };
-
-type HabitatObject = {
-  id: string;
-  name: string;
-  asset: string;
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale: [number, number, number];
+const VIEW_LABEL: Record<ViewId, string> = { pano: "Panorámica", mobile: "Móvil", top: "Cenital" };
+const CURSOR_COLOR: Record<Tool, number> = {
+  ground: 0xf4c542,
+  water: 0x4cc9ff,
+  relief: 0x9be564,
+  object: 0xffffff,
+  select: 0xffffff,
+  creature: 0xff8fd8,
+  erase: 0xff6b6b,
+  nav: 0xffffff,
 };
-
-type WaterArea = {
-  id: string;
-  position: [number, number, number];
-  size: [number, number];
+const STATUS: Record<Tool, string> = {
+  ground: "Pinta el suelo: camino, arena, roca o vuelve a pasto.",
+  water: "Agua: las orillas se redondean solas. Clic derecho o Mayús para orbitar.",
+  relief: "Relieve: subir crea un montículo con tierra en los bordes y pasto arriba.",
+  object: "Coloca el objeto elegido sobre la baldosa.",
+  select: "Selecciona un objeto y arrástralo para moverlo.",
+  creature: "Mueve a mammal.exe a otra baldosa.",
+  erase: "Borra objetos o devuelve la baldosa a su estado original.",
+  nav: "Arrastra para orbitar, rueda o pellizco para acercar.",
 };
-
-type HabitatManifest = {
-  schema: "rebyters-habitat-v3";
-  id: string;
-  name: string;
-  terrain: {
-    width: number;
-    depth: number;
-    segments: number;
-    heights: number[];
-    colors: number[];
-  };
-  gridSize: 4 | 8 | 16;
-  tiles: HabitatTile[];
-  objects: HabitatObject[];
-  water: WaterArea[];
-};
-
-type HabitatAssetDefinition = {
-  name: string;
-  asset: string;
-  category: "Terrain" | "Water" | "Nature" | "Background";
-  targetExtent: number;
-};
-
-const TERRAIN_SEGMENTS = 36;
-const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
-const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
-
-const GRASS_COLOR = 0x7f9b55;
-const DIRT_COLOR = 0xa77b50;
-const WATER_COLOR = 0x35b9e6;
-
-const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
-  grass: new THREE.Color(GRASS_COLOR),
-  dirt: new THREE.Color(DIRT_COLOR),
-  rock: new THREE.Color(0x6f756e),
-};
-
-const BUILTIN_ASSETS: HabitatAssetDefinition[] = [
-  { name: "Mountain ridge", asset: "/assets/environment/mountain_ridge_mobile.glb", category: "Background", targetExtent: 20 },
-  { name: "Production mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 12 },
-  { name: "Distant mountains", asset: "/assets/environment/distant-mountains.glb", category: "Background", targetExtent: 13 },
-  { name: "Hero tree", asset: "/assets/environment/hero_tree_mobile.glb", category: "Nature", targetExtent: 4.8 },
-  { name: "Pine tree", asset: "/assets/environment/pine-tree.glb", category: "Nature", targetExtent: 2.8 },
-  { name: "Deciduous tree", asset: "/assets/environment/deciduous-tree.glb", category: "Nature", targetExtent: 3.2 },
-  { name: "Berry bush", asset: "/assets/environment/berry-bush.glb", category: "Nature", targetExtent: 1.7 },
-  { name: "Mossy rocks", asset: "/assets/environment/mossy-rocks.glb", category: "Nature", targetExtent: 1.6 },
-  { name: "Shore rocks", asset: "/assets/environment/shore_rocks_strip_mobile.glb", category: "Nature", targetExtent: 3.4 },
-  { name: "Tree stump", asset: "/assets/environment/tree-stump.glb", category: "Nature", targetExtent: 1.4 },
-  { name: "Hollow log", asset: "/assets/environment/hollow-log.glb", category: "Nature", targetExtent: 1.8 },
-  { name: "Red mushrooms", asset: "/assets/environment/red-mushrooms.glb", category: "Nature", targetExtent: 1.1 },
-  { name: "Grass clump", asset: "/assets/environment/grass_clump_mobile.glb", category: "Nature", targetExtent: 0.8 },
-  { name: "Water reeds", asset: "/assets/environment/water_reeds_mobile.glb", category: "Nature", targetExtent: 1.35 },
-  { name: "Wildflowers", asset: "/assets/environment/wildflowers_mobile.glb", category: "Nature", targetExtent: 1.15 },
-  { name: "Enchanted lantern", asset: "/assets/environment/enchanted_lantern_mobile.glb", category: "Nature", targetExtent: 1.1 },
-  { name: "Grass tile", asset: "/assets/environment/grass-tile.glb", category: "Terrain", targetExtent: 7 },
-  { name: "Dirt transition", asset: "/assets/environment/dirt-transition.glb", category: "Terrain", targetExtent: 7 },
-  { name: "Water tile", asset: "/assets/environment/water-center.glb", category: "Water", targetExtent: 8 },
-  { name: "Water shore", asset: "/assets/environment/water-shore-straight.glb", category: "Water", targetExtent: 8 },
-];
-
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function slug(name: string) {
-  return (
-    name
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "untitled-habitat"
-  );
-}
-
-function objectToRecord(object: THREE.Object3D): HabitatObject {
-  return {
-    id: object.userData.habitatId,
-    name: object.userData.habitatName,
-    asset: object.userData.asset,
-    position: [object.position.x, object.position.y, object.position.z],
-    rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-    scale: [object.scale.x, object.scale.y, object.scale.z],
-  };
-}
-
-function buildTerrain(width: number, depth: number) {
-  const geometry = new THREE.PlaneGeometry(
-    width,
-    depth,
-    TERRAIN_SEGMENTS,
-    TERRAIN_SEGMENTS,
-  );
-  geometry.rotateX(-Math.PI / 2);
-  const count = geometry.attributes.position.count;
-  const colors = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    colors[i * 3] = TERRAIN_COLORS.grass.r;
-    colors[i * 3 + 1] = TERRAIN_COLORS.grass.g;
-    colors[i * 3 + 2] = TERRAIN_COLORS.grass.b;
-  }
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.computeVertexNormals();
-  return geometry;
-}
-
-function tileKey(x: number, z: number) {
-  return `${x}:${z}`;
-}
-
-function tileBaseMaterial(color: number, roughness = 0.95) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0 });
-}
-
-function addTileBase(group: THREE.Group, color: number, cell: number, y = 0.018) {
-  const mesh = new THREE.Mesh(
-    // Slight overlap removes hairline cracks between adjacent tiles at oblique angles.
-    new THREE.BoxGeometry(cell * 1.006, 0.035, cell * 1.006),
-    tileBaseMaterial(color),
-  );
-  mesh.position.y = y;
-  mesh.receiveShadow = true;
-  group.add(mesh);
-}
-
-function seededTileRandom(x: number, z: number, salt = 0) {
-  let value = Math.imul(x + 101 + salt * 17, 374761393) ^
-    Math.imul(z + 211 + salt * 31, 668265263);
-  value = (value ^ (value >>> 13)) >>> 0;
-  value = Math.imul(value, 1274126177) >>> 0;
-  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
-}
-
-function roundedGroundDisc(
-  radius: number,
-  height: number,
-  material: THREE.Material,
-  segments = 20,
-) {
-  const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, height, segments),
-    material,
-  );
-  mesh.receiveShadow = true;
-  return mesh;
-}
-
-type TileNeighbours = {
-  n: boolean;
-  s: boolean;
-  w: boolean;
-  e: boolean;
-};
-
-function createOrganicMaskTexture(
-  tiles: HabitatTile[],
-  material: HabitatTile["material"],
-  gridSize: number,
-  radiusRatio: number,
-  connectionRatio: number,
-) {
-  const resolution = Math.max(256, gridSize * 64);
-  const canvas = document.createElement("canvas");
-  canvas.width = resolution;
-  canvas.height = resolution;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-
-  ctx.clearRect(0, 0, resolution, resolution);
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  const selected = new Map<string, HabitatTile>();
-  tiles
-    .filter((tile) => tile.material === material)
-    .forEach((tile) => selected.set(tileKey(tile.x, tile.z), tile));
-
-  const cell = resolution / gridSize;
-  const has = (x: number, z: number) => selected.has(tileKey(x, z));
-  const center = (x: number, z: number) => ({
-    x: (x + 0.5) * cell,
-    y: (z + 0.5) * cell,
-  });
-
-  // Rounded bridges first: neighbouring cells become one continuous region.
-  ctx.lineWidth = cell * connectionRatio;
-  for (const tile of selected.values()) {
-    const a = center(tile.x, tile.z);
-    if (has(tile.x + 1, tile.z)) {
-      const b = center(tile.x + 1, tile.z);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-    if (has(tile.x, tile.z + 1)) {
-      const b = center(tile.x, tile.z + 1);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-  }
-
-  // Organic centers: multiple overlapping circles break the obvious tile-square silhouette.
-  for (const tile of selected.values()) {
-    const p = center(tile.x, tile.z);
-    const baseRadius = cell * radiusRatio;
-    const satellites = [
-      [0, 0, 1],
-      [-0.16, -0.08, 0.56],
-      [0.15, -0.11, 0.52],
-      [-0.12, 0.15, 0.5],
-      [0.16, 0.14, 0.48],
-    ] as const;
-
-    satellites.forEach(([ox, oy, scale], index) => {
-      const jitterX =
-        (seededTileRandom(tile.x, tile.z, 700 + index) - 0.5) * cell * 0.055;
-      const jitterY =
-        (seededTileRandom(tile.x, tile.z, 720 + index) - 0.5) * cell * 0.055;
-      const jitterR =
-        0.92 + seededTileRandom(tile.x, tile.z, 740 + index) * 0.16;
-      ctx.beginPath();
-      ctx.arc(
-        p.x + ox * cell + jitterX,
-        p.y + oy * cell + jitterY,
-        baseRadius * scale * jitterR,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
-    });
-  }
-
-  // Explicit 2x2 junction fill: guarantees no empty diamond/square between four tiles.
-  for (let z = 0; z < gridSize - 1; z++) {
-    for (let x = 0; x < gridSize - 1; x++) {
-      if (
-        has(x, z) &&
-        has(x + 1, z) &&
-        has(x, z + 1) &&
-        has(x + 1, z + 1)
-      ) {
-        ctx.beginPath();
-        ctx.arc(
-          (x + 1) * cell,
-          (z + 1) * cell,
-          cell * connectionRatio * 0.6,
-          0,
-          Math.PI * 2,
-        );
-        ctx.fill();
-      }
-    }
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function addMaskedGroundRegion(
-  root: THREE.Group,
-  mask: THREE.Texture | null,
-  width: number,
-  depth: number,
-  color: number,
-  y: number,
-  opacity = 1,
-) {
-  if (!mask) return;
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    alphaMap: mask,
-    transparent: true,
-    opacity,
-    roughness: 1,
-    metalness: 0,
-    depthWrite: opacity >= 1,
-  });
-  const geometry = new THREE.PlaneGeometry(width, depth, 1, 1);
-  geometry.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = y;
-  mesh.receiveShadow = true;
-  mesh.userData.generatedMask = mask;
-  root.add(mesh);
-}
-
-function createWaterMaterial(mask: THREE.Texture) {
-  const material = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    uniforms: {
-      uTime: { value: 0 },
-      uMask: { value: mask },
-      uColorDeep: { value: new THREE.Color(0x219fd8) },
-      uColorLight: { value: new THREE.Color(WATER_COLOR) },
-      uOpacity: { value: 0.88 },
-    },
-    vertexShader: `
-      uniform float uTime;
-      varying vec2 vUv;
-      varying float vWave;
-
-      void main() {
-        vUv = uv;
-        vec3 p = position;
-        float waveA = sin((p.x * 2.2) + uTime * 1.4);
-        float waveB = cos((p.y * 2.8) - uTime * 1.1);
-        float wave = (waveA + waveB) * 0.012;
-        p.z += wave;
-        vWave = wave;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D uMask;
-      uniform vec3 uColorDeep;
-      uniform vec3 uColorLight;
-      uniform float uOpacity;
-      varying vec2 vUv;
-      varying float vWave;
-
-      void main() {
-        float mask = texture2D(uMask, vUv).a;
-        if (mask < 0.08) discard;
-        float shimmer = 0.5 + vWave * 12.0;
-        vec3 color = mix(uColorDeep, uColorLight, clamp(shimmer, 0.0, 1.0));
-        gl_FragColor = vec4(color, mask * uOpacity);
-      }
-    `,
-  });
-  material.userData.waterSurfaceMaterial = true;
-  material.userData.generatedMask = mask;
-  return material;
-}
-
-function addAnimatedWaterRegion(
-  root: THREE.Group,
-  mask: THREE.Texture | null,
-  width: number,
-  depth: number,
-  y: number,
-) {
-  if (!mask) return;
-  const geometry = new THREE.PlaneGeometry(width, depth, 48, 48);
-  geometry.rotateX(-Math.PI / 2);
-  const material = createWaterMaterial(mask);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = y;
-  mesh.userData.waterSurface = true;
-  root.add(mesh);
-}
-
-function buildSmartTileGroup(
-  tiles: HabitatTile[],
-  gridSize: number,
-  width: number,
-  depth: number,
-) {
-  const root = new THREE.Group();
-  root.name = "SmartTiles";
-  const map = new Map(tiles.map((tile) => [tileKey(tile.x, tile.z), tile]));
-  const cellX = width / gridSize;
-  const cellZ = depth / gridSize;
-  const cell = Math.min(cellX, cellZ);
-  const has = (x: number, z: number, material: HabitatTile["material"]) =>
-    map.get(tileKey(x, z))?.material === material;
-
-  const pathDirections = [
-    { dx: 0, dz: -1, px: 0, pz: -0.29, sx: 0.46, sz: 0.62 },
-    { dx: 0, dz: 1, px: 0, pz: 0.29, sx: 0.46, sz: 0.62 },
-    { dx: -1, dz: 0, px: -0.29, pz: 0, sx: 0.62, sz: 0.46 },
-    { dx: 1, dz: 0, px: 0.29, pz: 0, sx: 0.62, sz: 0.46 },
-  ] as const;
-
-  for (const tile of tiles) {
-    const group = new THREE.Group();
-    group.name = `Tile_${tile.x}_${tile.z}_${tile.material}`;
-    group.position.set(
-      -width / 2 + cellX * (tile.x + 0.5),
-      0,
-      -depth / 2 + cellZ * (tile.z + 0.5),
-    );
-
-    if (tile.material === "grass") {
-      addTileBase(group, GRASS_COLOR, cell);
-    }
-
-    if (tile.material === "rock") {
-      addTileBase(group, GRASS_COLOR, cell);
-      const rockMaterial = tileBaseMaterial(0x899087, 1);
-      const rockCount = 3 + Math.floor(seededTileRandom(tile.x, tile.z, 4) * 3);
-      for (let i = 0; i < rockCount; i++) {
-        const s = 0.08 + seededTileRandom(tile.x, tile.z, 100 + i) * 0.09;
-        const rock = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(cell * s, 0),
-          rockMaterial,
-        );
-        rock.position.set(
-          (seededTileRandom(tile.x, tile.z, 120 + i) - 0.5) * cell * 0.62,
-          cell * s * 0.75,
-          (seededTileRandom(tile.x, tile.z, 140 + i) - 0.5) * cell * 0.62,
-        );
-        rock.scale.set(
-          0.75 + seededTileRandom(tile.x, tile.z, 160 + i) * 0.55,
-          0.48 + seededTileRandom(tile.x, tile.z, 180 + i) * 0.45,
-          0.75 + seededTileRandom(tile.x, tile.z, 200 + i) * 0.55,
-        );
-        rock.rotation.y = seededTileRandom(tile.x, tile.z, 220 + i) * Math.PI;
-        rock.castShadow = true;
-        group.add(rock);
-      }
-    }
-
-    if (tile.material === "path") {
-      addTileBase(group, GRASS_COLOR, cell, 0.012);
-      const pathMat = tileBaseMaterial(0xb69a67, 1);
-      const transitionMat = tileBaseMaterial(0xa8895d, 1);
-      const linked = pathDirections.filter((direction) =>
-        has(tile.x + direction.dx, tile.z + direction.dz, "path"),
-      );
-
-      const center = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 0.48, 0.052, cell * 0.48),
-        pathMat,
-      );
-      center.position.y = 0.048;
-      group.add(center);
-
-      for (const direction of linked) {
-        const arm = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            cell * direction.sx,
-            0.052,
-            cell * direction.sz,
-          ),
-          pathMat,
-        );
-        arm.position.set(
-          cell * direction.px,
-          0.048,
-          cell * direction.pz,
-        );
-        group.add(arm);
-      }
-
-      if (!linked.length) center.scale.set(1.42, 1, 1.42);
-
-      const fringeCount = 7;
-      for (let i = 0; i < fringeCount; i++) {
-        const along = (i + 0.5) / fringeCount - 0.5;
-        const jitter = (seededTileRandom(tile.x, tile.z, 500 + i) - 0.5) * 0.09;
-        const side = i % 2 === 0 ? 1 : -1;
-        const patch = roundedGroundDisc(
-          cell * (0.045 + seededTileRandom(tile.x, tile.z, 520 + i) * 0.025),
-          0.018,
-          transitionMat,
-          10,
-        );
-        patch.position.set(
-          side * cell * (0.245 + jitter),
-          0.078,
-          along * cell * 0.72,
-        );
-        patch.scale.z = 0.58 + seededTileRandom(tile.x, tile.z, 540 + i) * 0.35;
-        group.add(patch);
-      }
-    }
-
-    root.add(group);
-  }
-
-  // Dirt is rendered as one organic masked region over the grass terrain.
-  const dirtMask = createOrganicMaskTexture(
-    tiles,
-    "dirt",
-    gridSize,
-    0.34,
-    0.56,
-  );
-  addMaskedGroundRegion(
-    root,
-    dirtMask,
-    width,
-    depth,
-    DIRT_COLOR,
-    0.041,
-    1,
-  );
-
-  // Water shore is also region-based. The water plane sits BELOW the grass top.
-  const shoreMask = createOrganicMaskTexture(
-    tiles,
-    "water",
-    gridSize,
-    0.48,
-    0.82,
-  );
-  const rimMask = createOrganicMaskTexture(
-    tiles,
-    "water",
-    gridSize,
-    0.43,
-    0.74,
-  );
-  const waterMask = createOrganicMaskTexture(
-    tiles,
-    "water",
-    gridSize,
-    0.36,
-    0.64,
-  );
-
-  addMaskedGroundRegion(
-    root,
-    shoreMask,
-    width,
-    depth,
-    0x806247,
-    0.018,
-    1,
-  );
-  addMaskedGroundRegion(
-    root,
-    rimMask,
-    width,
-    depth,
-    GRASS_COLOR,
-    0.027,
-    1,
-  );
-  addAnimatedWaterRegion(
-    root,
-    waterMask,
-    width,
-    depth,
-    0.012,
-  );
-
-  return root;
-}
-
-function waterMaterial() {
-  return new THREE.MeshStandardMaterial({
-    color: WATER_COLOR,
-    roughness: 0.18,
-    metalness: 0.03,
-    transparent: true,
-    opacity: 0.82,
-    depthWrite: false,
-  });
-}
 
 export function HabitatEditor({ registry }: { registry: Registry }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const worldRef = useRef<HabitatWorld | null>(null);
+  const undoRef = useRef<SceneData[]>([]);
+  const redoRef = useRef<SceneData[]>([]);
+  const saveTimer = useRef(0);
+
+  const [panes, setPanes] = useState<Pane[]>([]);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+  const [tool, setTool] = useState<Tool>("relief");
+  const [sub, setSub] = useState<Sub>("up");
+  const [brush, setBrush] = useState(1);
+  const [objectKey, setObjectKey] = useState<AssetKey>("tree");
+  const [mode, setMode] = useState<ViewMode>("triple");
+  const [period, setPeriod] = useState<WorldPeriod>("Evening");
+  const [grid, setGrid] = useState(true);
+  const [lake, setLake] = useState(true);
+  const [trail, setTrail] = useState(true);
+  const [selected, setSelected] = useState<PropEntry | null>(null);
+  const [, bump] = useState(0);
+  const [counts, setCounts] = useState({ undo: 0, redo: 0 });
+  const [activeView, setActiveView] = useState<ViewId>("pano");
+
+  const stateRef = useRef({ tool, sub, brush, objectKey });
+  stateRef.current = { tool, sub, brush, objectKey };
+
   const atlas = useEvolutionTree(0, registry.activeVersions[0] ?? 0, false);
-  const mammalExe = atlas.tree?.evolutions.find(
+  const mammal = atlas.tree?.evolutions.find(
     (e) => e.key === "mammal.exe" || e.name.toLowerCase() === "mammal.exe",
   );
-  const referenceModelUri = mammalExe ? modelUriFor(mammalExe) : "";
+  const creatureUri = mammal ? modelUriFor(mammal) || MAMMAL_PILOT.modelUri : MAMMAL_PILOT.modelUri;
 
-  const mount = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const objectRootRef = useRef<THREE.Group | null>(null);
-  const waterRootRef = useRef<THREE.Group | null>(null);
-  const tileRootRef = useRef<THREE.Group | null>(null);
-  const terrainRef = useRef<THREE.Mesh | null>(null);
-  const gridRef = useRef<THREE.GridHelper | null>(null);
-  const transformRef = useRef<TransformControls | null>(null);
-  const selectedRef = useRef<THREE.Object3D | null>(null);
-  const loaderRef = useRef(new GLTFLoader().setMeshoptDecoder(MeshoptDecoder));
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const referenceSizeRef = useRef(new THREE.Vector3(1, 1, 1));
-  const resizePreviewRef = useRef<() => void>(() => {});
-  const importedUrls = useRef<string[]>([]);
-  const brushDown = useRef(false);
-  const flattenHeight = useRef(0);
-  const toolRef = useRef<EditorTool>("objects");
-  const paintMaterialRef = useRef<PaintMaterial>("grass");
-  const brushSizeRef = useRef(2.4);
-  const brushStrengthRef = useRef(0.18);
-  const tileMaterialRef = useRef<TileMaterial>("grass");
-  const assetBrushRef = useRef<HabitatAssetDefinition | null>(null);
-  const tileMapRef = useRef<Map<string, HabitatTile>>(new Map());
-  const gridSizeRef = useRef<4 | 8 | 16>(8);
-  const groundWidthRef = useRef(8);
-  const groundDepthRef = useRef(8);
-  const rebuildTilesRef = useRef<() => void>(() => {});
-
-  const [name, setName] = useState("My Habitat");
-  const [gridSize, setGridSize] = useState<4 | 8 | 16>(8);
-  const [groundWidth, setGroundWidth] = useState(8);
-  const [groundDepth, setGroundDepth] = useState(8);
-  const [objects, setObjects] = useState<HabitatObject[]>([]);
-  const [waterAreas, setWaterAreas] = useState<WaterArea[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [mode, setMode] = useState<TransformMode>("translate");
-  const [previewMode, setPreviewMode] = useState<PreviewMode>("web");
-  const [tool, setTool] = useState<EditorTool>("objects");
-  const [paintMaterial, setPaintMaterial] = useState<PaintMaterial>("grass");
-  const [brushSize, setBrushSize] = useState(2.4);
-  const [brushStrength, setBrushStrength] = useState(0.18);
-  const [tileMaterial, setTileMaterial] = useState<TileMaterial>("grass");
-  const [assetBrush, setAssetBrush] = useState<HabitatAssetDefinition | null>(null);
-  const [tiles, setTiles] = useState<HabitatTile[]>([]);
-  const [status, setStatus] = useState(
-    "Build a habitat with editable terrain, water and modular props.",
-  );
-
-  useEffect(() => { toolRef.current = tool; }, [tool]);
-  useEffect(() => { paintMaterialRef.current = paintMaterial; }, [paintMaterial]);
-  useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
-  useEffect(() => { brushStrengthRef.current = brushStrength; }, [brushStrength]);
-  useEffect(() => { tileMaterialRef.current = tileMaterial; }, [tileMaterial]);
-  useEffect(() => { assetBrushRef.current = assetBrush; }, [assetBrush]);
-  useEffect(() => { gridSizeRef.current = gridSize; }, [gridSize]);
-  useEffect(() => { groundWidthRef.current = groundWidth; }, [groundWidth]);
-  useEffect(() => { groundDepthRef.current = groundDepth; }, [groundDepth]);
-
-  const syncObjects = () => {
-    const root = objectRootRef.current;
-    if (!root) return;
-    setObjects(root.children.map(objectToRecord));
-  };
-
-  const syncWater = () => {
-    const root = waterRootRef.current;
-    if (!root) return;
-    setWaterAreas(
-      root.children.map((object) => ({
-        id: object.userData.waterId,
-        position: [object.position.x, object.position.y, object.position.z],
-        size: [object.scale.x, object.scale.y],
-      })),
-    );
-  };
-
-  const serializeTerrain = () => {
-    const terrain = terrainRef.current;
-    if (!terrain) return { heights: [], colors: [] };
-    const position = terrain.geometry.attributes.position as THREE.BufferAttribute;
-    const color = terrain.geometry.attributes.color as THREE.BufferAttribute;
-    return {
-      heights: Array.from({ length: position.count }, (_, i) =>
-        Number(position.getY(i).toFixed(4)),
-      ),
-      colors: Array.from(color.array as ArrayLike<number>, (n) =>
-        Number(Number(n).toFixed(4)),
-      ),
-    };
-  };
-
-  const buildManifest = (): HabitatManifest => {
-    const terrain = serializeTerrain();
-    return {
-      schema: "rebyters-habitat-v3",
-      id: slug(name),
-      name: name.trim() || "Untitled Habitat",
-      terrain: {
-        width: groundWidth,
-        depth: groundDepth,
-        segments: TERRAIN_SEGMENTS,
-        ...terrain,
-      },
-      gridSize,
-      tiles: Array.from(tileMapRef.current.values()),
-      objects: objectRootRef.current?.children.map(objectToRecord) ?? objects,
-      water:
-        waterRootRef.current?.children.map((object) => ({
-          id: object.userData.waterId,
-          position: [object.position.x, object.position.y, object.position.z],
-          size: [object.scale.x, object.scale.y],
-        })) ?? waterAreas,
-    };
-  };
-
-  useEffect(() => {
-    const host = mount.current;
-    if (!host) return;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf7f8f6);
-    sceneRef.current = scene;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.shadowMap.enabled = true;
-    host.appendChild(renderer.domElement);
-
-    const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 200);
-    cameraRef.current = camera;
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x49634b, 2.2));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-    sun.position.set(6, 10, 5);
-    sun.castShadow = true;
-    scene.add(sun);
-
-    const terrain = new THREE.Mesh(
-      buildTerrain(groundWidth, groundDepth),
-      new THREE.MeshStandardMaterial({
-        vertexColors: true,
-        roughness: 0.96,
-        metalness: 0,
-      }),
-    );
-    terrain.receiveShadow = true;
-    terrain.name = "HabitatTerrain";
-    scene.add(terrain);
-    terrainRef.current = terrain;
-
-    // Keep the editor grid exactly aligned with the editable terrain.
-    // A unit grid scaled to Width/Depth avoids the old 40x40 grid extending
-    // beyond a smaller terrain and looking like the ground was cut in half.
-    const grid = new THREE.GridHelper(1, TERRAIN_SEGMENTS, 0xaab6ae, 0xdce3de);
-    grid.scale.set(groundWidth, 1, groundDepth);
-    grid.position.y = 0.015;
-    scene.add(grid);
-    gridRef.current = grid;
-
-    const objectRoot = new THREE.Group();
-    objectRoot.name = "HabitatObjects";
-    scene.add(objectRoot);
-    objectRootRef.current = objectRoot;
-
-    const waterRoot = new THREE.Group();
-    waterRoot.name = "HabitatWater";
-    scene.add(waterRoot);
-    waterRootRef.current = waterRoot;
-
-    let tileRoot = new THREE.Group();
-    tileRoot.name = "SmartTiles";
-    scene.add(tileRoot);
-    tileRootRef.current = tileRoot;
-
-    const rebuildTiles = () => {
-      const next = buildSmartTileGroup(
-        Array.from(tileMapRef.current.values()),
-        gridSizeRef.current,
-        groundWidthRef.current,
-        groundDepthRef.current,
-      );
-      scene.remove(tileRoot);
-      tileRoot.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        mesh.geometry.dispose();
-        const material = mesh.material;
-        const materials = Array.isArray(material) ? material : [material];
-        materials.forEach((m) => {
-          const generatedMask = m.userData?.generatedMask as THREE.Texture | undefined;
-          generatedMask?.dispose();
-          m.dispose();
-        });
-        const generatedMask = mesh.userData?.generatedMask as THREE.Texture | undefined;
-        generatedMask?.dispose();
-      });
-      tileRoot = next;
-      scene.add(tileRoot);
-      tileRootRef.current = tileRoot;
-    };
-    rebuildTilesRef.current = rebuildTiles;
-
-    const transform = new TransformControls(camera, renderer.domElement);
-    transform.setMode(mode);
-    transform.addEventListener("objectChange", () => {
-      syncObjects();
-      syncWater();
-    });
-    scene.add(transform.getHelper());
-    transformRef.current = transform;
-
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-
-    const terrainHit = (event: PointerEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-      return raycaster.intersectObject(terrain, false)[0] ?? null;
-    };
-
-    const applyBrush = (event: PointerEvent, initial = false) => {
-      const hit = terrainHit(event);
-      if (!hit) return;
-      const geometry = terrain.geometry;
-      const position = geometry.attributes.position as THREE.BufferAttribute;
-      const color = geometry.attributes.color as THREE.BufferAttribute;
-      const local = terrain.worldToLocal(hit.point.clone());
-
-      if (initial && toolRef.current === "flatten") flattenHeight.current = local.y;
-
-      const nextHeights = new Float32Array(position.count);
-      for (let i = 0; i < position.count; i++) nextHeights[i] = position.getY(i);
-
-      for (let i = 0; i < position.count; i++) {
-        const dx = position.getX(i) - local.x;
-        const dz = position.getZ(i) - local.z;
-        const distance = Math.hypot(dx, dz);
-        if (distance > brushSizeRef.current) continue;
-        const falloff = Math.pow(1 - distance / brushSizeRef.current, 2);
-        const amount = brushStrengthRef.current * falloff;
-
-        if (toolRef.current === "raise") nextHeights[i] += amount;
-        if (toolRef.current === "lower") nextHeights[i] -= amount;
-        if (toolRef.current === "flatten")
-          nextHeights[i] = THREE.MathUtils.lerp(
-            nextHeights[i],
-            flattenHeight.current,
-            Math.min(1, amount * 2.5),
-          );
-
-        if (toolRef.current === "paint") {
-          const target = TERRAIN_COLORS[paintMaterialRef.current];
-          color.setXYZ(
-            i,
-            THREE.MathUtils.lerp(color.getX(i), target.r, Math.min(1, amount * 3)),
-            THREE.MathUtils.lerp(color.getY(i), target.g, Math.min(1, amount * 3)),
-            THREE.MathUtils.lerp(color.getZ(i), target.b, Math.min(1, amount * 3)),
-          );
-        }
-      }
-
-      if (toolRef.current === "smooth") {
-        const cols = TERRAIN_SEGMENTS + 1;
-        for (let i = 0; i < position.count; i++) {
-          const x = position.getX(i) - local.x;
-          const z = position.getZ(i) - local.z;
-          const distance = Math.hypot(x, z);
-          if (distance > brushSizeRef.current) continue;
-          const row = Math.floor(i / cols);
-          const col = i % cols;
-          let sum = 0;
-          let count = 0;
-          for (let rr = -1; rr <= 1; rr++) {
-            for (let cc = -1; cc <= 1; cc++) {
-              const r = row + rr;
-              const c = col + cc;
-              if (r < 0 || r >= cols || c < 0 || c >= cols) continue;
-              sum += position.getY(r * cols + c);
-              count++;
-            }
-          }
-          const falloff = Math.pow(1 - distance / brushSizeRef.current, 2);
-          nextHeights[i] = THREE.MathUtils.lerp(
-            position.getY(i),
-            sum / Math.max(1, count),
-            Math.min(1, brushStrengthRef.current * falloff * 4),
-          );
-        }
-      }
-
-      if (toolRef.current !== "paint") {
-        for (let i = 0; i < position.count; i++) position.setY(i, nextHeights[i]);
-        position.needsUpdate = true;
-        geometry.computeVertexNormals();
-      } else {
-        color.needsUpdate = true;
-      }
-    };
-
-    const applySmartTile = (event: PointerEvent) => {
-      const hit = terrainHit(event);
-      if (!hit) return;
-      const local = terrain.worldToLocal(hit.point.clone());
-      const activeGrid = gridSizeRef.current;
-      const activeWidth = groundWidthRef.current;
-      const activeDepth = groundDepthRef.current;
-      const cellX = activeWidth / activeGrid;
-      const cellZ = activeDepth / activeGrid;
-      const x = Math.floor((local.x + activeWidth / 2) / cellX);
-      const z = Math.floor((local.z + activeDepth / 2) / cellZ);
-      if (x < 0 || z < 0 || x >= activeGrid || z >= activeGrid) return;
-      const key = tileKey(x, z);
-      const material = tileMaterialRef.current;
-      if (material === "empty") tileMapRef.current.delete(key);
-      else tileMapRef.current.set(key, { x, z, material });
-      setTiles(Array.from(tileMapRef.current.values()));
-      rebuildTiles();
-    };
-
-    const placeAssetAtTile = async (event: PointerEvent) => {
-      const definition = assetBrushRef.current;
-      if (!definition) return;
-      const hit = terrainHit(event);
-      if (!hit) return;
-      const local = terrain.worldToLocal(hit.point.clone());
-      const activeGrid = gridSizeRef.current;
-      const activeWidth = groundWidthRef.current;
-      const activeDepth = groundDepthRef.current;
-      const cellX = activeWidth / activeGrid;
-      const cellZ = activeDepth / activeGrid;
-      const x = Math.floor((local.x + activeWidth / 2) / cellX);
-      const z = Math.floor((local.z + activeDepth / 2) / cellZ);
-      if (x < 0 || z < 0 || x >= activeGrid || z >= activeGrid) return;
-
+  const syncCounts = () => setCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
+  const scheduleSave = useCallback(() => {
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      const world = worldRef.current;
+      if (!world) return;
       try {
-        const object = await loadHabitatAsset(definition.asset, definition.name);
-        const centreX = -activeWidth / 2 + cellX * (x + 0.5);
-        const centreZ = -activeDepth / 2 + cellZ * (z + 0.5);
-        object.position.x += centreX;
-        object.position.z += centreZ;
-        object.userData.tileX = x;
-        object.userData.tileZ = z;
-        object.userData.snappedToGrid = true;
-        objectRootRef.current?.add(object);
-        syncObjects();
-        setStatus(`${definition.name} placed on tile ${x + 1}, ${z + 1}.`);
+        localStorage.setItem(STORAGE, JSON.stringify(world.snapshot()));
       } catch {
-        setStatus(`Could not load ${definition.name}.`);
+        /* storage full or blocked: the editor keeps working */
       }
-    };
+    }, 400);
+  }, []);
+  const remember = (before: SceneData) => {
+    undoRef.current.push(before);
+    if (undoRef.current.length > 60) undoRef.current.shift();
+    redoRef.current = [];
+    syncCounts();
+    scheduleSave();
+  };
 
-    const onPointerDown = (event: PointerEvent) => {
-      if ((transform as any).dragging) return;
-
-      if (toolRef.current === "tiles") {
-        brushDown.current = true;
-        applySmartTile(event);
-        return;
-      }
-
-      if (toolRef.current === "assets") {
-        void placeAssetAtTile(event);
-        return;
-      }
-
-      if (toolRef.current !== "objects") {
-        brushDown.current = true;
-        applyBrush(event, true);
-        return;
-      }
-
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-
-      const candidates = [
-        ...(objectRootRef.current?.children ?? []),
-        ...(waterRootRef.current?.children ?? []),
-      ];
-      const hits = raycaster.intersectObjects(candidates, true);
-      if (!hits.length) {
-        selectedRef.current = null;
-        transform.detach();
-        setSelectedId("");
-        return;
-      }
-
-      let object: THREE.Object3D | null = hits[0].object;
-      while (
-        object &&
-        object.parent !== objectRootRef.current &&
-        object.parent !== waterRootRef.current
-      )
-        object = object.parent;
-
-      if (!object) return;
-      selectedRef.current = object;
-      transform.attach(object);
-      setSelectedId(object.userData.habitatId ?? object.userData.waterId ?? "");
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (!brushDown.current) return;
-      if (toolRef.current === "tiles") {
-        applySmartTile(event);
-        return;
-      }
-      if (toolRef.current !== "objects" && toolRef.current !== "assets") applyBrush(event, false);
-    };
-    const onPointerUp = () => {
-      brushDown.current = false;
-    };
-
-    renderer.domElement.addEventListener("pointerdown", onPointerDown);
-    renderer.domElement.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-
-    const frameCamera = () => {
-      const w = Math.max(1, host.clientWidth);
-      const h = Math.max(1, host.clientHeight);
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-
-      const sourceSize = referenceSizeRef.current;
-      const framingScale =
-        2 / Math.max(sourceSize.x, sourceSize.y, sourceSize.z, 0.001);
-      const distance = Math.max(
-        camera.aspect < 1 ? 4.8 : 6.8,
-        (sourceSize.x * framingScale) /
-          (2 *
-            Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
-            camera.aspect *
-            (w <= 700 ? 0.42 : 0.54)),
-      );
-      const direction = new THREE.Vector3(0, 2.2, 4.7)
-        .sub(new THREE.Vector3(0, 1.6, 0))
-        .normalize();
-      const target = new THREE.Vector3(
-        0,
-        1.6 + (camera.aspect < 1 ? 0.7 + 1.25 * 0.22 : 0),
-        0,
-      );
-      camera.position.copy(target).addScaledVector(direction, distance);
-      camera.lookAt(target);
-      camera.updateProjectionMatrix();
-    };
-    resizePreviewRef.current = frameCamera;
-
-    const observer = new ResizeObserver(frameCamera);
-    observer.observe(host);
-    frameCamera();
-
-    let raf = 0;
-    const clock = new THREE.Clock();
-    const render = () => {
-      const elapsed = clock.getElapsedTime();
-      tileRootRef.current?.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        const material = mesh.material;
-        const materials = Array.isArray(material) ? material : [material];
-        materials.forEach((entry) => {
-          const shader = entry as THREE.ShaderMaterial;
-          if (
-            shader.userData?.waterSurfaceMaterial &&
-            shader.uniforms?.uTime
-          ) {
-            shader.uniforms.uTime.value = elapsed;
-          }
-        });
-      });
-      renderer.render(scene, camera);
-      raf = requestAnimationFrame(render);
-    };
-    render();
-
+  // ---- World lifecycle ---------------------------------------------------------
+  useEffect(() => {
+    const host = hostRef.current,
+      canvas = canvasRef.current;
+    if (!host || !canvas) return;
+    let alive = true;
+    let saved: SceneData | null = null;
+    try {
+      const raw = localStorage.getItem(STORAGE);
+      const parsed: unknown = raw ? JSON.parse(raw) : null;
+      if (HabitatWorld.isSceneData(parsed)) saved = parsed;
+    } catch {
+      saved = null;
+    }
+    const world = new HabitatWorld(host, canvas, {
+      onLayout: (p) => setPanes(p),
+      onError: (m) => setError(m),
+    });
+    worldRef.current = world;
+    if (saved) {
+      setPeriod(saved.period);
+      setLake(saved.lake);
+      setTrail(saved.trail);
+    }
+    world
+      .init(saved)
+      .then(() => {
+        if (!alive) return;
+        setReady(true);
+        bump((n) => n + 1);
+      })
+      .catch((e) => alive && setError(e instanceof Error ? e.message : String(e)));
     return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
-      renderer.domElement.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      transform.dispose();
-      resizePreviewRef.current = () => {};
-      cameraRef.current = null;
-      terrain.geometry.dispose();
-      (terrain.material as THREE.Material).dispose();
-      grid.geometry.dispose();
-      (grid.material as THREE.Material).dispose();
-      gridRef.current = null;
-      tileRoot.traverse((node) => {
-        const mesh = node as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        mesh.geometry.dispose();
-        const material = mesh.material;
-        if (Array.isArray(material)) material.forEach((m) => m.dispose());
-        else material.dispose();
-      });
-      waterRoot.children.forEach((child) => {
-        const mesh = child as THREE.Mesh;
-        mesh.geometry?.dispose();
-        (mesh.material as THREE.Material)?.dispose();
-      });
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
-      importedUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      alive = false;
+      window.clearTimeout(saveTimer.current);
+      world.dispose();
+      worldRef.current = null;
     };
   }, []);
 
+  // The real mammal.exe at the centre of the scene.
   useEffect(() => {
-    transformRef.current?.setMode(mode);
-  }, [mode]);
-
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene || !referenceModelUri) return;
-    let cancelled = false;
-    let loaded: THREE.Object3D | null = null;
-
-    const loadReference = async () => {
-      try {
-        return await loaderRef.current.loadAsync(LOCAL_REFERENCE_MODEL);
-      } catch {
-        return loaderRef.current.loadAsync(referenceModelUri);
-      }
-    };
-
-    void loadReference()
-      .then((gltf) => {
-        if (cancelled) return;
-        const root = gltf.scene;
-        root.updateMatrixWorld(true);
-        const bounds = new THREE.Box3().setFromObject(root);
-        const size = bounds.getSize(new THREE.Vector3());
-        const center = bounds.getCenter(new THREE.Vector3());
-        referenceSizeRef.current.copy(size);
-        const framingScale =
-          2 / Math.max(size.x, size.y, size.z, 0.001);
-        const scale = framingScale * 0.8;
-        root.scale.setScalar(scale);
-        root.position.set(
-          -center.x * scale,
-          -bounds.min.y * scale + 0.04,
-          -center.z * scale - 2.97,
-        );
-        root.userData.habitatReference = true;
-        root.traverse((node) => {
-          const mesh = node as THREE.Mesh;
-          if (!mesh.isMesh) return;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-        });
-        loaded = root;
-        scene.add(root);
-        resizePreviewRef.current();
-        setStatus("mammal.exe loaded for habitat preview.");
-      })
-      .catch(() =>
-        setStatus(
-          "mammal.exe preview missing. Add companion.glb to /public/assets/rebyters/mammal-current/ or check the Atlas URI.",
-        ),
-      );
-
+    const world = worldRef.current;
+    if (!ready || !world) return;
+    let alive = true;
+    const l = loader();
+    l.gltf
+      .loadAsync(creatureUri)
+      .then((gltf) => alive && world.setCreature(inspectModel(gltf)))
+      .catch(() => {
+        if (!alive) return;
+        if (creatureUri !== MAMMAL_PILOT.modelUri)
+          l.gltf
+            .loadAsync(MAMMAL_PILOT.modelUri)
+            .then((gltf) => alive && world.setCreature(inspectModel(gltf)))
+            .catch(() => alive && setError("No se pudo cargar el modelo de mammal.exe."));
+        else setError("No se pudo cargar el modelo de mammal.exe.");
+      });
     return () => {
-      cancelled = true;
-      loaded?.removeFromParent();
+      alive = false;
     };
-  }, [referenceModelUri]);
+  }, [ready, creatureUri]);
 
+  // ---- Controls pushed into the world -------------------------------------------
   useEffect(() => {
-    const terrain = terrainRef.current;
-    if (!terrain) return;
-    const old = terrain.geometry;
-    const next = buildTerrain(groundWidth, groundDepth);
-    const oldPosition = old.attributes.position as THREE.BufferAttribute;
-    const oldColor = old.attributes.color as THREE.BufferAttribute;
-    const nextPosition = next.attributes.position as THREE.BufferAttribute;
-    const nextColor = next.attributes.color as THREE.BufferAttribute;
+    if (ready) worldRef.current?.setMode(mode, activeView);
+  }, [ready, mode, activeView]);
+  useEffect(() => {
+    if (ready) void worldRef.current?.setPeriod(period).then(() => scheduleSave());
+  }, [ready, period, scheduleSave]);
+  useEffect(() => {
+    if (ready) worldRef.current?.setGrid(grid);
+  }, [ready, grid]);
+  useEffect(() => {
+    if (!ready) return;
+    worldRef.current?.setOriginals({ lake, trail });
+    scheduleSave();
+  }, [ready, lake, trail, scheduleSave]);
 
-    if (oldPosition.count === nextPosition.count) {
-      for (let i = 0; i < nextPosition.count; i++) {
-        nextPosition.setY(i, oldPosition.getY(i));
-        nextColor.setXYZ(i, oldColor.getX(i), oldColor.getY(i), oldColor.getZ(i));
+  const pickTool = (t: Tool, s?: Sub) => {
+    setTool(t);
+    if (s) setSub(s);
+    worldRef.current?.hideCursor();
+  };
+
+  // ---- History -------------------------------------------------------------------
+  const applySnapshot = async (data: SceneData) => {
+    const world = worldRef.current;
+    if (!world) return;
+    await world.restore(data);
+    setPeriod(data.period);
+    setLake(data.lake);
+    setTrail(data.trail);
+    setSelected(null);
+    bump((n) => n + 1);
+    scheduleSave();
+  };
+  const undo = useCallback(async () => {
+    const world = worldRef.current,
+      prev = undoRef.current.pop();
+    if (!world || !prev) return;
+    redoRef.current.push(world.snapshot());
+    syncCounts();
+    await applySnapshot(prev);
+  }, []);
+  const redo = useCallback(async () => {
+    const world = worldRef.current,
+      next = redoRef.current.pop();
+    if (!world || !next) return;
+    undoRef.current.push(world.snapshot());
+    syncCounts();
+    await applySnapshot(next);
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && /INPUT|SELECT|TEXTAREA/.test(el.tagName) && (el as HTMLInputElement).type !== "range") return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        void (e.shiftKey ? redo() : undo());
+      } else if (mod && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        void redo();
+      } else if ((e.key === "Delete" || e.key === "Backspace") && worldRef.current?.selected) {
+        const world = worldRef.current;
+        remember(world.snapshot());
+        world.removeProp(world.selected!);
+        setSelected(null);
       }
-      nextPosition.needsUpdate = true;
-      nextColor.needsUpdate = true;
-      next.computeVertexNormals();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  // ---- Pointer ---------------------------------------------------------------------
+  const drag = useRef<{
+    kind: "edit" | "orbit" | "pan" | "move";
+    pane: Pane;
+    x: number;
+    y: number;
+    before: SceneData | null;
+    visited: Set<number>;
+    changed: boolean;
+    entry?: PropEntry;
+  } | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef(0);
+
+  const local = (e: { clientX: number; clientY: number }) => {
+    const r = hostRef.current!.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  const edit = (world: HabitatWorld, pane: Pane, x: number, y: number, first: boolean) => {
+    const d = drag.current!;
+    const hit = world.pickGround(x, y, pane);
+    if (!hit) return;
+    const { tool: t, sub: s, brush: b, objectKey: k } = stateRef.current;
+    const tiles = world.brushTiles(hit.i, hit.j, b);
+    if (t === "ground") {
+      const g: Ground = s === "path" || s === "sand" || s === "rock" ? s : "grass";
+      d.changed = world.paintGround(tiles, g, d.visited) || d.changed;
+    } else if (t === "water") {
+      d.changed = world.paintWater(tiles, s !== "remove", d.visited) || d.changed;
+    } else if (t === "relief") {
+      d.changed = world.sculpt(tiles, s !== "down", d.visited) || d.changed;
+    } else if (t === "erase") {
+      const prop = first ? world.pickProp(x, y, pane) : null;
+      if (prop) {
+        world.removeProp(prop);
+        d.changed = true;
+        return;
+      }
+      d.changed = world.resetTiles(tiles, d.visited) || d.changed;
+    } else if (t === "object" && first) {
+      void world.addProp(k, hit.x, hit.z).then((entry) => {
+        if (entry) {
+          world.select(entry);
+          setSelected(entry);
+        }
+      });
+      d.changed = true;
+    } else if (t === "creature") {
+      d.changed = world.moveCreature(hit.x, hit.z) !== false || d.changed;
     }
-    terrain.geometry = next;
-    old.dispose();
-    gridRef.current?.scale.set(groundWidth, 1, groundDepth);
-  }, [groundWidth, groundDepth]);
+    if (t === "ground" || t === "water" || t === "relief" || t === "erase") world.refreshTerrain();
+  };
 
-  async function loadHabitatAsset(asset: string, displayName: string) {
-    const gltf = await loaderRef.current.loadAsync(asset);
-    const root = gltf.scene;
-    root.userData.habitatId = crypto.randomUUID();
-    root.userData.habitatName = displayName;
-    root.userData.asset = asset;
-    root.traverse((node) => {
-      const mesh = node as THREE.Mesh;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-      }
-    });
-    root.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(root);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const extent = Math.max(size.x, size.y, size.z, 0.001);
-    const definition = BUILTIN_ASSETS.find((item) => item.asset === asset);
-    const targetExtent = definition?.targetExtent ?? 2.4;
-    const normalized = Math.min(targetExtent / extent, definition ? 3.5 : 1.6);
-    root.scale.setScalar(normalized);
-    root.position.set(
-      -center.x * normalized,
-      -box.min.y * normalized,
-      -center.z * normalized,
+  const onDown = (e: React.PointerEvent) => {
+    const world = worldRef.current;
+    if (!world || !ready) return;
+    const { x, y } = local(e);
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    touches.current.set(e.pointerId, { x, y });
+    if (touches.current.size === 2) {
+      drag.current = null;
+      const [a, b] = [...touches.current.values()];
+      pinch.current = Math.hypot(a.x - b.x, a.y - b.y);
+      return;
+    }
+    const pane = world.paneAt(x, y);
+    if (!pane) return;
+    world.activeView = pane.id;
+    setActiveView(pane.id);
+    const t = stateRef.current.tool;
+    const navigate = e.button === 2 || e.shiftKey || t === "nav" || e.button === 1;
+    const base = { pane, x, y, before: null, visited: new Set<number>(), changed: false };
+    if (navigate) {
+      drag.current = { ...base, kind: e.button === 1 || (e.shiftKey && e.button === 0) ? "pan" : "orbit" };
+      return;
+    }
+    if (t === "select") {
+      const entry = world.pickProp(x, y, pane);
+      world.select(entry);
+      setSelected(entry);
+      if (entry) drag.current = { ...base, kind: "move", before: world.snapshot(), entry };
+      else drag.current = { ...base, kind: "orbit" };
+      return;
+    }
+    drag.current = { ...base, kind: "edit", before: world.snapshot() };
+    edit(world, pane, x, y, true);
+  };
+
+  const onMove = (e: React.PointerEvent) => {
+    const world = worldRef.current;
+    if (!world || !ready) return;
+    const { x, y } = local(e);
+    if (touches.current.has(e.pointerId)) touches.current.set(e.pointerId, { x, y });
+    if (touches.current.size === 2) {
+      const [a, b] = [...touches.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch.current > 0) world.zoom(world.activeView, pinch.current / dist);
+      pinch.current = dist;
+      return;
+    }
+    const d = drag.current;
+    if (d) {
+      const dx = x - d.x,
+        dy = y - d.y;
+      if (d.kind === "orbit") world.orbit(d.pane.id, dx, dy);
+      else if (d.kind === "pan") world.pan(d.pane.id, dx, dy, d.pane);
+      else if (d.kind === "move" && d.entry) {
+        const hit = world.pickGround(x, y, d.pane);
+        if (hit) {
+          world.moveProp(d.entry, hit.x, hit.z);
+          d.changed = true;
+        }
+      } else if (d.kind === "edit") edit(world, d.pane, x, y, false);
+      d.x = x;
+      d.y = y;
+      return;
+    }
+    // Hover cursor
+    const pane = world.paneAt(x, y);
+    const t = stateRef.current.tool;
+    if (!pane || t === "nav" || t === "select") return world.hideCursor();
+    const hit = world.pickGround(x, y, pane);
+    if (!hit) return world.hideCursor();
+    const size = t === "object" || t === "creature" ? 1 : stateRef.current.brush;
+    world.showCursor(world.brushTiles(hit.i, hit.j, size), CURSOR_COLOR[t]);
+  };
+
+  const onUp = (e: React.PointerEvent) => {
+    touches.current.delete(e.pointerId);
+    if (touches.current.size < 2) pinch.current = 0;
+    const world = worldRef.current,
+      d = drag.current;
+    drag.current = null;
+    if (!world || !d) return;
+    if (d.changed && d.before) {
+      if (d.kind === "edit") world.commitTerrain();
+      remember(d.before);
+      setSelected(world.selected);
+      bump((n) => n + 1);
+    }
+  };
+
+  const onWheel = (e: React.WheelEvent) => {
+    const world = worldRef.current;
+    if (!world) return;
+    const { x, y } = local(e);
+    const pane = world.paneAt(x, y);
+    if (!pane) return;
+    world.zoom(pane.id, e.deltaY > 0 ? 1.1 : 1 / 1.1);
+  };
+
+  // ---- Files -----------------------------------------------------------------------
+  const exportJson = () => {
+    const world = worldRef.current;
+    if (!world) return;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(world.snapshot(), null, 2)], { type: "application/json" }),
     );
-    return root;
-  }
-
-  async function loadProductionAsset(asset: string, displayName: string, height: number) {
-    const gltf = await loaderRef.current.loadAsync(asset);
-    const source = gltf.scene;
-    source.userData.habitatId = crypto.randomUUID();
-    source.userData.habitatName = displayName;
-    source.userData.asset = asset;
-    source.updateMatrixWorld(true);
-
-    const bounds = new THREE.Box3().setFromObject(source);
-    const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
-    const scale = height / Math.max(size.y, 0.001);
-
-    const pivot = new THREE.Group();
-    pivot.userData.habitatId = source.userData.habitatId;
-    pivot.userData.habitatName = displayName;
-    pivot.userData.asset = asset;
-    source.scale.multiplyScalar(scale);
-    source.position.multiplyScalar(scale);
-    source.position.add(
-      new THREE.Vector3(-center.x, -bounds.min.y, -center.z).multiplyScalar(scale),
-    );
-    source.traverse((node) => {
-      const mesh = node as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-    });
-    pivot.add(source);
-    return pivot;
-  }
-
-  async function addAsset(asset: string, displayName: string) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "habitat-scene.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const importJson = async (file: File | undefined) => {
+    const world = worldRef.current;
+    if (!file || !world) return;
     try {
-      setTool("objects");
-      const root = await loadHabitatAsset(asset, displayName);
-      objectRootRef.current?.add(root);
-      selectedRef.current = root;
-      transformRef.current?.attach(root);
-      setSelectedId(root.userData.habitatId);
-      syncObjects();
-      setStatus(`${displayName} added.`);
-    } catch {
-      setStatus(`Could not load ${displayName}.`);
+      const data: unknown = JSON.parse(await file.text());
+      if (!HabitatWorld.isSceneData(data)) throw new Error("Archivo de escena no válido.");
+      remember(world.snapshot());
+      await applySnapshot(data);
+      setError("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo importar el archivo.");
     }
-  }
+  };
 
-  function changeGridSize(size: 4 | 8 | 16) {
-    if (tileMapRef.current.size && !window.confirm(`Switch to ${size}×${size}? Existing smart tiles will be cleared.`)) {
-      return;
-    }
-    tileMapRef.current.clear();
-    setTiles([]);
-    gridSizeRef.current = size;
-    groundWidthRef.current = size;
-    groundDepthRef.current = size;
-    setGridSize(size);
-    setGroundWidth(size);
-    setGroundDepth(size);
-    rebuildTilesRef.current();
-    setStatus(`${size}×${size} habitat ready. Paint connected tiles directly in 3D.`);
-  }
-
-  function chooseTile(material: TileMaterial) {
-    setTool("tiles");
-    setTileMaterial(material);
-    const labels: Record<TileMaterial, string> = {
-      grass: "3D grass",
-      water: "smart water with automatic banks",
-      path: "auto-connecting path",
-      dirt: "dirt",
-      rock: "rock ground",
-      empty: "eraser",
-    };
-    setStatus(`${labels[material]} brush selected.`);
-  }
-
-  function chooseAsset(definition: HabitatAssetDefinition) {
-    setAssetBrush(definition);
-    assetBrushRef.current = definition;
-    setTool("assets");
-    transformRef.current?.detach();
-    setSelectedId("");
-    setStatus(`${definition.name} selected · click any tile to place it snapped to the grid.`);
-  }
-
-  function addWater() {
-    chooseTile("water");
-  }
-
-  async function loadExampleHabitat() {
-    const root = objectRootRef.current;
-    const waterRoot = waterRootRef.current;
-    const terrain = terrainRef.current;
-    if (!root || !waterRoot || !terrain) return;
-
-    if (
-      (root.children.length || waterRoot.children.length) &&
-      !window.confirm("Replace current scene with the exact production meadow layout?")
-    )
-      return;
-
-    setStatus("Loading the production Rebyters meadow…");
-    setTool("objects");
-    transformRef.current?.detach();
-    selectedRef.current = null;
-    setSelectedId("");
-    root.clear();
-    waterRoot.clear();
-    tileMapRef.current.clear();
-    setTiles([]);
-    rebuildTilesRef.current();
-
-    // Production uses a 120x120 world. Keep the editor in the same coordinate system.
-    setGroundWidth(120);
-    setGroundDepth(120);
-    gridRef.current?.scale.set(120, 1, 120);
-
-    const oldGeometry = terrain.geometry;
-    const geometry = buildTerrain(120, 120);
-    const position = geometry.attributes.position as THREE.BufferAttribute;
-    const color = geometry.attributes.color as THREE.BufferAttribute;
-
-    // Same production terrain rule: flat playable clearing, gentle relief only far away.
-    for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i);
-      const z = position.getZ(i);
-      const distance = Math.hypot(x, z);
-      const relief =
-        distance <= 28
-          ? 0
-          : (Math.sin(x * 0.14) + Math.cos(z * 0.12)) *
-            Math.min(0.7, (distance - 28) * 0.018);
-      position.setY(i, relief);
-      color.setXYZ(
-        i,
-        TERRAIN_COLORS.grass.r,
-        TERRAIN_COLORS.grass.g,
-        TERRAIN_COLORS.grass.b,
-      );
-    }
-    position.needsUpdate = true;
-    color.needsUpdate = true;
-    geometry.computeVertexNormals();
-    terrain.geometry = geometry;
-    oldGeometry.dispose();
-
-    // Exact irregular lake silhouette from meadow.ts.
-    const lakeShape = new THREE.Shape();
-    lakeShape.moveTo(-7, -2.6);
-    lakeShape.bezierCurveTo(-8, -0.5, -4, 2.4, -1.4, 2.7);
-    lakeShape.bezierCurveTo(2.5, 3.5, 8, 2.6, 8.8, 0.3);
-    lakeShape.bezierCurveTo(9.5, -2.7, 3, -3.1, -0.6, -2.6);
-    lakeShape.bezierCurveTo(-3.5, -3.6, -6, -3.4, -7, -2.6);
-    const lakeGeometry = new THREE.ShapeGeometry(lakeShape, 28);
-
-    const bank = new THREE.Mesh(
-      lakeGeometry.clone(),
-      new THREE.MeshStandardMaterial({ color: 0x64805b, roughness: 1 }),
-    );
-    bank.rotation.x = -Math.PI / 2;
-    bank.position.set(1, 0.035, -13);
-    bank.scale.set(1.035, 1.045, 1);
-    bank.userData.waterId = crypto.randomUUID();
-    waterRoot.add(bank);
-
-    const lake = new THREE.Mesh(lakeGeometry, waterMaterial());
-    lake.rotation.x = -Math.PI / 2;
-    lake.position.set(1, 0.05, -13);
-    lake.userData.waterId = crypto.randomUUID();
-    waterRoot.add(lake);
-
-    // Exact production trail shape and placement.
-    const trail = new THREE.Shape();
-    trail.moveTo(1.1, 2);
-    trail.bezierCurveTo(2.9, 4, 1.6, 5.4, 3.1, 7.4);
-    trail.bezierCurveTo(4.5, 8.7, 4.5, 9.2, 4.7, 10);
-    trail.lineTo(5.1, 10);
-    trail.bezierCurveTo(5, 8.7, 5.3, 8.4, 3.8, 7.1);
-    trail.bezierCurveTo(2.5, 5.3, 4.4, 3.5, 2.3, 2);
-    trail.closePath();
-    const pathMesh = new THREE.Mesh(
-      new THREE.ShapeGeometry(trail, 24),
-      new THREE.MeshStandardMaterial({ color: 0xb6a777, roughness: 1 }),
-    );
-    pathMesh.rotation.x = -Math.PI / 2;
-    pathMesh.position.y = 0.018;
-    pathMesh.userData.habitatId = crypto.randomUUID();
-    pathMesh.userData.habitatName = "Production trail";
-    pathMesh.userData.asset = "__production_trail__";
-    root.add(pathMesh);
-
-    const byName = (name: string) =>
-      BUILTIN_ASSETS.find((item) => item.name === name)!;
-
-    const plant = async (
-      name: string,
-      x: number,
-      z: number,
-      h: number,
-      r = 0,
-    ) => {
-      const def = byName(name);
-      if (!def) return null;
-      try {
-        const object = await loadProductionAsset(def.asset, def.name, h);
-        object.position.x += x;
-        object.position.z += z;
-        object.rotation.y = r;
-        root.add(object);
-        return object;
-      } catch {
-        return null;
-      }
-    };
-
-    // Same deterministic random sequence used by production.
-    let seed = 12345;
-    const rand = () => {
-      seed = (1664525 * seed + 1013904223) >>> 0;
-      return seed / 4294967296;
-    };
-
-    // Production mountain placement. This intentionally uses the current production
-    // mountain asset, not the experimental replacement, so the editor is a true baseline.
-    for (const [x, z, h, r] of [
-      [-8, -32, 10, 0.25],
-      [7, -28, 8.5, 2.6],
-      [0, -43, 12, 0.1],
-    ] as const) {
-      const mountain = await plant("Production mountains", x, z, h, r);
-      if (mountain) {
-        mountain.updateMatrixWorld(true);
-        const extent = new THREE.Box3()
-          .setFromObject(mountain)
-          .getSize(new THREE.Vector3());
-        mountain.scale.x = 25 / Math.max(extent.x, 0.001);
-        mountain.scale.z = 5 / Math.max(extent.z, 0.001);
-      }
-    }
-
-    // Same far woodland distribution. Use desktop density because the editor is
-    // intended to show the full production composition; mobile can still preview its crop.
-    const forest = 18;
-    for (let i = 0; i < forest; i++) {
-      const x = -13 + (i * 26) / (forest - 1);
-      await plant(
-        i % 3 === 0 ? "Deciduous tree" : "Pine tree",
-        x,
-        -19 - rand() * 5,
-        2.8 + rand() * 2.8,
-        rand() * 6,
-      );
-    }
-
-    // Exact middle-ground and outer-wing landmarks.
-    await plant("Deciduous tree", -3.0, -5.8, 6.6, 0.28);
-    await plant("Pine tree", 3.3, -7.6, 6.0, -0.35);
-    await plant("Deciduous tree", -6.8, -11, 5.0, 0.7);
-    await plant("Pine tree", 7.8, -13.5, 4.9, 0.5);
-    await plant("Pine tree", -3.8, -15.8, 3.6, 0.2);
-    await plant("Deciduous tree", 5.8, -18, 3.4, 2.4);
-    await plant("Deciduous tree", -10, -5, 7.8, -0.3);
-    await plant("Pine tree", 10.7, -7, 7.0, 0.4);
-
-    for (const [x, z, h] of [
-      [-2.9, -3.2, 1.0],
-      [3.2, -4.2, 1.2],
-      [-4.8, -7, 1.2],
-      [5.2, -8, 0.9],
-      [-1.95, 1.5, 0.65],
-      [2.05, 1.0, 0.7],
-      [-7, 0, 1.5],
-      [7.3, -1, 1.3],
-    ] as const) {
-      await plant("Berry bush", x, z, h, rand() * 6);
-    }
-
-    await plant("Mossy rocks", 2.5, -2.7, 0.6, -0.4);
-    await plant("Mossy rocks", -2.2, 1.4, 0.43, 0.6);
-    await plant("Mossy rocks", 3.4, -9.7, 0.7, 0.4);
-    await plant("Tree stump", -2.6, -1.6, 0.65, 0.3);
-    await plant("Hollow log", 3.4, -5.2, 0.65, -0.8);
-    await plant("Red mushrooms", -1.75, -0.7, 0.28, 0.2);
-    await plant("Red mushrooms", 2.25, 0.5, 0.22, -0.3);
-
-    syncObjects();
-    syncWater();
-    setStatus("Production meadow loaded exactly from meadow.ts layout.");
-  }
-
-  function deleteSelected() {
-    const selected = selectedRef.current;
-    if (!selected) return;
-    transformRef.current?.detach();
-    selected.removeFromParent();
-    selectedRef.current = null;
-    setSelectedId("");
-    syncObjects();
-    syncWater();
-  }
-
-  function saveDraft() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildManifest()));
-    setStatus("Habitat draft saved in this browser.");
-  }
-
-  async function restoreDraft() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      setStatus("No saved habitat draft found.");
-      return;
-    }
-    try {
-      const saved = JSON.parse(raw) as HabitatManifest;
-      setName(saved.name);
-      setGroundWidth(saved.terrain.width);
-      setGroundDepth(saved.terrain.depth);
-      const restoredGrid =
-        saved.gridSize === 4 || saved.gridSize === 8 || saved.gridSize === 16
-          ? saved.gridSize
-          : 8;
-      gridSizeRef.current = restoredGrid;
-      groundWidthRef.current = saved.terrain.width;
-      groundDepthRef.current = saved.terrain.depth;
-      setGridSize(restoredGrid);
-      tileMapRef.current = new Map(
-        (saved.tiles ?? []).map((tile) => [tileKey(tile.x, tile.z), tile]),
-      );
-      setTiles(Array.from(tileMapRef.current.values()));
-      rebuildTilesRef.current();
-
-      const terrain = terrainRef.current;
-      if (terrain && saved.terrain.heights.length) {
-        const position = terrain.geometry.attributes.position as THREE.BufferAttribute;
-        const color = terrain.geometry.attributes.color as THREE.BufferAttribute;
-        saved.terrain.heights.forEach((height, i) => {
-          if (i < position.count) position.setY(i, height);
-        });
-        saved.terrain.colors.forEach((value, i) => {
-          if (i < color.array.length) color.array[i] = value;
-        });
-        position.needsUpdate = true;
-        color.needsUpdate = true;
-        terrain.geometry.computeVertexNormals();
-      }
-
-      objectRootRef.current?.clear();
-      for (const item of saved.objects) {
-        const object = await loadHabitatAsset(item.asset, item.name);
-        object.userData.habitatId = item.id;
-        object.position.fromArray(item.position);
-        object.rotation.set(...item.rotation);
-        object.scale.fromArray(item.scale);
-        objectRootRef.current?.add(object);
-      }
-
-      waterRootRef.current?.clear();
-      for (const area of saved.water) {
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.fromArray(area.position);
-        mesh.scale.set(area.size[0], area.size[1], 1);
-        mesh.userData.waterId = area.id;
-        waterRootRef.current?.add(mesh);
-      }
-
-      syncObjects();
-      syncWater();
-      setStatus("Saved habitat restored.");
-    } catch {
-      setStatus("Saved habitat could not be restored.");
-    }
-  }
-
-  function exportManifest() {
-    download(
-      new Blob([JSON.stringify(buildManifest(), null, 2)], { type: "application/json" }),
-      `${buildManifest().id}.habitat.json`,
-    );
-  }
-
-  async function exportGlb() {
-    const scene = new THREE.Scene();
-    scene.name = "RebytersHabitat";
-
-    if (terrainRef.current) {
-      const terrain = terrainRef.current.clone();
-      terrain.geometry = terrainRef.current.geometry.clone();
-      terrain.material = (terrainRef.current.material as THREE.Material).clone();
-      scene.add(terrain);
-    }
-
-    tileRootRef.current?.children.forEach((object) =>
-      scene.add(object.clone(true)),
-    );
-    objectRootRef.current?.children.forEach((object) =>
-      scene.add(object.clone(true)),
-    );
-    waterRootRef.current?.children.forEach((object) =>
-      scene.add(object.clone(true)),
-    );
-
-    const exporter = new GLTFExporter();
-    const data = await exporter.parseAsync(scene, { binary: true });
-    download(
-      new Blob([data as ArrayBuffer], { type: "model/gltf-binary" }),
-      `${buildManifest().id}.glb`,
-    );
-  }
-
-  function importCustom(file: File) {
-    const url = URL.createObjectURL(file);
-    importedUrls.current.push(url);
-    void addAsset(url, file.name.replace(/\.glb$/i, ""));
-  }
-
-  const selectedName =
-    objects.find((item) => item.id === selectedId)?.name ??
-    (waterAreas.some((item) => item.id === selectedId) ? "Water" : "Nothing selected");
+  const entry = selected;
+  const Btn = (p: { t: Tool; s?: Sub; icon: React.ReactNode; label: string }) => (
+    <button
+      type="button"
+      className={`hx-btn${tool === p.t && (!p.s || sub === p.s) ? " on" : ""}`}
+      onClick={() => pickTool(p.t, p.s)}
+    >
+      {p.icon}
+      {p.label}
+    </button>
+  );
 
   return (
-    <section className="habitat-editor habitat-editor-clean">
-      <header className="habitat-clean-topbar">
-        <div className="habitat-clean-title">
-          <span className="eyebrow">REBYTERS / SCENE BUILDER</span>
-          <h1>Habitat Editor</h1>
-        </div>
+    <div className="hx">
+      <aside className="hx-panel">
+        <section>
+          <h3>Vistas</h3>
+          <div className="hx-grid">
+            {(["triple", "pano", "mobile", "top"] as ViewMode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`hx-btn${mode === m ? " on" : ""}`}
+                onClick={() => setMode(m)}
+              >
+                {m === "triple" ? "Las tres" : VIEW_LABEL[m]}
+              </button>
+            ))}
+          </div>
+        </section>
 
-        <div className="habitat-clean-sizes" aria-label="Scenario size">
-          {([4, 8, 16] as const).map((size) => (
-            <button
-              key={size}
-              className={gridSize === size ? "active" : ""}
-              onClick={() => changeGridSize(size)}
-            >
-              {size}×{size}
-            </button>
-          ))}
-        </div>
+        <section>
+          <h3>Herramientas</h3>
+          <div className="hx-grid">
+            <Btn t="relief" s="up" icon={<Mountain size={15} />} label="Subir" />
+            <Btn t="relief" s="down" icon={<Mountain size={15} style={{ transform: "scaleY(-1)" }} />} label="Bajar" />
+            <Btn t="water" s="add" icon={<Droplets size={15} />} label="Agua" />
+            <Btn t="water" s="remove" icon={<Droplets size={15} opacity={0.5} />} label="Quitar agua" />
+            <Btn t="ground" s="path" icon={<Paintbrush size={15} />} label="Camino" />
+            <Btn t="ground" s="sand" icon={<Paintbrush size={15} />} label="Arena" />
+            <Btn t="ground" s="rock" icon={<Paintbrush size={15} />} label="Roca" />
+            <Btn t="ground" s="grass" icon={<Paintbrush size={15} />} label="Pasto" />
+            <Btn t="object" icon={<Trees size={15} />} label="Objeto" />
+            <Btn t="select" icon={<MousePointer2 size={15} />} label="Seleccionar" />
+            <Btn t="creature" icon={<PawPrint size={15} />} label="Criatura" />
+            <Btn t="erase" icon={<Eraser size={15} />} label="Borrar" />
+            <Btn t="nav" icon={<Hand size={15} />} label="Navegar" />
+          </div>
+        </section>
 
-        <div className="habitat-clean-actions">
-          <button onClick={() => void restoreDraft()}>Restore</button>
-          <button onClick={saveDraft}><Save size={15}/>Save</button>
-          <button onClick={exportManifest}><FileJson size={15}/>JSON</button>
-          <button className="primary" onClick={() => void exportGlb()}><Download size={15}/>GLB</button>
-        </div>
-      </header>
-
-      <div className="habitat-clean-workbench">
-        <aside className="habitat-clean-palette">
+        {(tool === "ground" || tool === "water" || tool === "relief" || tool === "erase") && (
           <section>
-            <div className="habitat-clean-section-title">
-              <strong>Ground</strong>
-              <small>Paint connected tiles</small>
-            </div>
-            <div className="habitat-clean-toolgrid">
-              <button className={tool === "tiles" && tileMaterial === "grass" ? "active" : ""} onClick={() => chooseTile("grass")}><Sprout size={17}/><span>Grass</span></button>
-              <button className={tool === "tiles" && tileMaterial === "path" ? "active" : ""} onClick={() => chooseTile("path")}><Route size={17}/><span>Path</span></button>
-              <button className={tool === "tiles" && tileMaterial === "dirt" ? "active" : ""} onClick={() => chooseTile("dirt")}><Paintbrush size={17}/><span>Dirt</span></button>
-              <button className={tool === "tiles" && tileMaterial === "water" ? "active" : ""} onClick={() => chooseTile("water")}><Droplets size={17}/><span>Water</span></button>
-              <button className={tool === "tiles" && tileMaterial === "rock" ? "active" : ""} onClick={() => chooseTile("rock")}><Box size={17}/><span>Rock</span></button>
-              <button className={tool === "tiles" && tileMaterial === "empty" ? "active" : ""} onClick={() => chooseTile("empty")}><Trash2 size={17}/><span>Erase</span></button>
-            </div>
-          </section>
-
-          <section>
-            <div className="habitat-clean-section-title">
-              <strong>Props</strong>
-              <small>Click a prop, then click a tile</small>
-            </div>
-            <div className="habitat-clean-assets">
-              {BUILTIN_ASSETS.filter((item) =>
-                item.category === "Nature" &&
-                !["Mountain ridge", "Production mountains", "Distant mountains"].includes(item.name)
-              ).map((item) => (
-                <button
-                  key={item.asset}
-                  className={tool === "assets" && assetBrush?.asset === item.asset ? "active" : ""}
-                  onClick={() => chooseAsset(item)}
-                >
-                  <Sparkles size={15}/>
-                  <span>{item.name}</span>
+            <h3>Pincel</h3>
+            <div className="hx-grid three">
+              {[1, 3, 5].map((n) => (
+                <button key={n} type="button" className={`hx-btn${brush === n ? " on" : ""}`} onClick={() => setBrush(n)}>
+                  {n}×{n}
                 </button>
               ))}
             </div>
           </section>
+        )}
 
-          <label className="habitat-clean-import">
-            <Upload size={15}/>Import GLB
-            <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) importCustom(file);
-            }}/>
+        {tool === "object" && (
+          <section>
+            <h3>Objeto de la escena</h3>
+            <div className="hx-grid">
+              {PROP_CATALOG.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  className={`hx-btn${objectKey === p.key ? " on" : ""}`}
+                  onClick={() => setObjectKey(p.key)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {entry && (
+          <section>
+            <h3>Objeto seleccionado</h3>
+            <label className="hx-field">
+              Tamaño ({entry.h.toFixed(1)} m)
+              <input
+                type="range"
+                min={0.2}
+                max={10}
+                step={0.1}
+                value={entry.h}
+                onPointerDown={() => worldRef.current && remember(worldRef.current.snapshot())}
+                onChange={(e) => {
+                  worldRef.current?.updateProp(entry, { h: Number(e.target.value) });
+                  bump((n) => n + 1);
+                  scheduleSave();
+                }}
+              />
+            </label>
+            <label className="hx-field">
+              Rotación
+              <input
+                type="range"
+                min={0}
+                max={6.28}
+                step={0.05}
+                value={entry.r}
+                onPointerDown={() => worldRef.current && remember(worldRef.current.snapshot())}
+                onChange={(e) => {
+                  worldRef.current?.updateProp(entry, { r: Number(e.target.value) });
+                  bump((n) => n + 1);
+                  scheduleSave();
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="hx-btn danger"
+              onClick={() => {
+                const world = worldRef.current;
+                if (!world) return;
+                remember(world.snapshot());
+                world.removeProp(entry);
+                setSelected(null);
+              }}
+            >
+              Eliminar objeto
+            </button>
+          </section>
+        )}
+
+        <section>
+          <h3>Escena</h3>
+          <label className="hx-field">
+            Momento del día
+            <select value={period} onChange={(e) => setPeriod(e.target.value as WorldPeriod)}>
+              {PERIODS.map((p) => (
+                <option key={p} value={p}>
+                  {PERIOD_LABEL[p]}
+                </option>
+              ))}
+            </select>
           </label>
-        </aside>
-
-        <main className={`habitat-clean-stage preview-${previewMode}`}>
-          <div className="habitat-clean-canvas-wrap">
-            <div ref={mount} className="habitat-canvas" />
+          <div className="hx-grid" style={{ marginTop: 8 }}>
+            <button type="button" className={`hx-btn${grid ? " on" : ""}`} onClick={() => setGrid(!grid)}>
+              <Grid3X3 size={15} /> Cuadrícula
+            </button>
+            <button type="button" className={`hx-btn${lake ? " on" : ""}`} onClick={() => setLake(!lake)}>
+              <Layers size={15} /> Lago original
+            </button>
+            <button type="button" className={`hx-btn${trail ? " on" : ""}`} onClick={() => setTrail(!trail)}>
+              <Layers size={15} /> Camino original
+            </button>
           </div>
-          <div className="habitat-clean-status">
-            <span>{status}</span>
-            <div>
-              <button className={previewMode === "web" ? "active" : ""} onClick={() => setPreviewMode("web")}><Monitor size={14}/>Web</button>
-              <button className={previewMode === "mobile" ? "active" : ""} onClick={() => setPreviewMode("mobile")}><Smartphone size={14}/>Mobile</button>
-            </div>
+        </section>
+
+        <section>
+          <h3>Archivo</h3>
+          <div className="hx-grid">
+            <button type="button" className="hx-btn" disabled={!counts.undo} onClick={() => void undo()}>
+              <Undo2 size={15} /> Deshacer
+            </button>
+            <button type="button" className="hx-btn" disabled={!counts.redo} onClick={() => void redo()}>
+              <Redo2 size={15} /> Rehacer
+            </button>
+            <button type="button" className="hx-btn" onClick={exportJson}>
+              <Download size={15} /> Exportar
+            </button>
+            <label className="hx-btn" style={{ cursor: "pointer" }}>
+              <Upload size={15} /> Importar
+              <input
+                type="file"
+                accept="application/json,.json"
+                hidden
+                onChange={(e) => {
+                  void importJson(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
           </div>
-        </main>
+          <p className="hx-hint" style={{ marginTop: 8 }}>
+            Se guarda solo en este navegador. Clic derecho o Mayús para orbitar, rueda para zoom, doble clic para
+            reiniciar la vista.
+          </p>
+        </section>
+      </aside>
 
-        <aside className="habitat-clean-inspector">
-          <section>
-            <div className="habitat-clean-section-title">
-              <strong>Scene</strong>
-              <small>{gridSize}×{gridSize} · {tiles.length} tiles · {objects.length} props</small>
-            </div>
-            <label>Habitat name<input value={name} onChange={(e) => setName(e.target.value)}/></label>
-          </section>
-
-          <section>
-            <div className="habitat-clean-section-title">
-              <strong>Object</strong>
-              <small>{selectedName}</small>
-            </div>
-            <button className={tool === "objects" ? "active" : ""} onClick={() => {
-              setTool("objects");
-              setAssetBrush(null);
-              assetBrushRef.current = null;
-            }}><Move3D size={15}/>Select objects</button>
-
-            {tool === "objects" && (
-              <div className="habitat-clean-transform">
-                <button className={mode === "translate" ? "active" : ""} onClick={() => setMode("translate")}><Move3D size={14}/>Move</button>
-                <button className={mode === "rotate" ? "active" : ""} onClick={() => setMode("rotate")}><Rotate3D size={14}/>Rotate</button>
-                <button className={mode === "scale" ? "active" : ""} onClick={() => setMode("scale")}><Scale3D size={14}/>Scale</button>
-              </div>
-            )}
-            <button className="danger-soft" disabled={!selectedId} onClick={deleteSelected}><Trash2 size={14}/>Delete selected</button>
-          </section>
-
-          <section className="habitat-clean-note">
-            <strong>Grid logic</strong>
-            <p>Tiles are only an editing system. The rendered field overlaps surfaces slightly so the final scene reads as one continuous terrain without visible seams.</p>
-          </section>
-        </aside>
+      <div
+        ref={hostRef}
+        className="hx-stage"
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        onPointerLeave={() => worldRef.current?.hideCursor()}
+        onWheel={onWheel}
+        onContextMenu={(e) => e.preventDefault()}
+        onDoubleClick={(e) => {
+          const world = worldRef.current;
+          if (!world) return;
+          const { x, y } = local(e);
+          const pane = world.paneAt(x, y);
+          if (pane) world.resetView(pane.id);
+        }}
+      >
+        <canvas ref={canvasRef} />
+        {panes.map((p) => (
+          <div
+            key={p.id}
+            className={`hx-label${p.id === activeView && panes.length > 1 ? " active" : ""}`}
+            style={{ left: p.x, top: p.y }}
+          >
+            {VIEW_LABEL[p.id]}
+          </div>
+        ))}
+        {!ready && !error && <div className="hx-loading">Cargando la escena del juego…</div>}
+        <div className="hx-status">{error || STATUS[tool]}</div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -47,3 +47,11 @@ The playable clearing and lake basin stay flat through a radius of 28m, so the t
 Night uses a higher moonlight angle, soft warm frontal fill, cyan edge light, blue atmospheric separation and neutral tone mapping. One 512px mobile / 1024px desktop shadow map is refreshed only when the scenery is assembled or the period changes. Animated creatures use the existing contact shadow rather than entering the static shadow map. Terrain and near props receive the scenery shadows.
 
 Implementation is in `habitat-materials.ts`, `habitat-lighting.ts`, `meadow.ts` and the shared viewer. Existing animation, training and account logic is retained. Real-device frame timing and visual comparison still require a browser review; a successful Vercel build checks TypeScript and bundling, not WebGL shader rendering.
+
+## Habitat Editor (admin)
+
+`/admin/habitat-editor` renders the game's real `meadow()` scene (trees, pines, bushes, rocks, grass carpet, lake, trail, mountains, sky, day periods) with the real `mammal.exe` companion at the centre, in three simultaneous views: panorámica, móvil (the game cameras) and cenital (orthographic).
+
+On top of the untouched scene it adds a tile layer (1 m tiles): raise/lower relief (mounds get dirt slopes and a grass top, grass blades follow the ground), paint path/sand/rock, add/remove water with irregular contoured shores, and add/move/rotate/scale/delete props (original woodland included). The creature's tile cannot become water. Undo/redo (Ctrl+Z), localStorage autosave and JSON export/import are included.
+
+Code: `components/admin/HabitatEditor.tsx` (UI), `components/admin/habitat/world.ts` (engine), `habitat/tiles.ts` (tile maths and meshes). `meadow()` gained opt-in `props`, `spawn` and `removeProp`; its default game behaviour is unchanged. Shader output was checked in headless Chromium only; review on real devices.

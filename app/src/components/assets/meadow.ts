@@ -60,7 +60,27 @@ const files = {
   wildflowers: "wildflowers_mobile.glb",
   reeds: "water_reeds_mobile.glb",
 } as const;
-type AssetKey = keyof typeof files;
+// Optional props: not part of the default composition and never preloaded by the
+// game. The habitat editor loads them on demand through spawn().
+const extraFiles = {
+  hero: "hero_tree_mobile.glb",
+  lantern: "enchanted_lantern_mobile.glb",
+  shoreRocks: "shore_rocks_strip_mobile.glb",
+} as const;
+const allFiles = { ...files, ...extraFiles } as const;
+type BaseKey = keyof typeof files;
+export type AssetKey = keyof typeof allFiles;
+
+// A prop placed in the scene, with the contact shadow that grounds it.
+export type PlacedProp = {
+  key: AssetKey;
+  node: THREE.Object3D;
+  contact: THREE.Mesh | null;
+  x: number;
+  z: number;
+  h: number;
+  r: number;
+};
 
 // ---- Shared asset cache -----------------------------------------------------
 // The login scene, the creature scene and every day/night change reuse the same
@@ -75,14 +95,14 @@ function loadAsset(key: AssetKey): Promise<THREE.Group | null> {
   if (!pending) {
     sharedLoader ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
     pending = sharedLoader
-      .loadAsync(ENV + files[key])
+      .loadAsync(ENV + allFiles[key])
       .then((gltf) => {
-        if (key === "tree" || key === "pine" || key === "bush")
+        if (key === "tree" || key === "pine" || key === "bush" || key === "hero")
           addWind(gltf.scene, windStrength[key]);
         return gltf.scene;
       })
       .catch((error) => {
-        console.warn("[Rebyters] env", files[key], error);
+        console.warn("[Rebyters] env", allFiles[key], error);
         assetCache.delete(key); // allow a retry on the next scene
         return null;
       });
@@ -99,7 +119,7 @@ const reducedMotion =
   typeof matchMedia === "function" &&
   matchMedia("(prefers-reduced-motion: reduce)").matches;
 const wind = { time: { value: 0 }, gain: { value: reducedMotion ? 0.3 : 1 } };
-const windStrength = { tree: 0.035, pine: 0.028, bush: 0.045 } as const;
+const windStrength = { tree: 0.035, pine: 0.028, bush: 0.045, hero: 0.03 } as const;
 
 function addWind(root: THREE.Object3D, strength: number) {
   const patched = new Set<THREE.Material>();
@@ -190,7 +210,11 @@ function put(
 export function meadow(
   scene: THREE.Scene,
   period: WorldPeriod,
-  options: { grassExclusions?: { x: number; z: number; radius: number }[] } = {},
+  options: {
+    grassExclusions?: { x: number; z: number; radius: number }[];
+    // false skips the default woodland and props (the habitat editor places its own).
+    props?: boolean;
+  } = {},
 ) {
   const colors = {
     ...palettes[period],
@@ -601,32 +625,35 @@ diffuseColor.rgb *= 1.0 + macro;`,
 
   // Load all reusable props concurrently. Mobile keeps the same composition;
   // only repeated vegetation and ground-detail density differ.
-  void (async () => {
-    const keys = Object.keys(files) as AssetKey[];
+  const props: PlacedProp[] = [];
+  const assets: Partial<Record<AssetKey, THREE.Group | null>> = {};
+  const plant = (key: AssetKey, x: number, z: number, h: number, r = 0) => {
+    const prop = put(assets[key] ?? null, group, x, z, h, r);
+    if (prop && key !== "mountains") {
+      const contact = new THREE.Mesh(shadow.geometry, shadow.material);
+      contact.position.set(x, 0.022, z);
+      contact.rotation.x = -Math.PI / 2;
+      contact.scale.set(h * 0.36, h * 0.3, 1);
+      group.add(contact);
+      props.push({ key, node: prop, contact, x, z, h, r });
+    }
+    if (prop && key !== "mountains" && z > -15) {
+      prop.traverse((node) => {
+        if (node instanceof THREE.Mesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+        }
+      });
+    }
+    return prop;
+  };
+  const ready = (async () => {
+    const keys = Object.keys(files) as BaseKey[];
     const loaded = await Promise.all(keys.map(loadAsset));
     if (disposed) return;
-    const a = Object.fromEntries(
-      keys.map((key, i) => [key, loaded[i]]),
-    ) as Record<AssetKey, THREE.Group | null>;
-    const plant = (key: AssetKey, x: number, z: number, h: number, r = 0) => {
-      const prop = put(a[key], group, x, z, h, r);
-      if (prop && key !== "mountains") {
-        const contact = new THREE.Mesh(shadow.geometry, shadow.material);
-        contact.position.set(x, 0.022, z);
-        contact.rotation.x = -Math.PI / 2;
-        contact.scale.set(h * 0.36, h * 0.3, 1);
-        group.add(contact);
-      }
-      if (prop && key !== "mountains" && z > -15) {
-        prop.traverse((node) => {
-          if (node instanceof THREE.Mesh) {
-            node.castShadow = true;
-            node.receiveShadow = true;
-          }
-        });
-      }
-      return prop;
-    };
+    keys.forEach((key, i) => {
+      assets[key] = loaded[i];
+    });
     // Three overlapping ridgelines, readable through a gentle aerial haze.
     for (const [x, z, h, r] of [
       [-8, -32, 10, 0.25],
@@ -672,6 +699,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
           : tint(mesh.material);
       });
     }
+    if (options.props !== false) {
     // Far woodland gives the lake a shoreline and connects it to the mountains.
     const forest = mobile ? 14 : 18;
     for (let i = 0; i < forest; i++) {
@@ -712,9 +740,36 @@ diffuseColor.rgb *= 1.0 + macro;`,
     plant("log", 3.4, -5.2, 0.65, -0.8);
     plant("mushrooms", -1.75, -0.7, 0.28, 0.2);
     plant("mushrooms", 2.25, 0.5, 0.22, -0.3);
+    }
 
     shadowsDirty = true;
   })();
+
+  // Editing API. Props can be added or removed after the first assembly; the
+  // game itself never calls these.
+  const spawn = async (
+    key: AssetKey,
+    x: number,
+    z: number,
+    h: number,
+    r = 0,
+  ) => {
+    await ready;
+    if (disposed) return null;
+    if (assets[key] === undefined) assets[key] = await loadAsset(key);
+    if (disposed) return null;
+    const before = props.length;
+    plant(key, x, z, h, r);
+    shadowsDirty = true;
+    return props.length > before ? props[props.length - 1] : null;
+  };
+  const removeProp = (prop: PlacedProp) => {
+    prop.node.removeFromParent();
+    prop.contact?.removeFromParent();
+    const index = props.indexOf(prop);
+    if (index >= 0) props.splice(index, 1);
+    shadowsDirty = true;
+  };
 
   // Wind is driven by the caller's existing render loop: no second RAF.
   let lastTime = 0;
@@ -830,6 +885,22 @@ diffuseColor.rgb *= 1.0 + macro;`,
       return dirty;
     },
     groundY: 0.04,
+    // Handles used by the habitat editor.
+    props,
+    ready,
+    spawn,
+    removeProp,
+    markShadowsDirty() {
+      shadowsDirty = true;
+    },
+    floor,
+    lake,
+    bank,
+    path,
+    waterMaterial,
+    bankMaterial: bank.material as THREE.MeshStandardMaterial,
+    grass: carpet.mesh,
+    flowers: [petals, centers] as THREE.InstancedMesh[],
     setCompanionShadowPosition(x: number, z: number, visible = true) {
       shadow.position.x = x;
       shadow.position.z = z;
