@@ -82,7 +82,7 @@ type HabitatAssetDefinition = {
 
 const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
-const GRASS_TEXTURE_URI = "/assets/environment/grass-painted-tile.jpg";
+const GRASS_TEXTURE_URI = "/assets/environment/grass-painted-tile.png";
 const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
@@ -251,9 +251,10 @@ function buildSmartTileGroup(
         (baseVariation - 0.5) * 0.025,
         (baseVariation - 0.5) * 0.018,
       );
+      const grassReady = grassTexture?.userData.ready === true;
       const grassMaterial = new THREE.MeshStandardMaterial({
-        map: grassTexture,
-        color: grassTexture ? 0xffffff : fallbackGreen.getHex(),
+        map: grassReady ? grassTexture : null,
+        color: grassReady ? 0xffffff : fallbackGreen.getHex(),
         roughness: 1,
         metalness: 0,
       });
@@ -616,9 +617,16 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const grassTexture = new THREE.TextureLoader().load(
       GRASS_TEXTURE_URI,
       () => {
+        grassTexture.userData.ready = true;
+        if (!disposed) rebuildTilesRef.current();
+      },
+      undefined,
+      () => {
+        grassTexture.userData.ready = false;
         if (!disposed) rebuildTilesRef.current();
       },
     );
+    grassTexture.userData.ready = false;
     grassTexture.colorSpace = THREE.SRGBColorSpace;
     grassTexture.wrapS = THREE.RepeatWrapping;
     grassTexture.wrapT = THREE.RepeatWrapping;
