@@ -2684,3 +2684,265 @@ body:has(.admin-console){
     min-width: 0;
   }
 }
+
+
+/* Clean Habitat Scene Builder ------------------------------------------------ */
+.habitat-editor-clean{
+  display:grid;
+  gap:14px;
+  padding:0;
+  background:#fff;
+}
+.habitat-clean-topbar{
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) auto auto;
+  align-items:center;
+  gap:16px;
+  padding:10px 12px;
+  border:1px solid #e4e9e5;
+  border-radius:12px;
+  background:#fff;
+}
+.habitat-clean-title h1{
+  margin:3px 0 0;
+  font-size:22px;
+  font-weight:650;
+  color:#1d2e24;
+}
+.habitat-clean-sizes,
+.habitat-clean-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.habitat-clean-sizes button{
+  min-width:52px;
+  min-height:34px;
+  border-radius:8px;
+  background:#f7f9f7;
+}
+.habitat-clean-sizes button.active{
+  border-color:#4f8767;
+  background:#eaf4ed;
+  color:#1f5e3e;
+}
+.habitat-clean-actions button{
+  min-height:34px;
+}
+.habitat-clean-workbench{
+  display:grid;
+  grid-template-columns:220px minmax(0,1fr) 220px;
+  gap:12px;
+  min-height:680px;
+}
+.habitat-clean-palette,
+.habitat-clean-inspector,
+.habitat-clean-stage{
+  border:1px solid #e4e9e5;
+  border-radius:12px;
+  background:#fff;
+  overflow:hidden;
+}
+.habitat-clean-palette,
+.habitat-clean-inspector{
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.habitat-clean-palette section,
+.habitat-clean-inspector section{
+  display:grid;
+  gap:10px;
+}
+.habitat-clean-section-title{
+  display:grid;
+  gap:2px;
+}
+.habitat-clean-section-title strong{
+  color:#24362b;
+  font-size:12px;
+}
+.habitat-clean-section-title small{
+  color:#8a9890;
+  font-size:9px;
+  line-height:1.35;
+}
+.habitat-clean-toolgrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.habitat-clean-toolgrid button{
+  min-height:58px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:5px;
+  border-radius:9px;
+  background:#fafbfa;
+}
+.habitat-clean-toolgrid button span{
+  font-size:10px;
+  font-weight:700;
+}
+.habitat-clean-toolgrid button.active,
+.habitat-clean-assets button.active,
+.habitat-clean-inspector button.active,
+.habitat-clean-status button.active{
+  border-color:#4f8767;
+  background:#edf5ef;
+  color:#1f5e3e;
+}
+.habitat-clean-assets{
+  display:grid;
+  gap:6px;
+  max-height:430px;
+  overflow:auto;
+  padding-right:2px;
+}
+.habitat-clean-assets button{
+  width:100%;
+  min-height:38px;
+  justify-content:flex-start;
+  gap:8px;
+  border-radius:8px;
+  background:#fafbfa;
+}
+.habitat-clean-assets button span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.habitat-clean-import{
+  margin-top:auto;
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:1px dashed #aebdb3;
+  border-radius:8px;
+  color:#4b705a;
+  font-size:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+.habitat-clean-import input{display:none}
+.habitat-clean-stage{
+  min-width:0;
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  background:#f7f8f6;
+}
+.habitat-clean-canvas-wrap{
+  min-height:620px;
+  background:#f7f8f6;
+}
+.habitat-clean-canvas-wrap .habitat-canvas,
+.habitat-clean-canvas-wrap .habitat-canvas canvas{
+  width:100%;
+  height:100%;
+  min-height:620px;
+  display:block;
+}
+.habitat-clean-status{
+  min-height:44px;
+  padding:7px 10px;
+  border-top:1px solid #e4e9e5;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.habitat-clean-status > span{
+  min-width:0;
+  color:#738178;
+  font-size:9px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.habitat-clean-status > div{
+  display:flex;
+  gap:5px;
+  flex-shrink:0;
+}
+.habitat-clean-status button{
+  min-height:28px;
+  padding:4px 8px;
+}
+.habitat-clean-inspector label{
+  display:grid;
+  gap:5px;
+  font-size:9px;
+  color:#7c8b82;
+}
+.habitat-clean-inspector input{
+  width:100%;
+}
+.habitat-clean-inspector > section > button{
+  width:100%;
+  justify-content:flex-start;
+}
+.habitat-clean-transform{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:5px;
+}
+.habitat-clean-transform button{
+  min-height:34px;
+  padding:5px;
+  font-size:9px;
+}
+.habitat-clean-note{
+  margin-top:auto;
+  padding:10px;
+  border-radius:9px;
+  background:#f6f8f6;
+}
+.habitat-clean-note p{
+  margin:0;
+  color:#7f8c84;
+  font-size:9px;
+  line-height:1.45;
+}
+.danger-soft{
+  color:#975454!important;
+  border-color:#e5caca!important;
+  background:#fffafa!important;
+}
+@media(max-width:1100px){
+  .habitat-clean-workbench{
+    grid-template-columns:190px minmax(0,1fr);
+  }
+  .habitat-clean-inspector{
+    grid-column:1/-1;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    align-items:start;
+  }
+}
+@media(max-width:760px){
+  .habitat-clean-topbar{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .habitat-clean-workbench{
+    grid-template-columns:1fr;
+  }
+  .habitat-clean-stage{
+    order:-1;
+  }
+  .habitat-clean-canvas-wrap,
+  .habitat-clean-canvas-wrap .habitat-canvas,
+  .habitat-clean-canvas-wrap .habitat-canvas canvas{
+    min-height:520px;
+  }
+  .habitat-clean-palette,
+  .habitat-clean-inspector{
+    display:flex;
+  }
+}
