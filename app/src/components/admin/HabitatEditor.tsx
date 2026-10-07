@@ -251,21 +251,24 @@ function buildSmartTileGroup(
         (baseVariation - 0.5) * 0.025,
         (baseVariation - 0.5) * 0.018,
       );
-      const grassReady = grassTexture?.userData.ready === true;
       const grassMaterial = new THREE.MeshStandardMaterial({
-        map: grassReady ? grassTexture : null,
-        color: grassReady ? 0xffffff : fallbackGreen.getHex(),
+        map: grassTexture,
+        color: grassTexture ? 0xffffff : fallbackGreen.getHex(),
         roughness: 1,
         metalness: 0,
       });
+
+      // Use a dedicated top plane so the painted albedo is always visible and
+      // does not depend on BoxGeometry face UVs.
       const grass = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 1.006, 0.035, cell * 1.006),
+        new THREE.PlaneGeometry(cell * 1.006, cell * 1.006),
         grassMaterial,
       );
-      grass.position.y = 0.018;
-      grass.rotation.y =
+      grass.rotation.x = -Math.PI / 2;
+      grass.rotation.z =
         Math.floor(seededTileRandom(tile.x, tile.z, 71) * 4) *
         (Math.PI / 2);
+      grass.position.y = 0.041;
       grass.receiveShadow = true;
       group.add(grass);
     }
@@ -616,17 +619,21 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     let disposed = false;
     const grassTexture = new THREE.TextureLoader().load(
       GRASS_TEXTURE_URI,
-      () => {
-        grassTexture.userData.ready = true;
+      (loaded) => {
+        loaded.colorSpace = THREE.SRGBColorSpace;
+        loaded.wrapS = THREE.RepeatWrapping;
+        loaded.wrapT = THREE.RepeatWrapping;
+        loaded.needsUpdate = true;
         if (!disposed) rebuildTilesRef.current();
       },
       undefined,
       () => {
-        grassTexture.userData.ready = false;
-        if (!disposed) rebuildTilesRef.current();
+        if (!disposed) {
+          grassTextureRef.current = null;
+          rebuildTilesRef.current();
+        }
       },
     );
-    grassTexture.userData.ready = false;
     grassTexture.colorSpace = THREE.SRGBColorSpace;
     grassTexture.wrapS = THREE.RepeatWrapping;
     grassTexture.wrapT = THREE.RepeatWrapping;
