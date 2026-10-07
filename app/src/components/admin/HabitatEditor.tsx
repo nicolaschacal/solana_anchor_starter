@@ -614,6 +614,17 @@ function buildSmartTileGroup(
   return root;
 }
 
+function waterMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: WATER_COLOR,
+    roughness: 0.18,
+    metalness: 0.03,
+    transparent: true,
+    opacity: 0.82,
+    depthWrite: false,
+  });
+}
+
 export function HabitatEditor({ registry }: { registry: Registry }) {
   const atlas = useEvolutionTree(0, registry.activeVersions[0] ?? 0, false);
   const mammalExe = atlas.tree?.evolutions.find(
