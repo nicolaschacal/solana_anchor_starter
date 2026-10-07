@@ -2561,3 +2561,126 @@ body:has(.admin-console){
     flex-basis:88px;
   }
 }
+
+
+/* Smart Habitat Builder ---------------------------------------------------- */
+.smart-tile-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #d8e3db;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff, #f7faf8);
+}
+.smart-tile-panel-copy {
+  min-width: 220px;
+  display: grid;
+  gap: 3px;
+}
+.smart-tile-panel-copy strong {
+  color: #244b35;
+  font-size: 12px;
+}
+.smart-tile-panel-copy span {
+  max-width: 470px;
+  color: #76877c;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.smart-tile-materials {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.smart-tile-materials button {
+  min-width: 112px;
+  min-height: 52px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: #fff;
+  text-align: left;
+}
+.smart-tile-materials button > span {
+  display: grid;
+  line-height: 1.05;
+}
+.smart-tile-materials button strong {
+  font-size: 11px;
+}
+.smart-tile-materials button small {
+  margin-top: 4px;
+  color: #86958c;
+  font-size: 9px;
+}
+.smart-tile-materials button.active {
+  border-color: #438160;
+  box-shadow: 0 0 0 2px #d8ecdf inset;
+}
+.smart-tile-materials .tile-grass { border-left: 4px solid #6f9f49; }
+.smart-tile-materials .tile-water { border-left: 4px solid #2a9bb0; }
+.smart-tile-materials .tile-path { border-left: 4px solid #b69a67; }
+.smart-tile-materials .tile-dirt { border-left: 4px solid #9b7149; }
+.smart-tile-materials .tile-rock { border-left: 4px solid #748073; }
+.smart-tile-materials .tile-empty { border-left: 4px solid #a55a5a; }
+
+.habitat-size-picker {
+  display: grid;
+  gap: 8px;
+}
+.habitat-size-picker > small {
+  color: #87978d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.habitat-size-picker > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.habitat-size-picker button {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 7px 5px;
+  border-radius: 8px;
+}
+.habitat-size-picker button strong {
+  font-size: 12px;
+}
+.habitat-size-picker button span {
+  color: #87978d;
+  font-size: 8px;
+}
+.habitat-size-picker button.active {
+  border-color: #4b8765;
+  background: #e8f3ec;
+  color: #1f5e3e;
+}
+
+@media (max-width: 980px) {
+  .smart-tile-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .smart-tile-materials {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 600px) {
+  .smart-tile-materials {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .smart-tile-materials button {
+    min-width: 0;
+  }
+}
