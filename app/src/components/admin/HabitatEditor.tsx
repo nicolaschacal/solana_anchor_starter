@@ -17,13 +17,14 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PERIODS, type WorldPeriod } from "../../hooks/useWorldClock";
 import { useEvolutionTree } from "../../hooks/useEvolutionTree";
-import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
 import { inspectModel, loader } from "../../lib/assets/rig";
 import type { Registry } from "../../lib/rebyters/types";
 import type { AssetKey } from "../assets/meadow";
 import "./habitat/HabitatEditor.css";
 import {
+  DEFAULT_LIGHTING,
   HabitatWorld,
+  type Lighting,
   PROP_CATALOG,
   type Pane,
   type PropEntry,
@@ -97,7 +98,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const mammal = atlas.tree?.evolutions.find(
     (e) => e.key === "mammal.exe" || e.name.toLowerCase() === "mammal.exe",
   );
-  const creatureUri = mammal ? modelUriFor(mammal) || MAMMAL_PILOT.modelUri : MAMMAL_PILOT.modelUri;
+  // The creature comes from the atlas: the GLB published on Irys, never a bundled file.
+  const creatureUri = mammal?.assets?.modelUri || mammal?.modelUri || "";
+  const atlasSettled = !!atlas.tree || !!atlas.error;
 
   const syncCounts = () => setCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
   const scheduleSave = useCallback(() => {
@@ -148,6 +151,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       .init(saved)
       .then(() => {
         if (!alive) return;
+        setLightingState({ ...world.lighting });
         setReady(true);
         bump((n) => n + 1);
       })
@@ -160,28 +164,37 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     };
   }, []);
 
-  // The real mammal.exe at the centre of the scene.
+  // The real mammal.exe at the centre of the scene, loaded from its Irys URI in the atlas.
   useEffect(() => {
     const world = worldRef.current;
-    if (!ready || !world) return;
+    if (!ready || !world || !atlasSettled) return;
+    if (!creatureUri) {
+      setError(
+        atlas.error
+          ? `No se pudo leer el atlas: ${atlas.error}`
+          : "mammal.exe no tiene un GLB (URI de Irys) enlazado en el atlas.",
+      );
+      return;
+    }
     let alive = true;
     const l = loader();
+    setError("");
     l.gltf
       .loadAsync(creatureUri)
       .then((gltf) => alive && world.setCreature(inspectModel(gltf)))
-      .catch(() => {
-        if (!alive) return;
-        if (creatureUri !== MAMMAL_PILOT.modelUri)
-          l.gltf
-            .loadAsync(MAMMAL_PILOT.modelUri)
-            .then((gltf) => alive && world.setCreature(inspectModel(gltf)))
-            .catch(() => alive && setError("No se pudo cargar el modelo de mammal.exe."));
-        else setError("No se pudo cargar el modelo de mammal.exe.");
-      });
+      .catch(() => alive && setError(`No se pudo cargar el GLB de mammal.exe desde ${creatureUri}`));
     return () => {
       alive = false;
+      l.dispose();
     };
-  }, [ready, creatureUri]);
+  }, [ready, creatureUri, atlasSettled, atlas.error]);
+
+  const [lighting, setLightingState] = useState<Lighting>({ ...DEFAULT_LIGHTING });
+  const light = (change: Partial<Lighting>) => {
+    setLightingState((prev) => ({ ...prev, ...change }));
+    worldRef.current?.setLighting(change);
+    scheduleSave();
+  };
 
   // ---- Controls pushed into the world -------------------------------------------
   useEffect(() => {
@@ -428,6 +441,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       if (!HabitatWorld.isSceneData(data)) throw new Error("Archivo de escena no válido.");
       remember(world.snapshot());
       await applySnapshot(data);
+      if (data.lighting) light({ ...DEFAULT_LIGHTING, ...data.lighting });
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo importar el archivo.");
@@ -567,18 +581,54 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         )}
 
         <section>
-          <h3>Escena</h3>
-          <label className="hx-field">
-            Momento del día
-            <select value={period} onChange={(e) => setPeriod(e.target.value as WorldPeriod)}>
-              {PERIODS.map((p) => (
-                <option key={p} value={p}>
-                  {PERIOD_LABEL[p]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <h3>Iluminación</h3>
+          <div className="hx-grid">
+            {PERIODS.map((p) => (
+              <button key={p} type="button" className={`hx-btn${period === p ? " on" : ""}`} onClick={() => setPeriod(p)}>
+                {PERIOD_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          {(
+            [
+              ["sun", "Sol", 0, 2.5, 0.05],
+              ["ambient", "Luz ambiente", 0, 2.5, 0.05],
+              ["rim", "Contraluz", 0, 3, 0.05],
+              ["exposure", "Brillo general", 0.5, 1.8, 0.02],
+              ["warmth", "Frío ↔ cálido", -1, 1, 0.05],
+              ["azimuth", "Giro del sol", -180, 180, 1],
+              ["elevation", "Altura del sol", -40, 40, 1],
+            ] as const
+          ).map(([k, label, min, max, step]) => (
+            <label key={k} className="hx-field" style={{ marginTop: 6 }}>
+              {label}
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={lighting[k]}
+                onChange={(e) => light({ [k]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
           <div className="hx-grid" style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className={`hx-btn${lighting.shadows ? " on" : ""}`}
+              onClick={() => light({ shadows: !lighting.shadows })}
+            >
+              Sombras
+            </button>
+            <button type="button" className="hx-btn" onClick={() => light({ ...DEFAULT_LIGHTING })}>
+              Restablecer
+            </button>
+          </div>
+        </section>
+
+        <section>
+          <h3>Escena</h3>
+          <div className="hx-grid">
             <button type="button" className={`hx-btn${grid ? " on" : ""}`} onClick={() => setGrid(!grid)}>
               <Grid3X3 size={15} /> Cuadrícula
             </button>

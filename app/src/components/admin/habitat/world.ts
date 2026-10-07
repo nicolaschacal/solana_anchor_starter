@@ -46,6 +46,29 @@ export type SceneData = {
   creature: { x: number; z: number };
   lake: boolean;
   trail: boolean;
+  lighting?: Lighting;
+};
+
+/** Easy lighting controls. 1 = the game's own value for the current period. */
+export type Lighting = {
+  sun: number; // key light intensity multiplier
+  ambient: number; // sky fill multiplier
+  rim: number; // back / rim light multiplier
+  exposure: number; // overall brightness
+  warmth: number; // -1 cool … +1 warm
+  azimuth: number; // degrees the sun is turned around the scene
+  elevation: number; // degrees the sun is raised (+) or lowered (-)
+  shadows: boolean;
+};
+export const DEFAULT_LIGHTING: Lighting = {
+  sun: 1,
+  ambient: 1,
+  rim: 1,
+  exposure: 1,
+  warmth: 0,
+  azimuth: 0,
+  elevation: 0,
+  shadows: true,
 };
 
 /** Props from the game's own environment folder, with a sensible default height in metres. */
@@ -116,6 +139,8 @@ export class HabitatWorld {
   showLake = true;
   showTrail = true;
   showGrid = true;
+  lighting: Lighting = { ...DEFAULT_LIGHTING };
+  private baseExposure = 1;
 
   private env!: ReturnType<typeof meadow>;
   private readonly host: HTMLElement;
@@ -323,10 +348,10 @@ diffuseColor.rgb = painted;`,
   }
 
   private applyLights() {
-    const env = this.env;
     const period = this.period;
-    this.renderer.toneMappingExposure =
+    this.baseExposure =
       period === "Night" ? 0.98 : period === "Evening" ? 1.01 : period === "Morning" ? 1.07 : 1.05;
+    this.renderer.toneMappingExposure = this.baseExposure * this.lighting.exposure;
     this.fill.color.setHex(period === "Evening" ? 0xffd9b3 : period === "Night" ? 0xaecbff : 0xffefd9);
     this.rim.color.setHex(period === "Evening" ? 0xffd1ad : period === "Night" ? 0x8fcaff : 0xccecff);
     this.companionRim.color.setHex(
@@ -334,18 +359,41 @@ diffuseColor.rgb = painted;`,
     );
     this.companionRim.intensity =
       period === "Night" ? 0.88 : period === "Evening" ? 0.68 : period === "Morning" ? 0.48 : 0.52;
-    this.key.position.copy(env.lightPosition);
+    this.placeSun();
     this.ambient.color.setHex(period === "Night" ? 0xa9c7ff : 0xd9efff);
     this.syncLightColors();
   }
   private syncLightColors() {
-    const c = this.env.colors;
+    const c = this.env.colors,
+      l = this.lighting;
     this.key.color.setHex(c.light);
-    this.key.intensity = c.intensity;
-    this.ambient.intensity = c.ambientIntensity;
-    this.fill.intensity = c.fillIntensity;
-    this.moon.intensity = c.moonIntensity;
-    this.rim.intensity = c.rimIntensity;
+    if (l.warmth) this.key.color.lerp(this.tint.setHex(l.warmth > 0 ? 0xffa45c : 0x8fb8ff), Math.abs(l.warmth) * 0.55);
+    this.key.intensity = c.intensity * l.sun;
+    this.ambient.intensity = c.ambientIntensity * l.ambient;
+    this.fill.intensity = c.fillIntensity * l.ambient;
+    this.moon.intensity = c.moonIntensity * l.sun;
+    this.rim.intensity = c.rimIntensity * l.rim;
+  }
+  private readonly tint = new THREE.Color();
+  /** The game's sun position, turned and raised by the editor controls. */
+  private placeSun() {
+    const base = this.env.lightPosition;
+    const r = base.length() || 1;
+    const az = Math.atan2(base.x, base.z) + THREE.MathUtils.degToRad(this.lighting.azimuth);
+    const el = clamp(
+      Math.asin(clamp(base.y / r, -1, 1)) + THREE.MathUtils.degToRad(this.lighting.elevation),
+      0.08,
+      1.5,
+    );
+    this.key.position.set(Math.sin(az) * Math.cos(el) * r, Math.sin(el) * r, Math.cos(az) * Math.cos(el) * r);
+  }
+  setLighting(change: Partial<Lighting>) {
+    const shadowsChanged = change.shadows !== undefined && change.shadows !== this.lighting.shadows;
+    this.lighting = { ...this.lighting, ...change };
+    this.renderer.toneMappingExposure = this.baseExposure * this.lighting.exposure;
+    this.placeSun();
+    if (shadowsChanged) this.key.castShadow = this.lighting.shadows;
+    this.env.markShadowsDirty();
   }
 
   async setPeriod(period: WorldPeriod) {
@@ -696,6 +744,7 @@ diffuseColor.rgb = painted;`,
       creature: { ...this.creature },
       lake: this.showLake,
       trail: this.showTrail,
+      lighting: { ...this.lighting },
     };
   }
   static isSceneData(data: unknown): data is SceneData {
@@ -724,6 +773,7 @@ diffuseColor.rgb = painted;`,
     this.creature = { ...data.creature };
     this.showLake = data.lake !== false;
     this.showTrail = data.trail !== false;
+    if (data.lighting) this.lighting = { ...DEFAULT_LIGHTING, ...data.lighting };
   }
   /** Restores a snapshot, keeping props that did not change. */
   async restore(data: SceneData) {
