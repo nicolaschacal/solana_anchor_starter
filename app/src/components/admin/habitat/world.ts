@@ -14,6 +14,7 @@ import type { WorldPeriod } from "../../../hooks/useWorldClock";
 import type { AssetModel } from "../../../lib/assets/rig";
 import {
   BANK_Y,
+  BASE_DEPTH,
   GX,
   GZ,
   MAX_LEVEL,
@@ -26,6 +27,7 @@ import {
   buildGridGeometry,
   buildOverlayGeometry,
   type Ground,
+  type Region,
   type TileData,
 } from "./tiles";
 
@@ -38,14 +40,18 @@ export type PropEntry = PropData & {
   baseH: number;
   prop: PlacedProp | null;
 };
+export type DioramaSize = 4 | 8 | 16;
+export const DIORAMA_SIZES: DioramaSize[] = [4, 8, 16];
+export type Kind = "diorama" | "preview";
+export type Target = { kind: "preview" } | { kind: "diorama"; size: DioramaSize; data?: SceneData | null };
 export type SceneData = {
-  version: 1;
+  version: 2;
+  kind: "diorama";
+  size: DioramaSize;
   period: WorldPeriod;
   tiles: TileData;
   props: (PropData & { id: number })[];
   creature: { x: number; z: number };
-  lake: boolean;
-  trail: boolean;
   lighting?: Lighting;
 };
 
@@ -82,7 +88,7 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "stump", label: "Tocón", h: 0.65 },
   { key: "log", label: "Tronco hueco", h: 0.65 },
   { key: "mushrooms", label: "Hongos", h: 0.28 },
-  { key: "grass", label: "Pasto alto", h: 0.9 },
+  { key: "grass", label: "Pasto alto", h: 0.7 },
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
@@ -143,8 +149,9 @@ export class HabitatWorld {
   entries: PropEntry[] = [];
   selected: PropEntry | null = null;
   creature = { x: 0, z: CREATURE_Z };
-  showLake = true;
-  showTrail = true;
+  kind: Kind = "diorama";
+  size: DioramaSize = 8;
+  creatureSelected = false;
   showGrid = true;
   lighting: Lighting = { ...DEFAULT_LIGHTING };
   private baseExposure = 1;
@@ -159,8 +166,10 @@ export class HabitatWorld {
   private lastFrame = performance.now();
   private readonly views: Record<ViewId, ViewState>;
   private creatureSpan = 1.4;
-  private footprint = 0.7; // metres: how far the body reaches from its centre
-  private lakeMask = new Uint8Array(GX * GZ);
+  private creatureModel: AssetModel | null = null;
+  private baseTop: THREE.Mesh | null = null;
+  private baseSides: THREE.Mesh | null = null;
+  private generation = 0;
   private restY = 0; // height the creature is easing towards
 
   // Lights, same rig as the game's landscape scene.
@@ -219,7 +228,7 @@ export class HabitatWorld {
     };
 
     // Raised and painted ground, drawn with the meadow's own painted texture.
-    const material = new THREE.MeshStandardMaterial({ map: meadowTexture(), roughness: 0.96, metalness: 0 });
+    const material = new THREE.MeshStandardMaterial({ map: meadowTexture(), roughness: 0.96, metalness: 0, side: THREE.DoubleSide });
     const uniforms = {
       uPath: { value: new THREE.Color(0xb6a777) },
       uSand: { value: new THREE.Color(0xd3c28a) },
@@ -300,19 +309,82 @@ diffuseColor.rgb = painted;`,
 
   // ---- Lifecycle -------------------------------------------------------------
 
-  /** Builds the real meadow. With saved data the saved props replace the default woodland. */
-  async init(saved: SceneData | null) {
-    if (saved) this.applyData(saved);
-    this.buildEnv(!saved);
-    await this.env.ready;
+  /** Opens a blank diorama (optionally with saved data) or the game's real scene as a preview. */
+  async init(target: Target) {
+    await this.open(target);
     if (this.disposed) return;
-    if (saved) await this.spawnAll(saved.props);
-    else this.adoptDefaultProps();
-    this.clearCreatureWater();
-    this.refreshTerrain();
-    this.layout();
     this.lastFrame = performance.now();
     this.raf = requestAnimationFrame(this.tick);
+  }
+
+  async open(target: Target) {
+    const run = ++this.generation;
+    this.kind = target.kind;
+    this.entries = [];
+    this.selected = null;
+    this.creatureSelected = false;
+    this.map.clear();
+    const data = target.kind === "diorama" ? target.data : null;
+    if (target.kind === "diorama") {
+      this.size = target.size;
+      this.map.region = HabitatWorld.regionFor(target.size);
+      const mid = HabitatWorld.centerTile();
+      this.creature = { x: OX + mid.i, z: OZ + mid.j };
+      if (data) {
+        this.period = data.period;
+        this.map.load(data.tiles);
+        this.creature = { ...data.creature };
+        if (data.lighting) this.lighting = { ...DEFAULT_LIGHTING, ...data.lighting };
+      }
+    } else {
+      this.map.region = { i0: 0, j0: 0, i1: GX - 1, j1: GZ - 1 };
+      this.creature = { x: 0, z: CREATURE_Z };
+    }
+    this.buildEnv(target.kind === "preview");
+    await this.env.ready;
+    if (this.disposed || run !== this.generation) return;
+    if (data) await this.spawnAll(data.props);
+    else if (target.kind === "preview") this.adoptDefaultProps();
+    if (run !== this.generation) return;
+    if (this.creatureModel) this.setCreature(this.creatureModel);
+    this.clearCreatureWater();
+    this.refreshTerrain();
+    for (const v of Object.values(this.views)) v.custom = false;
+    this.layout();
+  }
+
+  static regionFor(size: DioramaSize): Region {
+    const mid = HabitatWorld.centerTile();
+    const i0 = mid.i - size / 2,
+      j0 = mid.j - size / 2;
+    return { i0, j0, i1: i0 + size - 1, j1: j0 + size - 1 };
+  }
+  /** Tile the creature starts on: the middle of the diorama. */
+  static centerTile() {
+    return { i: 16, j: 25 };
+  }
+  /** An empty diorama: every tile at its defaults, the creature in the middle. */
+  static blank(size: DioramaSize, period: WorldPeriod, lighting?: Lighting): SceneData {
+    const mid = HabitatWorld.centerTile();
+    return {
+      version: 2,
+      kind: "diorama",
+      size,
+      period,
+      tiles: new TileMap().serialize(),
+      props: [],
+      creature: { x: OX + mid.i, z: OZ + mid.j },
+      lighting,
+    };
+  }
+  /** Whether a tile can be edited in the current scene. */
+  get editable() {
+    return this.kind === "diorama";
+  }
+  /** Centre of the editable area in world metres. */
+  get centre() {
+    const r = this.map.region;
+    return { x: OX + (r.i0 + r.i1) / 2, z: OZ + (r.j0 + r.j1) / 2 };
   }
 
   dispose() {
@@ -327,6 +399,8 @@ diffuseColor.rgb = painted;`,
     this.ring.geometry.dispose();
     this.lakeMesh?.geometry.dispose();
     this.bankMesh?.geometry.dispose();
+    this.baseTop?.geometry.dispose();
+    this.baseSides?.geometry.dispose();
     this.mixer?.stopAllAction();
     this.renderer.dispose();
   }
@@ -334,15 +408,13 @@ diffuseColor.rgb = painted;`,
   private buildEnv(defaultProps: boolean) {
     this.env?.dispose();
     this.entries.forEach((e) => (e.prop = null));
+    const diorama = this.kind === "diorama";
     this.env = meadow(this.scene, this.period, {
-      grassExclusions: [{ x: 0, z: CREATURE_Z, radius: 1.35 }],
+      grassExclusions: diorama ? [] : [{ x: 0, z: CREATURE_Z, radius: 1.35 }],
       props: defaultProps,
+      scenery: !diorama,
     });
     this.applyLights();
-    this.instanced = [this.env.grass, ...this.env.flowers].map((mesh) => {
-      mesh.frustumCulled = false;
-      return { mesh, base: Float32Array.from(mesh.instanceMatrix.array) };
-    });
     this.lakeMesh?.removeFromParent();
     this.bankMesh?.removeFromParent();
     this.lakeMesh = new THREE.Mesh(new THREE.BufferGeometry(), this.env.waterMaterial);
@@ -352,55 +424,113 @@ diffuseColor.rgb = painted;`,
     this.bankMesh.receiveShadow = true;
     this.bankMesh.frustumCulled = false;
     this.scene.add(this.bankMesh, this.lakeMesh);
-    this.env.lake.visible = this.showLake;
-    this.env.bank.visible = this.showLake;
-    this.env.path.visible = this.showTrail;
-    this.computeLakeMask();
+    this.baseTop?.removeFromParent();
+    this.baseSides?.removeFromParent();
+    this.baseTop = this.baseSides = null;
+    const cam = this.key.shadow.camera;
+    if (diorama) {
+      // A floating block of earth: the game's far meadow, lake and trail are not part of it.
+      this.env.floor.visible = false;
+      this.env.lake.visible = false;
+      this.env.bank.visible = false;
+      this.env.path.visible = false;
+      this.buildBase();
+      this.refillCarpet();
+      const half = Math.max(4.5, this.size * 0.8);
+      cam.left = cam.bottom = -half;
+      cam.right = cam.top = half;
+    } else {
+      this.env.floor.visible = true;
+      cam.left = cam.bottom = -13;
+      cam.right = cam.top = 13;
+    }
+    cam.updateProjectionMatrix();
+    this.instanced = [this.env.grass, ...this.env.flowers].map((mesh) => {
+      mesh.frustumCulled = false;
+      return { mesh, base: Float32Array.from(mesh.instanceMatrix.array) };
+    });
     this.placeCreature();
   }
 
-  /** Tiles under the game's own lake, so props and the creature respect it too. */
-  private computeLakeMask() {
-    const lake = this.env.lake;
-    lake.updateMatrixWorld(true);
-    const inverse = lake.matrixWorld.clone().invert();
-    const pos = lake.geometry.getAttribute("position");
-    const index = lake.geometry.getIndex();
-    const tri: number[] = [];
-    const count = index ? index.count : pos.count;
-    for (let t = 0; t < count; t++) tri.push(index ? index.getX(t) : t);
-    this.lakeMask.fill(0);
-    const p = new THREE.Vector3();
-    for (let j = 0; j < GZ; j++)
-      for (let i = 0; i < GX; i++) {
-        p.set(OX + i, 0, OZ + j).applyMatrix4(inverse);
-        for (let t = 0; t < tri.length; t += 3) {
-          const ax = pos.getX(tri[t]), ay = pos.getY(tri[t]);
-          const bx = pos.getX(tri[t + 1]), by = pos.getY(tri[t + 1]);
-          const cx = pos.getX(tri[t + 2]), cy = pos.getY(tri[t + 2]);
-          const d1 = (p.x - bx) * (ay - by) - (ax - bx) * (p.y - by);
-          const d2 = (p.x - cx) * (by - cy) - (bx - cx) * (p.y - cy);
-          const d3 = (p.x - ax) * (cy - ay) - (cx - ax) * (p.y - ay);
-          if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))) {
-            this.lakeMask[TileMap.index(i, j)] = 1;
-            break;
-          }
-        }
+  /** Earth block under a diorama: grass-painted top, bare earth sides. */
+  private buildBase() {
+    const r = this.map.region;
+    const x0 = OX + r.i0 - 0.5,
+      x1 = OX + r.i1 + 0.5,
+      z0 = OZ + r.j0 - 0.5,
+      z1 = OZ + r.j1 + 0.5,
+      d = BASE_DEPTH;
+    const top = new THREE.BufferGeometry();
+    top.setAttribute("position", new THREE.Float32BufferAttribute([x0, 0, z0, x0, 0, z1, x1, 0, z1, x1, 0, z0], 3));
+    top.setAttribute("normal", new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+    const uv = (x: number, z: number) => [(x + 60) / 120, (60 - z) / 120];
+    top.setAttribute("uv", new THREE.Float32BufferAttribute([...uv(x0, z0), ...uv(x0, z1), ...uv(x1, z1), ...uv(x1, z0)], 2));
+    top.setIndex([0, 1, 2, 0, 2, 3]);
+    this.baseTop = new THREE.Mesh(top, new THREE.MeshStandardMaterial({ map: meadowTexture(), roughness: 0.96 }));
+    this.baseTop.receiveShadow = true;
+    const quad = (ax: number, az: number, bx: number, bz: number, nx: number, nz: number) => ({
+      p: [ax, 0, az, bx, 0, bz, bx, -d, bz, ax, -d, az],
+      n: [nx, 0, nz, nx, 0, nz, nx, 0, nz, nx, 0, nz],
+    });
+    const faces = [
+      quad(x0, z1, x1, z1, 0, 1),
+      quad(x1, z1, x1, z0, 1, 0),
+      quad(x1, z0, x0, z0, 0, -1),
+      quad(x0, z0, x0, z1, -1, 0),
+    ];
+    const sides = new THREE.BufferGeometry();
+    sides.setAttribute("position", new THREE.Float32BufferAttribute(faces.flatMap((f) => f.p), 3));
+    sides.setAttribute("normal", new THREE.Float32BufferAttribute(faces.flatMap((f) => f.n), 3));
+    sides.setIndex(faces.flatMap((_, f) => [f * 4, f * 4 + 1, f * 4 + 2, f * 4, f * 4 + 2, f * 4 + 3]));
+    this.baseSides = new THREE.Mesh(
+      sides,
+      new THREE.MeshStandardMaterial({ color: 0x7a5a3b, roughness: 1, side: THREE.DoubleSide }),
+    );
+    this.baseSides.receiveShadow = true;
+    this.baseSides.castShadow = true;
+    this.scene.add(this.baseTop, this.baseSides);
+  }
+
+  /** The game's carpet covers a fixed patch of meadow; spread the same tufts over the diorama instead. */
+  private refillCarpet() {
+    const mesh = this.env.grass;
+    const r = this.map.region;
+    const x0 = OX + r.i0 - 0.5,
+      z0 = OZ + r.j0 - 0.5,
+      w = r.i1 - r.i0 + 1,
+      h = r.j1 - r.j0 + 1;
+    const count = mesh.count;
+    const used = Math.min(count, Math.round(w * h * 9));
+    const dummy = new THREE.Object3D();
+    let seed = 8163;
+    const rand = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967295;
+    for (let k = 0; k < count; k++) {
+      if (k >= used) {
+        dummy.scale.setScalar(0);
+        dummy.position.set(0, -50, 0);
+      } else {
+        const sc = (0.7 + rand() * 0.65) * 0.55;
+        dummy.position.set(x0 + rand() * w, 0.012, z0 + rand() * h);
+        dummy.rotation.set(0, rand() * Math.PI, 0);
+        dummy.scale.set(sc, sc, sc);
       }
+      dummy.updateMatrix();
+      mesh.setMatrixAt(k, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    for (const flowers of this.env.flowers) flowers.count = 0;
   }
 
   // ---- Physics rules ------------------------------------------------------------
 
-  /** Water here, painted or part of the game's own lake. */
+  /** Painted water on this tile. */
   wet(i: number, j: number) {
-    if (!TileMap.inBounds(i, j)) return false;
-    const k = TileMap.index(i, j);
-    return this.map.water[k] === 1 || (this.showLake && this.lakeMask[k] === 1);
+    return TileMap.inBounds(i, j) && this.map.water[TileMap.index(i, j)] === 1;
   }
-  /** The creature is a solid body: 3×3 tiles around its centre. */
+  /** The creature is a solid body that occupies exactly its own tile. */
   private creatureBlocks(i: number, j: number) {
     const c = this.creatureTile();
-    return Math.abs(i - c.i) <= 1 && Math.abs(j - c.j) <= 1;
+    return i === c.i && j === c.j;
   }
   private solidOn(i: number, j: number, ignore?: PropEntry) {
     return this.entries.some((e) => {
@@ -419,18 +549,16 @@ diffuseColor.rgb = painted;`,
   /** Water never sits under the creature, whatever an old save says. */
   clearCreatureWater() {
     const c = this.creatureTile();
-    for (let dj = -1; dj <= 1; dj++)
-      for (let di = -1; di <= 1; di++)
-        if (TileMap.inBounds(c.i + di, c.j + dj)) this.map.water[TileMap.index(c.i + di, c.j + dj)] = 0;
+    if (TileMap.inBounds(c.i, c.j)) this.map.water[TileMap.index(c.i, c.j)] = 0;
   }
   private notice(message: string) {
     this.callbacks.onNotice?.(message);
   }
   /** Why a prop cannot stand on this tile, or null if it can. */
   private propBlock(key: AssetKey, i: number, j: number, ignore?: PropEntry) {
-    if (!TileMap.inBounds(i, j)) return "Fuera del terreno.";
+    if (!this.map.inside(i, j)) return "Fuera del diorama.";
     if (!WATER_PROPS.includes(key) && this.wet(i, j)) return "Ese objeto no puede ir sobre el agua.";
-    if (this.creatureBlocks(i, j)) return "La criatura ocupa ese lugar.";
+    if (this.creatureBlocks(i, j)) return "La criatura ocupa esa baldosa.";
     if (!COVER.includes(key) && !WATER_PROPS.includes(key) && this.solidOn(i, j, ignore))
       return "Ya hay un objeto sólido en esa baldosa.";
     return null;
@@ -527,6 +655,10 @@ diffuseColor.rgb = painted;`,
     prop.contact?.position.set(entry.x, y + 0.022, entry.z);
     prop.contact?.scale.set(entry.h * 0.36, entry.h * 0.3, 1);
   }
+  /** Props are drawn at game size; a diorama's creature is smaller, so its props are too. */
+  get propScale() {
+    return this.kind === "diorama" ? 0.5 : 1;
+  }
   async addProp(key: AssetKey, x: number, z: number) {
     const item = PROP_CATALOG.find((p) => p.key === key);
     const tile = TileMap.tileOf(x, z);
@@ -535,7 +667,7 @@ diffuseColor.rgb = painted;`,
       this.notice(why);
       return null;
     }
-    return this.spawnEntry({ key, x: OX + tile.i, z: OZ + tile.j, h: item?.h ?? 1, r: Math.random() * Math.PI * 2 });
+    return this.spawnEntry({ key, x: OX + tile.i, z: OZ + tile.j, h: (item?.h ?? 1) * this.propScale, r: Math.random() * Math.PI * 2 });
   }
   /** Tufts of tall grass scattered inside the given tiles (one visit per tile). */
   async addCover(key: AssetKey, tiles: [number, number][], visited: Set<number>) {
@@ -550,7 +682,7 @@ diffuseColor.rgb = painted;`,
       for (let n = 0; n < 2; n++) {
         const x = OX + i + (Math.random() - 0.5) * 0.8,
           z = OZ + j + (Math.random() - 0.5) * 0.8;
-        const h = (item?.h ?? 0.9) * (0.75 + Math.random() * 0.5);
+        const h = (item?.h ?? 0.9) * this.propScale * (0.75 + Math.random() * 0.5);
         if (await this.spawnEntry({ key, x, z, h, r: Math.random() * Math.PI * 2 })) placed++;
       }
     }
@@ -612,12 +744,19 @@ diffuseColor.rgb = painted;`,
   }
   select(entry: PropEntry | null) {
     this.selected = entry;
+    if (entry) this.creatureSelected = false;
     this.updateRing();
   }
   private updateRing() {
     const e = this.selected;
-    this.ring.visible = !!e;
-    if (!e) return;
+    this.ring.visible = !!e || this.creatureSelected;
+    if (!e) {
+      if (this.creatureSelected) {
+        this.ring.position.set(this.creature.x, this.map.heightAt(this.creature.x, this.creature.z) + 0.07, this.creature.z);
+        this.ring.scale.set(0.62, 0.62, 1);
+      }
+      return;
+    }
     const radius = clamp(e.h * 0.28, 0.5, 1.8);
     this.ring.position.set(e.x, this.map.heightAt(e.x, e.z) + 0.07, e.z);
     this.ring.scale.set(radius, radius, 1);
@@ -640,6 +779,7 @@ diffuseColor.rgb = painted;`,
   // ---- Companion -------------------------------------------------------------
 
   setCreature(model: AssetModel) {
+    this.creatureModel = model;
     if (this.creatureRoot) {
       this.stage.remove(this.creatureRoot);
       this.mixer?.stopAllAction();
@@ -664,16 +804,20 @@ diffuseColor.rgb = painted;`,
     this.stage.add(root);
     this.stage.position.set(0, 0, 0);
     this.stage.scale.setScalar(1);
+    this.stage.updateMatrixWorld(true);
     root.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(root);
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
     const framing = 2 / Math.max(size.x, size.y, size.z, 0.001);
-    const scale = framing * CREATURE_SCALE;
+    // In the game the companion fills the frame; in a diorama it stands on one tile.
+    const scale =
+      this.kind === "diorama"
+        ? 0.92 / Math.max(size.x, size.y, size.z, 0.001)
+        : framing * CREATURE_SCALE;
     this.stage.scale.setScalar(scale);
     this.stageBase.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
     this.creatureSpan = size.x * framing;
-    this.footprint = Math.max(0.3, size.x * scale * 0.4);
     this.creatureRoot = root;
     const normalize = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const idle = model.clips.find((c) => clipNames.includes(normalize(c.name)));
@@ -684,17 +828,8 @@ diffuseColor.rgb = painted;`,
     this.layout();
   }
   private placeCreature(snap = false) {
-    // The body is solid: it rests on the highest ground under its footprint, so a
-    // mound raised anywhere beneath it lifts it instead of passing through.
-    let ground = this.map.heightAt(this.creature.x, this.creature.z);
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2;
-      ground = Math.max(
-        ground,
-        this.map.heightAt(this.creature.x + Math.cos(a) * this.footprint, this.creature.z + Math.sin(a) * this.footprint),
-      );
-    }
-    const y = ground + (this.env?.groundY ?? 0.04);
+    // The creature stands on exactly one tile and rides that tile's height.
+    const y = this.map.heightAt(this.creature.x, this.creature.z) + (this.env?.groundY ?? 0.04);
     this.restY = y + this.stageBase.y;
     this.stage.position.set(
       this.creature.x + this.stageBase.x,
@@ -707,23 +842,33 @@ diffuseColor.rgb = painted;`,
   }
   moveCreature(x: number, z: number) {
     const tile = TileMap.tileOf(x, z);
-    for (let dj = -1; dj <= 1; dj++)
-      for (let di = -1; di <= 1; di++)
-        if (this.wet(tile.i + di, tile.j + dj)) {
-          this.notice("La criatura no puede pararse junto al agua.");
-          return false;
-        }
-    for (let dj = -1; dj <= 1; dj++)
-      for (let di = -1; di <= 1; di++)
-        if (this.solidOn(tile.i + di, tile.j + dj)) {
-          this.notice("Hay un objeto en el camino de la criatura.");
-          return false;
-        }
+    if (!this.map.inside(tile.i, tile.j)) return false;
+    const here = this.creatureTile();
+    if (tile.i === here.i && tile.j === here.j) return false;
+    if (this.wet(tile.i, tile.j)) {
+      this.notice("La criatura no puede pararse en el agua.");
+      return false;
+    }
+    if (this.solidOn(tile.i, tile.j)) {
+      this.notice("Hay un objeto en esa baldosa.");
+      return false;
+    }
     this.creature = { x: OX + tile.i, z: OZ + tile.j };
     this.placeCreature();
     this.applyMasks();
+    this.updateRing();
     this.env.markShadowsDirty();
     return true;
+  }
+  /** True when the pointer is over the creature's body. */
+  pickCreature(px: number, py: number, pane: Pane) {
+    this.aim(px, py, pane);
+    return this.raycaster.intersectObject(this.stage, true).length > 0;
+  }
+  selectCreature(on: boolean) {
+    this.creatureSelected = on;
+    if (on) this.selected = null;
+    this.updateRing();
   }
 
   // ---- Terrain editing -------------------------------------------------------
@@ -734,11 +879,11 @@ diffuseColor.rgb = painted;`,
     const tiles: [number, number][] = [];
     for (let dj = -reach; dj <= reach; dj++)
       for (let di = -reach; di <= reach; di++)
-        if (di * di + dj * dj <= radius * radius + 0.01 && TileMap.inBounds(i + di, j + dj))
+        if (di * di + dj * dj <= radius * radius + 0.01 && this.map.inside(i + di, j + dj))
           tiles.push([i + di, j + dj]);
     return tiles;
   }
-  private creatureTile() {
+  creatureTile() {
     return TileMap.tileOf(this.creature.x, this.creature.z);
   }
   paintGround(tiles: [number, number][], ground: Ground, visited: Set<number>) {
@@ -765,7 +910,7 @@ diffuseColor.rgb = painted;`,
       visited.add(k);
       if (add) {
         if (this.map.water[k]) continue;
-        if (Math.abs(i - home.i) <= 1 && Math.abs(j - home.j) <= 1) {
+        if (i === home.i && j === home.j) {
           blocked = "El agua no puede cubrir a la criatura.";
           continue;
         }
@@ -832,13 +977,13 @@ diffuseColor.rgb = painted;`,
       mesh.geometry = geometry ?? new THREE.BufferGeometry();
       mesh.visible = !!geometry;
     };
-    swap(this.overlay, buildOverlayGeometry(this.map));
+    swap(this.overlay, buildOverlayGeometry(this.map, this.kind === "diorama"));
     if (this.lakeMesh && this.bankMesh) {
       swap(this.lakeMesh, buildContourGeometry(this.map, 0.5, WATER_Y));
       swap(this.bankMesh, buildContourGeometry(this.map, 0.3, BANK_Y));
     }
     this.gridLines.geometry.dispose();
-    this.gridLines.geometry = this.showGrid ? buildGridGeometry(this.map) : new THREE.BufferGeometry();
+    this.gridLines.geometry = this.showGrid && this.kind === "diorama" ? buildGridGeometry(this.map) : new THREE.BufferGeometry();
     this.applyMasks();
     for (const entry of this.entries) this.applyEntry(entry);
     this.placeCreature();
@@ -848,31 +993,29 @@ diffuseColor.rgb = painted;`,
   setGrid(visible: boolean) {
     this.showGrid = visible;
     this.gridLines.geometry.dispose();
-    this.gridLines.geometry = visible ? buildGridGeometry(this.map) : new THREE.BufferGeometry();
+    this.gridLines.geometry = visible && this.kind === "diorama" ? buildGridGeometry(this.map) : new THREE.BufferGeometry();
   }
-  setOriginals(options: { lake?: boolean; trail?: boolean }) {
-    if (options.lake !== undefined) this.showLake = options.lake;
-    if (options.trail !== undefined) this.showTrail = options.trail;
-    this.env.lake.visible = this.showLake;
-    this.env.bank.visible = this.showLake;
-    this.env.path.visible = this.showTrail;
-    this.env.markShadowsDirty();
-  }
-
   /** Grass blades and flowers follow raised ground and disappear under water, paths and bare slopes. */
   private applyMasks() {
+    const diorama = this.kind === "diorama";
     const modified = this.map.isModified();
     const mix = [0, 0, 0];
     for (const { mesh, base } of this.instanced) {
       const out = mesh.instanceMatrix.array as Float32Array;
       out.set(base);
-      if (modified)
+      if (diorama || modified)
         for (let k = 0; k < mesh.count; k++) {
           const o = k * 16;
           if (base[o] === 0 && base[o + 2] === 0 && base[o + 5] === 0) continue;
           const x = base[o + 12],
             z = base[o + 14];
           let hide = this.map.cutAt(x, z) || this.map.waterAt(x, z) > 0.4;
+          if (!hide && diorama) {
+            const t = TileMap.tileOf(x, z);
+            hide =
+              !this.map.inside(t.i, t.j) ||
+              Math.hypot(x - this.creature.x, z - this.creature.z) < 0.5;
+          }
           if (!hide) {
             this.map.groundMix(x, z, mix);
             hide = mix[0] + mix[1] + mix[2] > 0.4 || this.map.slopeAt(x, z) > 0.3;
@@ -913,50 +1056,51 @@ diffuseColor.rgb = painted;`,
 
   snapshot(): SceneData {
     return {
-      version: 1,
+      version: 2,
+      kind: "diorama",
+      size: this.size,
       period: this.period,
       tiles: this.map.serialize(),
       props: this.entries.map(({ id, key, x, z, h, r }) => ({ id, key, x, z, h, r })),
       creature: { ...this.creature },
-      lake: this.showLake,
-      trail: this.showTrail,
       lighting: { ...this.lighting },
     };
   }
   static isSceneData(data: unknown): data is SceneData {
     const d = data as SceneData;
+    if (
+      !d ||
+      d.version !== 2 ||
+      d.kind !== "diorama" ||
+      !DIORAMA_SIZES.includes(d.size) ||
+      !["Night", "Morning", "Day", "Evening"].includes(d.period) ||
+      !d.tiles ||
+      !TileMap.validate(d.tiles) ||
+      !Array.isArray(d.props) ||
+      !d.creature ||
+      !Number.isFinite(d.creature.x) ||
+      !Number.isFinite(d.creature.z)
+    )
+      return false;
+    const region = HabitatWorld.regionFor(d.size);
+    const c = TileMap.tileOf(d.creature.x, d.creature.z);
     return (
-      !!d &&
-      d.version === 1 &&
-      ["Night", "Morning", "Day", "Evening"].includes(d.period) &&
-      !!d.tiles &&
-      TileMap.validate(d.tiles) &&
-      Array.isArray(d.props) &&
+      c.i >= region.i0 &&
+      c.i <= region.i1 &&
+      c.j >= region.j0 &&
+      c.j <= region.j1 &&
       d.props.every(
         (p) =>
           typeof p.key === "string" &&
           [p.x, p.z, p.h, p.r].every((n) => Number.isFinite(n)) &&
           p.h > 0,
-      ) &&
-      !!d.creature &&
-      Number.isFinite(d.creature.x) &&
-      Number.isFinite(d.creature.z)
+      )
     );
   }
-  private applyData(data: SceneData) {
-    this.period = data.period;
-    this.map.load(data.tiles);
-    this.creature = { ...data.creature };
-    this.showLake = data.lake !== false;
-    this.showTrail = data.trail !== false;
-    if (data.lighting) this.lighting = { ...DEFAULT_LIGHTING, ...data.lighting };
-  }
-  /** Restores a snapshot, keeping props that did not change. */
+  /** Restores a snapshot of the same diorama, keeping props that did not change. */
   async restore(data: SceneData) {
     this.map.load(data.tiles);
     this.creature = { ...data.creature };
-    this.showLake = data.lake !== false;
-    this.showTrail = data.trail !== false;
     if (data.period !== this.period) {
       this.period = data.period;
       this.buildEnv(false);
@@ -972,9 +1116,6 @@ diffuseColor.rgb = painted;`,
       }
       const present = new Set(this.entries.map((e) => e.id));
       await this.spawnAll(data.props.filter((p) => !present.has(p.id)));
-      this.env.lake.visible = this.showLake;
-      this.env.bank.visible = this.showLake;
-      this.env.path.visible = this.showTrail;
     }
     this.select(null);
     this.clearCreatureWater();
@@ -1030,16 +1171,31 @@ diffuseColor.rgb = painted;`,
     for (const pane of this.panes) if (!this.views[pane.id].custom) this.frameDefault(pane);
     this.callbacks.onLayout?.(this.panes);
   }
-  /** The game's own camera framing for the companion, per aspect ratio. */
+  /** The game's own camera framing for the companion, or a view that fits the whole diorama. */
   private frameDefault(pane: Pane) {
     const v = this.views[pane.id];
+    const aspect = pane.w / pane.h;
+    if (this.kind === "diorama") {
+      const c = this.centre,
+        n = this.size;
+      if (pane.id === "top") {
+        v.zoom = 1;
+        v.target.set(c.x, 0, c.z);
+        return;
+      }
+      const portrait = pane.id === "mobile";
+      v.target.set(c.x, 0.25 + n * 0.04, c.z);
+      v.dist = (n * 0.52) / (Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * Math.min(aspect, 1));
+      v.yaw = portrait ? -0.45 : 0.4;
+      v.pitch = portrait ? 0.62 : 0.5;
+      return;
+    }
     if (pane.id === "top") {
       v.zoom = 1;
       v.target.set(0, 0, OZ + (GZ - 1) / 2);
       return;
     }
     const portrait = pane.id === "mobile";
-    const aspect = pane.w / pane.h;
     const direction = new THREE.Vector3(0, 0.6, 4.7).normalize();
     const distance = Math.max(
       portrait ? 4.8 : 6.8,
@@ -1049,6 +1205,14 @@ diffuseColor.rgb = painted;`,
     v.dist = distance;
     v.yaw = Math.atan2(direction.x, direction.z);
     v.pitch = Math.asin(direction.y);
+  }
+  private panBounds() {
+    if (this.kind === "diorama") {
+      const c = this.centre,
+        m = this.size * 0.8;
+      return { x0: c.x - m, x1: c.x + m, z0: c.z - m, z1: c.z + m };
+    }
+    return { x0: OX - 4, x1: OX + GX + 4, z0: OZ - 4, z1: OZ + GZ + 4 };
   }
   resetView(id: ViewId) {
     this.views[id].custom = false;
@@ -1067,8 +1231,9 @@ diffuseColor.rgb = painted;`,
     v.custom = true;
     if (id === "top") {
       const unit = (2 * this.topHalf(pane) * 1) / pane.h;
-      v.target.x = clamp(v.target.x - dx * unit, OX - 4, OX + GX + 4);
-      v.target.z = clamp(v.target.z - dy * unit, OZ - 4, OZ + GZ + 4);
+      const b = this.panBounds();
+      v.target.x = clamp(v.target.x - dx * unit, b.x0, b.x1);
+      v.target.z = clamp(v.target.z - dy * unit, b.z0, b.z1);
       return;
     }
     const unit = (2 * v.dist * Math.tan(THREE.MathUtils.degToRad(FOV / 2))) / pane.h;
@@ -1076,17 +1241,19 @@ diffuseColor.rgb = painted;`,
       rz = -Math.sin(v.yaw),
       fx = -Math.sin(v.yaw),
       fz = -Math.cos(v.yaw);
-    v.target.x = clamp(v.target.x - (rx * dx - fx * dy) * unit, OX - 6, OX + GX + 6);
-    v.target.z = clamp(v.target.z - (rz * dx - fz * dy) * unit, OZ - 6, OZ + GZ + 6);
+    const b = this.panBounds();
+    v.target.x = clamp(v.target.x - (rx * dx - fx * dy) * unit, b.x0, b.x1);
+    v.target.z = clamp(v.target.z - (rz * dx - fz * dy) * unit, b.z0, b.z1);
   }
   zoom(id: ViewId, factor: number) {
     const v = this.views[id];
     v.custom = true;
     if (id === "top") v.zoom = clamp(v.zoom / factor, 0.5, 5);
-    else v.dist = clamp(v.dist * factor, 1.5, 60);
+    else v.dist = clamp(v.dist * factor, 1.5, this.kind === "diorama" ? 150 : 60);
   }
   private topHalf(pane: Pane) {
     const aspect = pane.w / pane.h;
+    if (this.kind === "diorama") return Math.max(this.size * 0.62, (this.size * 0.62) / aspect) / this.views.top.zoom;
     return Math.max(19.5, 17.5 / aspect) / this.views.top.zoom;
   }
   private placeCamera(pane: Pane) {
@@ -1157,7 +1324,7 @@ diffuseColor.rgb = painted;`,
       z = origin.z + direction.z * far;
     const i = Math.round(x - OX),
       j = Math.round(z - OZ);
-    if (!TileMap.inBounds(i, j)) return null;
+    if (!this.map.inside(i, j)) return null;
     return { x, z, i, j };
   }
 
@@ -1191,7 +1358,7 @@ diffuseColor.rgb = painted;`,
       r.setViewport(x, y, w, h);
       r.setScissor(x, y, w, h);
       // Seen from above the haze would wash the whole lawn out.
-      this.scene.fog = pane.id === "top" ? null : fog;
+      this.scene.fog = pane.id === "top" || this.kind === "diorama" ? null : fog;
       r.render(this.scene, camera);
     }
     this.scene.fog = fog;

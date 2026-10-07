@@ -214,6 +214,8 @@ export function meadow(
     grassExclusions?: { x: number; z: number; radius: number }[];
     // false skips the default woodland and props (the habitat editor places its own).
     props?: boolean;
+    /** Distant mountains. Dioramas turn them off. */
+    scenery?: boolean;
   } = {},
 ) {
   const colors = {
@@ -655,6 +657,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
       assets[key] = loaded[i];
     });
     // Three overlapping ridgelines, readable through a gentle aerial haze.
+    if (options.scenery !== false)
     for (const [x, z, h, r] of [
       [-8, -32, 10, 0.25],
       [7, -28, 8.5, 2.6],

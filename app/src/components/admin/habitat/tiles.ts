@@ -17,6 +17,8 @@ export const LEVEL_H = 0.45; // metres per level
 export const MAX_LEVEL = 4;
 export const WATER_Y = 0.05; // same height as the game's lake
 export const BANK_Y = 0.035;
+export const BASE_DEPTH = 0.8; // metres of earth under a diorama
+export type Region = { i0: number; j0: number; i1: number; j1: number };
 export const GROUNDS = ["grass", "path", "sand", "rock"] as const;
 export type Ground = (typeof GROUNDS)[number];
 
@@ -52,6 +54,8 @@ export class TileMap {
   readonly water = new Uint8Array(GX * GZ);
   /** 1 where the tall grass carpet has been taken away. */
   readonly cut = new Uint8Array(GX * GZ);
+  /** Tiles that can be edited. Terrain outside it does not exist. */
+  region: Region = { i0: 0, j0: 0, i1: GX - 1, j1: GZ - 1 };
   private readonly heights = new Float32Array(GX * GZ);
   private ka = 0;
   private kb = 0;
@@ -62,6 +66,10 @@ export class TileMap {
   private q2 = 0;
   private q3 = 0;
 
+  inside(i: number, j: number) {
+    const r = this.region;
+    return i >= r.i0 && i <= r.i1 && j >= r.j0 && j <= r.j1;
+  }
   static index(i: number, j: number) {
     return j * GX + i;
   }
@@ -147,8 +155,8 @@ export class TileMap {
       fz = v - j0;
     fx = fx * fx * (3 - 2 * fx);
     fz = fz * fz * (3 - 2 * fz);
-    const cx = (n: number) => Math.min(GX - 1, Math.max(0, n)),
-      cz = (n: number) => Math.min(GZ - 1, Math.max(0, n));
+    const cx = (n: number) => Math.min(this.region.i1, Math.max(this.region.i0, n)),
+      cz = (n: number) => Math.min(this.region.j1, Math.max(this.region.j0, n));
     const i1 = cx(i0 + 1),
       j1 = cz(j0 + 1);
     i0 = cx(i0);
@@ -221,11 +229,12 @@ export class TileMap {
 }
 
 /** Raised ground and painted ground as a mesh lying on the meadow floor. */
-export function buildOverlayGeometry(map: TileMap) {
-  const nx = GX * SUB + 1,
-    nz = GZ * SUB + 1,
-    x0 = OX - 0.5,
-    z0 = OZ - 0.5;
+export function buildOverlayGeometry(map: TileMap, skirt = false) {
+  const r = map.region;
+  const nx = (r.i1 - r.i0 + 1) * SUB + 1,
+    nz = (r.j1 - r.j0 + 1) * SUB + 1,
+    x0 = OX + r.i0 - 0.5,
+    z0 = OZ + r.j0 - 0.5;
   const pos = new Float32Array(nx * nz * 3),
     uv = new Float32Array(nx * nz * 2),
     mixes = new Float32Array(nx * nz * 4),
@@ -259,10 +268,42 @@ export function buildOverlayGeometry(map: TileMap) {
       if (live[p] || live[p + 1] || live[p + nx] || live[p + nx + 1])
         index.push(p, p + nx, p + 1, p + 1, p + nx, p + nx + 1);
     }
+  // Raised edges of a diorama drop straight down into the earth block.
+  const extraPos: number[] = [],
+    extraUv: number[] = [],
+    extraMix: number[] = [];
+  let base = nx * nz;
+  if (skirt) {
+    const wall = (a: number, b: number) => {
+      const ha = Math.max(0, pos[a * 3 + 1]),
+        hb = Math.max(0, pos[b * 3 + 1]);
+      if (ha < 0.01 && hb < 0.01) return;
+      for (const [p, h] of [[a, ha], [b, hb]] as const) {
+        const x = pos[p * 3],
+          z = pos[p * 3 + 2];
+        for (const y of [h, -BASE_DEPTH]) {
+          extraPos.push(x, y, z);
+          extraUv.push((x + 60) / 120, (60 - z) / 120);
+          extraMix.push(0, 0, 0, 1);
+        }
+      }
+      // a-top, a-bottom, b-top, b-bottom
+      index.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+      base += 4;
+    };
+    for (let a = 0; a < nx - 1; a++) {
+      wall(a, a + 1);
+      wall((nz - 1) * nx + a, (nz - 1) * nx + a + 1);
+    }
+    for (let b = 0; b < nz - 1; b++) {
+      wall(b * nx, (b + 1) * nx);
+      wall(b * nx + nx - 1, (b + 1) * nx + nx - 1);
+    }
+  }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-  geometry.setAttribute("aMix", new THREE.BufferAttribute(mixes, 4));
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array([...pos, ...extraPos]), 3));
+  geometry.setAttribute("uv", new THREE.BufferAttribute(new Float32Array([...uv, ...extraUv]), 2));
+  geometry.setAttribute("aMix", new THREE.BufferAttribute(new Float32Array([...mixes, ...extraMix]), 4));
   geometry.setIndex(index);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
@@ -278,12 +319,13 @@ export function buildContourGeometry(
   threshold: number,
   y: number,
 ) {
+  const reg = map.region;
   let i0 = GX,
     i1 = -1,
     j0 = GZ,
     j1 = -1;
-  for (let j = 0; j < GZ; j++)
-    for (let i = 0; i < GX; i++)
+  for (let j = reg.j0; j <= reg.j1; j++)
+    for (let i = reg.i0; i <= reg.i1; i++)
       if (map.water[TileMap.index(i, j)]) {
         i0 = Math.min(i0, i);
         i1 = Math.max(i1, i);
@@ -292,10 +334,10 @@ export function buildContourGeometry(
       }
   if (i1 < 0) return null;
   const step = 1 / 6,
-    xa = Math.max(OX - 0.5, OX + i0 - 1.5),
-    xb = Math.min(OX + GX - 0.5, OX + i1 + 1.5),
-    za = Math.max(OZ - 0.5, OZ + j0 - 1.5),
-    zb = Math.min(OZ + GZ - 0.5, OZ + j1 + 1.5);
+    xa = Math.max(OX + reg.i0 - 0.5, OX + i0 - 1.5),
+    xb = Math.min(OX + reg.i1 + 0.5, OX + i1 + 1.5),
+    za = Math.max(OZ + reg.j0 - 0.5, OZ + j0 - 1.5),
+    zb = Math.min(OZ + reg.j1 + 0.5, OZ + j1 + 1.5);
   const nx = Math.ceil((xb - xa) / step),
     nz = Math.ceil((zb - za) / step),
     row = nx + 1;
@@ -358,19 +400,22 @@ export function buildContourGeometry(
 /** Tile borders draped over the terrain, for the optional grid overlay. */
 export function buildGridGeometry(map: TileMap) {
   const pts: number[] = [];
+  const r = map.region;
+  const nxT = r.i1 - r.i0 + 1,
+    nzT = r.j1 - r.j0 + 1;
   const lift = (x: number, z: number) =>
     Math.max(map.heightAt(x, z), WATER_Y) + 0.03;
-  const x0 = OX - 0.5,
-    z0 = OZ - 0.5;
-  for (let i = 0; i <= GX; i++)
-    for (let s = 0; s < GZ * SUB; s++) {
+  const x0 = OX + r.i0 - 0.5,
+    z0 = OZ + r.j0 - 0.5;
+  for (let i = 0; i <= nxT; i++)
+    for (let s = 0; s < nzT * SUB; s++) {
       const x = x0 + i,
         za = z0 + s / SUB,
         zb = z0 + (s + 1) / SUB;
       pts.push(x, lift(x, za), za, x, lift(x, zb), zb);
     }
-  for (let j = 0; j <= GZ; j++)
-    for (let s = 0; s < GX * SUB; s++) {
+  for (let j = 0; j <= nzT; j++)
+    for (let s = 0; s < nxT * SUB; s++) {
       const z = z0 + j,
         xa = x0 + s / SUB,
         xb = x0 + (s + 1) / SUB;

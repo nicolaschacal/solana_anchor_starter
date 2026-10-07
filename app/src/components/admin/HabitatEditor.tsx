@@ -2,20 +2,21 @@ import {
   Download,
   Droplets,
   Eraser,
+  Eye,
   Grid3X3,
   Hand,
-  Layers,
   Mountain,
   MousePointer2,
   Paintbrush,
-  PawPrint,
   Redo2,
   Sprout,
+  Sun,
+  Trash2,
   Trees,
   Undo2,
   Upload,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { PERIODS, type WorldPeriod } from "../../hooks/useWorldClock";
 import { useEvolutionTree } from "../../hooks/useEvolutionTree";
 import { inspectModel, loader } from "../../lib/assets/rig";
@@ -25,21 +26,121 @@ import "./habitat/HabitatEditor.css";
 import {
   COVER,
   DEFAULT_LIGHTING,
+  DIORAMA_SIZES,
   HabitatWorld,
-  type Lighting,
   PROP_CATALOG,
+  type DioramaSize,
+  type Lighting,
   type Pane,
   type PropEntry,
   type SceneData,
   type ViewId,
   type ViewMode,
 } from "./habitat/world";
-import type { Ground } from "./habitat/tiles";
+import { OX, OZ, type Ground } from "./habitat/tiles";
 
-type Tool = "grass" | "ground" | "water" | "relief" | "object" | "select" | "creature" | "erase" | "nav";
-type Sub = "tuft" | "untuft" | "path" | "sand" | "rock" | "grass" | "add" | "remove" | "up" | "down";
+// ---- Tool definitions -------------------------------------------------------------
+// One table drives the toolbox, its options, the shortcuts and the hints.
 
-const STORAGE = "habitat-editor-scene-v1";
+type ToolId = "select" | "relief" | "water" | "ground" | "grass" | "object" | "erase" | "nav";
+type Mode = { id: string; label: string };
+type ToolDef = {
+  id: ToolId;
+  label: string;
+  key: string;
+  icon: ReactNode;
+  hint: string;
+  brush: boolean;
+  modes?: Mode[];
+};
+
+const TOOLS: ToolDef[] = [
+  {
+    id: "select",
+    label: "Seleccionar",
+    key: "V",
+    icon: <MousePointer2 size={18} />,
+    hint: "Haz clic en la criatura o en un objeto y arrástralo para moverlo.",
+    brush: false,
+  },
+  {
+    id: "relief",
+    label: "Relieve",
+    key: "R",
+    icon: <Mountain size={18} />,
+    hint: "Cada clic sube o baja una baldosa. Los montículos llevan tierra en los bordes y pasto arriba.",
+    brush: true,
+    modes: [
+      { id: "up", label: "Subir" },
+      { id: "down", label: "Bajar" },
+    ],
+  },
+  {
+    id: "water",
+    label: "Agua",
+    key: "A",
+    icon: <Droplets size={18} />,
+    hint: "Pinta agua. Las orillas se redondean solas y no puede cubrir objetos ni a la criatura.",
+    brush: true,
+    modes: [
+      { id: "add", label: "Agregar" },
+      { id: "remove", label: "Quitar" },
+    ],
+  },
+  {
+    id: "ground",
+    label: "Suelo",
+    key: "G",
+    icon: <Paintbrush size={18} />,
+    hint: "Pinta el material del suelo. «Césped» quita la pintura.",
+    brush: true,
+    modes: [
+      { id: "path", label: "Camino" },
+      { id: "sand", label: "Arena" },
+      { id: "rock", label: "Roca" },
+      { id: "grass", label: "Césped" },
+    ],
+  },
+  {
+    id: "grass",
+    label: "Pasto alto",
+    key: "P",
+    icon: <Sprout size={18} />,
+    hint: "Pon matas de pasto alto donde quieras, o quítalas junto con la alfombra de pasto.",
+    brush: true,
+    modes: [
+      { id: "tuft", label: "Poner" },
+      { id: "untuft", label: "Quitar" },
+    ],
+  },
+  {
+    id: "object",
+    label: "Objetos",
+    key: "O",
+    icon: <Trees size={18} />,
+    hint: "Elige un objeto abajo y haz clic en una baldosa libre para colocarlo.",
+    brush: false,
+  },
+  {
+    id: "erase",
+    label: "Borrar",
+    key: "E",
+    icon: <Eraser size={18} />,
+    hint: "Borra el objeto sobre el que hagas clic, o todos los de la zona si el pincel es grande.",
+    brush: true,
+  },
+  {
+    id: "nav",
+    label: "Cámara",
+    key: "H",
+    icon: <Hand size={18} />,
+    hint: "Arrastra para orbitar. También: clic derecho o Mayús para mover, rueda para acercar.",
+    brush: false,
+  },
+];
+
+const STORAGE = "habitat-dioramas-v2";
+const LAST = "habitat-last-size-v2";
 const PERIOD_LABEL: Record<WorldPeriod, string> = {
   Night: "Noche",
   Morning: "Mañana",
@@ -47,28 +148,73 @@ const PERIOD_LABEL: Record<WorldPeriod, string> = {
   Evening: "Atardecer",
 };
 const VIEW_LABEL: Record<ViewId, string> = { pano: "Panorámica", mobile: "Móvil", top: "Cenital" };
-const CURSOR_COLOR: Record<Tool, number> = {
-  grass: 0x9be564,
-  ground: 0xf4c542,
-  water: 0x4cc9ff,
-  relief: 0x9be564,
-  object: 0xffffff,
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: "triple", label: "Las tres" },
+  { id: "pano", label: "Panorámica" },
+  { id: "mobile", label: "Móvil" },
+  { id: "top", label: "Cenital" },
+];
+const CURSOR_COLOR: Record<ToolId, number> = {
   select: 0xffffff,
-  creature: 0xff8fd8,
+  relief: 0x9be564,
+  water: 0x4cc9ff,
+  ground: 0xf4c542,
+  grass: 0x9be564,
+  object: 0xffffff,
   erase: 0xff6b6b,
   nav: 0xffffff,
 };
-const STATUS: Record<Tool, string> = {
-  grass: "Pasto alto: pon matas o quítalas (y la alfombra de pasto) donde quieras.",
-  ground: "Pinta el suelo: camino, arena, roca o vuelve a pasto.",
-  water: "Agua: las orillas se redondean solas. Clic derecho o Mayús para orbitar.",
-  relief: "Relieve: subir crea un montículo con tierra en los bordes y pasto arriba.",
-  object: "Coloca el objeto elegido sobre la baldosa.",
-  select: "Selecciona un objeto y arrástralo para moverlo.",
-  creature: "Mueve a mammal.exe a otra baldosa.",
-  erase: "Borra objetos o devuelve la baldosa a su estado original.",
-  nav: "Arrastra para orbitar, rueda o pellizco para acercar.",
+const LIGHT_SLIDERS: [keyof Omit<Lighting, "shadows">, string, number, number, number][] = [
+  ["sun", "Sol", 0, 2.5, 0.05],
+  ["ambient", "Luz ambiente", 0, 2.5, 0.05],
+  ["rim", "Contraluz", 0, 3, 0.05],
+  ["exposure", "Brillo general", 0.5, 1.8, 0.02],
+  ["warmth", "Frío ↔ cálido", -1, 1, 0.05],
+  ["azimuth", "Giro del sol", -180, 180, 1],
+  ["elevation", "Altura del sol", -40, 40, 1],
+];
+
+type Stored = Partial<Record<string, SceneData>>;
+const readStore = (): Stored => {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(STORAGE) ?? "{}");
+    return raw && typeof raw === "object" ? (raw as Stored) : {};
+  } catch {
+    return {};
+  }
 };
+const storedScene = (size: DioramaSize): SceneData | null => {
+  const data = readStore()[String(size)];
+  return HabitatWorld.isSceneData(data) && data.size === size ? data : null;
+};
+const lastSize = (): DioramaSize => {
+  try {
+    const n = Number(localStorage.getItem(LAST));
+    return (DIORAMA_SIZES as number[]).includes(n) ? (n as DioramaSize) : 8;
+  } catch {
+    return 8;
+  }
+};
+
+type Drag =
+  | { kind: "orbit"; pane: Pane; x: number; y: number }
+  | { kind: "pan"; pane: Pane; x: number; y: number }
+  | {
+      kind: "brush";
+      pane: Pane;
+      before: SceneData;
+      visited: Set<number>;
+      cover: Set<number>;
+      changed: boolean;
+    }
+  | {
+      kind: "move";
+      pane: Pane;
+      before: SceneData;
+      entry: PropEntry | null; // null = the creature
+      off: { i: number; j: number };
+      changed: boolean;
+    };
 
 export function HabitatEditor({ registry }: { registry: Registry }) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -77,28 +223,41 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const undoRef = useRef<SceneData[]>([]);
   const redoRef = useRef<SceneData[]>([]);
   const saveTimer = useRef(0);
+  const noticeTimer = useRef(0);
+  const drag = useRef<Drag | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef(0);
+  const toolBefore = useRef<ToolId>("relief");
 
   const [panes, setPanes] = useState<Pane[]>([]);
   const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [tool, setTool] = useState<Tool>("relief");
-  const [sub, setSub] = useState<Sub>("up");
+  const [notice, setNotice] = useState("");
+  const [tool, setTool] = useState<ToolId>("relief");
+  const [modes, setModes] = useState<Record<string, string>>({
+    relief: "up",
+    water: "add",
+    ground: "path",
+    grass: "tuft",
+  });
   const [brush, setBrush] = useState(1);
   const [objectKey, setObjectKey] = useState<AssetKey>("tree");
-  const [mode, setMode] = useState<ViewMode>("triple");
-  const [period, setPeriod] = useState<WorldPeriod>("Evening");
-  const [grid, setGrid] = useState(true);
-  const [lake, setLake] = useState(true);
-  const [trail, setTrail] = useState(true);
-  const [selected, setSelected] = useState<PropEntry | null>(null);
-  const [, bump] = useState(0);
-  const [counts, setCounts] = useState({ undo: 0, redo: 0 });
+  const [view, setView] = useState<ViewMode>("triple");
   const [activeView, setActiveView] = useState<ViewId>("pano");
-  const [notice, setNotice] = useState("");
-  const noticeTimer = useRef(0);
+  const [size, setSize] = useState<DioramaSize>(lastSize);
+  const [previewing, setPreviewing] = useState(false);
+  const [period, setPeriod] = useState<WorldPeriod>("Evening");
+  const [lighting, setLightingState] = useState<Lighting>({ ...DEFAULT_LIGHTING });
+  const [lightOpen, setLightOpen] = useState(false);
+  const [grid, setGrid] = useState(true);
+  const [selected, setSelected] = useState<PropEntry | null>(null);
+  const [creatureOn, setCreatureOn] = useState(false);
+  const [counts, setCounts] = useState({ undo: 0, redo: 0 });
+  const [, bump] = useState(0);
 
-  const stateRef = useRef({ tool, sub, brush, objectKey });
-  stateRef.current = { tool, sub, brush, objectKey };
+  const live = useRef({ tool, modes, brush, objectKey, previewing });
+  live.current = { tool, modes, brush, objectKey, previewing };
 
   const atlas = useEvolutionTree(0, registry.activeVersions[0] ?? 0, false);
   const mammal = atlas.tree?.evolutions.find(
@@ -108,41 +267,53 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const creatureUri = mammal?.assets?.modelUri || mammal?.modelUri || "";
   const atlasSettled = !!atlas.tree || !!atlas.error;
 
-  const syncCounts = () => setCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
+  const def = TOOLS.find((t) => t.id === tool)!;
+  const mode = modes[tool];
+
+  // ---- Saving ----------------------------------------------------------------------
+  const save = useCallback(() => {
+    const world = worldRef.current;
+    if (!world || world.kind !== "diorama") return;
+    try {
+      const store = readStore();
+      store[String(world.size)] = world.snapshot();
+      localStorage.setItem(STORAGE, JSON.stringify(store));
+      localStorage.setItem(LAST, String(world.size));
+    } catch {
+      /* storage full or blocked: the editor keeps working */
+    }
+  }, []);
   const scheduleSave = useCallback(() => {
     window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      const world = worldRef.current;
-      if (!world) return;
-      try {
-        localStorage.setItem(STORAGE, JSON.stringify(world.snapshot()));
-      } catch {
-        /* storage full or blocked: the editor keeps working */
-      }
-    }, 400);
-  }, []);
+    saveTimer.current = window.setTimeout(save, 400);
+  }, [save]);
+  const flushSave = useCallback(() => {
+    window.clearTimeout(saveTimer.current);
+    save();
+  }, [save]);
+
+  const syncCounts = () => setCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
   const remember = (before: SceneData) => {
     undoRef.current.push(before);
-    if (undoRef.current.length > 60) undoRef.current.shift();
+    if (undoRef.current.length > 80) undoRef.current.shift();
     redoRef.current = [];
     syncCounts();
     scheduleSave();
   };
+  const resetHistory = () => {
+    undoRef.current = [];
+    redoRef.current = [];
+    syncCounts();
+  };
 
-  // ---- World lifecycle ---------------------------------------------------------
+  // ---- World lifecycle ---------------------------------------------------------------
   useEffect(() => {
     const host = hostRef.current,
       canvas = canvasRef.current;
     if (!host || !canvas) return;
     let alive = true;
-    let saved: SceneData | null = null;
-    try {
-      const raw = localStorage.getItem(STORAGE);
-      const parsed: unknown = raw ? JSON.parse(raw) : null;
-      if (HabitatWorld.isSceneData(parsed)) saved = parsed;
-    } catch {
-      saved = null;
-    }
+    const initial = lastSize();
+    const data = storedScene(initial);
     const world = new HabitatWorld(host, canvas, {
       onLayout: (p) => setPanes(p),
       onError: (m) => setError(m),
@@ -153,29 +324,25 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       },
     });
     worldRef.current = world;
-    if (saved) {
-      setPeriod(saved.period);
-      setLake(saved.lake);
-      setTrail(saved.trail);
-    }
     world
-      .init(saved)
+      .init({ kind: "diorama", size: initial, data })
       .then(() => {
         if (!alive) return;
+        setPeriod(world.period);
         setLightingState({ ...world.lighting });
         setReady(true);
-        bump((n) => n + 1);
       })
       .catch((e) => alive && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       alive = false;
       window.clearTimeout(saveTimer.current);
+      window.clearTimeout(noticeTimer.current);
       world.dispose();
       worldRef.current = null;
     };
   }, []);
 
-  // The real mammal.exe at the centre of the scene, loaded from its Irys URI in the atlas.
+  // The real mammal.exe, loaded from its Irys URI in the atlas.
   useEffect(() => {
     const world = worldRef.current;
     if (!ready || !world || !atlasSettled) return;
@@ -200,51 +367,71 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     };
   }, [ready, creatureUri, atlasSettled, atlas.error]);
 
-  const [lighting, setLightingState] = useState<Lighting>({ ...DEFAULT_LIGHTING });
+  useEffect(() => {
+    if (ready) worldRef.current?.setMode(view, activeView);
+  }, [ready, view, activeView]);
+  useEffect(() => {
+    if (!ready) return;
+    void worldRef.current?.setPeriod(period).then(scheduleSave);
+  }, [ready, period, scheduleSave]);
+  useEffect(() => {
+    if (ready) worldRef.current?.setGrid(grid);
+  }, [ready, grid]);
+
   const light = (change: Partial<Lighting>) => {
     setLightingState((prev) => ({ ...prev, ...change }));
     worldRef.current?.setLighting(change);
     scheduleSave();
   };
 
-  // ---- Controls pushed into the world -------------------------------------------
-  useEffect(() => {
-    if (ready) worldRef.current?.setMode(mode, activeView);
-  }, [ready, mode, activeView]);
-  useEffect(() => {
-    if (ready) void worldRef.current?.setPeriod(period).then(() => scheduleSave());
-  }, [ready, period, scheduleSave]);
-  useEffect(() => {
-    if (ready) worldRef.current?.setGrid(grid);
-  }, [ready, grid]);
-  useEffect(() => {
-    if (!ready) return;
-    worldRef.current?.setOriginals({ lake, trail });
-    scheduleSave();
-  }, [ready, lake, trail, scheduleSave]);
-
-  const pickTool = (t: Tool, s?: Sub) => {
-    setTool(t);
-    if (s) setSub(s);
-    worldRef.current?.hideCursor();
+  // ---- Scenes ------------------------------------------------------------------------
+  const clearSelection = () => {
+    setSelected(null);
+    setCreatureOn(false);
+  };
+  /** Opens a diorama size, or the game's own scene as a read-only preview. */
+  const openScene = async (next: DioramaSize | "preview") => {
+    const world = worldRef.current;
+    if (!world || busy) return;
+    if (next === "preview" ? previewing : !previewing && next === size) return;
+    flushSave();
+    setBusy(true);
+    clearSelection();
+    resetHistory();
+    try {
+      if (next === "preview") {
+        await world.open({ kind: "preview" });
+        toolBefore.current = tool;
+        setTool("nav");
+        setPreviewing(true);
+      } else {
+        await world.open({ kind: "diorama", size: next, data: storedScene(next) });
+        if (previewing) setTool(toolBefore.current);
+        setPreviewing(false);
+        setSize(next);
+        setPeriod(world.period);
+        setLightingState({ ...world.lighting });
+        save();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+    setBusy(false);
   };
 
-  // ---- History -------------------------------------------------------------------
   const applySnapshot = async (data: SceneData) => {
     const world = worldRef.current;
     if (!world) return;
     await world.restore(data);
     setPeriod(data.period);
-    setLake(data.lake);
-    setTrail(data.trail);
-    setSelected(null);
+    clearSelection();
     bump((n) => n + 1);
     scheduleSave();
   };
   const undo = useCallback(async () => {
     const world = worldRef.current,
       prev = undoRef.current.pop();
-    if (!world || !prev) return;
+    if (!world || !prev || live.current.previewing) return;
     redoRef.current.push(world.snapshot());
     syncCounts();
     await applySnapshot(prev);
@@ -252,104 +439,108 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const redo = useCallback(async () => {
     const world = worldRef.current,
       next = redoRef.current.pop();
-    if (!world || !next) return;
+    if (!world || !next || live.current.previewing) return;
     undoRef.current.push(world.snapshot());
     syncCounts();
     await applySnapshot(next);
   }, []);
+  const clearAll = async () => {
+    const world = worldRef.current;
+    if (!world || previewing) return;
+    if (!window.confirm("¿Vaciar el diorama? Podrás deshacerlo con Ctrl+Z.")) return;
+    remember(world.snapshot());
+    await applySnapshot(HabitatWorld.blank(world.size, world.period));
+  };
+
+  // ---- Keyboard ----------------------------------------------------------------------
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && /INPUT|SELECT|TEXTAREA/.test(el.tagName) && (el as HTMLInputElement).type !== "range") return;
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === "z") {
+      const k = e.key.toLowerCase();
+      if (mod && k === "z") {
         e.preventDefault();
         void (e.shiftKey ? redo() : undo());
-      } else if (mod && e.key.toLowerCase() === "y") {
+      } else if (mod && k === "y") {
         e.preventDefault();
         void redo();
-      } else if ((e.key === "Delete" || e.key === "Backspace") && worldRef.current?.selected) {
-        const world = worldRef.current;
-        remember(world.snapshot());
-        world.removeProp(world.selected!);
-        setSelected(null);
+      } else if (!mod && !live.current.previewing) {
+        const hit = TOOLS.find((t) => t.key.toLowerCase() === k);
+        if (hit) setTool(hit.id);
+        else if ((e.key === "Delete" || e.key === "Backspace") && worldRef.current?.selected) {
+          const world = worldRef.current;
+          remember(world.snapshot());
+          world.removeProp(world.selected!);
+          clearSelection();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
 
-  // ---- Pointer ---------------------------------------------------------------------
-  const drag = useRef<{
-    kind: "edit" | "orbit" | "pan" | "move";
-    pane: Pane;
-    x: number;
-    y: number;
-    before: SceneData | null;
-    visited: Set<number>;
-    cover: Set<number>;
-    changed: boolean;
-    entry?: PropEntry;
-  } | null>(null);
-  const touches = useRef(new Map<number, { x: number; y: number }>());
-  const pinch = useRef(0);
-
+  // ---- Pointer -----------------------------------------------------------------------
   const local = (e: { clientX: number; clientY: number }) => {
     const r = hostRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  const edit = (world: HabitatWorld, pane: Pane, x: number, y: number, first: boolean) => {
-    const d = drag.current!;
-    const hit = world.pickGround(x, y, pane);
+  /** Tile under the pointer. Clicking the creature itself means the creature's own tile. */
+  const tileAt = (world: HabitatWorld, pane: Pane, x: number, y: number) => {
+    if (world.pickCreature(x, y, pane)) {
+      const t = world.creatureTile();
+      return { i: t.i, j: t.j, x: OX + t.i, z: OZ + t.j };
+    }
+    return world.pickGround(x, y, pane);
+  };
+
+  const brushAction = (world: HabitatWorld, d: Extract<Drag, { kind: "brush" }>, x: number, y: number, first: boolean) => {
+    const { tool: t, modes: m, brush: b, objectKey: k } = live.current;
+    const hit = tileAt(world, d.pane, x, y);
     if (!hit) return;
-    const { tool: t, sub: s, brush: b, objectKey: k } = stateRef.current;
-    const tiles = world.brushTiles(hit.i, hit.j, b);
-    if (t === "ground") {
-      const g: Ground = s === "path" || s === "sand" || s === "rock" ? s : "grass";
-      d.changed = world.paintGround(tiles, g, d.visited) || d.changed;
-    } else if (t === "water") {
-      d.changed = world.paintWater(tiles, s !== "remove", d.visited) || d.changed;
-    } else if (t === "relief") {
-      d.changed = world.sculpt(tiles, s !== "down", d.visited) || d.changed;
-    } else if (t === "grass") {
-      if (s === "tuft") {
-        d.changed = world.paintCut(tiles, false, d.visited) || d.changed;
+    const tiles = world.brushTiles(hit.i, hit.j, t === "object" ? 1 : b);
+    const sub = m[t];
+    if (t === "relief") d.changed = world.sculpt(tiles, sub !== "down", d.visited) || d.changed;
+    else if (t === "water") d.changed = world.paintWater(tiles, sub !== "remove", d.visited) || d.changed;
+    else if (t === "ground") d.changed = world.paintGround(tiles, sub as Ground, d.visited) || d.changed;
+    else if (t === "grass") {
+      if (sub === "tuft") {
+        world.paintCut(tiles, false, d.visited);
         d.changed = true;
-        void world.addCover("grass", tiles, d.cover).then(() => bump((n) => n + 1));
+        void world.addCover("grass", tiles, d.cover);
       } else {
         d.changed = world.paintCut(tiles, true, d.visited) || d.changed;
         d.changed = world.eraseProps(tiles, ["grass"]) > 0 || d.changed;
       }
     } else if (t === "erase") {
-      const prop = first && b === 1 ? world.pickProp(x, y, pane) : null;
+      const prop = first && b === 1 ? world.pickProp(x, y, d.pane) : null;
       if (prop) {
         world.removeProp(prop);
         d.changed = true;
-        return;
+      } else d.changed = world.eraseProps(tiles) > 0 || d.changed;
+    } else if (t === "object") {
+      if (COVER.includes(k)) {
+        d.changed = true;
+        void world.addCover(k, tiles, d.cover);
+      } else if (first) {
+        d.changed = true;
+        void world.addProp(k, hit.x, hit.z).then((entry) => {
+          if (entry) {
+            world.select(entry);
+            setSelected(entry);
+            setCreatureOn(false);
+          } else bump((n) => n + 1);
+        });
       }
-      d.changed = world.eraseProps(tiles) > 0 || d.changed;
-      d.changed = world.resetTiles(tiles, d.visited) || d.changed;
-    } else if (t === "object" && COVER.includes(k)) {
-      d.changed = true;
-      void world.addCover(k, tiles, d.cover);
-    } else if (t === "object" && first) {
-      void world.addProp(k, hit.x, hit.z).then((entry) => {
-        if (entry) {
-          world.select(entry);
-          setSelected(entry);
-        } else bump((n) => n + 1);
-      });
-      d.changed = true;
-    } else if (t === "creature") {
-      d.changed = world.moveCreature(hit.x, hit.z) !== false || d.changed;
     }
-    if (t === "ground" || t === "water" || t === "relief" || t === "erase" || t === "grass") world.refreshTerrain();
+    if (t !== "object") world.refreshTerrain();
+    else if (COVER.includes(k)) world.refreshTerrain();
   };
 
   const onDown = (e: React.PointerEvent) => {
     const world = worldRef.current;
-    if (!world || !ready) return;
+    if (!world || !ready || busy) return;
     const { x, y } = local(e);
     (e.target as Element).setPointerCapture?.(e.pointerId);
     touches.current.set(e.pointerId, { x, y });
@@ -363,23 +554,58 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     if (!pane) return;
     world.activeView = pane.id;
     setActiveView(pane.id);
-    const t = stateRef.current.tool;
-    const navigate = e.button === 2 || e.shiftKey || t === "nav" || e.button === 1;
-    const base = { pane, x, y, before: null, visited: new Set<number>(), cover: new Set<number>(), changed: false };
-    if (navigate) {
-      drag.current = { ...base, kind: e.button === 1 || (e.shiftKey && e.button === 0) ? "pan" : "orbit" };
+    const t = live.current.tool;
+    const pan = e.button === 1 || (e.shiftKey && e.button === 0);
+    if (!world.editable || t === "nav" || e.button === 2 || pan) {
+      drag.current = pan ? { kind: "pan", pane, x, y } : { kind: "orbit", pane, x, y };
       return;
     }
     if (t === "select") {
-      const entry = world.pickProp(x, y, pane);
-      world.select(entry);
-      setSelected(entry);
-      if (entry) drag.current = { ...base, kind: "move", before: world.snapshot(), entry };
-      else drag.current = { ...base, kind: "orbit" };
+      const onCreature = world.pickCreature(x, y, pane);
+      const entry = onCreature ? null : world.pickProp(x, y, pane);
+      if (!onCreature && !entry) {
+        world.select(null);
+        world.selectCreature(false);
+        clearSelection();
+        drag.current = { kind: "orbit", pane, x, y };
+        return;
+      }
+      if (onCreature) {
+        world.selectCreature(true);
+        setSelected(null);
+        setCreatureOn(true);
+      } else {
+        world.select(entry);
+        setSelected(entry);
+        setCreatureOn(false);
+      }
+      const ground = world.pickGround(x, y, pane);
+      const origin = onCreature
+        ? world.creatureTile()
+        : entry
+          ? { i: Math.round(entry.x - OX), j: Math.round(entry.z - OZ) }
+          : { i: 0, j: 0 };
+      drag.current = {
+        kind: "move",
+        pane,
+        before: world.snapshot(),
+        entry,
+        // The ray through a tall body lands behind it: remember that offset so the grab feels exact.
+        off: ground ? { i: ground.i - origin.i, j: ground.j - origin.j } : { i: 0, j: 0 },
+        changed: false,
+      };
       return;
     }
-    drag.current = { ...base, kind: "edit", before: world.snapshot() };
-    edit(world, pane, x, y, true);
+    const d: Extract<Drag, { kind: "brush" }> = {
+      kind: "brush",
+      pane,
+      before: world.snapshot(),
+      visited: new Set(),
+      cover: new Set(),
+      changed: false,
+    };
+    drag.current = d;
+    brushAction(world, d, x, y, true);
   };
 
   const onMove = (e: React.PointerEvent) => {
@@ -396,26 +622,46 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     }
     const d = drag.current;
     if (d) {
-      const dx = x - d.x,
-        dy = y - d.y;
-      if (d.kind === "orbit") world.orbit(d.pane.id, dx, dy);
-      else if (d.kind === "pan") world.pan(d.pane.id, dx, dy, d.pane);
-      else if (d.kind === "move" && d.entry) {
+      if (d.kind === "orbit" || d.kind === "pan") {
+        const dx = x - d.x,
+          dy = y - d.y;
+        if (d.kind === "orbit") world.orbit(d.pane.id, dx, dy);
+        else world.pan(d.pane.id, dx, dy, d.pane);
+        d.x = x;
+        d.y = y;
+      } else if (d.kind === "move") {
         const hit = world.pickGround(x, y, d.pane);
-        if (hit && world.moveProp(d.entry, hit.x, hit.z)) d.changed = true;
-      } else if (d.kind === "edit") edit(world, d.pane, x, y, false);
-      d.x = x;
-      d.y = y;
+        if (hit) {
+          const i = hit.i - d.off.i,
+            j = hit.j - d.off.j;
+          const wx = OX + i,
+            wz = OZ + j;
+          const moved = d.entry ? world.moveProp(d.entry, wx, wz) : world.moveCreature(wx, wz);
+          if (moved) d.changed = true;
+        }
+      } else brushAction(world, d, x, y, false);
       return;
     }
-    // Hover cursor
+    // Hover feedback
+    const el = hostRef.current;
     const pane = world.paneAt(x, y);
-    const t = stateRef.current.tool;
-    if (!pane || t === "nav" || t === "select") return world.hideCursor();
-    const hit = world.pickGround(x, y, pane);
+    const t = live.current.tool;
+    if (!pane || !world.editable || t === "nav") {
+      world.hideCursor();
+      if (el) el.style.cursor = t === "nav" ? "grab" : "";
+      return;
+    }
+    if (t === "select") {
+      world.hideCursor();
+      const over = world.pickCreature(x, y, pane) || !!world.pickProp(x, y, pane);
+      if (el) el.style.cursor = over ? "grab" : "";
+      return;
+    }
+    if (el) el.style.cursor = "crosshair";
+    const hit = tileAt(world, pane, x, y);
     if (!hit) return world.hideCursor();
-    const size = t === "object" || t === "creature" ? 1 : stateRef.current.brush;
-    world.showCursor(world.brushTiles(hit.i, hit.j, size), CURSOR_COLOR[t]);
+    const sz = t === "object" ? 1 : live.current.brush;
+    world.showCursor(world.brushTiles(hit.i, hit.j, sz), CURSOR_COLOR[t]);
   };
 
   const onUp = (e: React.PointerEvent) => {
@@ -424,11 +670,10 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const world = worldRef.current,
       d = drag.current;
     drag.current = null;
-    if (!world || !d) return;
-    if (d.changed && d.before) {
-      if (d.kind === "edit") world.commitTerrain();
+    if (!world || !d || d.kind === "orbit" || d.kind === "pan") return;
+    if (d.changed) {
+      world.commitTerrain();
       remember(d.before);
-      setSelected(world.selected);
       bump((n) => n + 1);
     }
   };
@@ -438,20 +683,19 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     if (!world) return;
     const { x, y } = local(e);
     const pane = world.paneAt(x, y);
-    if (!pane) return;
-    world.zoom(pane.id, e.deltaY > 0 ? 1.1 : 1 / 1.1);
+    if (pane) world.zoom(pane.id, e.deltaY > 0 ? 1.1 : 1 / 1.1);
   };
 
-  // ---- Files -----------------------------------------------------------------------
+  // ---- Files -------------------------------------------------------------------------
   const exportJson = () => {
     const world = worldRef.current;
-    if (!world) return;
+    if (!world || previewing) return;
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(world.snapshot(), null, 2)], { type: "application/json" }),
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = "habitat-scene.json";
+    a.download = `diorama-${world.size}x${world.size}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -460,241 +704,226 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     if (!file || !world) return;
     try {
       const data: unknown = JSON.parse(await file.text());
-      if (!HabitatWorld.isSceneData(data)) throw new Error("Archivo de escena no válido.");
-      remember(world.snapshot());
-      await applySnapshot(data);
-      if (data.lighting) light({ ...DEFAULT_LIGHTING, ...data.lighting });
+      if (!HabitatWorld.isSceneData(data)) throw new Error("Ese archivo no es un diorama válido.");
+      flushSave();
+      setBusy(true);
+      clearSelection();
+      resetHistory();
+      await world.open({ kind: "diorama", size: data.size, data });
+      setPreviewing(false);
+      setSize(data.size);
+      setPeriod(world.period);
+      setLightingState({ ...world.lighting });
+      save();
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo importar el archivo.");
     }
+    setBusy(false);
   };
 
-  const entry = selected;
-  const Btn = (p: { t: Tool; s?: Sub; icon: React.ReactNode; label: string }) => (
-    <button
-      type="button"
-      className={`hx-btn${tool === p.t && (!p.s || sub === p.s) ? " on" : ""}`}
-      onClick={() => pickTool(p.t, p.s)}
-    >
-      {p.icon}
-      {p.label}
-    </button>
-  );
+  // ---- Render ------------------------------------------------------------------------
+  const world = worldRef.current;
+  const status = error || notice || (previewing ? "Escena de prueba del juego: solo para mirar." : def.hint);
 
   return (
     <div className="hx">
-      <aside className="hx-panel">
-        <section>
-          <h3>Vistas</h3>
-          <div className="hx-grid">
-            {(["triple", "pano", "mobile", "top"] as ViewMode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`hx-btn${mode === m ? " on" : ""}`}
-                onClick={() => setMode(m)}
-              >
-                {m === "triple" ? "Las tres" : VIEW_LABEL[m]}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3>Herramientas</h3>
-          <div className="hx-grid">
-            <Btn t="relief" s="up" icon={<Mountain size={15} />} label="Subir" />
-            <Btn t="relief" s="down" icon={<Mountain size={15} style={{ transform: "scaleY(-1)" }} />} label="Bajar" />
-            <Btn t="water" s="add" icon={<Droplets size={15} />} label="Agua" />
-            <Btn t="water" s="remove" icon={<Droplets size={15} opacity={0.5} />} label="Quitar agua" />
-            <Btn t="ground" s="path" icon={<Paintbrush size={15} />} label="Camino" />
-            <Btn t="ground" s="sand" icon={<Paintbrush size={15} />} label="Arena" />
-            <Btn t="ground" s="rock" icon={<Paintbrush size={15} />} label="Roca" />
-            <Btn t="ground" s="grass" icon={<Paintbrush size={15} />} label="Pasto" />
-            <Btn t="grass" s="tuft" icon={<Sprout size={15} />} label="Poner pasto alto" />
-            <Btn t="grass" s="untuft" icon={<Sprout size={15} opacity={0.5} />} label="Quitar pasto alto" />
-            <Btn t="object" icon={<Trees size={15} />} label="Objeto" />
-            <Btn t="select" icon={<MousePointer2 size={15} />} label="Seleccionar" />
-            <Btn t="creature" icon={<PawPrint size={15} />} label="Criatura" />
-            <Btn t="erase" icon={<Eraser size={15} />} label="Borrar" />
-            <Btn t="nav" icon={<Hand size={15} />} label="Navegar" />
-          </div>
-        </section>
-
-        {(tool === "grass" || tool === "ground" || tool === "water" || tool === "relief" || tool === "erase") && (
-          <section>
-            <h3>Pincel</h3>
-            <div className="hx-grid three">
-              {[1, 3, 5].map((n) => (
-                <button key={n} type="button" className={`hx-btn${brush === n ? " on" : ""}`} onClick={() => setBrush(n)}>
-                  {n}×{n}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {tool === "object" && (
-          <section>
-            <h3>Objeto de la escena</h3>
-            <div className="hx-grid">
-              {PROP_CATALOG.map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  className={`hx-btn${objectKey === p.key ? " on" : ""}`}
-                  onClick={() => setObjectKey(p.key)}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {entry && (
-          <section>
-            <h3>Objeto seleccionado</h3>
-            <label className="hx-field">
-              Tamaño ({entry.h.toFixed(1)} m)
-              <input
-                type="range"
-                min={0.2}
-                max={10}
-                step={0.1}
-                value={entry.h}
-                onPointerDown={() => worldRef.current && remember(worldRef.current.snapshot())}
-                onChange={(e) => {
-                  worldRef.current?.updateProp(entry, { h: Number(e.target.value) });
-                  bump((n) => n + 1);
-                  scheduleSave();
-                }}
-              />
-            </label>
-            <label className="hx-field">
-              Rotación
-              <input
-                type="range"
-                min={0}
-                max={6.28}
-                step={0.05}
-                value={entry.r}
-                onPointerDown={() => worldRef.current && remember(worldRef.current.snapshot())}
-                onChange={(e) => {
-                  worldRef.current?.updateProp(entry, { r: Number(e.target.value) });
-                  bump((n) => n + 1);
-                  scheduleSave();
-                }}
-              />
-            </label>
+      <header className="hx-bar">
+        <div className="hx-group" role="group" aria-label="Tamaño del diorama">
+          <span className="hx-label-sm">Diorama</span>
+          {DIORAMA_SIZES.map((n) => (
             <button
+              key={n}
               type="button"
-              className="hx-btn danger"
-              onClick={() => {
-                const world = worldRef.current;
-                if (!world) return;
-                remember(world.snapshot());
-                world.removeProp(entry);
-                setSelected(null);
-              }}
+              className={`hx-seg${!previewing && size === n ? " on" : ""}`}
+              disabled={busy}
+              onClick={() => void openScene(n)}
+              title={`Construir un diorama de ${n}×${n} baldosas`}
             >
-              Eliminar objeto
+              {n}×{n}
             </button>
-          </section>
-        )}
-
-        <section>
-          <h3>Iluminación</h3>
-          <div className="hx-grid">
-            {PERIODS.map((p) => (
-              <button key={p} type="button" className={`hx-btn${period === p ? " on" : ""}`} onClick={() => setPeriod(p)}>
-                {PERIOD_LABEL[p]}
-              </button>
-            ))}
-          </div>
-          {(
-            [
-              ["sun", "Sol", 0, 2.5, 0.05],
-              ["ambient", "Luz ambiente", 0, 2.5, 0.05],
-              ["rim", "Contraluz", 0, 3, 0.05],
-              ["exposure", "Brillo general", 0.5, 1.8, 0.02],
-              ["warmth", "Frío ↔ cálido", -1, 1, 0.05],
-              ["azimuth", "Giro del sol", -180, 180, 1],
-              ["elevation", "Altura del sol", -40, 40, 1],
-            ] as const
-          ).map(([k, label, min, max, step]) => (
-            <label key={k} className="hx-field" style={{ marginTop: 6 }}>
-              {label}
-              <input
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={lighting[k]}
-                onChange={(e) => light({ [k]: Number(e.target.value) })}
-              />
-            </label>
           ))}
-          <div className="hx-grid" style={{ marginTop: 8 }}>
-            <button
-              type="button"
-              className={`hx-btn${lighting.shadows ? " on" : ""}`}
-              onClick={() => light({ shadows: !lighting.shadows })}
-            >
-              Sombras
+        </div>
+        <button
+          type="button"
+          className={`hx-seg wide${previewing ? " on" : ""}`}
+          disabled={busy}
+          onClick={() => void openScene(previewing ? size : "preview")}
+          title="Ver cómo se ve la escena real del juego"
+        >
+          <Eye size={15} /> {previewing ? "Volver a mi diorama" : "Ver escena de prueba"}
+        </button>
+        <span className="hx-spacer" />
+        <div className="hx-group">
+          <button type="button" className="hx-icon" disabled={!counts.undo || previewing} onClick={() => void undo()} title="Deshacer (Ctrl+Z)">
+            <Undo2 size={17} />
+          </button>
+          <button type="button" className="hx-icon" disabled={!counts.redo || previewing} onClick={() => void redo()} title="Rehacer (Ctrl+Y)">
+            <Redo2 size={17} />
+          </button>
+          <button type="button" className="hx-icon" disabled={previewing} onClick={() => void clearAll()} title="Vaciar diorama">
+            <Trash2 size={17} />
+          </button>
+          <button type="button" className="hx-icon" disabled={previewing} onClick={exportJson} title="Exportar diorama (.json)">
+            <Download size={17} />
+          </button>
+          <label className="hx-icon" title="Importar diorama (.json)">
+            <Upload size={17} />
+            <input
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(e) => {
+                void importJson(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+        <div className="hx-group" role="group" aria-label="Vistas">
+          {VIEW_MODES.map((v) => (
+            <button key={v.id} type="button" className={`hx-seg${view === v.id ? " on" : ""}`} onClick={() => setView(v.id)}>
+              {v.label}
             </button>
-            <button type="button" className="hx-btn" onClick={() => light({ ...DEFAULT_LIGHTING })}>
-              Restablecer
-            </button>
-          </div>
-        </section>
+          ))}
+        </div>
+        <button type="button" className={`hx-seg wide${lightOpen ? " on" : ""}`} onClick={() => setLightOpen(!lightOpen)}>
+          <Sun size={15} /> Luz
+        </button>
+        <button type="button" className={`hx-icon${grid ? " on" : ""}`} onClick={() => setGrid(!grid)} title="Cuadrícula">
+          <Grid3X3 size={17} />
+        </button>
+      </header>
 
-        <section>
-          <h3>Escena</h3>
-          <div className="hx-grid">
-            <button type="button" className={`hx-btn${grid ? " on" : ""}`} onClick={() => setGrid(!grid)}>
-              <Grid3X3 size={15} /> Cuadrícula
-            </button>
-            <button type="button" className={`hx-btn${lake ? " on" : ""}`} onClick={() => setLake(!lake)}>
-              <Layers size={15} /> Lago original
-            </button>
-            <button type="button" className={`hx-btn${trail ? " on" : ""}`} onClick={() => setTrail(!trail)}>
-              <Layers size={15} /> Camino original
-            </button>
-          </div>
-        </section>
+      <nav className="hx-rail" aria-label="Herramientas">
+        {TOOLS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`hx-tool${tool === t.id ? " on" : ""}`}
+            disabled={previewing && t.id !== "nav"}
+            onClick={() => setTool(t.id)}
+            title={`${t.label} (${t.key})`}
+          >
+            {t.icon}
+            <span>{t.label}</span>
+            <kbd>{t.key}</kbd>
+          </button>
+        ))}
+      </nav>
 
-        <section>
-          <h3>Archivo</h3>
-          <div className="hx-grid">
-            <button type="button" className="hx-btn" disabled={!counts.undo} onClick={() => void undo()}>
-              <Undo2 size={15} /> Deshacer
-            </button>
-            <button type="button" className="hx-btn" disabled={!counts.redo} onClick={() => void redo()}>
-              <Redo2 size={15} /> Rehacer
-            </button>
-            <button type="button" className="hx-btn" onClick={exportJson}>
-              <Download size={15} /> Exportar
-            </button>
-            <label className="hx-btn" style={{ cursor: "pointer" }}>
-              <Upload size={15} /> Importar
-              <input
-                type="file"
-                accept="application/json,.json"
-                hidden
-                onChange={(e) => {
-                  void importJson(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          </div>
-          <p className="hx-hint" style={{ marginTop: 8 }}>
-            Se guarda solo en este navegador. Clic derecho o Mayús para orbitar, rueda para zoom, doble clic para
-            reiniciar la vista.
+      <aside className="hx-options">
+        {previewing ? (
+          <p className="hx-help">
+            Estás mirando la escena real del juego. No se puede editar. Usa «Volver a mi diorama» para seguir
+            construyendo.
           </p>
-        </section>
+        ) : (
+          <>
+            <h3>{def.label}</h3>
+            <p className="hx-help">{def.hint}</p>
+
+            {def.modes && (
+              <div className="hx-modes">
+                {def.modes.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`hx-seg${mode === m.id ? " on" : ""}`}
+                    onClick={() => setModes({ ...modes, [tool]: m.id })}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {def.brush && (
+              <div className="hx-field">
+                <span>Pincel</span>
+                <div className="hx-modes">
+                  {[1, 3, 5].map((n) => (
+                    <button key={n} type="button" className={`hx-seg${brush === n ? " on" : ""}`} onClick={() => setBrush(n)}>
+                      {n}×{n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {tool === "object" && (
+              <div className="hx-objects">
+                {PROP_CATALOG.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    className={`hx-seg${objectKey === p.key ? " on" : ""}`}
+                    onClick={() => setObjectKey(p.key)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {creatureOn && (
+              <div className="hx-card">
+                <strong>mammal.exe</strong>
+                <p className="hx-help">Ocupa una baldosa. Arrástrala para moverla; sube sola con el relieve.</p>
+              </div>
+            )}
+
+            {selected && (
+              <div className="hx-card">
+                <strong>{PROP_CATALOG.find((p) => p.key === selected.key)?.label ?? selected.key}</strong>
+                <label className="hx-field">
+                  <span>Tamaño · {selected.h.toFixed(1)} m</span>
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={world?.kind === "diorama" ? 6 : 10}
+                    step={0.1}
+                    value={selected.h}
+                    onPointerDown={() => world && remember(world.snapshot())}
+                    onChange={(e) => {
+                      world?.updateProp(selected, { h: Number(e.target.value) });
+                      bump((n) => n + 1);
+                      scheduleSave();
+                    }}
+                  />
+                </label>
+                <label className="hx-field">
+                  <span>Giro</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={6.28}
+                    step={0.05}
+                    value={selected.r}
+                    onPointerDown={() => world && remember(world.snapshot())}
+                    onChange={(e) => {
+                      world?.updateProp(selected, { r: Number(e.target.value) });
+                      bump((n) => n + 1);
+                      scheduleSave();
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="hx-seg danger"
+                  onClick={() => {
+                    if (!world) return;
+                    remember(world.snapshot());
+                    world.removeProp(selected);
+                    clearSelection();
+                  }}
+                >
+                  Eliminar objeto
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </aside>
 
       <div
@@ -708,25 +937,58 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         onWheel={onWheel}
         onContextMenu={(e) => e.preventDefault()}
         onDoubleClick={(e) => {
-          const world = worldRef.current;
-          if (!world) return;
+          const w = worldRef.current;
+          if (!w) return;
           const { x, y } = local(e);
-          const pane = world.paneAt(x, y);
-          if (pane) world.resetView(pane.id);
+          const pane = w.paneAt(x, y);
+          if (pane) w.resetView(pane.id);
         }}
       >
         <canvas ref={canvasRef} />
         {panes.map((p) => (
           <div
             key={p.id}
-            className={`hx-label${p.id === activeView && panes.length > 1 ? " active" : ""}`}
+            className={`hx-tag${p.id === activeView && panes.length > 1 ? " active" : ""}`}
             style={{ left: p.x, top: p.y }}
           >
             {VIEW_LABEL[p.id]}
           </div>
         ))}
-        {!ready && !error && <div className="hx-loading">Cargando la escena del juego…</div>}
-        <div className="hx-status">{error || notice || STATUS[tool]}</div>
+        {lightOpen && (
+          <div className="hx-light" onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
+            <h3>Iluminación</h3>
+            <div className="hx-modes">
+              {PERIODS.map((p) => (
+                <button key={p} type="button" className={`hx-seg${period === p ? " on" : ""}`} onClick={() => setPeriod(p)}>
+                  {PERIOD_LABEL[p]}
+                </button>
+              ))}
+            </div>
+            {LIGHT_SLIDERS.map(([k, label, min, max, step]) => (
+              <label key={k} className="hx-field">
+                <span>{label}</span>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  step={step}
+                  value={lighting[k]}
+                  onChange={(e) => light({ [k]: Number(e.target.value) })}
+                />
+              </label>
+            ))}
+            <div className="hx-modes">
+              <button type="button" className={`hx-seg${lighting.shadows ? " on" : ""}`} onClick={() => light({ shadows: !lighting.shadows })}>
+                Sombras
+              </button>
+              <button type="button" className="hx-seg" onClick={() => light({ ...DEFAULT_LIGHTING })}>
+                Restablecer
+              </button>
+            </div>
+          </div>
+        )}
+        {(!ready || busy) && !error && <div className="hx-loading">{busy ? "Cambiando de escena…" : "Cargando…"}</div>}
+        <div className={`hx-status${error ? " err" : notice ? " warn" : ""}`}>{status}</div>
       </div>
     </div>
   );
