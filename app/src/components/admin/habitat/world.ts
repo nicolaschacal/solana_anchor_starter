@@ -40,8 +40,8 @@ export type PropEntry = PropData & {
   baseH: number;
   prop: PlacedProp | null;
 };
-export type DioramaSize = 4 | 8 | 16;
-export const DIORAMA_SIZES: DioramaSize[] = [4, 8, 16];
+export type DioramaSize = 5 | 10 | 15;
+export const DIORAMA_SIZES: DioramaSize[] = [5, 10, 15];
 export type Kind = "diorama" | "preview";
 export type Target = { kind: "preview" } | { kind: "diorama"; size: DioramaSize; data?: SceneData | null };
 export type SceneData = {
@@ -150,7 +150,7 @@ export class HabitatWorld {
   selected: PropEntry | null = null;
   creature = { x: 0, z: CREATURE_Z };
   kind: Kind = "diorama";
-  size: DioramaSize = 8;
+  size: DioramaSize = 5;
   creatureSelected = false;
   /** Fixed cameras exactly as the player sees the game; orbit, pan and zoom are off. */
   playerView = false;
@@ -358,8 +358,9 @@ diffuseColor.rgb = painted;`,
 
   static regionFor(size: DioramaSize): Region {
     const mid = HabitatWorld.centerTile();
-    const i0 = mid.i - size / 2,
-      j0 = mid.j - size / 2;
+    // Odd sizes have a true middle tile; the creature starts on it.
+    const i0 = mid.i - Math.floor(size / 2),
+      j0 = mid.j - Math.floor(size / 2);
     return { i0, j0, i1: i0 + size - 1, j1: j0 + size - 1 };
   }
   /** Tile the creature starts on: the middle of the diorama. */

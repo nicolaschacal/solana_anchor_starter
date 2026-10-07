@@ -50,7 +50,7 @@ Implementation is in `habitat-materials.ts`, `habitat-lighting.ts`, `meadow.ts` 
 
 ## Habitat Editor (admin)
 
-`/admin/habitat-editor` is a diorama builder. It starts with an empty block of earth (4×4, 8×8 or 16×16 tiles of 1 m) lit and skied like the game, with the real `mammal.exe` standing on one tile in the middle. The creature GLB is loaded from the Irys URI published in the atlas, never from a bundled file. "Ver escena de prueba" opens the game's own `meadow()` scene (read-only) to compare.
+`/admin/habitat-editor` is a diorama builder. It starts with an empty block of earth (5×5, 10×10 or 15×15 tiles of 1 m; the odd sizes have a true centre tile for the creature) lit and skied like the game, with the real `mammal.exe` standing on one tile in the middle. The creature GLB is loaded from the Irys URI published in the atlas, never from a bundled file. "Ver escena de prueba" opens the game's own `meadow()` scene (read-only) to compare.
 
 Views: panorámica and móvil (perspective) and cenital (orthographic), one or all three. "Vista del jugador" locks the perspective views to the game's own camera (same angle and share of frame, following the creature) and hides the grid; press it again to free the cameras. Tools (single-letter shortcuts): Seleccionar (V), Relieve (R), Agua (A), Suelo (G), Pasto alto (P), Objetos (O), Borrar (E), Cámara (H). A toolbox on the left, the options of the active tool on the right, scene size, undo/redo, export/import and views on top, and a lighting popover ("Luz") with period presets and sliders for sun, ambient, rim, brightness, warmth, sun azimuth/elevation and shadows.
 

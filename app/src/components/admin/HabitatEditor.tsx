@@ -191,9 +191,9 @@ const storedScene = (size: DioramaSize): SceneData | null => {
 const lastSize = (): DioramaSize => {
   try {
     const n = Number(localStorage.getItem(LAST));
-    return (DIORAMA_SIZES as number[]).includes(n) ? (n as DioramaSize) : 8;
+    return (DIORAMA_SIZES as number[]).includes(n) ? (n as DioramaSize) : 5;
   } catch {
-    return 8;
+    return 5;
   }
 };
 
