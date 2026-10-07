@@ -1,13 +1,14 @@
 import * as THREE from "three";
 import { disposeModel, parseModel } from "./rig";
 
-const PREVIEW_SIZE = 768;
+const PREVIEW_SIZE = 512;
 
 function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Could not encode preview PNG."))),
-      "image/png",
+      (blob) => (blob ? resolve(blob) : reject(new Error("Could not encode preview WebP."))),
+      "image/webp",
+      0.72,
     );
   });
 }
