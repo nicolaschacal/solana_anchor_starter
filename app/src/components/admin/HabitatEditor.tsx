@@ -360,6 +360,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const brushStrengthRef = useRef(0.18);
   const tileMaterialRef = useRef<TileMaterial>("grass");
   const tileMapRef = useRef<Map<string, HabitatTile>>(new Map());
+  const gridSizeRef = useRef<4 | 8 | 16>(8);
+  const groundWidthRef = useRef(8);
+  const groundDepthRef = useRef(8);
   const rebuildTilesRef = useRef<() => void>(() => {});
 
   const [name, setName] = useState("My Habitat");
@@ -386,6 +389,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
   useEffect(() => { brushStrengthRef.current = brushStrength; }, [brushStrength]);
   useEffect(() => { tileMaterialRef.current = tileMaterial; }, [tileMaterial]);
+  useEffect(() => { gridSizeRef.current = gridSize; }, [gridSize]);
+  useEffect(() => { groundWidthRef.current = groundWidth; }, [groundWidth]);
+  useEffect(() => { groundDepthRef.current = groundDepth; }, [groundDepth]);
 
   const syncObjects = () => {
     const root = objectRootRef.current;
@@ -507,9 +513,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const rebuildTiles = () => {
       const next = buildSmartTileGroup(
         Array.from(tileMapRef.current.values()),
-        gridSize,
-        groundWidth,
-        groundDepth,
+        gridSizeRef.current,
+        groundWidthRef.current,
+        groundDepthRef.current,
       );
       scene.remove(tileRoot);
       tileRoot.traverse((node) => {
@@ -629,11 +635,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       const hit = terrainHit(event);
       if (!hit) return;
       const local = terrain.worldToLocal(hit.point.clone());
-      const cellX = groundWidth / gridSize;
-      const cellZ = groundDepth / gridSize;
-      const x = Math.floor((local.x + groundWidth / 2) / cellX);
-      const z = Math.floor((local.z + groundDepth / 2) / cellZ);
-      if (x < 0 || z < 0 || x >= gridSize || z >= gridSize) return;
+      const activeGrid = gridSizeRef.current;
+      const activeWidth = groundWidthRef.current;
+      const activeDepth = groundDepthRef.current;
+      const cellX = activeWidth / activeGrid;
+      const cellZ = activeDepth / activeGrid;
+      const x = Math.floor((local.x + activeWidth / 2) / cellX);
+      const z = Math.floor((local.z + activeDepth / 2) / cellZ);
+      if (x < 0 || z < 0 || x >= activeGrid || z >= activeGrid) return;
       const key = tileKey(x, z);
       const material = tileMaterialRef.current;
       if (material === "empty") tileMapRef.current.delete(key);
@@ -947,6 +956,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     }
     tileMapRef.current.clear();
     setTiles([]);
+    gridSizeRef.current = size;
+    groundWidthRef.current = size;
+    groundDepthRef.current = size;
     setGridSize(size);
     setGroundWidth(size);
     setGroundDepth(size);
@@ -1204,6 +1216,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         saved.gridSize === 4 || saved.gridSize === 8 || saved.gridSize === 16
           ? saved.gridSize
           : 8;
+      gridSizeRef.current = restoredGrid;
+      groundWidthRef.current = saved.terrain.width;
+      groundDepthRef.current = saved.terrain.depth;
       setGridSize(restoredGrid);
       tileMapRef.current = new Map(
         (saved.tiles ?? []).map((tile) => [tileKey(tile.x, tile.z), tile]),
