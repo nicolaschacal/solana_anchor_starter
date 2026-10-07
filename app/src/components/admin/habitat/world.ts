@@ -152,6 +152,9 @@ export class HabitatWorld {
   kind: Kind = "diorama";
   size: DioramaSize = 8;
   creatureSelected = false;
+  /** Fixed cameras exactly as the player sees the game; orbit, pan and zoom are off. */
+  playerView = false;
+  private creatureExtent = 1.8; // metres: the creature's longest side
   showGrid = true;
   lighting: Lighting = { ...DEFAULT_LIGHTING };
   private baseExposure = 1;
@@ -818,6 +821,7 @@ diffuseColor.rgb = painted;`,
     this.stage.scale.setScalar(scale);
     this.stageBase.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
     this.creatureSpan = size.x * framing;
+    this.creatureExtent = Math.max(size.x, size.y, size.z) * scale;
     this.creatureRoot = root;
     const normalize = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const idle = model.clips.find((c) => clipNames.includes(normalize(c.name)));
@@ -858,6 +862,7 @@ diffuseColor.rgb = painted;`,
     this.applyMasks();
     this.updateRing();
     this.env.markShadowsDirty();
+    this.reframe();
     return true;
   }
   /** True when the pointer is over the creature's body. */
@@ -989,6 +994,7 @@ diffuseColor.rgb = painted;`,
     this.placeCreature();
     this.updateRing();
     this.env.markShadowsDirty();
+    this.reframe();
   }
   setGrid(visible: boolean) {
     this.showGrid = visible;
@@ -1175,6 +1181,27 @@ diffuseColor.rgb = painted;`,
   private frameDefault(pane: Pane) {
     const v = this.views[pane.id];
     const aspect = pane.w / pane.h;
+    if (this.kind === "diorama" && this.playerView && pane.id !== "top") {
+      // The game's framing, scaled to this creature: same angle, same share of the frame.
+      const portrait = pane.id === "mobile";
+      const k = this.creatureExtent / 1.8;
+      const direction = new THREE.Vector3(0, 0.6, 4.7).normalize();
+      const distance =
+        Math.max(
+          portrait ? 4.8 : 6.8,
+          this.creatureSpan / (2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * aspect * (portrait ? 0.42 : 0.54)),
+        ) * k;
+      const ground = this.map.heightAt(this.creature.x, this.creature.z);
+      v.target.set(
+        this.creature.x,
+        ground + (1.6 + (portrait ? 0.7 + -CREATURE_Z * 0.22 : 0)) * k,
+        this.creature.z,
+      );
+      v.dist = distance;
+      v.yaw = Math.atan2(direction.x, direction.z);
+      v.pitch = Math.asin(direction.y);
+      return;
+    }
     if (this.kind === "diorama") {
       const c = this.centre,
         n = this.size;
@@ -1214,6 +1241,16 @@ diffuseColor.rgb = painted;`,
     }
     return { x0: OX - 4, x1: OX + GX + 4, z0: OZ - 4, z1: OZ + GZ + 4 };
   }
+  private reframe() {
+    if (!this.playerView) return;
+    for (const pane of this.panes) if (pane.id !== "top") this.frameDefault(pane);
+  }
+  /** Locks the perspective views to the player's camera, or frees them again. */
+  setPlayerView(on: boolean) {
+    this.playerView = on;
+    for (const id of ["pano", "mobile"] as const) this.views[id].custom = false;
+    this.layout();
+  }
   resetView(id: ViewId) {
     this.views[id].custom = false;
     const pane = this.panes.find((p) => p.id === id);
@@ -1221,13 +1258,14 @@ diffuseColor.rgb = painted;`,
   }
   orbit(id: ViewId, dx: number, dy: number) {
     const v = this.views[id];
-    if (id === "top") return;
+    if (id === "top" || this.playerView) return;
     v.custom = true;
     v.yaw -= dx * 0.006;
     v.pitch = clamp(v.pitch + dy * 0.005, 0.03, 1.5);
   }
   pan(id: ViewId, dx: number, dy: number, pane: Pane) {
     const v = this.views[id];
+    if (this.playerView && id !== "top") return;
     v.custom = true;
     if (id === "top") {
       const unit = (2 * this.topHalf(pane) * 1) / pane.h;
@@ -1247,6 +1285,7 @@ diffuseColor.rgb = painted;`,
   }
   zoom(id: ViewId, factor: number) {
     const v = this.views[id];
+    if (this.playerView && id !== "top") return;
     v.custom = true;
     if (id === "top") v.zoom = clamp(v.zoom / factor, 0.5, 5);
     else v.dist = clamp(v.dist * factor, 1.5, this.kind === "diorama" ? 150 : 60);

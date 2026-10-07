@@ -5,6 +5,7 @@ import {
   Eye,
   Grid3X3,
   Hand,
+  Lock,
   Mountain,
   MousePointer2,
   Paintbrush,
@@ -251,6 +252,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const [lighting, setLightingState] = useState<Lighting>({ ...DEFAULT_LIGHTING });
   const [lightOpen, setLightOpen] = useState(false);
   const [grid, setGrid] = useState(true);
+  const [playerView, setPlayerView] = useState(false);
+  const gridBefore = useRef(true);
   const [selected, setSelected] = useState<PropEntry | null>(null);
   const [creatureOn, setCreatureOn] = useState(false);
   const [counts, setCounts] = useState({ undo: 0, redo: 0 });
@@ -377,6 +380,17 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   useEffect(() => {
     if (ready) worldRef.current?.setGrid(grid);
   }, [ready, grid]);
+  /** The camera as the player has it in the game: fixed, no grid. */
+  const togglePlayerView = () => {
+    const on = !playerView;
+    worldRef.current?.setPlayerView(on);
+    setPlayerView(on);
+    if (on) {
+      gridBefore.current = grid;
+      setGrid(false);
+      if (view === "top") setView("triple");
+    } else setGrid(gridBefore.current);
+  };
 
   const light = (change: Partial<Lighting>) => {
     setLightingState((prev) => ({ ...prev, ...change }));
@@ -724,7 +738,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
   // ---- Render ------------------------------------------------------------------------
   const world = worldRef.current;
-  const status = error || notice || (previewing ? "Escena de prueba del juego: solo para mirar." : def.hint);
+  const status =
+    error ||
+    notice ||
+    (previewing
+      ? "Escena de prueba del juego: solo para mirar."
+      : playerView
+        ? "Cámara del jugador: así lo verá en el juego. Pulsa el botón otra vez para liberar la cámara."
+        : def.hint);
 
   return (
     <div className="hx">
@@ -787,6 +808,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className={`hx-seg wide${playerView ? " on" : ""}`}
+          onClick={togglePlayerView}
+          title="Fija la cámara como la ve el jugador en el juego (móvil y computadora)"
+        >
+          <Lock size={15} /> {playerView ? "Cámara del jugador" : "Vista del jugador"}
+        </button>
         <button type="button" className={`hx-seg wide${lightOpen ? " on" : ""}`} onClick={() => setLightOpen(!lightOpen)}>
           <Sun size={15} /> Luz
         </button>
