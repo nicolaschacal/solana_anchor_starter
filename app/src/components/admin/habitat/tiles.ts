@@ -44,12 +44,14 @@ function vnoise(x: number, y: number) {
   );
 }
 
-export type TileData = { ground: string; level: string; water: string };
+export type TileData = { ground: string; level: string; water: string; cut?: string };
 
 export class TileMap {
   readonly ground = new Uint8Array(GX * GZ);
   readonly level = new Uint8Array(GX * GZ);
   readonly water = new Uint8Array(GX * GZ);
+  /** 1 where the tall grass carpet has been taken away. */
+  readonly cut = new Uint8Array(GX * GZ);
   private readonly heights = new Float32Array(GX * GZ);
   private ka = 0;
   private kb = 0;
@@ -77,6 +79,7 @@ export class TileMap {
     this.ground.fill(0);
     this.level.fill(0);
     this.water.fill(0);
+    this.cut.fill(0);
     this.refresh();
   }
   refresh() {
@@ -90,6 +93,7 @@ export class TileMap {
     return (
       this.ground.some((v) => v !== 0) ||
       this.level.some((v) => v !== 0) ||
+      this.cut.some((v) => v !== 0) ||
       this.hasWater()
     );
   }
@@ -99,6 +103,7 @@ export class TileMap {
       ground: Array.from(this.ground).join(""),
       level: Array.from(this.level).join(""),
       water: Array.from(this.water).join(""),
+      cut: Array.from(this.cut).join(""),
     };
   }
   static validate(data: TileData) {
@@ -110,7 +115,8 @@ export class TileMap {
     return (
       ok(data.ground, GROUNDS.length - 1) &&
       ok(data.level, MAX_LEVEL) &&
-      ok(data.water, 1)
+      ok(data.water, 1) &&
+      (data.cut === undefined || ok(data.cut, 1))
     );
   }
   load(data: TileData) {
@@ -118,9 +124,17 @@ export class TileMap {
       this.ground[k] = Number(data.ground[k]);
       this.level[k] = Number(data.level[k]);
       this.water[k] = Number(data.water[k]);
+      this.cut[k] = data.cut ? Number(data.cut[k]) : 0;
       if (this.water[k]) this.level[k] = 0;
     }
     this.refresh();
+  }
+
+  /** Whether the tall grass carpet was removed at this point. */
+  cutAt(x: number, z: number) {
+    const i = Math.round(x - OX),
+      j = Math.round(z - OZ);
+    return TileMap.inBounds(i, j) && this.cut[TileMap.index(i, j)] === 1;
   }
 
   /** Smooth interpolation weights between the four surrounding tile centres. */

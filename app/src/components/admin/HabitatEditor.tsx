@@ -10,6 +10,7 @@ import {
   Paintbrush,
   PawPrint,
   Redo2,
+  Sprout,
   Trees,
   Undo2,
   Upload,
@@ -22,6 +23,7 @@ import type { Registry } from "../../lib/rebyters/types";
 import type { AssetKey } from "../assets/meadow";
 import "./habitat/HabitatEditor.css";
 import {
+  COVER,
   DEFAULT_LIGHTING,
   HabitatWorld,
   type Lighting,
@@ -34,8 +36,8 @@ import {
 } from "./habitat/world";
 import type { Ground } from "./habitat/tiles";
 
-type Tool = "ground" | "water" | "relief" | "object" | "select" | "creature" | "erase" | "nav";
-type Sub = "path" | "sand" | "rock" | "grass" | "add" | "remove" | "up" | "down";
+type Tool = "grass" | "ground" | "water" | "relief" | "object" | "select" | "creature" | "erase" | "nav";
+type Sub = "tuft" | "untuft" | "path" | "sand" | "rock" | "grass" | "add" | "remove" | "up" | "down";
 
 const STORAGE = "habitat-editor-scene-v1";
 const PERIOD_LABEL: Record<WorldPeriod, string> = {
@@ -46,6 +48,7 @@ const PERIOD_LABEL: Record<WorldPeriod, string> = {
 };
 const VIEW_LABEL: Record<ViewId, string> = { pano: "Panorámica", mobile: "Móvil", top: "Cenital" };
 const CURSOR_COLOR: Record<Tool, number> = {
+  grass: 0x9be564,
   ground: 0xf4c542,
   water: 0x4cc9ff,
   relief: 0x9be564,
@@ -56,6 +59,7 @@ const CURSOR_COLOR: Record<Tool, number> = {
   nav: 0xffffff,
 };
 const STATUS: Record<Tool, string> = {
+  grass: "Pasto alto: pon matas o quítalas (y la alfombra de pasto) donde quieras.",
   ground: "Pinta el suelo: camino, arena, roca o vuelve a pasto.",
   water: "Agua: las orillas se redondean solas. Clic derecho o Mayús para orbitar.",
   relief: "Relieve: subir crea un montículo con tierra en los bordes y pasto arriba.",
@@ -90,6 +94,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const [, bump] = useState(0);
   const [counts, setCounts] = useState({ undo: 0, redo: 0 });
   const [activeView, setActiveView] = useState<ViewId>("pano");
+  const [notice, setNotice] = useState("");
+  const noticeTimer = useRef(0);
 
   const stateRef = useRef({ tool, sub, brush, objectKey });
   stateRef.current = { tool, sub, brush, objectKey };
@@ -140,6 +146,11 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     const world = new HabitatWorld(host, canvas, {
       onLayout: (p) => setPanes(p),
       onError: (m) => setError(m),
+      onNotice: (m) => {
+        setNotice(m);
+        window.clearTimeout(noticeTimer.current);
+        noticeTimer.current = window.setTimeout(() => setNotice(""), 2600);
+      },
     });
     worldRef.current = world;
     if (saved) {
@@ -276,6 +287,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     y: number;
     before: SceneData | null;
     visited: Set<number>;
+    cover: Set<number>;
     changed: boolean;
     entry?: PropEntry;
   } | null>(null);
@@ -300,26 +312,39 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       d.changed = world.paintWater(tiles, s !== "remove", d.visited) || d.changed;
     } else if (t === "relief") {
       d.changed = world.sculpt(tiles, s !== "down", d.visited) || d.changed;
+    } else if (t === "grass") {
+      if (s === "tuft") {
+        d.changed = world.paintCut(tiles, false, d.visited) || d.changed;
+        d.changed = true;
+        void world.addCover("grass", tiles, d.cover).then(() => bump((n) => n + 1));
+      } else {
+        d.changed = world.paintCut(tiles, true, d.visited) || d.changed;
+        d.changed = world.eraseProps(tiles, ["grass"]) > 0 || d.changed;
+      }
     } else if (t === "erase") {
-      const prop = first ? world.pickProp(x, y, pane) : null;
+      const prop = first && b === 1 ? world.pickProp(x, y, pane) : null;
       if (prop) {
         world.removeProp(prop);
         d.changed = true;
         return;
       }
+      d.changed = world.eraseProps(tiles) > 0 || d.changed;
       d.changed = world.resetTiles(tiles, d.visited) || d.changed;
+    } else if (t === "object" && COVER.includes(k)) {
+      d.changed = true;
+      void world.addCover(k, tiles, d.cover);
     } else if (t === "object" && first) {
       void world.addProp(k, hit.x, hit.z).then((entry) => {
         if (entry) {
           world.select(entry);
           setSelected(entry);
-        }
+        } else bump((n) => n + 1);
       });
       d.changed = true;
     } else if (t === "creature") {
       d.changed = world.moveCreature(hit.x, hit.z) !== false || d.changed;
     }
-    if (t === "ground" || t === "water" || t === "relief" || t === "erase") world.refreshTerrain();
+    if (t === "ground" || t === "water" || t === "relief" || t === "erase" || t === "grass") world.refreshTerrain();
   };
 
   const onDown = (e: React.PointerEvent) => {
@@ -340,7 +365,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     setActiveView(pane.id);
     const t = stateRef.current.tool;
     const navigate = e.button === 2 || e.shiftKey || t === "nav" || e.button === 1;
-    const base = { pane, x, y, before: null, visited: new Set<number>(), changed: false };
+    const base = { pane, x, y, before: null, visited: new Set<number>(), cover: new Set<number>(), changed: false };
     if (navigate) {
       drag.current = { ...base, kind: e.button === 1 || (e.shiftKey && e.button === 0) ? "pan" : "orbit" };
       return;
@@ -377,10 +402,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       else if (d.kind === "pan") world.pan(d.pane.id, dx, dy, d.pane);
       else if (d.kind === "move" && d.entry) {
         const hit = world.pickGround(x, y, d.pane);
-        if (hit) {
-          world.moveProp(d.entry, hit.x, hit.z);
-          d.changed = true;
-        }
+        if (hit && world.moveProp(d.entry, hit.x, hit.z)) d.changed = true;
       } else if (d.kind === "edit") edit(world, d.pane, x, y, false);
       d.x = x;
       d.y = y;
@@ -490,6 +512,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
             <Btn t="ground" s="sand" icon={<Paintbrush size={15} />} label="Arena" />
             <Btn t="ground" s="rock" icon={<Paintbrush size={15} />} label="Roca" />
             <Btn t="ground" s="grass" icon={<Paintbrush size={15} />} label="Pasto" />
+            <Btn t="grass" s="tuft" icon={<Sprout size={15} />} label="Poner pasto alto" />
+            <Btn t="grass" s="untuft" icon={<Sprout size={15} opacity={0.5} />} label="Quitar pasto alto" />
             <Btn t="object" icon={<Trees size={15} />} label="Objeto" />
             <Btn t="select" icon={<MousePointer2 size={15} />} label="Seleccionar" />
             <Btn t="creature" icon={<PawPrint size={15} />} label="Criatura" />
@@ -498,7 +522,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           </div>
         </section>
 
-        {(tool === "ground" || tool === "water" || tool === "relief" || tool === "erase") && (
+        {(tool === "grass" || tool === "ground" || tool === "water" || tool === "relief" || tool === "erase") && (
           <section>
             <h3>Pincel</h3>
             <div className="hx-grid three">
@@ -702,7 +726,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           </div>
         ))}
         {!ready && !error && <div className="hx-loading">Cargando la escena del juego…</div>}
-        <div className="hx-status">{error || STATUS[tool]}</div>
+        <div className="hx-status">{error || notice || STATUS[tool]}</div>
       </div>
     </div>
   );

@@ -82,7 +82,7 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "stump", label: "Tocón", h: 0.65 },
   { key: "log", label: "Tronco hueco", h: 0.65 },
   { key: "mushrooms", label: "Hongos", h: 0.28 },
-  { key: "grass", label: "Mata de pasto", h: 0.35 },
+  { key: "grass", label: "Pasto alto", h: 0.9 },
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
@@ -120,7 +120,14 @@ type ViewState = {
   custom: boolean;
 };
 
+/** Ground cover can share a tile with other props; everything else is solid. */
+export const COVER: AssetKey[] = ["grass", "wildflowers", "mushrooms"];
+/** Props that belong in or at the edge of water. */
+const WATER_PROPS: AssetKey[] = ["reeds", "shoreRocks"];
+const MAX_COVER = 500;
+
 type Callbacks = {
+  onNotice?: (message: string) => void;
   onLayout?: (panes: Pane[]) => void;
   onError?: (message: string) => void;
 };
@@ -153,6 +160,7 @@ export class HabitatWorld {
   private readonly views: Record<ViewId, ViewState>;
   private creatureSpan = 1.4;
   private footprint = 0.7; // metres: how far the body reaches from its centre
+  private lakeMask = new Uint8Array(GX * GZ);
   private restY = 0; // height the creature is easing towards
 
   // Lights, same rig as the game's landscape scene.
@@ -300,6 +308,7 @@ diffuseColor.rgb = painted;`,
     if (this.disposed) return;
     if (saved) await this.spawnAll(saved.props);
     else this.adoptDefaultProps();
+    this.clearCreatureWater();
     this.refreshTerrain();
     this.layout();
     this.lastFrame = performance.now();
@@ -346,7 +355,85 @@ diffuseColor.rgb = painted;`,
     this.env.lake.visible = this.showLake;
     this.env.bank.visible = this.showLake;
     this.env.path.visible = this.showTrail;
+    this.computeLakeMask();
     this.placeCreature();
+  }
+
+  /** Tiles under the game's own lake, so props and the creature respect it too. */
+  private computeLakeMask() {
+    const lake = this.env.lake;
+    lake.updateMatrixWorld(true);
+    const inverse = lake.matrixWorld.clone().invert();
+    const pos = lake.geometry.getAttribute("position");
+    const index = lake.geometry.getIndex();
+    const tri: number[] = [];
+    const count = index ? index.count : pos.count;
+    for (let t = 0; t < count; t++) tri.push(index ? index.getX(t) : t);
+    this.lakeMask.fill(0);
+    const p = new THREE.Vector3();
+    for (let j = 0; j < GZ; j++)
+      for (let i = 0; i < GX; i++) {
+        p.set(OX + i, 0, OZ + j).applyMatrix4(inverse);
+        for (let t = 0; t < tri.length; t += 3) {
+          const ax = pos.getX(tri[t]), ay = pos.getY(tri[t]);
+          const bx = pos.getX(tri[t + 1]), by = pos.getY(tri[t + 1]);
+          const cx = pos.getX(tri[t + 2]), cy = pos.getY(tri[t + 2]);
+          const d1 = (p.x - bx) * (ay - by) - (ax - bx) * (p.y - by);
+          const d2 = (p.x - cx) * (by - cy) - (bx - cx) * (p.y - cy);
+          const d3 = (p.x - ax) * (cy - ay) - (cx - ax) * (p.y - ay);
+          if (!((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0))) {
+            this.lakeMask[TileMap.index(i, j)] = 1;
+            break;
+          }
+        }
+      }
+  }
+
+  // ---- Physics rules ------------------------------------------------------------
+
+  /** Water here, painted or part of the game's own lake. */
+  wet(i: number, j: number) {
+    if (!TileMap.inBounds(i, j)) return false;
+    const k = TileMap.index(i, j);
+    return this.map.water[k] === 1 || (this.showLake && this.lakeMask[k] === 1);
+  }
+  /** The creature is a solid body: 3×3 tiles around its centre. */
+  private creatureBlocks(i: number, j: number) {
+    const c = this.creatureTile();
+    return Math.abs(i - c.i) <= 1 && Math.abs(j - c.j) <= 1;
+  }
+  private solidOn(i: number, j: number, ignore?: PropEntry) {
+    return this.entries.some((e) => {
+      if (e === ignore || COVER.includes(e.key) || WATER_PROPS.includes(e.key)) return false;
+      const t = TileMap.tileOf(e.x, e.z);
+      return t.i === i && t.j === j;
+    });
+  }
+  private anyPropOn(i: number, j: number) {
+    return this.entries.some((e) => {
+      if (WATER_PROPS.includes(e.key)) return false;
+      const t = TileMap.tileOf(e.x, e.z);
+      return t.i === i && t.j === j;
+    });
+  }
+  /** Water never sits under the creature, whatever an old save says. */
+  clearCreatureWater() {
+    const c = this.creatureTile();
+    for (let dj = -1; dj <= 1; dj++)
+      for (let di = -1; di <= 1; di++)
+        if (TileMap.inBounds(c.i + di, c.j + dj)) this.map.water[TileMap.index(c.i + di, c.j + dj)] = 0;
+  }
+  private notice(message: string) {
+    this.callbacks.onNotice?.(message);
+  }
+  /** Why a prop cannot stand on this tile, or null if it can. */
+  private propBlock(key: AssetKey, i: number, j: number, ignore?: PropEntry) {
+    if (!TileMap.inBounds(i, j)) return "Fuera del terreno.";
+    if (!WATER_PROPS.includes(key) && this.wet(i, j)) return "Ese objeto no puede ir sobre el agua.";
+    if (this.creatureBlocks(i, j)) return "La criatura ocupa ese lugar.";
+    if (!COVER.includes(key) && !WATER_PROPS.includes(key) && this.solidOn(i, j, ignore))
+      return "Ya hay un objeto sólido en esa baldosa.";
+    return null;
   }
 
   private applyLights() {
@@ -443,7 +530,60 @@ diffuseColor.rgb = painted;`,
   async addProp(key: AssetKey, x: number, z: number) {
     const item = PROP_CATALOG.find((p) => p.key === key);
     const tile = TileMap.tileOf(x, z);
+    const why = this.propBlock(key, tile.i, tile.j);
+    if (why) {
+      this.notice(why);
+      return null;
+    }
     return this.spawnEntry({ key, x: OX + tile.i, z: OZ + tile.j, h: item?.h ?? 1, r: Math.random() * Math.PI * 2 });
+  }
+  /** Tufts of tall grass scattered inside the given tiles (one visit per tile). */
+  async addCover(key: AssetKey, tiles: [number, number][], visited: Set<number>) {
+    const item = PROP_CATALOG.find((p) => p.key === key);
+    const cover = this.entries.filter((e) => COVER.includes(e.key)).length;
+    let placed = 0;
+    for (const [i, j] of tiles) {
+      const k = TileMap.index(i, j);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      if (this.propBlock(key, i, j) || cover + placed >= MAX_COVER) continue;
+      for (let n = 0; n < 2; n++) {
+        const x = OX + i + (Math.random() - 0.5) * 0.8,
+          z = OZ + j + (Math.random() - 0.5) * 0.8;
+        const h = (item?.h ?? 0.9) * (0.75 + Math.random() * 0.5);
+        if (await this.spawnEntry({ key, x, z, h, r: Math.random() * Math.PI * 2 })) placed++;
+      }
+    }
+    return placed;
+  }
+  /** Removes props standing in the given tiles; `only` limits it to some kinds. */
+  eraseProps(tiles: [number, number][], only?: AssetKey[]) {
+    const wanted = new Set(tiles.map(([i, j]) => TileMap.index(i, j)));
+    let removed = 0;
+    for (const entry of [...this.entries]) {
+      if (only && !only.includes(entry.key)) continue;
+      const t = TileMap.tileOf(entry.x, entry.z);
+      if (wanted.has(TileMap.index(t.i, t.j))) {
+        this.removeProp(entry);
+        removed++;
+      }
+    }
+    return removed;
+  }
+  /** Takes the tall grass carpet away from (or gives it back to) the tiles. */
+  paintCut(tiles: [number, number][], cut: boolean, visited: Set<number>) {
+    let changed = false;
+    for (const [i, j] of tiles) {
+      const k = TileMap.index(i, j);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      const value = cut ? 1 : 0;
+      if (this.map.cut[k] !== value) {
+        this.map.cut[k] = value;
+        changed = true;
+      }
+    }
+    return changed;
   }
   removeProp(entry: PropEntry) {
     if (entry.prop) this.env.removeProp(entry.prop);
@@ -452,11 +592,17 @@ diffuseColor.rgb = painted;`,
   }
   moveProp(entry: PropEntry, x: number, z: number) {
     const tile = TileMap.tileOf(x, z);
+    const why = this.propBlock(entry.key, tile.i, tile.j, entry);
+    if (why) {
+      this.notice(why);
+      return false;
+    }
     entry.x = OX + tile.i;
     entry.z = OZ + tile.j;
     this.applyEntry(entry);
     this.updateRing();
     this.env.markShadowsDirty();
+    return true;
   }
   updateProp(entry: PropEntry, change: Partial<Pick<PropData, "h" | "r">>) {
     Object.assign(entry, change);
@@ -561,7 +707,18 @@ diffuseColor.rgb = painted;`,
   }
   moveCreature(x: number, z: number) {
     const tile = TileMap.tileOf(x, z);
-    if (this.map.water[TileMap.index(tile.i, tile.j)]) return false;
+    for (let dj = -1; dj <= 1; dj++)
+      for (let di = -1; di <= 1; di++)
+        if (this.wet(tile.i + di, tile.j + dj)) {
+          this.notice("La criatura no puede pararse junto al agua.");
+          return false;
+        }
+    for (let dj = -1; dj <= 1; dj++)
+      for (let di = -1; di <= 1; di++)
+        if (this.solidOn(tile.i + di, tile.j + dj)) {
+          this.notice("Hay un objeto en el camino de la criatura.");
+          return false;
+        }
     this.creature = { x: OX + tile.i, z: OZ + tile.j };
     this.placeCreature();
     this.applyMasks();
@@ -601,12 +758,21 @@ diffuseColor.rgb = painted;`,
   paintWater(tiles: [number, number][], add: boolean, visited: Set<number>) {
     const home = this.creatureTile();
     let changed = false;
+    let blocked = "";
     for (const [i, j] of tiles) {
       const k = TileMap.index(i, j);
       if (visited.has(k)) continue;
       visited.add(k);
       if (add) {
-        if (this.map.water[k] || (i === home.i && j === home.j)) continue;
+        if (this.map.water[k]) continue;
+        if (Math.abs(i - home.i) <= 1 && Math.abs(j - home.j) <= 1) {
+          blocked = "El agua no puede cubrir a la criatura.";
+          continue;
+        }
+        if (this.anyPropOn(i, j)) {
+          blocked = "El agua no puede cubrir un objeto.";
+          continue;
+        }
         this.map.water[k] = 1;
         this.map.level[k] = 0;
         changed = true;
@@ -615,6 +781,7 @@ diffuseColor.rgb = painted;`,
         changed = true;
       }
     }
+    if (blocked) this.notice(blocked);
     return changed;
   }
   sculpt(tiles: [number, number][], up: boolean, visited: Set<number>) {
@@ -656,11 +823,6 @@ diffuseColor.rgb = painted;`,
   }
   /** Props standing on tiles that turned into water are removed; the rest follow the ground. */
   commitTerrain() {
-    for (const entry of [...this.entries]) {
-      const tile = TileMap.tileOf(entry.x, entry.z);
-      if (this.map.water[TileMap.index(tile.i, tile.j)] && entry.key !== "reeds" && entry.key !== "shoreRocks")
-        this.removeProp(entry);
-    }
     this.refreshTerrain();
   }
   refreshTerrain() {
@@ -710,7 +872,7 @@ diffuseColor.rgb = painted;`,
           if (base[o] === 0 && base[o + 2] === 0 && base[o + 5] === 0) continue;
           const x = base[o + 12],
             z = base[o + 14];
-          let hide = this.map.waterAt(x, z) > 0.4;
+          let hide = this.map.cutAt(x, z) || this.map.waterAt(x, z) > 0.4;
           if (!hide) {
             this.map.groundMix(x, z, mix);
             hide = mix[0] + mix[1] + mix[2] > 0.4 || this.map.slopeAt(x, z) > 0.3;
@@ -815,6 +977,7 @@ diffuseColor.rgb = painted;`,
       this.env.path.visible = this.showTrail;
     }
     this.select(null);
+    this.clearCreatureWater();
     this.refreshTerrain();
   }
 
