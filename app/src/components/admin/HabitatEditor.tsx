@@ -84,9 +84,9 @@ const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
 const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
-const GRASS_COLOR = 0x739148;
-const DIRT_COLOR = 0xa97e53;
-const WATER_COLOR = 0x39b9e8;
+const GRASS_COLOR = 0x7f9b55;
+const DIRT_COLOR = 0xa77b50;
+const WATER_COLOR = 0x35b9e6;
 
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
   grass: new THREE.Color(GRASS_COLOR),
@@ -215,114 +215,214 @@ type TileNeighbours = {
   e: boolean;
 };
 
-function addConnectedGroundBlob(
-  group: THREE.Group,
-  neighbours: TileNeighbours,
-  cell: number,
-  material: THREE.Material,
-  options: {
-    radius: number;
-    connectorWidth: number;
-    y: number;
-    thickness: number;
-    segments?: number;
-  },
+function createOrganicMaskTexture(
+  tiles: HabitatTile[],
+  material: HabitatTile["material"],
+  gridSize: number,
+  radiusRatio: number,
+  connectionRatio: number,
 ) {
-  const { radius, connectorWidth, y, thickness, segments = 18 } = options;
-  const connectorLength = cell * 0.78;
-  const connectorOffset = cell * 0.36;
+  const resolution = Math.max(256, gridSize * 64);
+  const canvas = document.createElement("canvas");
+  canvas.width = resolution;
+  canvas.height = resolution;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
 
-  const addDisc = (x: number, z: number, r = radius) => {
-    const disc = new THREE.Mesh(
-      new THREE.CylinderGeometry(r, r, thickness, segments),
-      material,
-    );
-    disc.position.set(x, y, z);
-    disc.receiveShadow = true;
-    group.add(disc);
-  };
+  ctx.clearRect(0, 0, resolution, resolution);
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
-  addDisc(0, 0);
+  const selected = new Map<string, HabitatTile>();
+  tiles
+    .filter((tile) => tile.material === material)
+    .forEach((tile) => selected.set(tileKey(tile.x, tile.z), tile));
 
-  const addArm = (dx: number, dz: number) => {
-    const horizontal = dx !== 0;
-    const arm = new THREE.Mesh(
-      new THREE.BoxGeometry(
-        horizontal ? connectorLength : connectorWidth,
-        thickness,
-        horizontal ? connectorWidth : connectorLength,
-      ),
-      material,
-    );
-    arm.position.set(dx * connectorOffset, y, dz * connectorOffset);
-    arm.receiveShadow = true;
-    group.add(arm);
-    addDisc(dx * cell * 0.5, dz * cell * 0.5, connectorWidth * 0.5);
-  };
+  const cell = resolution / gridSize;
+  const has = (x: number, z: number) => selected.has(tileKey(x, z));
+  const center = (x: number, z: number) => ({
+    x: (x + 0.5) * cell,
+    y: (z + 0.5) * cell,
+  });
 
-  if (neighbours.n) addArm(0, -1);
-  if (neighbours.s) addArm(0, 1);
-  if (neighbours.w) addArm(-1, 0);
-  if (neighbours.e) addArm(1, 0);
+  // Rounded bridges first: neighbouring cells become one continuous region.
+  ctx.lineWidth = cell * connectionRatio;
+  for (const tile of selected.values()) {
+    const a = center(tile.x, tile.z);
+    if (has(tile.x + 1, tile.z)) {
+      const b = center(tile.x + 1, tile.z);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+    if (has(tile.x, tile.z + 1)) {
+      const b = center(tile.x, tile.z + 1);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+  }
 
-  const cornerRadius = connectorWidth * 0.31;
-  if (neighbours.n && neighbours.w) addDisc(-cell * 0.5, -cell * 0.5, cornerRadius);
-  if (neighbours.n && neighbours.e) addDisc(cell * 0.5, -cell * 0.5, cornerRadius);
-  if (neighbours.s && neighbours.w) addDisc(-cell * 0.5, cell * 0.5, cornerRadius);
-  if (neighbours.s && neighbours.e) addDisc(cell * 0.5, cell * 0.5, cornerRadius);
+  // Organic centers: multiple overlapping circles break the obvious tile-square silhouette.
+  for (const tile of selected.values()) {
+    const p = center(tile.x, tile.z);
+    const baseRadius = cell * radiusRatio;
+    const satellites = [
+      [0, 0, 1],
+      [-0.16, -0.08, 0.56],
+      [0.15, -0.11, 0.52],
+      [-0.12, 0.15, 0.5],
+      [0.16, 0.14, 0.48],
+    ] as const;
+
+    satellites.forEach(([ox, oy, scale], index) => {
+      const jitterX =
+        (seededTileRandom(tile.x, tile.z, 700 + index) - 0.5) * cell * 0.055;
+      const jitterY =
+        (seededTileRandom(tile.x, tile.z, 720 + index) - 0.5) * cell * 0.055;
+      const jitterR =
+        0.92 + seededTileRandom(tile.x, tile.z, 740 + index) * 0.16;
+      ctx.beginPath();
+      ctx.arc(
+        p.x + ox * cell + jitterX,
+        p.y + oy * cell + jitterY,
+        baseRadius * scale * jitterR,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    });
+  }
+
+  // Explicit 2x2 junction fill: guarantees no empty diamond/square between four tiles.
+  for (let z = 0; z < gridSize - 1; z++) {
+    for (let x = 0; x < gridSize - 1; x++) {
+      if (
+        has(x, z) &&
+        has(x + 1, z) &&
+        has(x, z + 1) &&
+        has(x + 1, z + 1)
+      ) {
+        ctx.beginPath();
+        ctx.arc(
+          (x + 1) * cell,
+          (z + 1) * cell,
+          cell * connectionRatio * 0.6,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      }
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
 }
 
-function addConnectedWaterSurface(
-  group: THREE.Group,
-  neighbours: TileNeighbours,
-  cell: number,
-  material: THREE.Material,
+function addMaskedGroundRegion(
+  root: THREE.Group,
+  mask: THREE.Texture | null,
+  width: number,
+  depth: number,
+  color: number,
+  y: number,
+  opacity = 1,
+) {
+  if (!mask) return;
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    alphaMap: mask,
+    transparent: true,
+    opacity,
+    roughness: 1,
+    metalness: 0,
+    depthWrite: opacity >= 1,
+  });
+  const geometry = new THREE.PlaneGeometry(width, depth, 1, 1);
+  geometry.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  mesh.userData.generatedMask = mask;
+  root.add(mesh);
+}
+
+function createWaterMaterial(mask: THREE.Texture) {
+  const material = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 },
+      uMask: { value: mask },
+      uColorDeep: { value: new THREE.Color(0x219fd8) },
+      uColorLight: { value: new THREE.Color(WATER_COLOR) },
+      uOpacity: { value: 0.88 },
+    },
+    vertexShader: `
+      uniform float uTime;
+      varying vec2 vUv;
+      varying float vWave;
+
+      void main() {
+        vUv = uv;
+        vec3 p = position;
+        float waveA = sin((p.x * 2.2) + uTime * 1.4);
+        float waveB = cos((p.y * 2.8) - uTime * 1.1);
+        float wave = (waveA + waveB) * 0.012;
+        p.z += wave;
+        vWave = wave;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D uMask;
+      uniform vec3 uColorDeep;
+      uniform vec3 uColorLight;
+      uniform float uOpacity;
+      varying vec2 vUv;
+      varying float vWave;
+
+      void main() {
+        float mask = texture2D(uMask, vUv).a;
+        if (mask < 0.08) discard;
+        float shimmer = 0.5 + vWave * 12.0;
+        vec3 color = mix(uColorDeep, uColorLight, clamp(shimmer, 0.0, 1.0));
+        gl_FragColor = vec4(color, mask * uOpacity);
+      }
+    `,
+  });
+  material.userData.waterSurfaceMaterial = true;
+  material.userData.generatedMask = mask;
+  return material;
+}
+
+function addAnimatedWaterRegion(
+  root: THREE.Group,
+  mask: THREE.Texture | null,
+  width: number,
+  depth: number,
   y: number,
 ) {
-  const radius = cell * 0.405;
-  const connectorWidth = cell * 0.68;
-  const connectorLength = cell * 0.80;
-  const connectorOffset = cell * 0.36;
-
-  const center = new THREE.Mesh(
-    new THREE.CircleGeometry(radius, 40),
-    material,
-  );
-  center.rotation.x = -Math.PI / 2;
-  center.position.y = y;
-  center.userData.waterSurface = true;
-  group.add(center);
-
-  const addArm = (dx: number, dz: number) => {
-    const horizontal = dx !== 0;
-    const arm = new THREE.Mesh(
-      new THREE.PlaneGeometry(
-        horizontal ? connectorLength : connectorWidth,
-        horizontal ? connectorWidth : connectorLength,
-        8,
-        8,
-      ),
-      material,
-    );
-    arm.rotation.x = -Math.PI / 2;
-    arm.position.set(dx * connectorOffset, y, dz * connectorOffset);
-    arm.userData.waterSurface = true;
-    group.add(arm);
-
-    const cap = new THREE.Mesh(
-      new THREE.CircleGeometry(connectorWidth * 0.5, 32),
-      material,
-    );
-    cap.rotation.x = -Math.PI / 2;
-    cap.position.set(dx * cell * 0.5, y, dz * cell * 0.5);
-    cap.userData.waterSurface = true;
-    group.add(cap);
-  };
-
-  if (neighbours.n) addArm(0, -1);
-  if (neighbours.s) addArm(0, 1);
-  if (neighbours.w) addArm(-1, 0);
-  if (neighbours.e) addArm(1, 0);
+  if (!mask) return;
+  const geometry = new THREE.PlaneGeometry(width, depth, 48, 48);
+  geometry.rotateX(-Math.PI / 2);
+  const material = createWaterMaterial(mask);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = y;
+  mesh.userData.waterSurface = true;
+  root.add(mesh);
 }
 
 function buildSmartTileGroup(
@@ -347,8 +447,6 @@ function buildSmartTileGroup(
     { dx: 1, dz: 0, px: 0.29, pz: 0, sx: 0.62, sz: 0.46 },
   ] as const;
 
-
-
   for (const tile of tiles) {
     const group = new THREE.Group();
     group.name = `Tile_${tile.x}_${tile.z}_${tile.material}`;
@@ -359,35 +457,11 @@ function buildSmartTileGroup(
     );
 
     if (tile.material === "grass") {
-      // Slightly calmer lime green: lively without the neon look.
       addTileBase(group, GRASS_COLOR, cell);
-    }
-
-    if (tile.material === "dirt") {
-      // A dirt tile always keeps the same grass base around the dirt patch.
-      addTileBase(group, GRASS_COLOR, cell);
-
-      const neighbours: TileNeighbours = {
-        n: has(tile.x, tile.z - 1, "dirt"),
-        s: has(tile.x, tile.z + 1, "dirt"),
-        w: has(tile.x - 1, tile.z, "dirt"),
-        e: has(tile.x + 1, tile.z, "dirt"),
-      };
-      const dirtMat = tileBaseMaterial(DIRT_COLOR, 1);
-      const radius =
-        cell * (0.31 + seededTileRandom(tile.x, tile.z, 41) * 0.035);
-
-      addConnectedGroundBlob(group, neighbours, cell, dirtMat, {
-        radius,
-        connectorWidth: cell * 0.52,
-        y: 0.049,
-        thickness: 0.032,
-        segments: 20,
-      });
     }
 
     if (tile.material === "rock") {
-      addTileBase(group, 0x748073, cell);
+      addTileBase(group, GRASS_COLOR, cell);
       const rockMaterial = tileBaseMaterial(0x899087, 1);
       const rockCount = 3 + Math.floor(seededTileRandom(tile.x, tile.z, 4) * 3);
       for (let i = 0; i < rockCount; i++) {
@@ -413,7 +487,6 @@ function buildSmartTileGroup(
     }
 
     if (tile.material === "path") {
-      // Full grass tile below prevents any hole or exposed terrain in the centre.
       addTileBase(group, GRASS_COLOR, cell, 0.012);
       const pathMat = tileBaseMaterial(0xb69a67, 1);
       const transitionMat = tileBaseMaterial(0xa8895d, 1);
@@ -421,7 +494,6 @@ function buildSmartTileGroup(
         has(tile.x + direction.dx, tile.z + direction.dz, "path"),
       );
 
-      // Solid centre guarantees a continuous path through corners, T-junctions and crosses.
       const center = new THREE.Mesh(
         new THREE.BoxGeometry(cell * 0.48, 0.052, cell * 0.48),
         pathMat,
@@ -446,10 +518,8 @@ function buildSmartTileGroup(
         group.add(arm);
       }
 
-      // If isolated, make a tidy dirt patch instead of a tiny floating square.
       if (!linked.length) center.scale.set(1.42, 1, 1.42);
 
-      // Soft irregular fringe where grass meets dirt, deterministic per tile.
       const fringeCount = 7;
       for (let i = 0; i < fringeCount; i++) {
         const along = (i + 0.5) / fringeCount - 0.5;
@@ -471,60 +541,77 @@ function buildSmartTileGroup(
       }
     }
 
-    if (tile.material === "water") {
-      const neighbours: TileNeighbours = {
-        n: has(tile.x, tile.z - 1, "water"),
-        s: has(tile.x, tile.z + 1, "water"),
-        w: has(tile.x - 1, tile.z, "water"),
-        e: has(tile.x + 1, tile.z, "water"),
-      };
-
-      // Ground/shore stays solid, but the water itself is a flat Three.js surface
-      // with subdivisions, ready for shader/vertex animation later.
-      addTileBase(group, GRASS_COLOR, cell);
-
-      const bankMat = tileBaseMaterial(0x806247, 1);
-      const grassRimMat = tileBaseMaterial(GRASS_COLOR, 1);
-
-      addConnectedGroundBlob(group, neighbours, cell, bankMat, {
-        radius: cell * 0.48,
-        connectorWidth: cell * 0.84,
-        y: 0.046,
-        thickness: 0.052,
-        segments: 22,
-      });
-
-      addConnectedGroundBlob(group, neighbours, cell, grassRimMat, {
-        radius: cell * 0.44,
-        connectorWidth: cell * 0.76,
-        y: 0.071,
-        thickness: 0.025,
-        segments: 22,
-      });
-
-      addConnectedWaterSurface(
-        group,
-        neighbours,
-        cell,
-        waterMaterial(),
-        0.086,
-      );
-    }
-
     root.add(group);
   }
-  return root;
-}
 
-function waterMaterial() {
-  return new THREE.MeshStandardMaterial({
-    color: WATER_COLOR,
-    roughness: 0.18,
-    metalness: 0.03,
-    transparent: true,
-    opacity: 0.88,
-    depthWrite: false,
-  });
+  // Dirt is rendered as one organic masked region over the grass terrain.
+  const dirtMask = createOrganicMaskTexture(
+    tiles,
+    "dirt",
+    gridSize,
+    0.34,
+    0.56,
+  );
+  addMaskedGroundRegion(
+    root,
+    dirtMask,
+    width,
+    depth,
+    DIRT_COLOR,
+    0.041,
+    1,
+  );
+
+  // Water shore is also region-based. The water plane sits BELOW the grass top.
+  const shoreMask = createOrganicMaskTexture(
+    tiles,
+    "water",
+    gridSize,
+    0.48,
+    0.82,
+  );
+  const rimMask = createOrganicMaskTexture(
+    tiles,
+    "water",
+    gridSize,
+    0.43,
+    0.74,
+  );
+  const waterMask = createOrganicMaskTexture(
+    tiles,
+    "water",
+    gridSize,
+    0.36,
+    0.64,
+  );
+
+  addMaskedGroundRegion(
+    root,
+    shoreMask,
+    width,
+    depth,
+    0x806247,
+    0.018,
+    1,
+  );
+  addMaskedGroundRegion(
+    root,
+    rimMask,
+    width,
+    depth,
+    GRASS_COLOR,
+    0.027,
+    1,
+  );
+  addAnimatedWaterRegion(
+    root,
+    waterMask,
+    width,
+    depth,
+    0.012,
+  );
+
+  return root;
 }
 
 export function HabitatEditor({ registry }: { registry: Registry }) {
@@ -722,8 +809,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         if (!mesh.isMesh) return;
         mesh.geometry.dispose();
         const material = mesh.material;
-        if (Array.isArray(material)) material.forEach((m) => m.dispose());
-        else material.dispose();
+        const materials = Array.isArray(material) ? material : [material];
+        materials.forEach((m) => {
+          const generatedMask = m.userData?.generatedMask as THREE.Texture | undefined;
+          generatedMask?.dispose();
+          m.dispose();
+        });
+        const generatedMask = mesh.userData?.generatedMask as THREE.Texture | undefined;
+        generatedMask?.dispose();
       });
       tileRoot = next;
       scene.add(tileRoot);
@@ -985,7 +1078,24 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     frameCamera();
 
     let raf = 0;
+    const clock = new THREE.Clock();
     const render = () => {
+      const elapsed = clock.getElapsedTime();
+      tileRootRef.current?.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const material = mesh.material;
+        const materials = Array.isArray(material) ? material : [material];
+        materials.forEach((entry) => {
+          const shader = entry as THREE.ShaderMaterial;
+          if (
+            shader.userData?.waterSurfaceMaterial &&
+            shader.uniforms?.uTime
+          ) {
+            shader.uniforms.uTime.value = elapsed;
+          }
+        });
+      });
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
     };
