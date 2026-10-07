@@ -181,6 +181,28 @@ function addTileBase(group: THREE.Group, color: number, cell: number, y = 0.018)
   group.add(mesh);
 }
 
+function seededTileRandom(x: number, z: number, salt = 0) {
+  let value = Math.imul(x + 101 + salt * 17, 374761393) ^
+    Math.imul(z + 211 + salt * 31, 668265263);
+  value = (value ^ (value >>> 13)) >>> 0;
+  value = Math.imul(value, 1274126177) >>> 0;
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
+}
+
+function roundedGroundDisc(
+  radius: number,
+  height: number,
+  material: THREE.Material,
+  segments = 20,
+) {
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, height, segments),
+    material,
+  );
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
 function buildSmartTileGroup(
   tiles: HabitatTile[],
   gridSize: number,
@@ -196,6 +218,20 @@ function buildSmartTileGroup(
   const has = (x: number, z: number, material: HabitatTile["material"]) =>
     map.get(tileKey(x, z))?.material === material;
 
+  const pathDirections = [
+    { dx: 0, dz: -1, px: 0, pz: -0.29, sx: 0.46, sz: 0.62 },
+    { dx: 0, dz: 1, px: 0, pz: 0.29, sx: 0.46, sz: 0.62 },
+    { dx: -1, dz: 0, px: -0.29, pz: 0, sx: 0.62, sz: 0.46 },
+    { dx: 1, dz: 0, px: 0.29, pz: 0, sx: 0.62, sz: 0.46 },
+  ] as const;
+
+  const waterEdges = [
+    { dx: 0, dz: -1, px: 0, pz: -0.485, sx: 0.98, sz: 0.14 },
+    { dx: 0, dz: 1, px: 0, pz: 0.485, sx: 0.98, sz: 0.14 },
+    { dx: -1, dz: 0, px: -0.485, pz: 0, sx: 0.14, sz: 0.98 },
+    { dx: 1, dz: 0, px: 0.485, pz: 0, sx: 0.14, sz: 0.98 },
+  ] as const;
+
   for (const tile of tiles) {
     const group = new THREE.Group();
     group.name = `Tile_${tile.x}_${tile.z}_${tile.material}`;
@@ -206,45 +242,77 @@ function buildSmartTileGroup(
     );
 
     if (tile.material === "grass") {
-      addTileBase(group, 0x79a84d, cell);
+      const baseVariation = seededTileRandom(tile.x, tile.z, 1);
+      const green = new THREE.Color(0x79a84d).offsetHSL(
+        (baseVariation - 0.5) * 0.018,
+        (baseVariation - 0.5) * 0.08,
+        (baseVariation - 0.5) * 0.06,
+      );
+      addTileBase(group, green.getHex(), cell);
+
       const grassMaterial = tileBaseMaterial(0x527f38, 1);
-      const offsets = [
-        [-0.28, -0.2, 0.21],
-        [0.22, -0.23, 0.18],
-        [-0.08, 0.24, 0.24],
-        [0.29, 0.17, 0.16],
-        [0.02, -0.02, 0.2],
-      ] as const;
-      for (const [ox, oz, h] of offsets) {
+      const bladeCount = 5 + Math.floor(seededTileRandom(tile.x, tile.z, 2) * 4);
+      for (let i = 0; i < bladeCount; i++) {
+        const ox = (seededTileRandom(tile.x, tile.z, 10 + i * 3) - 0.5) * 0.7;
+        const oz = (seededTileRandom(tile.x, tile.z, 11 + i * 3) - 0.5) * 0.7;
+        const h = 0.12 + seededTileRandom(tile.x, tile.z, 12 + i * 3) * 0.14;
         const blade = new THREE.Mesh(
-          new THREE.ConeGeometry(cell * 0.055, cell * h, 3),
+          new THREE.ConeGeometry(cell * (0.04 + h * 0.06), cell * h, 3),
           grassMaterial,
         );
         blade.position.set(ox * cell, 0.05 + cell * h * 0.5, oz * cell);
-        blade.rotation.y = (ox + oz + 1) * 2.3;
+        blade.rotation.y = seededTileRandom(tile.x, tile.z, 40 + i) * Math.PI * 2;
+        blade.rotation.z = (seededTileRandom(tile.x, tile.z, 60 + i) - 0.5) * 0.16;
         blade.castShadow = true;
         group.add(blade);
+      }
+
+      // Small deterministic ground accent so repeated grass tiles do not read as clones.
+      if (seededTileRandom(tile.x, tile.z, 90) > 0.63) {
+        const accentMat = tileBaseMaterial(0x91bc5c, 1);
+        const accent = roundedGroundDisc(cell * 0.045, cell * 0.08, accentMat, 6);
+        accent.scale.y = 1.8;
+        accent.position.set(
+          (seededTileRandom(tile.x, tile.z, 91) - 0.5) * cell * 0.55,
+          cell * 0.04,
+          (seededTileRandom(tile.x, tile.z, 92) - 0.5) * cell * 0.55,
+        );
+        accent.rotation.z = Math.PI / 2;
+        group.add(accent);
       }
     }
 
     if (tile.material === "dirt") {
-      addTileBase(group, 0x9b7149, cell);
+      const variation = seededTileRandom(tile.x, tile.z, 3);
+      const dirt = new THREE.Color(0x9b7149).offsetHSL(
+        0,
+        (variation - 0.5) * 0.05,
+        (variation - 0.5) * 0.08,
+      );
+      addTileBase(group, dirt.getHex(), cell);
     }
 
     if (tile.material === "rock") {
       addTileBase(group, 0x748073, cell);
       const rockMaterial = tileBaseMaterial(0x899087, 1);
-      for (const [ox, oz, s] of [
-        [-0.2, -0.15, 0.16],
-        [0.18, 0.12, 0.12],
-        [0.05, -0.26, 0.1],
-      ] as const) {
+      const rockCount = 3 + Math.floor(seededTileRandom(tile.x, tile.z, 4) * 3);
+      for (let i = 0; i < rockCount; i++) {
+        const s = 0.08 + seededTileRandom(tile.x, tile.z, 100 + i) * 0.09;
         const rock = new THREE.Mesh(
           new THREE.DodecahedronGeometry(cell * s, 0),
           rockMaterial,
         );
-        rock.position.set(ox * cell, cell * s * 0.75, oz * cell);
-        rock.scale.y = 0.65;
+        rock.position.set(
+          (seededTileRandom(tile.x, tile.z, 120 + i) - 0.5) * cell * 0.62,
+          cell * s * 0.75,
+          (seededTileRandom(tile.x, tile.z, 140 + i) - 0.5) * cell * 0.62,
+        );
+        rock.scale.set(
+          0.75 + seededTileRandom(tile.x, tile.z, 160 + i) * 0.55,
+          0.48 + seededTileRandom(tile.x, tile.z, 180 + i) * 0.45,
+          0.75 + seededTileRandom(tile.x, tile.z, 200 + i) * 0.55,
+        );
+        rock.rotation.y = seededTileRandom(tile.x, tile.z, 220 + i) * Math.PI;
         rock.castShadow = true;
         group.add(rock);
       }
@@ -253,66 +321,148 @@ function buildSmartTileGroup(
     if (tile.material === "path") {
       addTileBase(group, 0x6f9448, cell, 0.012);
       const pathMat = tileBaseMaterial(0xb69a67, 1);
-      const center = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 0.42, 0.045, cell * 0.42),
-        pathMat,
+      const edgeMat = tileBaseMaterial(0x9c8055, 1);
+      const linked = pathDirections.filter((direction) =>
+        has(tile.x + direction.dx, tile.z + direction.dz, "path"),
       );
-      center.position.y = 0.047;
+
+      // Circular hub softens T-junctions, corners and crossings.
+      const center = roundedGroundDisc(cell * 0.255, 0.05, pathMat, 24);
+      center.position.y = 0.048;
       group.add(center);
-      const links = [
-        [0, -1, 0, -cell * 0.29, cell * 0.42, cell * 0.58],
-        [0, 1, 0, cell * 0.29, cell * 0.42, cell * 0.58],
-        [-1, 0, -cell * 0.29, 0, cell * 0.58, cell * 0.42],
-        [1, 0, cell * 0.29, 0, cell * 0.58, cell * 0.42],
-      ] as const;
-      let linksCount = 0;
-      for (const [dx, dz, px, pz, sx, sz] of links) {
-        if (!has(tile.x + dx, tile.z + dz, "path")) continue;
-        linksCount++;
+
+      for (const direction of linked) {
         const arm = new THREE.Mesh(
-          new THREE.BoxGeometry(sx, 0.045, sz),
+          new THREE.BoxGeometry(
+            cell * direction.sx,
+            0.05,
+            cell * direction.sz,
+          ),
           pathMat,
         );
-        arm.position.set(px, 0.047, pz);
+        arm.position.set(
+          cell * direction.px,
+          0.048,
+          cell * direction.pz,
+        );
         group.add(arm);
       }
-      if (!linksCount) {
-        center.scale.set(1.35, 1, 1.35);
+
+      // Diagonal rounded infill turns two perpendicular connections into a softer bend.
+      if (linked.length === 2) {
+        const a = linked[0];
+        const b = linked[1];
+        const perpendicular = a.dx !== b.dx && a.dz !== b.dz;
+        if (perpendicular) {
+          const bend = roundedGroundDisc(cell * 0.23, 0.052, pathMat, 24);
+          bend.position.set(
+            (a.dx + b.dx) * cell * 0.08,
+            0.049,
+            (a.dz + b.dz) * cell * 0.08,
+          );
+          group.add(bend);
+        }
+      }
+
+      if (!linked.length) {
+        center.scale.set(1.18, 1, 1.18);
+      }
+
+      // Sparse edge stones keep the path readable but avoid a perfect repeated strip.
+      if (seededTileRandom(tile.x, tile.z, 240) > 0.35) {
+        const pebbleCount = 2 + Math.floor(seededTileRandom(tile.x, tile.z, 241) * 3);
+        for (let i = 0; i < pebbleCount; i++) {
+          const pebble = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(cell * 0.035, 0),
+            edgeMat,
+          );
+          const side = seededTileRandom(tile.x, tile.z, 250 + i) > 0.5 ? 1 : -1;
+          pebble.position.set(
+            side * cell * (0.25 + seededTileRandom(tile.x, tile.z, 260 + i) * 0.08),
+            cell * 0.02,
+            (seededTileRandom(tile.x, tile.z, 270 + i) - 0.5) * cell * 0.48,
+          );
+          pebble.scale.y = 0.45;
+          group.add(pebble);
+        }
       }
     }
 
     if (tile.material === "water") {
       const water = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 0.96, 0.035, cell * 0.96),
+        new THREE.BoxGeometry(cell * 0.985, 0.035, cell * 0.985),
         waterMaterial(),
       );
-      water.position.y = 0.01;
+      water.position.y = 0.005;
       group.add(water);
 
       const shoreMat = tileBaseMaterial(0x8b724c, 1);
       const grassLipMat = tileBaseMaterial(0x638f45, 1);
-      const exposed = [
-        [0, -1, 0, -cell * 0.49, cell * 0.98, cell * 0.13],
-        [0, 1, 0, cell * 0.49, cell * 0.98, cell * 0.13],
-        [-1, 0, -cell * 0.49, 0, cell * 0.13, cell * 0.98],
-        [1, 0, cell * 0.49, 0, cell * 0.13, cell * 0.98],
-      ] as const;
-      for (const [dx, dz, px, pz, sx, sz] of exposed) {
-        if (has(tile.x + dx, tile.z + dz, "water")) continue;
-        const bank = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.08, sz), shoreMat);
-        bank.position.set(px, 0.035, pz);
+      const exposed = waterEdges.filter((edge) =>
+        !has(tile.x + edge.dx, tile.z + edge.dz, "water"),
+      );
+
+      for (const edge of exposed) {
+        const bank = new THREE.Mesh(
+          new THREE.BoxGeometry(cell * edge.sx, 0.085, cell * edge.sz),
+          shoreMat,
+        );
+        bank.position.set(cell * edge.px, 0.032, cell * edge.pz);
         bank.castShadow = true;
         group.add(bank);
+
         const lip = new THREE.Mesh(
           new THREE.BoxGeometry(
-            sx === cell * 0.13 ? sx * 0.62 : sx * 0.98,
+            cell * (edge.sx === 0.14 ? edge.sx * 0.7 : edge.sx * 0.98),
             0.045,
-            sz === cell * 0.13 ? sz * 0.62 : sz * 0.98,
+            cell * (edge.sz === 0.14 ? edge.sz * 0.7 : edge.sz * 0.98),
           ),
           grassLipMat,
         );
-        lip.position.set(px, 0.075, pz);
+        lip.position.set(cell * edge.px, 0.076, cell * edge.pz);
         group.add(lip);
+      }
+
+      // Rounded outer shoreline corners remove the hard square look.
+      const corners = [
+        { x: -1, z: -1, px: -0.48, pz: -0.48 },
+        { x: 1, z: -1, px: 0.48, pz: -0.48 },
+        { x: -1, z: 1, px: -0.48, pz: 0.48 },
+        { x: 1, z: 1, px: 0.48, pz: 0.48 },
+      ] as const;
+      for (const corner of corners) {
+        const horizontalExposed = !has(tile.x + corner.x, tile.z, "water");
+        const verticalExposed = !has(tile.x, tile.z + corner.z, "water");
+        if (!horizontalExposed || !verticalExposed) continue;
+
+        const bankCap = roundedGroundDisc(cell * 0.13, 0.086, shoreMat, 16);
+        bankCap.position.set(cell * corner.px, 0.033, cell * corner.pz);
+        group.add(bankCap);
+
+        const lipCap = roundedGroundDisc(cell * 0.078, 0.046, grassLipMat, 16);
+        lipCap.position.set(cell * corner.px, 0.077, cell * corner.pz);
+        group.add(lipCap);
+      }
+
+      // Occasional reeds on exposed banks give the water a game-ready natural edge.
+      if (exposed.length && seededTileRandom(tile.x, tile.z, 300) > 0.56) {
+        const reedMat = tileBaseMaterial(0x4d793f, 1);
+        const edge = exposed[Math.floor(seededTileRandom(tile.x, tile.z, 301) * exposed.length)];
+        for (let i = 0; i < 3; i++) {
+          const reed = new THREE.Mesh(
+            new THREE.ConeGeometry(cell * 0.025, cell * (0.12 + i * 0.025), 3),
+            reedMat,
+          );
+          reed.position.set(
+            cell * edge.px +
+              (seededTileRandom(tile.x, tile.z, 310 + i) - 0.5) * cell * (edge.sx > edge.sz ? 0.45 : 0.06),
+            cell * (0.08 + i * 0.012),
+            cell * edge.pz +
+              (seededTileRandom(tile.x, tile.z, 320 + i) - 0.5) * cell * (edge.sz > edge.sx ? 0.45 : 0.06),
+          );
+          reed.rotation.z = (seededTileRandom(tile.x, tile.z, 330 + i) - 0.5) * 0.18;
+          group.add(reed);
+        }
       }
     }
 
