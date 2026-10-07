@@ -8,7 +8,9 @@ import {
   Monitor,
   Move3D,
   Paintbrush,
+  Route,
   Rotate3D,
+  Sprout,
   Save,
   Scale3D,
   Smartphone,
@@ -29,8 +31,15 @@ import type { Registry } from "../../lib/rebyters/types";
 
 type TransformMode = "translate" | "rotate" | "scale";
 type PreviewMode = "web" | "mobile";
-type EditorTool = "objects" | "raise" | "lower" | "smooth" | "flatten" | "paint";
+type EditorTool = "objects" | "tiles" | "raise" | "lower" | "smooth" | "flatten" | "paint";
 type PaintMaterial = "grass" | "dirt" | "rock";
+type TileMaterial = "grass" | "water" | "path" | "dirt" | "rock" | "empty";
+
+type HabitatTile = {
+  x: number;
+  z: number;
+  material: Exclude<TileMaterial, "empty">;
+};
 
 type HabitatObject = {
   id: string;
@@ -48,7 +57,7 @@ type WaterArea = {
 };
 
 type HabitatManifest = {
-  schema: "rebyters-habitat-v2";
+  schema: "rebyters-habitat-v3";
   id: string;
   name: string;
   terrain: {
@@ -58,6 +67,8 @@ type HabitatManifest = {
     heights: number[];
     colors: number[];
   };
+  gridSize: 4 | 8 | 16;
+  tiles: HabitatTile[];
   objects: HabitatObject[];
   water: WaterArea[];
 };
@@ -71,7 +82,7 @@ type HabitatAssetDefinition = {
 
 const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
-const STORAGE_KEY = "rebyters:habitat-editor:draft-v2";
+const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
   grass: new THREE.Color(0x6f9448),
@@ -152,6 +163,314 @@ function buildTerrain(width: number, depth: number) {
   return geometry;
 }
 
+function tileKey(x: number, z: number) {
+  return `${x}:${z}`;
+}
+
+function tileBaseMaterial(color: number, roughness = 0.95) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0 });
+}
+
+function addTileBase(group: THREE.Group, color: number, cell: number, y = 0.018) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(cell * 0.98, 0.035, cell * 0.98),
+    tileBaseMaterial(color),
+  );
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+}
+
+function seededTileRandom(x: number, z: number, salt = 0) {
+  let value = Math.imul(x + 101 + salt * 17, 374761393) ^
+    Math.imul(z + 211 + salt * 31, 668265263);
+  value = (value ^ (value >>> 13)) >>> 0;
+  value = Math.imul(value, 1274126177) >>> 0;
+  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
+}
+
+function roundedGroundDisc(
+  radius: number,
+  height: number,
+  material: THREE.Material,
+  segments = 20,
+) {
+  const mesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, height, segments),
+    material,
+  );
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function buildSmartTileGroup(
+  tiles: HabitatTile[],
+  gridSize: number,
+  width: number,
+  depth: number,
+) {
+  const root = new THREE.Group();
+  root.name = "SmartTiles";
+  const map = new Map(tiles.map((tile) => [tileKey(tile.x, tile.z), tile]));
+  const cellX = width / gridSize;
+  const cellZ = depth / gridSize;
+  const cell = Math.min(cellX, cellZ);
+  const has = (x: number, z: number, material: HabitatTile["material"]) =>
+    map.get(tileKey(x, z))?.material === material;
+
+  const pathDirections = [
+    { dx: 0, dz: -1, px: 0, pz: -0.29, sx: 0.46, sz: 0.62 },
+    { dx: 0, dz: 1, px: 0, pz: 0.29, sx: 0.46, sz: 0.62 },
+    { dx: -1, dz: 0, px: -0.29, pz: 0, sx: 0.62, sz: 0.46 },
+    { dx: 1, dz: 0, px: 0.29, pz: 0, sx: 0.62, sz: 0.46 },
+  ] as const;
+
+  const waterEdges = [
+    { dx: 0, dz: -1, px: 0, pz: -0.485, sx: 0.98, sz: 0.14 },
+    { dx: 0, dz: 1, px: 0, pz: 0.485, sx: 0.98, sz: 0.14 },
+    { dx: -1, dz: 0, px: -0.485, pz: 0, sx: 0.14, sz: 0.98 },
+    { dx: 1, dz: 0, px: 0.485, pz: 0, sx: 0.14, sz: 0.98 },
+  ] as const;
+
+  for (const tile of tiles) {
+    const group = new THREE.Group();
+    group.name = `Tile_${tile.x}_${tile.z}_${tile.material}`;
+    group.position.set(
+      -width / 2 + cellX * (tile.x + 0.5),
+      0,
+      -depth / 2 + cellZ * (tile.z + 0.5),
+    );
+
+    if (tile.material === "grass") {
+      const baseVariation = seededTileRandom(tile.x, tile.z, 1);
+      const green = new THREE.Color(0x79a84d).offsetHSL(
+        (baseVariation - 0.5) * 0.018,
+        (baseVariation - 0.5) * 0.08,
+        (baseVariation - 0.5) * 0.06,
+      );
+      addTileBase(group, green.getHex(), cell);
+
+      const grassMaterial = tileBaseMaterial(0x527f38, 1);
+      const bladeCount = 5 + Math.floor(seededTileRandom(tile.x, tile.z, 2) * 4);
+      for (let i = 0; i < bladeCount; i++) {
+        const ox = (seededTileRandom(tile.x, tile.z, 10 + i * 3) - 0.5) * 0.7;
+        const oz = (seededTileRandom(tile.x, tile.z, 11 + i * 3) - 0.5) * 0.7;
+        const h = 0.12 + seededTileRandom(tile.x, tile.z, 12 + i * 3) * 0.14;
+        const blade = new THREE.Mesh(
+          new THREE.ConeGeometry(cell * (0.04 + h * 0.06), cell * h, 3),
+          grassMaterial,
+        );
+        blade.position.set(ox * cell, 0.05 + cell * h * 0.5, oz * cell);
+        blade.rotation.y = seededTileRandom(tile.x, tile.z, 40 + i) * Math.PI * 2;
+        blade.rotation.z = (seededTileRandom(tile.x, tile.z, 60 + i) - 0.5) * 0.16;
+        blade.castShadow = true;
+        group.add(blade);
+      }
+
+      // Small deterministic ground accent so repeated grass tiles do not read as clones.
+      if (seededTileRandom(tile.x, tile.z, 90) > 0.63) {
+        const accentMat = tileBaseMaterial(0x91bc5c, 1);
+        const accent = roundedGroundDisc(cell * 0.045, cell * 0.08, accentMat, 6);
+        accent.scale.y = 1.8;
+        accent.position.set(
+          (seededTileRandom(tile.x, tile.z, 91) - 0.5) * cell * 0.55,
+          cell * 0.04,
+          (seededTileRandom(tile.x, tile.z, 92) - 0.5) * cell * 0.55,
+        );
+        accent.rotation.z = Math.PI / 2;
+        group.add(accent);
+      }
+    }
+
+    if (tile.material === "dirt") {
+      const variation = seededTileRandom(tile.x, tile.z, 3);
+      const dirt = new THREE.Color(0x9b7149).offsetHSL(
+        0,
+        (variation - 0.5) * 0.05,
+        (variation - 0.5) * 0.08,
+      );
+      addTileBase(group, dirt.getHex(), cell);
+    }
+
+    if (tile.material === "rock") {
+      addTileBase(group, 0x748073, cell);
+      const rockMaterial = tileBaseMaterial(0x899087, 1);
+      const rockCount = 3 + Math.floor(seededTileRandom(tile.x, tile.z, 4) * 3);
+      for (let i = 0; i < rockCount; i++) {
+        const s = 0.08 + seededTileRandom(tile.x, tile.z, 100 + i) * 0.09;
+        const rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(cell * s, 0),
+          rockMaterial,
+        );
+        rock.position.set(
+          (seededTileRandom(tile.x, tile.z, 120 + i) - 0.5) * cell * 0.62,
+          cell * s * 0.75,
+          (seededTileRandom(tile.x, tile.z, 140 + i) - 0.5) * cell * 0.62,
+        );
+        rock.scale.set(
+          0.75 + seededTileRandom(tile.x, tile.z, 160 + i) * 0.55,
+          0.48 + seededTileRandom(tile.x, tile.z, 180 + i) * 0.45,
+          0.75 + seededTileRandom(tile.x, tile.z, 200 + i) * 0.55,
+        );
+        rock.rotation.y = seededTileRandom(tile.x, tile.z, 220 + i) * Math.PI;
+        rock.castShadow = true;
+        group.add(rock);
+      }
+    }
+
+    if (tile.material === "path") {
+      addTileBase(group, 0x6f9448, cell, 0.012);
+      const pathMat = tileBaseMaterial(0xb69a67, 1);
+      const edgeMat = tileBaseMaterial(0x9c8055, 1);
+      const linked = pathDirections.filter((direction) =>
+        has(tile.x + direction.dx, tile.z + direction.dz, "path"),
+      );
+
+      // Circular hub softens T-junctions, corners and crossings.
+      const center = roundedGroundDisc(cell * 0.255, 0.05, pathMat, 24);
+      center.position.y = 0.048;
+      group.add(center);
+
+      for (const direction of linked) {
+        const arm = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            cell * direction.sx,
+            0.05,
+            cell * direction.sz,
+          ),
+          pathMat,
+        );
+        arm.position.set(
+          cell * direction.px,
+          0.048,
+          cell * direction.pz,
+        );
+        group.add(arm);
+      }
+
+      // Diagonal rounded infill turns two perpendicular connections into a softer bend.
+      if (linked.length === 2) {
+        const a = linked[0];
+        const b = linked[1];
+        const perpendicular = a.dx !== b.dx && a.dz !== b.dz;
+        if (perpendicular) {
+          const bend = roundedGroundDisc(cell * 0.23, 0.052, pathMat, 24);
+          bend.position.set(
+            (a.dx + b.dx) * cell * 0.08,
+            0.049,
+            (a.dz + b.dz) * cell * 0.08,
+          );
+          group.add(bend);
+        }
+      }
+
+      if (!linked.length) {
+        center.scale.set(1.18, 1, 1.18);
+      }
+
+      // Sparse edge stones keep the path readable but avoid a perfect repeated strip.
+      if (seededTileRandom(tile.x, tile.z, 240) > 0.35) {
+        const pebbleCount = 2 + Math.floor(seededTileRandom(tile.x, tile.z, 241) * 3);
+        for (let i = 0; i < pebbleCount; i++) {
+          const pebble = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(cell * 0.035, 0),
+            edgeMat,
+          );
+          const side = seededTileRandom(tile.x, tile.z, 250 + i) > 0.5 ? 1 : -1;
+          pebble.position.set(
+            side * cell * (0.25 + seededTileRandom(tile.x, tile.z, 260 + i) * 0.08),
+            cell * 0.02,
+            (seededTileRandom(tile.x, tile.z, 270 + i) - 0.5) * cell * 0.48,
+          );
+          pebble.scale.y = 0.45;
+          group.add(pebble);
+        }
+      }
+    }
+
+    if (tile.material === "water") {
+      const water = new THREE.Mesh(
+        new THREE.BoxGeometry(cell * 0.985, 0.035, cell * 0.985),
+        waterMaterial(),
+      );
+      water.position.y = 0.005;
+      group.add(water);
+
+      const shoreMat = tileBaseMaterial(0x8b724c, 1);
+      const grassLipMat = tileBaseMaterial(0x638f45, 1);
+      const exposed = waterEdges.filter((edge) =>
+        !has(tile.x + edge.dx, tile.z + edge.dz, "water"),
+      );
+
+      for (const edge of exposed) {
+        const bank = new THREE.Mesh(
+          new THREE.BoxGeometry(cell * edge.sx, 0.085, cell * edge.sz),
+          shoreMat,
+        );
+        bank.position.set(cell * edge.px, 0.032, cell * edge.pz);
+        bank.castShadow = true;
+        group.add(bank);
+
+        const lip = new THREE.Mesh(
+          new THREE.BoxGeometry(
+            cell * (edge.sx === 0.14 ? edge.sx * 0.7 : edge.sx * 0.98),
+            0.045,
+            cell * (edge.sz === 0.14 ? edge.sz * 0.7 : edge.sz * 0.98),
+          ),
+          grassLipMat,
+        );
+        lip.position.set(cell * edge.px, 0.076, cell * edge.pz);
+        group.add(lip);
+      }
+
+      // Rounded outer shoreline corners remove the hard square look.
+      const corners = [
+        { x: -1, z: -1, px: -0.48, pz: -0.48 },
+        { x: 1, z: -1, px: 0.48, pz: -0.48 },
+        { x: -1, z: 1, px: -0.48, pz: 0.48 },
+        { x: 1, z: 1, px: 0.48, pz: 0.48 },
+      ] as const;
+      for (const corner of corners) {
+        const horizontalExposed = !has(tile.x + corner.x, tile.z, "water");
+        const verticalExposed = !has(tile.x, tile.z + corner.z, "water");
+        if (!horizontalExposed || !verticalExposed) continue;
+
+        const bankCap = roundedGroundDisc(cell * 0.13, 0.086, shoreMat, 16);
+        bankCap.position.set(cell * corner.px, 0.033, cell * corner.pz);
+        group.add(bankCap);
+
+        const lipCap = roundedGroundDisc(cell * 0.078, 0.046, grassLipMat, 16);
+        lipCap.position.set(cell * corner.px, 0.077, cell * corner.pz);
+        group.add(lipCap);
+      }
+
+      // Occasional reeds on exposed banks give the water a game-ready natural edge.
+      if (exposed.length && seededTileRandom(tile.x, tile.z, 300) > 0.56) {
+        const reedMat = tileBaseMaterial(0x4d793f, 1);
+        const edge = exposed[Math.floor(seededTileRandom(tile.x, tile.z, 301) * exposed.length)];
+        for (let i = 0; i < 3; i++) {
+          const reed = new THREE.Mesh(
+            new THREE.ConeGeometry(cell * 0.025, cell * (0.12 + i * 0.025), 3),
+            reedMat,
+          );
+          reed.position.set(
+            cell * edge.px +
+              (seededTileRandom(tile.x, tile.z, 310 + i) - 0.5) * cell * (edge.sx > edge.sz ? 0.45 : 0.06),
+            cell * (0.08 + i * 0.012),
+            cell * edge.pz +
+              (seededTileRandom(tile.x, tile.z, 320 + i) - 0.5) * cell * (edge.sz > edge.sx ? 0.45 : 0.06),
+          );
+          reed.rotation.z = (seededTileRandom(tile.x, tile.z, 330 + i) - 0.5) * 0.18;
+          group.add(reed);
+        }
+      }
+    }
+
+    root.add(group);
+  }
+  return root;
+}
+
 function waterMaterial() {
   return new THREE.MeshStandardMaterial({
     color: 0x2a9bb0,
@@ -173,6 +492,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const objectRootRef = useRef<THREE.Group | null>(null);
   const waterRootRef = useRef<THREE.Group | null>(null);
+  const tileRootRef = useRef<THREE.Group | null>(null);
   const terrainRef = useRef<THREE.Mesh | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const transformRef = useRef<TransformControls | null>(null);
@@ -188,10 +508,17 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const paintMaterialRef = useRef<PaintMaterial>("grass");
   const brushSizeRef = useRef(2.4);
   const brushStrengthRef = useRef(0.18);
+  const tileMaterialRef = useRef<TileMaterial>("grass");
+  const tileMapRef = useRef<Map<string, HabitatTile>>(new Map());
+  const gridSizeRef = useRef<4 | 8 | 16>(8);
+  const groundWidthRef = useRef(8);
+  const groundDepthRef = useRef(8);
+  const rebuildTilesRef = useRef<() => void>(() => {});
 
   const [name, setName] = useState("My Habitat");
-  const [groundWidth, setGroundWidth] = useState(24);
-  const [groundDepth, setGroundDepth] = useState(24);
+  const [gridSize, setGridSize] = useState<4 | 8 | 16>(8);
+  const [groundWidth, setGroundWidth] = useState(8);
+  const [groundDepth, setGroundDepth] = useState(8);
   const [objects, setObjects] = useState<HabitatObject[]>([]);
   const [waterAreas, setWaterAreas] = useState<WaterArea[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -201,6 +528,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const [paintMaterial, setPaintMaterial] = useState<PaintMaterial>("grass");
   const [brushSize, setBrushSize] = useState(2.4);
   const [brushStrength, setBrushStrength] = useState(0.18);
+  const [tileMaterial, setTileMaterial] = useState<TileMaterial>("grass");
+  const [tiles, setTiles] = useState<HabitatTile[]>([]);
   const [status, setStatus] = useState(
     "Build a habitat with editable terrain, water and modular props.",
   );
@@ -209,6 +538,10 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   useEffect(() => { paintMaterialRef.current = paintMaterial; }, [paintMaterial]);
   useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
   useEffect(() => { brushStrengthRef.current = brushStrength; }, [brushStrength]);
+  useEffect(() => { tileMaterialRef.current = tileMaterial; }, [tileMaterial]);
+  useEffect(() => { gridSizeRef.current = gridSize; }, [gridSize]);
+  useEffect(() => { groundWidthRef.current = groundWidth; }, [groundWidth]);
+  useEffect(() => { groundDepthRef.current = groundDepth; }, [groundDepth]);
 
   const syncObjects = () => {
     const root = objectRootRef.current;
@@ -246,7 +579,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const buildManifest = (): HabitatManifest => {
     const terrain = serializeTerrain();
     return {
-      schema: "rebyters-habitat-v2",
+      schema: "rebyters-habitat-v3",
       id: slug(name),
       name: name.trim() || "Untitled Habitat",
       terrain: {
@@ -255,6 +588,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         segments: TERRAIN_SEGMENTS,
         ...terrain,
       },
+      gridSize,
+      tiles: Array.from(tileMapRef.current.values()),
       objects: objectRootRef.current?.children.map(objectToRecord) ?? objects,
       water:
         waterRootRef.current?.children.map((object) => ({
@@ -319,6 +654,33 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     waterRoot.name = "HabitatWater";
     scene.add(waterRoot);
     waterRootRef.current = waterRoot;
+
+    let tileRoot = new THREE.Group();
+    tileRoot.name = "SmartTiles";
+    scene.add(tileRoot);
+    tileRootRef.current = tileRoot;
+
+    const rebuildTiles = () => {
+      const next = buildSmartTileGroup(
+        Array.from(tileMapRef.current.values()),
+        gridSizeRef.current,
+        groundWidthRef.current,
+        groundDepthRef.current,
+      );
+      scene.remove(tileRoot);
+      tileRoot.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry.dispose();
+        const material = mesh.material;
+        if (Array.isArray(material)) material.forEach((m) => m.dispose());
+        else material.dispose();
+      });
+      tileRoot = next;
+      scene.add(tileRoot);
+      tileRootRef.current = tileRoot;
+    };
+    rebuildTilesRef.current = rebuildTiles;
 
     const transform = new TransformControls(camera, renderer.domElement);
     transform.setMode(mode);
@@ -419,8 +781,34 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       }
     };
 
+    const applySmartTile = (event: PointerEvent) => {
+      const hit = terrainHit(event);
+      if (!hit) return;
+      const local = terrain.worldToLocal(hit.point.clone());
+      const activeGrid = gridSizeRef.current;
+      const activeWidth = groundWidthRef.current;
+      const activeDepth = groundDepthRef.current;
+      const cellX = activeWidth / activeGrid;
+      const cellZ = activeDepth / activeGrid;
+      const x = Math.floor((local.x + activeWidth / 2) / cellX);
+      const z = Math.floor((local.z + activeDepth / 2) / cellZ);
+      if (x < 0 || z < 0 || x >= activeGrid || z >= activeGrid) return;
+      const key = tileKey(x, z);
+      const material = tileMaterialRef.current;
+      if (material === "empty") tileMapRef.current.delete(key);
+      else tileMapRef.current.set(key, { x, z, material });
+      setTiles(Array.from(tileMapRef.current.values()));
+      rebuildTiles();
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if ((transform as any).dragging) return;
+
+      if (toolRef.current === "tiles") {
+        brushDown.current = true;
+        applySmartTile(event);
+        return;
+      }
 
       if (toolRef.current !== "objects") {
         brushDown.current = true;
@@ -460,7 +848,12 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      if (brushDown.current && toolRef.current !== "objects") applyBrush(event, false);
+      if (!brushDown.current) return;
+      if (toolRef.current === "tiles") {
+        applySmartTile(event);
+        return;
+      }
+      if (toolRef.current !== "objects") applyBrush(event, false);
     };
     const onPointerUp = () => {
       brushDown.current = false;
@@ -526,6 +919,14 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       grid.geometry.dispose();
       (grid.material as THREE.Material).dispose();
       gridRef.current = null;
+      tileRoot.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry.dispose();
+        const material = mesh.material;
+        if (Array.isArray(material)) material.forEach((m) => m.dispose());
+        else material.dispose();
+      });
       waterRoot.children.forEach((child) => {
         const mesh = child as THREE.Mesh;
         mesh.geometry?.dispose();
@@ -699,21 +1100,38 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     }
   }
 
+  function changeGridSize(size: 4 | 8 | 16) {
+    if (tileMapRef.current.size && !window.confirm(`Switch to ${size}×${size}? Existing smart tiles will be cleared.`)) {
+      return;
+    }
+    tileMapRef.current.clear();
+    setTiles([]);
+    gridSizeRef.current = size;
+    groundWidthRef.current = size;
+    groundDepthRef.current = size;
+    setGridSize(size);
+    setGroundWidth(size);
+    setGroundDepth(size);
+    rebuildTilesRef.current();
+    setStatus(`${size}×${size} habitat ready. Paint connected tiles directly in 3D.`);
+  }
+
+  function chooseTile(material: TileMaterial) {
+    setTool("tiles");
+    setTileMaterial(material);
+    const labels: Record<TileMaterial, string> = {
+      grass: "3D grass",
+      water: "smart water with automatic banks",
+      path: "auto-connecting path",
+      dirt: "dirt",
+      rock: "rock ground",
+      empty: "eraser",
+    };
+    setStatus(`${labels[material]} brush selected.`);
+  }
+
   function addWater() {
-    const root = waterRootRef.current;
-    if (!root) return;
-    setTool("objects");
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), waterMaterial());
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(0, 0.06, -4);
-    mesh.scale.set(6, 3.5, 1);
-    mesh.userData.waterId = crypto.randomUUID();
-    root.add(mesh);
-    selectedRef.current = mesh;
-    transformRef.current?.attach(mesh);
-    setSelectedId(mesh.userData.waterId);
-    syncWater();
-    setStatus("Water surface added. Move and scale it like any other object.");
+    chooseTile("water");
   }
 
   async function loadExampleHabitat() {
@@ -735,6 +1153,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     setSelectedId("");
     root.clear();
     waterRoot.clear();
+    tileMapRef.current.clear();
+    setTiles([]);
+    rebuildTilesRef.current();
 
     // Production uses a 120x120 world. Keep the editor in the same coordinate system.
     setGroundWidth(120);
@@ -941,6 +1362,19 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       setName(saved.name);
       setGroundWidth(saved.terrain.width);
       setGroundDepth(saved.terrain.depth);
+      const restoredGrid =
+        saved.gridSize === 4 || saved.gridSize === 8 || saved.gridSize === 16
+          ? saved.gridSize
+          : 8;
+      gridSizeRef.current = restoredGrid;
+      groundWidthRef.current = saved.terrain.width;
+      groundDepthRef.current = saved.terrain.depth;
+      setGridSize(restoredGrid);
+      tileMapRef.current = new Map(
+        (saved.tiles ?? []).map((tile) => [tileKey(tile.x, tile.z), tile]),
+      );
+      setTiles(Array.from(tileMapRef.current.values()));
+      rebuildTilesRef.current();
 
       const terrain = terrainRef.current;
       if (terrain && saved.terrain.heights.length) {
@@ -1003,6 +1437,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       scene.add(terrain);
     }
 
+    tileRootRef.current?.children.forEach((object) =>
+      scene.add(object.clone(true)),
+    );
     objectRootRef.current?.children.forEach((object) =>
       scene.add(object.clone(true)),
     );
@@ -1035,8 +1472,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           <span className="eyebrow">REBYTERS / WORLD BUILDING</span>
           <h1>Habitat Editor</h1>
           <p>
-            Sculpt terrain, paint surfaces, add water and compose modular scenery
-            around the fixed Rebyter camera.
+            Build habitats as a smart 3D tile world: connected paths, real grass,
+            automatic water shores, terrain sculpting and modular props.
           </p>
         </div>
         <div className="habitat-heading-actions">
@@ -1048,12 +1485,13 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       <div className="habitat-toolbar habitat-toolbar-multiline">
         <div className="habitat-toolset">
           <button className={tool === "objects" ? "active" : ""} onClick={() => setTool("objects")}><Move3D size={16}/>Objects</button>
+          <button className={tool === "tiles" ? "active" : ""} onClick={() => setTool("tiles")}><Grid3X3 size={16}/>Smart tiles</button>
           <button className={tool === "raise" ? "active" : ""} onClick={() => setTool("raise")}><Layers3 size={16}/>Raise</button>
           <button className={tool === "lower" ? "active" : ""} onClick={() => setTool("lower")}><Layers3 size={16}/>Lower</button>
           <button className={tool === "smooth" ? "active" : ""} onClick={() => setTool("smooth")}><Waves size={16}/>Smooth</button>
           <button className={tool === "flatten" ? "active" : ""} onClick={() => setTool("flatten")}><Grid3X3 size={16}/>Flatten</button>
           <button className={tool === "paint" ? "active" : ""} onClick={() => setTool("paint")}><Paintbrush size={16}/>Paint</button>
-          <button onClick={addWater}><Droplets size={16}/>Add water</button>
+          <button className={tool === "tiles" && tileMaterial === "water" ? "active" : ""} onClick={addWater}><Droplets size={16}/>Water brush</button>
         </div>
 
         <div className="habitat-preview-switch">
@@ -1064,7 +1502,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         <span>{status}</span>
       </div>
 
-      {tool !== "objects" && (
+      {tool !== "objects" && tool !== "tiles" && (
         <div className="terrain-controls">
           <strong>Terrain brush</strong>
           <label>Size <input type="range" min="0.6" max="5" step="0.1" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))}/><span>{brushSize.toFixed(1)}</span></label>
@@ -1079,12 +1517,29 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         </div>
       )}
 
+      {tool === "tiles" && (
+        <div className="smart-tile-panel">
+          <div className="smart-tile-panel-copy">
+            <strong>Smart 3D tile builder</strong>
+            <span>Paint directly on the terrain. Water builds its own shoreline and paths reconnect automatically as you draw.</span>
+          </div>
+          <div className="smart-tile-materials">
+            <button className={tileMaterial === "grass" ? "active tile-grass" : "tile-grass"} onClick={() => chooseTile("grass")}><Sprout size={17}/><span><strong>Grass</strong><small>3D blades</small></span></button>
+            <button className={tileMaterial === "water" ? "active tile-water" : "tile-water"} onClick={() => chooseTile("water")}><Droplets size={17}/><span><strong>Water</strong><small>Auto shore</small></span></button>
+            <button className={tileMaterial === "path" ? "active tile-path" : "tile-path"} onClick={() => chooseTile("path")}><Route size={17}/><span><strong>Path</strong><small>Auto connect</small></span></button>
+            <button className={tileMaterial === "dirt" ? "active tile-dirt" : "tile-dirt"} onClick={() => chooseTile("dirt")}><Paintbrush size={17}/><span><strong>Dirt</strong><small>Ground tile</small></span></button>
+            <button className={tileMaterial === "rock" ? "active tile-rock" : "tile-rock"} onClick={() => chooseTile("rock")}><Box size={17}/><span><strong>Rock</strong><small>3D stones</small></span></button>
+            <button className={tileMaterial === "empty" ? "active tile-empty" : "tile-empty"} onClick={() => chooseTile("empty")}><Trash2 size={17}/><span><strong>Erase</strong><small>Clear tile</small></span></button>
+          </div>
+        </div>
+      )}
+
       <div className="habitat-layout">
         <aside className="habitat-library">
           <div>
             <span className="eyebrow">ASSET LIBRARY</span>
             <h2>Environment</h2>
-            <p>Use sculpt + paint for the ground. Props stay modular.</p>
+            <p>Build the base with smart 3D tiles, then add props. Water and paths solve their own connections.</p>
             <button className="habitat-randomize" onClick={() => void loadExampleHabitat()}><Sparkles size={16}/>Load example habitat</button>
           </div>
 
@@ -1121,7 +1576,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           <div className="habitat-stage-hint">
             {tool === "objects"
               ? "Fixed player camera · select props to transform"
-              : "Drag directly over the terrain to edit it"}
+              : tool === "tiles"
+                ? "Drag over tiles · connections rebuild automatically"
+                : "Drag directly over the terrain to edit it"}
           </div>
         </div>
 
@@ -1133,16 +1590,23 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
 
           <label>Habitat name<input value={name} onChange={(e) => setName(e.target.value)}/></label>
 
-          <div className="habitat-ground-grid">
-            <label>Width<input type="number" min={4} max={100} value={groundWidth} onChange={(e) => setGroundWidth(Number(e.target.value) || 4)}/></label>
-            <label>Depth<input type="number" min={4} max={100} value={groundDepth} onChange={(e) => setGroundDepth(Number(e.target.value) || 4)}/></label>
+          <div className="habitat-size-picker">
+            <small>SCENARIO SIZE</small>
+            <div>
+              {([4, 8, 16] as const).map((size) => (
+                <button key={size} className={gridSize === size ? "active" : ""} onClick={() => changeGridSize(size)}>
+                  <strong>{size}×{size}</strong>
+                  <span>{size === 4 ? "Compact" : size === 8 ? "Standard" : "Large"}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="habitat-summary">
             <Grid3X3 size={17}/>
             <div>
-              <strong>{objects.length} props · {waterAreas.length} water</strong>
-              <small>{TERRAIN_SEGMENTS}×{TERRAIN_SEGMENTS} editable terrain</small>
+              <strong>{objects.length} props · {tiles.length} smart tiles</strong>
+              <small>{gridSize}×{gridSize} builder · water/path adjacency enabled</small>
             </div>
           </div>
 
@@ -1169,8 +1633,8 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           <span className="eyebrow">DELIVERY</span>
           <h2>JSON or GLB</h2>
           <p>
-            JSON preserves editable terrain heights, painted surface colors, water
-            areas and prop transforms. GLB bakes the current terrain geometry and scene.
+            JSON preserves the smart tile map, terrain, water and prop transforms.
+            GLB bakes the connected paths, 3D grass, generated shores and current scene.
           </p>
         </div>
         <div className="habitat-export-actions">
