@@ -31,7 +31,7 @@ import type { Registry } from "../../lib/rebyters/types";
 
 type TransformMode = "translate" | "rotate" | "scale";
 type PreviewMode = "web" | "mobile";
-type EditorTool = "objects" | "tiles" | "raise" | "lower" | "smooth" | "flatten" | "paint";
+type EditorTool = "objects" | "tiles" | "assets" | "raise" | "lower" | "smooth" | "flatten" | "paint";
 type PaintMaterial = "grass" | "dirt" | "rock";
 type TileMaterial = "grass" | "water" | "path" | "dirt" | "rock" | "empty";
 
@@ -173,7 +173,8 @@ function tileBaseMaterial(color: number, roughness = 0.95) {
 
 function addTileBase(group: THREE.Group, color: number, cell: number, y = 0.018) {
   const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(cell * 0.98, 0.035, cell * 0.98),
+    // Slight overlap removes hairline cracks between adjacent tiles at oblique angles.
+    new THREE.BoxGeometry(cell * 1.006, 0.035, cell * 1.006),
     tileBaseMaterial(color),
   );
   mesh.position.y = y;
@@ -244,42 +245,12 @@ function buildSmartTileGroup(
     if (tile.material === "grass") {
       const baseVariation = seededTileRandom(tile.x, tile.z, 1);
       const green = new THREE.Color(0x79a84d).offsetHSL(
+        (baseVariation - 0.5) * 0.008,
+        (baseVariation - 0.5) * 0.025,
         (baseVariation - 0.5) * 0.018,
-        (baseVariation - 0.5) * 0.08,
-        (baseVariation - 0.5) * 0.06,
       );
+      // Grass is intentionally clean and flat. Decorative volume belongs to props.
       addTileBase(group, green.getHex(), cell);
-
-      const grassMaterial = tileBaseMaterial(0x527f38, 1);
-      const bladeCount = 5 + Math.floor(seededTileRandom(tile.x, tile.z, 2) * 4);
-      for (let i = 0; i < bladeCount; i++) {
-        const ox = (seededTileRandom(tile.x, tile.z, 10 + i * 3) - 0.5) * 0.7;
-        const oz = (seededTileRandom(tile.x, tile.z, 11 + i * 3) - 0.5) * 0.7;
-        const h = 0.12 + seededTileRandom(tile.x, tile.z, 12 + i * 3) * 0.14;
-        const blade = new THREE.Mesh(
-          new THREE.ConeGeometry(cell * (0.04 + h * 0.06), cell * h, 3),
-          grassMaterial,
-        );
-        blade.position.set(ox * cell, 0.05 + cell * h * 0.5, oz * cell);
-        blade.rotation.y = seededTileRandom(tile.x, tile.z, 40 + i) * Math.PI * 2;
-        blade.rotation.z = (seededTileRandom(tile.x, tile.z, 60 + i) - 0.5) * 0.16;
-        blade.castShadow = true;
-        group.add(blade);
-      }
-
-      // Small deterministic ground accent so repeated grass tiles do not read as clones.
-      if (seededTileRandom(tile.x, tile.z, 90) > 0.63) {
-        const accentMat = tileBaseMaterial(0x91bc5c, 1);
-        const accent = roundedGroundDisc(cell * 0.045, cell * 0.08, accentMat, 6);
-        accent.scale.y = 1.8;
-        accent.position.set(
-          (seededTileRandom(tile.x, tile.z, 91) - 0.5) * cell * 0.55,
-          cell * 0.04,
-          (seededTileRandom(tile.x, tile.z, 92) - 0.5) * cell * 0.55,
-        );
-        accent.rotation.z = Math.PI / 2;
-        group.add(accent);
-      }
     }
 
     if (tile.material === "dirt") {
@@ -290,6 +261,24 @@ function buildSmartTileGroup(
         (variation - 0.5) * 0.08,
       );
       addTileBase(group, dirt.getHex(), cell);
+    }
+
+    if (tile.material === "dirt") {
+      const fringeMat = tileBaseMaterial(0x819b55, 1);
+      const exposedGrassEdges = [
+        { dx: 0, dz: -1, x: 0, z: -0.49, sx: 0.94, sz: 0.07 },
+        { dx: 0, dz: 1, x: 0, z: 0.49, sx: 0.94, sz: 0.07 },
+        { dx: -1, dz: 0, x: -0.49, z: 0, sx: 0.07, sz: 0.94 },
+        { dx: 1, dz: 0, x: 0.49, z: 0, sx: 0.07, sz: 0.94 },
+      ].filter((edge) => has(tile.x + edge.dx, tile.z + edge.dz, "grass"));
+      for (const edge of exposedGrassEdges) {
+        const blend = new THREE.Mesh(
+          new THREE.BoxGeometry(cell * edge.sx, 0.018, cell * edge.sz),
+          fringeMat,
+        );
+        blend.position.set(cell * edge.x, 0.065, cell * edge.z);
+        group.add(blend);
+      }
     }
 
     if (tile.material === "rock") {
@@ -319,15 +308,19 @@ function buildSmartTileGroup(
     }
 
     if (tile.material === "path") {
-      addTileBase(group, 0x6f9448, cell, 0.012);
+      // Full grass tile below prevents any hole or exposed terrain in the centre.
+      addTileBase(group, 0x79a84d, cell, 0.012);
       const pathMat = tileBaseMaterial(0xb69a67, 1);
-      const edgeMat = tileBaseMaterial(0x9c8055, 1);
+      const transitionMat = tileBaseMaterial(0xa8895d, 1);
       const linked = pathDirections.filter((direction) =>
         has(tile.x + direction.dx, tile.z + direction.dz, "path"),
       );
 
-      // Circular hub softens T-junctions, corners and crossings.
-      const center = roundedGroundDisc(cell * 0.255, 0.05, pathMat, 24);
+      // Solid centre guarantees a continuous path through corners, T-junctions and crosses.
+      const center = new THREE.Mesh(
+        new THREE.BoxGeometry(cell * 0.48, 0.052, cell * 0.48),
+        pathMat,
+      );
       center.position.y = 0.048;
       group.add(center);
 
@@ -335,7 +328,7 @@ function buildSmartTileGroup(
         const arm = new THREE.Mesh(
           new THREE.BoxGeometry(
             cell * direction.sx,
-            0.05,
+            0.052,
             cell * direction.sz,
           ),
           pathMat,
@@ -348,49 +341,34 @@ function buildSmartTileGroup(
         group.add(arm);
       }
 
-      // Diagonal rounded infill turns two perpendicular connections into a softer bend.
-      if (linked.length === 2) {
-        const a = linked[0];
-        const b = linked[1];
-        const perpendicular = a.dx !== b.dx && a.dz !== b.dz;
-        if (perpendicular) {
-          const bend = roundedGroundDisc(cell * 0.23, 0.052, pathMat, 24);
-          bend.position.set(
-            (a.dx + b.dx) * cell * 0.08,
-            0.049,
-            (a.dz + b.dz) * cell * 0.08,
-          );
-          group.add(bend);
-        }
-      }
+      // If isolated, make a tidy dirt patch instead of a tiny floating square.
+      if (!linked.length) center.scale.set(1.42, 1, 1.42);
 
-      if (!linked.length) {
-        center.scale.set(1.18, 1, 1.18);
-      }
-
-      // Sparse edge stones keep the path readable but avoid a perfect repeated strip.
-      if (seededTileRandom(tile.x, tile.z, 240) > 0.35) {
-        const pebbleCount = 2 + Math.floor(seededTileRandom(tile.x, tile.z, 241) * 3);
-        for (let i = 0; i < pebbleCount; i++) {
-          const pebble = new THREE.Mesh(
-            new THREE.DodecahedronGeometry(cell * 0.035, 0),
-            edgeMat,
-          );
-          const side = seededTileRandom(tile.x, tile.z, 250 + i) > 0.5 ? 1 : -1;
-          pebble.position.set(
-            side * cell * (0.25 + seededTileRandom(tile.x, tile.z, 260 + i) * 0.08),
-            cell * 0.02,
-            (seededTileRandom(tile.x, tile.z, 270 + i) - 0.5) * cell * 0.48,
-          );
-          pebble.scale.y = 0.45;
-          group.add(pebble);
-        }
+      // Soft irregular fringe where grass meets dirt, deterministic per tile.
+      const fringeCount = 7;
+      for (let i = 0; i < fringeCount; i++) {
+        const along = (i + 0.5) / fringeCount - 0.5;
+        const jitter = (seededTileRandom(tile.x, tile.z, 500 + i) - 0.5) * 0.09;
+        const side = i % 2 === 0 ? 1 : -1;
+        const patch = roundedGroundDisc(
+          cell * (0.045 + seededTileRandom(tile.x, tile.z, 520 + i) * 0.025),
+          0.018,
+          transitionMat,
+          10,
+        );
+        patch.position.set(
+          side * cell * (0.245 + jitter),
+          0.078,
+          along * cell * 0.72,
+        );
+        patch.scale.z = 0.58 + seededTileRandom(tile.x, tile.z, 540 + i) * 0.35;
+        group.add(patch);
       }
     }
 
     if (tile.material === "water") {
       const water = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 0.985, 0.035, cell * 0.985),
+        new THREE.BoxGeometry(cell * 1.008, 0.035, cell * 1.008),
         waterMaterial(),
       );
       water.position.y = 0.005;
@@ -509,6 +487,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const brushSizeRef = useRef(2.4);
   const brushStrengthRef = useRef(0.18);
   const tileMaterialRef = useRef<TileMaterial>("grass");
+  const assetBrushRef = useRef<HabitatAssetDefinition | null>(null);
   const tileMapRef = useRef<Map<string, HabitatTile>>(new Map());
   const gridSizeRef = useRef<4 | 8 | 16>(8);
   const groundWidthRef = useRef(8);
@@ -529,6 +508,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const [brushSize, setBrushSize] = useState(2.4);
   const [brushStrength, setBrushStrength] = useState(0.18);
   const [tileMaterial, setTileMaterial] = useState<TileMaterial>("grass");
+  const [assetBrush, setAssetBrush] = useState<HabitatAssetDefinition | null>(null);
   const [tiles, setTiles] = useState<HabitatTile[]>([]);
   const [status, setStatus] = useState(
     "Build a habitat with editable terrain, water and modular props.",
@@ -539,6 +519,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   useEffect(() => { brushSizeRef.current = brushSize; }, [brushSize]);
   useEffect(() => { brushStrengthRef.current = brushStrength; }, [brushStrength]);
   useEffect(() => { tileMaterialRef.current = tileMaterial; }, [tileMaterial]);
+  useEffect(() => { assetBrushRef.current = assetBrush; }, [assetBrush]);
   useEffect(() => { gridSizeRef.current = gridSize; }, [gridSize]);
   useEffect(() => { groundWidthRef.current = groundWidth; }, [groundWidth]);
   useEffect(() => { groundDepthRef.current = groundDepth; }, [groundDepth]);
@@ -605,7 +586,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     if (!host) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x9bcbe7);
+    scene.background = new THREE.Color(0xf7f8f6);
     sceneRef.current = scene;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -639,7 +620,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     // Keep the editor grid exactly aligned with the editable terrain.
     // A unit grid scaled to Width/Depth avoids the old 40x40 grid extending
     // beyond a smaller terrain and looking like the ground was cut in half.
-    const grid = new THREE.GridHelper(1, TERRAIN_SEGMENTS, 0x6f9278, 0xb5c8ba);
+    const grid = new THREE.GridHelper(1, TERRAIN_SEGMENTS, 0xaab6ae, 0xdce3de);
     grid.scale.set(groundWidth, 1, groundDepth);
     grid.position.y = 0.015;
     scene.add(grid);
@@ -801,12 +782,49 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       rebuildTiles();
     };
 
+    const placeAssetAtTile = async (event: PointerEvent) => {
+      const definition = assetBrushRef.current;
+      if (!definition) return;
+      const hit = terrainHit(event);
+      if (!hit) return;
+      const local = terrain.worldToLocal(hit.point.clone());
+      const activeGrid = gridSizeRef.current;
+      const activeWidth = groundWidthRef.current;
+      const activeDepth = groundDepthRef.current;
+      const cellX = activeWidth / activeGrid;
+      const cellZ = activeDepth / activeGrid;
+      const x = Math.floor((local.x + activeWidth / 2) / cellX);
+      const z = Math.floor((local.z + activeDepth / 2) / cellZ);
+      if (x < 0 || z < 0 || x >= activeGrid || z >= activeGrid) return;
+
+      try {
+        const object = await loadHabitatAsset(definition.asset, definition.name);
+        const centreX = -activeWidth / 2 + cellX * (x + 0.5);
+        const centreZ = -activeDepth / 2 + cellZ * (z + 0.5);
+        object.position.x += centreX;
+        object.position.z += centreZ;
+        object.userData.tileX = x;
+        object.userData.tileZ = z;
+        object.userData.snappedToGrid = true;
+        objectRootRef.current?.add(object);
+        syncObjects();
+        setStatus(`${definition.name} placed on tile ${x + 1}, ${z + 1}.`);
+      } catch {
+        setStatus(`Could not load ${definition.name}.`);
+      }
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if ((transform as any).dragging) return;
 
       if (toolRef.current === "tiles") {
         brushDown.current = true;
         applySmartTile(event);
+        return;
+      }
+
+      if (toolRef.current === "assets") {
+        void placeAssetAtTile(event);
         return;
       }
 
@@ -853,7 +871,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         applySmartTile(event);
         return;
       }
-      if (toolRef.current !== "objects") applyBrush(event, false);
+      if (toolRef.current !== "objects" && toolRef.current !== "assets") applyBrush(event, false);
     };
     const onPointerUp = () => {
       brushDown.current = false;
@@ -1128,6 +1146,15 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
       empty: "eraser",
     };
     setStatus(`${labels[material]} brush selected.`);
+  }
+
+  function chooseAsset(definition: HabitatAssetDefinition) {
+    setAssetBrush(definition);
+    assetBrushRef.current = definition;
+    setTool("assets");
+    transformRef.current?.detach();
+    setSelectedId("");
+    setStatus(`${definition.name} selected · click any tile to place it snapped to the grid.`);
   }
 
   function addWater() {
@@ -1466,98 +1493,74 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     (waterAreas.some((item) => item.id === selectedId) ? "Water" : "Nothing selected");
 
   return (
-    <section className="habitat-editor">
-      <header className="habitat-editor-heading">
-        <div>
-          <span className="eyebrow">REBYTERS / WORLD BUILDING</span>
+    <section className="habitat-editor habitat-editor-clean">
+      <header className="habitat-clean-topbar">
+        <div className="habitat-clean-title">
+          <span className="eyebrow">REBYTERS / SCENE BUILDER</span>
           <h1>Habitat Editor</h1>
-          <p>
-            Build habitats as a smart 3D tile world: connected paths, real grass,
-            automatic water shores, terrain sculpting and modular props.
-          </p>
         </div>
-        <div className="habitat-heading-actions">
+
+        <div className="habitat-clean-sizes" aria-label="Scenario size">
+          {([4, 8, 16] as const).map((size) => (
+            <button
+              key={size}
+              className={gridSize === size ? "active" : ""}
+              onClick={() => changeGridSize(size)}
+            >
+              {size}×{size}
+            </button>
+          ))}
+        </div>
+
+        <div className="habitat-clean-actions">
           <button onClick={() => void restoreDraft()}>Restore</button>
-          <button onClick={saveDraft}><Save size={15}/>Save draft</button>
+          <button onClick={saveDraft}><Save size={15}/>Save</button>
+          <button onClick={exportManifest}><FileJson size={15}/>JSON</button>
+          <button className="primary" onClick={() => void exportGlb()}><Download size={15}/>GLB</button>
         </div>
       </header>
 
-      <div className="habitat-toolbar habitat-toolbar-multiline">
-        <div className="habitat-toolset">
-          <button className={tool === "objects" ? "active" : ""} onClick={() => setTool("objects")}><Move3D size={16}/>Objects</button>
-          <button className={tool === "tiles" ? "active" : ""} onClick={() => setTool("tiles")}><Grid3X3 size={16}/>Smart tiles</button>
-          <button className={tool === "raise" ? "active" : ""} onClick={() => setTool("raise")}><Layers3 size={16}/>Raise</button>
-          <button className={tool === "lower" ? "active" : ""} onClick={() => setTool("lower")}><Layers3 size={16}/>Lower</button>
-          <button className={tool === "smooth" ? "active" : ""} onClick={() => setTool("smooth")}><Waves size={16}/>Smooth</button>
-          <button className={tool === "flatten" ? "active" : ""} onClick={() => setTool("flatten")}><Grid3X3 size={16}/>Flatten</button>
-          <button className={tool === "paint" ? "active" : ""} onClick={() => setTool("paint")}><Paintbrush size={16}/>Paint</button>
-          <button className={tool === "tiles" && tileMaterial === "water" ? "active" : ""} onClick={addWater}><Droplets size={16}/>Water brush</button>
-        </div>
+      <div className="habitat-clean-workbench">
+        <aside className="habitat-clean-palette">
+          <section>
+            <div className="habitat-clean-section-title">
+              <strong>Ground</strong>
+              <small>Paint connected tiles</small>
+            </div>
+            <div className="habitat-clean-toolgrid">
+              <button className={tool === "tiles" && tileMaterial === "grass" ? "active" : ""} onClick={() => chooseTile("grass")}><Sprout size={17}/><span>Grass</span></button>
+              <button className={tool === "tiles" && tileMaterial === "path" ? "active" : ""} onClick={() => chooseTile("path")}><Route size={17}/><span>Path</span></button>
+              <button className={tool === "tiles" && tileMaterial === "dirt" ? "active" : ""} onClick={() => chooseTile("dirt")}><Paintbrush size={17}/><span>Dirt</span></button>
+              <button className={tool === "tiles" && tileMaterial === "water" ? "active" : ""} onClick={() => chooseTile("water")}><Droplets size={17}/><span>Water</span></button>
+              <button className={tool === "tiles" && tileMaterial === "rock" ? "active" : ""} onClick={() => chooseTile("rock")}><Box size={17}/><span>Rock</span></button>
+              <button className={tool === "tiles" && tileMaterial === "empty" ? "active" : ""} onClick={() => chooseTile("empty")}><Trash2 size={17}/><span>Erase</span></button>
+            </div>
+          </section>
 
-        <div className="habitat-preview-switch">
-          <button className={previewMode === "web" ? "active" : ""} onClick={() => setPreviewMode("web")}><Monitor size={15}/>Web</button>
-          <button className={previewMode === "mobile" ? "active" : ""} onClick={() => setPreviewMode("mobile")}><Smartphone size={15}/>Mobile</button>
-        </div>
-
-        <span>{status}</span>
-      </div>
-
-      {tool !== "objects" && tool !== "tiles" && (
-        <div className="terrain-controls">
-          <strong>Terrain brush</strong>
-          <label>Size <input type="range" min="0.6" max="5" step="0.1" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))}/><span>{brushSize.toFixed(1)}</span></label>
-          <label>Strength <input type="range" min="0.03" max="0.5" step="0.01" value={brushStrength} onChange={(e) => setBrushStrength(Number(e.target.value))}/><span>{brushStrength.toFixed(2)}</span></label>
-          {tool === "paint" && (
-            <div className="terrain-paints">
-              {(["grass", "dirt", "rock"] as PaintMaterial[]).map((item) => (
-                <button key={item} className={paintMaterial === item ? "active" : ""} onClick={() => setPaintMaterial(item)}>{item}</button>
+          <section>
+            <div className="habitat-clean-section-title">
+              <strong>Props</strong>
+              <small>Click a prop, then click a tile</small>
+            </div>
+            <div className="habitat-clean-assets">
+              {BUILTIN_ASSETS.filter((item) =>
+                item.category === "Nature" &&
+                !["Mountain ridge", "Production mountains", "Distant mountains"].includes(item.name)
+              ).map((item) => (
+                <button
+                  key={item.asset}
+                  className={tool === "assets" && assetBrush?.asset === item.asset ? "active" : ""}
+                  onClick={() => chooseAsset(item)}
+                >
+                  <Sparkles size={15}/>
+                  <span>{item.name}</span>
+                </button>
               ))}
             </div>
-          )}
-        </div>
-      )}
+          </section>
 
-      {tool === "tiles" && (
-        <div className="smart-tile-panel">
-          <div className="smart-tile-panel-copy">
-            <strong>Smart 3D tile builder</strong>
-            <span>Paint directly on the terrain. Water builds its own shoreline and paths reconnect automatically as you draw.</span>
-          </div>
-          <div className="smart-tile-materials">
-            <button className={tileMaterial === "grass" ? "active tile-grass" : "tile-grass"} onClick={() => chooseTile("grass")}><Sprout size={17}/><span><strong>Grass</strong><small>3D blades</small></span></button>
-            <button className={tileMaterial === "water" ? "active tile-water" : "tile-water"} onClick={() => chooseTile("water")}><Droplets size={17}/><span><strong>Water</strong><small>Auto shore</small></span></button>
-            <button className={tileMaterial === "path" ? "active tile-path" : "tile-path"} onClick={() => chooseTile("path")}><Route size={17}/><span><strong>Path</strong><small>Auto connect</small></span></button>
-            <button className={tileMaterial === "dirt" ? "active tile-dirt" : "tile-dirt"} onClick={() => chooseTile("dirt")}><Paintbrush size={17}/><span><strong>Dirt</strong><small>Ground tile</small></span></button>
-            <button className={tileMaterial === "rock" ? "active tile-rock" : "tile-rock"} onClick={() => chooseTile("rock")}><Box size={17}/><span><strong>Rock</strong><small>3D stones</small></span></button>
-            <button className={tileMaterial === "empty" ? "active tile-empty" : "tile-empty"} onClick={() => chooseTile("empty")}><Trash2 size={17}/><span><strong>Erase</strong><small>Clear tile</small></span></button>
-          </div>
-        </div>
-      )}
-
-      <div className="habitat-layout">
-        <aside className="habitat-library">
-          <div>
-            <span className="eyebrow">ASSET LIBRARY</span>
-            <h2>Environment</h2>
-            <p>Build the base with smart 3D tiles, then add props. Water and paths solve their own connections.</p>
-            <button className="habitat-randomize" onClick={() => void loadExampleHabitat()}><Sparkles size={16}/>Load example habitat</button>
-          </div>
-
-          <div className="habitat-assets">
-            {(["Background", "Nature", "Terrain", "Water"] as const).map((category) => (
-              <div className="habitat-asset-group" key={category}>
-                <small>{category}</small>
-                {BUILTIN_ASSETS.filter((item) => item.category === category).map((item) => (
-                  <button key={item.asset} onClick={() => void addAsset(item.asset, item.name)}>
-                    <Box size={18}/><span>{item.name}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          <label className="habitat-import">
-            <Upload size={16}/>Import custom GLB
+          <label className="habitat-clean-import">
+            <Upload size={15}/>Import GLB
             <input type="file" accept=".glb,model/gltf-binary" onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
@@ -1566,82 +1569,55 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
           </label>
         </aside>
 
-        <div className={`habitat-stage preview-${previewMode}`}>
-          <div className="habitat-preview-frame">
+        <main className={`habitat-clean-stage preview-${previewMode}`}>
+          <div className="habitat-clean-canvas-wrap">
             <div ref={mount} className="habitat-canvas" />
-            <div className="habitat-safe habitat-safe-top"><span>TOP GUI SAFE AREA</span></div>
-            <div className="habitat-safe habitat-safe-bottom"><span>ACTIONS + NAV SAFE AREA</span></div>
-            <div className="habitat-companion-guide"><span>REBYTER ZONE</span></div>
           </div>
-          <div className="habitat-stage-hint">
-            {tool === "objects"
-              ? "Fixed player camera · select props to transform"
-              : tool === "tiles"
-                ? "Drag over tiles · connections rebuild automatically"
-                : "Drag directly over the terrain to edit it"}
-          </div>
-        </div>
-
-        <aside className="habitat-inspector">
-          <div>
-            <span className="eyebrow">HABITAT</span>
-            <h2>Scene settings</h2>
-          </div>
-
-          <label>Habitat name<input value={name} onChange={(e) => setName(e.target.value)}/></label>
-
-          <div className="habitat-size-picker">
-            <small>SCENARIO SIZE</small>
+          <div className="habitat-clean-status">
+            <span>{status}</span>
             <div>
-              {([4, 8, 16] as const).map((size) => (
-                <button key={size} className={gridSize === size ? "active" : ""} onClick={() => changeGridSize(size)}>
-                  <strong>{size}×{size}</strong>
-                  <span>{size === 4 ? "Compact" : size === 8 ? "Standard" : "Large"}</span>
-                </button>
-              ))}
+              <button className={previewMode === "web" ? "active" : ""} onClick={() => setPreviewMode("web")}><Monitor size={14}/>Web</button>
+              <button className={previewMode === "mobile" ? "active" : ""} onClick={() => setPreviewMode("mobile")}><Smartphone size={14}/>Mobile</button>
             </div>
           </div>
+        </main>
 
-          <div className="habitat-summary">
-            <Grid3X3 size={17}/>
-            <div>
-              <strong>{objects.length} props · {tiles.length} smart tiles</strong>
-              <small>{gridSize}×{gridSize} builder · water/path adjacency enabled</small>
+        <aside className="habitat-clean-inspector">
+          <section>
+            <div className="habitat-clean-section-title">
+              <strong>Scene</strong>
+              <small>{gridSize}×{gridSize} · {tiles.length} tiles · {objects.length} props</small>
             </div>
-          </div>
+            <label>Habitat name<input value={name} onChange={(e) => setName(e.target.value)}/></label>
+          </section>
 
-          <div className="habitat-selected">
-            <small>SELECTED OBJECT</small>
-            <strong>{selectedName}</strong>
-          </div>
+          <section>
+            <div className="habitat-clean-section-title">
+              <strong>Object</strong>
+              <small>{selectedName}</small>
+            </div>
+            <button className={tool === "objects" ? "active" : ""} onClick={() => {
+              setTool("objects");
+              setAssetBrush(null);
+              assetBrushRef.current = null;
+            }}><Move3D size={15}/>Select objects</button>
 
-          {tool === "objects" && (
-            <>
-              <div className="habitat-inspector-tools">
-                <button className={mode === "translate" ? "active" : ""} onClick={() => setMode("translate")}><Move3D size={15}/>Move</button>
-                <button className={mode === "rotate" ? "active" : ""} onClick={() => setMode("rotate")}><Rotate3D size={15}/>Rotate</button>
-                <button className={mode === "scale" ? "active" : ""} onClick={() => setMode("scale")}><Scale3D size={15}/>Scale</button>
+            {tool === "objects" && (
+              <div className="habitat-clean-transform">
+                <button className={mode === "translate" ? "active" : ""} onClick={() => setMode("translate")}><Move3D size={14}/>Move</button>
+                <button className={mode === "rotate" ? "active" : ""} onClick={() => setMode("rotate")}><Rotate3D size={14}/>Rotate</button>
+                <button className={mode === "scale" ? "active" : ""} onClick={() => setMode("scale")}><Scale3D size={14}/>Scale</button>
               </div>
-              <button disabled={!selectedId} onClick={deleteSelected}><Trash2 size={15}/>Delete selected</button>
-            </>
-          )}
+            )}
+            <button className="danger-soft" disabled={!selectedId} onClick={deleteSelected}><Trash2 size={14}/>Delete selected</button>
+          </section>
+
+          <section className="habitat-clean-note">
+            <strong>Grid logic</strong>
+            <p>Tiles are only an editing system. The rendered field overlaps surfaces slightly so the final scene reads as one continuous terrain without visible seams.</p>
+          </section>
         </aside>
       </div>
-
-      <section className="habitat-export">
-        <div>
-          <span className="eyebrow">DELIVERY</span>
-          <h2>JSON or GLB</h2>
-          <p>
-            JSON preserves the smart tile map, terrain, water and prop transforms.
-            GLB bakes the connected paths, 3D grass, generated shores and current scene.
-          </p>
-        </div>
-        <div className="habitat-export-actions">
-          <button onClick={exportManifest}><FileJson size={16}/>Export JSON Manifest</button>
-          <button className="primary" onClick={() => void exportGlb()}><Download size={16}/>Export GLB</button>
-        </div>
-      </section>
     </section>
   );
 }
