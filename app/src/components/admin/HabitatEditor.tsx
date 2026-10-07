@@ -84,9 +84,9 @@ const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
 const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
-const GRASS_COLOR = 0x9ccb55;
-const DIRT_COLOR = 0xe8b66c;
-const WATER_COLOR = 0x38b9e8;
+const GRASS_COLOR = 0x739148;
+const DIRT_COLOR = 0xa97e53;
+const WATER_COLOR = 0x39b9e8;
 
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
   grass: new THREE.Color(GRASS_COLOR),
@@ -215,7 +215,7 @@ type TileNeighbours = {
   e: boolean;
 };
 
-function addConnectedBlob(
+function addConnectedGroundBlob(
   group: THREE.Group,
   neighbours: TileNeighbours,
   cell: number,
@@ -229,12 +229,12 @@ function addConnectedBlob(
   },
 ) {
   const { radius, connectorWidth, y, thickness, segments = 18 } = options;
-  const connectorLength = cell * 0.76;
+  const connectorLength = cell * 0.78;
   const connectorOffset = cell * 0.36;
 
-  const addDisc = (x: number, z: number, discRadius = radius) => {
+  const addDisc = (x: number, z: number, r = radius) => {
     const disc = new THREE.Mesh(
-      new THREE.CylinderGeometry(discRadius, discRadius, thickness, segments),
+      new THREE.CylinderGeometry(r, r, thickness, segments),
       material,
     );
     disc.position.set(x, y, z);
@@ -257,12 +257,7 @@ function addConnectedBlob(
     arm.position.set(dx * connectorOffset, y, dz * connectorOffset);
     arm.receiveShadow = true;
     group.add(arm);
-
-    addDisc(
-      dx * cell * 0.5,
-      dz * cell * 0.5,
-      connectorWidth * 0.5,
-    );
+    addDisc(dx * cell * 0.5, dz * cell * 0.5, connectorWidth * 0.5);
   };
 
   if (neighbours.n) addArm(0, -1);
@@ -270,12 +265,64 @@ function addConnectedBlob(
   if (neighbours.w) addArm(-1, 0);
   if (neighbours.e) addArm(1, 0);
 
-  // Fill four-way / corner joins so groups of 4 never reveal a square hole.
-  const cornerRadius = connectorWidth * 0.28;
+  const cornerRadius = connectorWidth * 0.31;
   if (neighbours.n && neighbours.w) addDisc(-cell * 0.5, -cell * 0.5, cornerRadius);
   if (neighbours.n && neighbours.e) addDisc(cell * 0.5, -cell * 0.5, cornerRadius);
   if (neighbours.s && neighbours.w) addDisc(-cell * 0.5, cell * 0.5, cornerRadius);
   if (neighbours.s && neighbours.e) addDisc(cell * 0.5, cell * 0.5, cornerRadius);
+}
+
+function addConnectedWaterSurface(
+  group: THREE.Group,
+  neighbours: TileNeighbours,
+  cell: number,
+  material: THREE.Material,
+  y: number,
+) {
+  const radius = cell * 0.405;
+  const connectorWidth = cell * 0.68;
+  const connectorLength = cell * 0.80;
+  const connectorOffset = cell * 0.36;
+
+  const center = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 40),
+    material,
+  );
+  center.rotation.x = -Math.PI / 2;
+  center.position.y = y;
+  center.userData.waterSurface = true;
+  group.add(center);
+
+  const addArm = (dx: number, dz: number) => {
+    const horizontal = dx !== 0;
+    const arm = new THREE.Mesh(
+      new THREE.PlaneGeometry(
+        horizontal ? connectorLength : connectorWidth,
+        horizontal ? connectorWidth : connectorLength,
+        8,
+        8,
+      ),
+      material,
+    );
+    arm.rotation.x = -Math.PI / 2;
+    arm.position.set(dx * connectorOffset, y, dz * connectorOffset);
+    arm.userData.waterSurface = true;
+    group.add(arm);
+
+    const cap = new THREE.Mesh(
+      new THREE.CircleGeometry(connectorWidth * 0.5, 32),
+      material,
+    );
+    cap.rotation.x = -Math.PI / 2;
+    cap.position.set(dx * cell * 0.5, y, dz * cell * 0.5);
+    cap.userData.waterSurface = true;
+    group.add(cap);
+  };
+
+  if (neighbours.n) addArm(0, -1);
+  if (neighbours.s) addArm(0, 1);
+  if (neighbours.w) addArm(-1, 0);
+  if (neighbours.e) addArm(1, 0);
 }
 
 function buildSmartTileGroup(
@@ -317,6 +364,9 @@ function buildSmartTileGroup(
     }
 
     if (tile.material === "dirt") {
+      // A dirt tile always keeps the same grass base around the dirt patch.
+      addTileBase(group, GRASS_COLOR, cell);
+
       const neighbours: TileNeighbours = {
         n: has(tile.x, tile.z - 1, "dirt"),
         s: has(tile.x, tile.z + 1, "dirt"),
@@ -325,14 +375,14 @@ function buildSmartTileGroup(
       };
       const dirtMat = tileBaseMaterial(DIRT_COLOR, 1);
       const radius =
-        cell * (0.34 + seededTileRandom(tile.x, tile.z, 41) * 0.035);
+        cell * (0.31 + seededTileRandom(tile.x, tile.z, 41) * 0.035);
 
-      addConnectedBlob(group, neighbours, cell, dirtMat, {
+      addConnectedGroundBlob(group, neighbours, cell, dirtMat, {
         radius,
-        connectorWidth: cell * 0.58,
-        y: 0.047,
-        thickness: 0.034,
-        segments: 16,
+        connectorWidth: cell * 0.52,
+        y: 0.049,
+        thickness: 0.032,
+        segments: 20,
       });
     }
 
@@ -429,36 +479,36 @@ function buildSmartTileGroup(
         e: has(tile.x + 1, tile.z, "water"),
       };
 
-      // One smart rounded shoreline stack:
-      // brown bank -> grass-colored top rim -> bright blue water.
-      // Every layer overlaps across connected tiles, so there are no seams.
-      const bankMat = tileBaseMaterial(0x8a6846, 1);
+      // Ground/shore stays solid, but the water itself is a flat Three.js surface
+      // with subdivisions, ready for shader/vertex animation later.
+      addTileBase(group, GRASS_COLOR, cell);
+
+      const bankMat = tileBaseMaterial(0x806247, 1);
       const grassRimMat = tileBaseMaterial(GRASS_COLOR, 1);
-      const waterMat = waterMaterial();
 
-      addConnectedBlob(group, neighbours, cell, bankMat, {
-        radius: cell * 0.49,
-        connectorWidth: cell * 0.88,
-        y: 0.038,
-        thickness: 0.07,
-        segments: 20,
+      addConnectedGroundBlob(group, neighbours, cell, bankMat, {
+        radius: cell * 0.48,
+        connectorWidth: cell * 0.84,
+        y: 0.046,
+        thickness: 0.052,
+        segments: 22,
       });
 
-      addConnectedBlob(group, neighbours, cell, grassRimMat, {
-        radius: cell * 0.455,
-        connectorWidth: cell * 0.80,
-        y: 0.073,
-        thickness: 0.026,
-        segments: 20,
+      addConnectedGroundBlob(group, neighbours, cell, grassRimMat, {
+        radius: cell * 0.44,
+        connectorWidth: cell * 0.76,
+        y: 0.071,
+        thickness: 0.025,
+        segments: 22,
       });
 
-      addConnectedBlob(group, neighbours, cell, waterMat, {
-        radius: cell * 0.405,
-        connectorWidth: cell * 0.69,
-        y: 0.092,
-        thickness: 0.02,
-        segments: 24,
-      });
+      addConnectedWaterSurface(
+        group,
+        neighbours,
+        cell,
+        waterMaterial(),
+        0.086,
+      );
     }
 
     root.add(group);
@@ -469,10 +519,11 @@ function buildSmartTileGroup(
 function waterMaterial() {
   return new THREE.MeshStandardMaterial({
     color: WATER_COLOR,
-    roughness: 0.22,
-    metalness: 0.02,
-    transparent: false,
-    opacity: 1,
+    roughness: 0.18,
+    metalness: 0.03,
+    transparent: true,
+    opacity: 0.88,
+    depthWrite: false,
   });
 }
 
