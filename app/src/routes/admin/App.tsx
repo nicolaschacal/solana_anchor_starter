@@ -335,14 +335,27 @@ function Family({ state }: { state: RegistryState }) {
       if (saved) {
         const j = JSON.parse(saved) as PublishJournal;
         if (j.tree.family.id === family) {
-          setDraft(j.tree);
-          setJournal(j);
+          // A device-local draft must never hide a newer atlas that was
+          // published elsewhere. Keep a backup, then show the active chain.
+          if (!sample && active && j.baseVersion !== active) {
+            localStorage.setItem(
+              `${key}:stale:v${j.baseVersion}`,
+              saved,
+            );
+            localStorage.removeItem(key);
+            setStorageError(
+              `A local draft based on v${j.baseVersion} was archived because active Atlas is now v${active}. Showing the latest on-chain version.`,
+            );
+          } else {
+            setDraft(j.tree);
+            setJournal(j);
+          }
         }
       }
     } catch {
       setStorageError("Saved draft could not be recovered.");
     }
-  }, [key, family]);
+  }, [key, family, sample, active]);
 
   useEffect(() => {
     return () => {
@@ -1011,7 +1024,7 @@ function Family({ state }: { state: RegistryState }) {
                   <img src={modelPreviewUrl} alt={`Generated front preview of ${editing.name}`} />
                   <div>
                     <strong>Generated image + thumbnail</strong>
-                    <small>Front view · studio lighting · 768 × 768 PNG</small>
+                    <small>Front view · studio lighting · 512 × 512 WebP</small>
                   </div>
                 </div>
               )}
