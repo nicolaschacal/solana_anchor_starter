@@ -171,7 +171,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     let environmentPeriod = initialPeriod;
     const applyCinematicPeriod = (next: WorldPeriod) => {
       renderer.toneMappingExposure =
-        next === "Night" ? 0.98 : next === "Evening" ? 1.01 : next === "Morning" ? 1.07 : 1.05;
+        next === "Night" ? 1.04 : next === "Evening" ? 1.01 : next === "Morning" ? 1.07 : 1.05;
       fill.color.setHex(
         next === "Evening" ? 0xffd9b3 : next === "Night" ? 0xaecbff : 0xffefd9,
       );
