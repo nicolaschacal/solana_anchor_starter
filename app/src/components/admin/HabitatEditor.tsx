@@ -82,6 +82,7 @@ type HabitatAssetDefinition = {
 
 const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
+const GRASS_TEXTURE_URI = "/assets/environment/grass-painted-tile.jpg";
 const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
@@ -209,6 +210,7 @@ function buildSmartTileGroup(
   gridSize: number,
   width: number,
   depth: number,
+  grassTexture: THREE.Texture | null = null,
 ) {
   const root = new THREE.Group();
   root.name = "SmartTiles";
@@ -244,13 +246,27 @@ function buildSmartTileGroup(
 
     if (tile.material === "grass") {
       const baseVariation = seededTileRandom(tile.x, tile.z, 1);
-      const green = new THREE.Color(0x79a84d).offsetHSL(
+      const fallbackGreen = new THREE.Color(0x79a84d).offsetHSL(
         (baseVariation - 0.5) * 0.008,
         (baseVariation - 0.5) * 0.025,
         (baseVariation - 0.5) * 0.018,
       );
-      // Grass is intentionally clean and flat. Decorative volume belongs to props.
-      addTileBase(group, green.getHex(), cell);
+      const grassMaterial = new THREE.MeshStandardMaterial({
+        map: grassTexture,
+        color: grassTexture ? 0xffffff : fallbackGreen.getHex(),
+        roughness: 1,
+        metalness: 0,
+      });
+      const grass = new THREE.Mesh(
+        new THREE.BoxGeometry(cell * 1.006, 0.035, cell * 1.006),
+        grassMaterial,
+      );
+      grass.position.y = 0.018;
+      grass.rotation.y =
+        Math.floor(seededTileRandom(tile.x, tile.z, 71) * 4) *
+        (Math.PI / 2);
+      grass.receiveShadow = true;
+      group.add(grass);
     }
 
     if (tile.material === "dirt") {
@@ -471,6 +487,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
   const objectRootRef = useRef<THREE.Group | null>(null);
   const waterRootRef = useRef<THREE.Group | null>(null);
   const tileRootRef = useRef<THREE.Group | null>(null);
+  const grassTextureRef = useRef<THREE.Texture | null>(null);
   const terrainRef = useRef<THREE.Mesh | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const transformRef = useRef<TransformControls | null>(null);
@@ -595,6 +612,24 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     renderer.shadowMap.enabled = true;
     host.appendChild(renderer.domElement);
 
+    let disposed = false;
+    const grassTexture = new THREE.TextureLoader().load(
+      GRASS_TEXTURE_URI,
+      () => {
+        if (!disposed) rebuildTilesRef.current();
+      },
+    );
+    grassTexture.colorSpace = THREE.SRGBColorSpace;
+    grassTexture.wrapS = THREE.RepeatWrapping;
+    grassTexture.wrapT = THREE.RepeatWrapping;
+    grassTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    grassTexture.magFilter = THREE.LinearFilter;
+    grassTexture.anisotropy = Math.min(
+      4,
+      renderer.capabilities.getMaxAnisotropy(),
+    );
+    grassTextureRef.current = grassTexture;
+
     const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 200);
     cameraRef.current = camera;
 
@@ -647,6 +682,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
         gridSizeRef.current,
         groundWidthRef.current,
         groundDepthRef.current,
+        grassTextureRef.current,
       );
       scene.remove(tileRoot);
       tileRoot.traverse((node) => {
@@ -924,6 +960,9 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
     render();
 
     return () => {
+      disposed = true;
+      grassTextureRef.current = null;
+      grassTexture.dispose();
       cancelAnimationFrame(raf);
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
