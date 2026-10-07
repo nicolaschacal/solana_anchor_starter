@@ -7,12 +7,12 @@ import type { WorldPeriod } from "../../hooks/useWorldClock";
 
 const palettes = {
   Night: {
-    sky: 0x0b2459,
-    horizon: 0x315c91,
-    ground: 0x2b4d42,
-    grass: 0x496a54,
-    light: 0xa9cfff,
-    intensity: 1.35,
+    sky: 0x102b63,
+    horizon: 0x3b679a,
+    ground: 0x304f45,
+    grass: 0x506f58,
+    light: 0xb8d7ff,
+    intensity: 1.55,
   },
   Morning: {
     sky: 0x80b9df,
@@ -197,11 +197,11 @@ export function meadow(
     // Lower ambient/fill levels preserve facet shading and give the scene
     // cinematic depth instead of washing every surface with equal light.
     ambientIntensity:
-      period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
+      period === "Night" ? 0.84 : period === "Evening" ? 0.82 : 0.94,
     fillIntensity:
-      period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
-    moonIntensity: period === "Night" ? 0.52 : 0,
-    rimIntensity: period === "Night" ? 0.42 : period === "Evening" ? 0.18 : 0.08,
+      period === "Night" ? 0.46 : period === "Evening" ? 0.30 : 0.26,
+    moonIntensity: period === "Night" ? 0.68 : 0,
+    rimIntensity: period === "Night" ? 0.50 : period === "Evening" ? 0.18 : 0.08,
   };
   const group = new THREE.Group();
   let shadowsDirty = true;
@@ -407,7 +407,8 @@ diffuseColor.rgb *= 1.0 + macro;`,
   });
   // Stars are always allocated once and fade in with twilight, behind ridges.
   const starPositions: number[] = [];
-  for (let i = 0; i < 85; i++) {
+  const starCount = mobile ? 125 : 180;
+  for (let i = 0; i < starCount; i++) {
     starPositions.push((rand() - 0.5) * 64, 13 + rand() * 21, -76 - rand() * 3);
   }
   const starGeometry = track(new THREE.BufferGeometry());
@@ -515,6 +516,80 @@ diffuseColor.rgb *= 1.0 + macro;`,
     );
     motes.frustumCulled = false;
     group.add(motes);
+  }
+
+  // A few real light-emitting fireflies give the night foreground depth.
+  // Keep the count deliberately tiny: only two carry PointLights, so mobile
+  // gets atmosphere without turning the habitat into a heavy particle scene.
+  const fireflies: Array<{
+    sprite: THREE.Sprite;
+    light: THREE.PointLight | null;
+    base: THREE.Vector3;
+    phase: number;
+    speed: number;
+  }> = [];
+  if (period === "Night" && !reducedMotion) {
+    const glow = document.createElement("canvas");
+    glow.width = glow.height = 48;
+    const gctx = glow.getContext("2d")!;
+    const g = gctx.createRadialGradient(24, 24, 0, 24, 24, 24);
+    g.addColorStop(0, "rgba(255,255,190,1)");
+    g.addColorStop(0.18, "rgba(225,255,135,.95)");
+    g.addColorStop(0.52, "rgba(190,245,100,.35)");
+    g.addColorStop(1, "rgba(190,245,100,0)");
+    gctx.fillStyle = g;
+    gctx.fillRect(0, 0, 48, 48);
+    const fireflyTexture = track(new THREE.CanvasTexture(glow));
+
+    const defs = mobile
+      ? [
+          [-1.9, 1.25, -1.8, 0.1, 0.62],
+          [2.35, 1.7, -3.2, 2.1, 0.48],
+          [0.9, 0.95, -5.1, 4.3, 0.55],
+        ]
+      : [
+          [-2.6, 1.2, -1.8, 0.1, 0.58],
+          [2.8, 1.75, -3.1, 2.1, 0.46],
+          [0.8, 0.95, -5.2, 4.3, 0.52],
+          [-4.0, 1.55, -4.4, 5.4, 0.41],
+        ];
+
+    defs.forEach(([x, y, z, phase, speed], index) => {
+      const sprite = new THREE.Sprite(
+        track(
+          new THREE.SpriteMaterial({
+            map: fireflyTexture,
+            color: 0xeaff8a,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            toneMapped: false,
+            opacity: 0.9,
+          }),
+        ),
+      );
+      sprite.scale.setScalar(index < 2 ? 0.24 : 0.18);
+      sprite.position.set(x, y, z);
+      sprite.renderOrder = 5;
+      group.add(sprite);
+
+      const light =
+        index < 2
+          ? new THREE.PointLight(0xdfff8f, mobile ? 0.34 : 0.42, 2.5, 2)
+          : null;
+      if (light) {
+        light.position.copy(sprite.position);
+        group.add(light);
+      }
+
+      fireflies.push({
+        sprite,
+        light,
+        base: new THREE.Vector3(x, y, z),
+        phase,
+        speed,
+      });
+    });
   }
 
   // A lake and a winding trail lead the eye from the clearing into the valley.
@@ -747,28 +822,28 @@ diffuseColor.rgb *= 1.0 + macro;`,
         twilight,
       );
       colors.ambientIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
-        0.72,
+        period === "Night" ? 0.84 : period === "Evening" ? 0.82 : 0.94,
+        0.84,
         twilight,
       );
       colors.fillIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
-        0.38,
+        period === "Night" ? 0.46 : period === "Evening" ? 0.30 : 0.26,
+        0.46,
         twilight,
       );
       colors.moonIntensity =
         period === "Night"
-          ? 0.52
+          ? 0.68
           : period === "Evening"
-            ? THREE.MathUtils.smoothstep(blend, 0.42, 0.92) * 0.52
+            ? THREE.MathUtils.smoothstep(blend, 0.42, 0.92) * 0.68
             : 0;
       colors.rimIntensity =
         period === "Night"
-          ? 0.42
+          ? 0.50
           : period === "Evening"
             ? THREE.MathUtils.lerp(
                 0.18,
-                0.42,
+                0.50,
                 THREE.MathUtils.smoothstep(blend, 0.42, 0.92),
               )
             : 0.08;
@@ -810,17 +885,33 @@ diffuseColor.rgb *= 1.0 + macro;`,
         cloud.baseX +
         Math.sin(time * cloud.speed + cloud.phase) * (mobile ? 0.65 : 1.1);
     }
-    if (!motes) return;
-    for (let i = 0; i < moteCount; i++) {
-      const s = moteSeed[i];
-      let x = motePos[i * 3] + (0.3 + Math.sin(time * 0.45 + s) * 0.12) * dt;
-      if (x > moteBox.x) x = -moteBox.x;
-      motePos[i * 3] = x;
-      motePos[i * 3 + 1] += Math.sin(time * 0.8 + s * 3) * 0.1 * dt;
-      motePos[i * 3 + 2] += Math.cos(time * 0.55 + s * 2) * 0.08 * dt;
+    if (motes) {
+      for (let i = 0; i < moteCount; i++) {
+        const s = moteSeed[i];
+        let x = motePos[i * 3] + (0.3 + Math.sin(time * 0.45 + s) * 0.12) * dt;
+        if (x > moteBox.x) x = -moteBox.x;
+        motePos[i * 3] = x;
+        motePos[i * 3 + 1] += Math.sin(time * 0.8 + s * 3) * 0.1 * dt;
+        motePos[i * 3 + 2] += Math.cos(time * 0.55 + s * 2) * 0.08 * dt;
+      }
+      (motes.geometry.attributes.position as THREE.BufferAttribute).needsUpdate =
+        true;
     }
-    (motes.geometry.attributes.position as THREE.BufferAttribute).needsUpdate =
-      true;
+
+    for (const firefly of fireflies) {
+      const drift = time * firefly.speed + firefly.phase;
+      firefly.sprite.position.set(
+        firefly.base.x + Math.sin(drift * 0.83) * 0.55,
+        firefly.base.y + Math.sin(drift * 1.37) * 0.23,
+        firefly.base.z + Math.cos(drift * 0.71) * 0.42,
+      );
+      const pulse = 0.72 + Math.sin(drift * 3.2) * 0.18;
+      firefly.sprite.material.opacity = pulse;
+      if (firefly.light) {
+        firefly.light.position.copy(firefly.sprite.position);
+        firefly.light.intensity = (mobile ? 0.30 : 0.38) * pulse;
+      }
+    }
   };
   return {
     colors,
