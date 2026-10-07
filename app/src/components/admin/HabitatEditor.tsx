@@ -84,9 +84,13 @@ const TERRAIN_SEGMENTS = 36;
 const LOCAL_REFERENCE_MODEL = "/assets/rebyters/mammal-current/companion.glb";
 const STORAGE_KEY = "rebyters:habitat-editor:draft-v3";
 
+const GRASS_COLOR = 0x9ccb55;
+const DIRT_COLOR = 0xe8b66c;
+const WATER_COLOR = 0x38b9e8;
+
 const TERRAIN_COLORS: Record<PaintMaterial, THREE.Color> = {
-  grass: new THREE.Color(0xa8d94f),
-  dirt: new THREE.Color(0x8e6b3d),
+  grass: new THREE.Color(GRASS_COLOR),
+  dirt: new THREE.Color(DIRT_COLOR),
   rock: new THREE.Color(0x6f756e),
 };
 
@@ -204,6 +208,76 @@ function roundedGroundDisc(
   return mesh;
 }
 
+type TileNeighbours = {
+  n: boolean;
+  s: boolean;
+  w: boolean;
+  e: boolean;
+};
+
+function addConnectedBlob(
+  group: THREE.Group,
+  neighbours: TileNeighbours,
+  cell: number,
+  material: THREE.Material,
+  options: {
+    radius: number;
+    connectorWidth: number;
+    y: number;
+    thickness: number;
+    segments?: number;
+  },
+) {
+  const { radius, connectorWidth, y, thickness, segments = 18 } = options;
+  const connectorLength = cell * 0.76;
+  const connectorOffset = cell * 0.36;
+
+  const addDisc = (x: number, z: number, discRadius = radius) => {
+    const disc = new THREE.Mesh(
+      new THREE.CylinderGeometry(discRadius, discRadius, thickness, segments),
+      material,
+    );
+    disc.position.set(x, y, z);
+    disc.receiveShadow = true;
+    group.add(disc);
+  };
+
+  addDisc(0, 0);
+
+  const addArm = (dx: number, dz: number) => {
+    const horizontal = dx !== 0;
+    const arm = new THREE.Mesh(
+      new THREE.BoxGeometry(
+        horizontal ? connectorLength : connectorWidth,
+        thickness,
+        horizontal ? connectorWidth : connectorLength,
+      ),
+      material,
+    );
+    arm.position.set(dx * connectorOffset, y, dz * connectorOffset);
+    arm.receiveShadow = true;
+    group.add(arm);
+
+    addDisc(
+      dx * cell * 0.5,
+      dz * cell * 0.5,
+      connectorWidth * 0.5,
+    );
+  };
+
+  if (neighbours.n) addArm(0, -1);
+  if (neighbours.s) addArm(0, 1);
+  if (neighbours.w) addArm(-1, 0);
+  if (neighbours.e) addArm(1, 0);
+
+  // Fill four-way / corner joins so groups of 4 never reveal a square hole.
+  const cornerRadius = connectorWidth * 0.28;
+  if (neighbours.n && neighbours.w) addDisc(-cell * 0.5, -cell * 0.5, cornerRadius);
+  if (neighbours.n && neighbours.e) addDisc(cell * 0.5, -cell * 0.5, cornerRadius);
+  if (neighbours.s && neighbours.w) addDisc(-cell * 0.5, cell * 0.5, cornerRadius);
+  if (neighbours.s && neighbours.e) addDisc(cell * 0.5, cell * 0.5, cornerRadius);
+}
+
 function buildSmartTileGroup(
   tiles: HabitatTile[],
   gridSize: number,
@@ -226,12 +300,7 @@ function buildSmartTileGroup(
     { dx: 1, dz: 0, px: 0.29, pz: 0, sx: 0.62, sz: 0.46 },
   ] as const;
 
-  const waterEdges = [
-    { dx: 0, dz: -1, px: 0, pz: -0.485, sx: 0.98, sz: 0.14 },
-    { dx: 0, dz: 1, px: 0, pz: 0.485, sx: 0.98, sz: 0.14 },
-    { dx: -1, dz: 0, px: -0.485, pz: 0, sx: 0.14, sz: 0.98 },
-    { dx: 1, dz: 0, px: 0.485, pz: 0, sx: 0.14, sz: 0.98 },
-  ] as const;
+
 
   for (const tile of tiles) {
     const group = new THREE.Group();
@@ -243,36 +312,28 @@ function buildSmartTileGroup(
     );
 
     if (tile.material === "grass") {
-      // Bright, clean solid grass. Decorative detail is provided by environment props.
-      addTileBase(group, 0xa8d94f, cell);
+      // Slightly calmer lime green: lively without the neon look.
+      addTileBase(group, GRASS_COLOR, cell);
     }
 
     if (tile.material === "dirt") {
-      const variation = seededTileRandom(tile.x, tile.z, 3);
-      const dirt = new THREE.Color(0x9b7149).offsetHSL(
-        0,
-        (variation - 0.5) * 0.05,
-        (variation - 0.5) * 0.08,
-      );
-      addTileBase(group, dirt.getHex(), cell);
-    }
+      const neighbours: TileNeighbours = {
+        n: has(tile.x, tile.z - 1, "dirt"),
+        s: has(tile.x, tile.z + 1, "dirt"),
+        w: has(tile.x - 1, tile.z, "dirt"),
+        e: has(tile.x + 1, tile.z, "dirt"),
+      };
+      const dirtMat = tileBaseMaterial(DIRT_COLOR, 1);
+      const radius =
+        cell * (0.34 + seededTileRandom(tile.x, tile.z, 41) * 0.035);
 
-    if (tile.material === "dirt") {
-      const fringeMat = tileBaseMaterial(0x819b55, 1);
-      const exposedGrassEdges = [
-        { dx: 0, dz: -1, x: 0, z: -0.49, sx: 0.94, sz: 0.07 },
-        { dx: 0, dz: 1, x: 0, z: 0.49, sx: 0.94, sz: 0.07 },
-        { dx: -1, dz: 0, x: -0.49, z: 0, sx: 0.07, sz: 0.94 },
-        { dx: 1, dz: 0, x: 0.49, z: 0, sx: 0.07, sz: 0.94 },
-      ].filter((edge) => has(tile.x + edge.dx, tile.z + edge.dz, "grass"));
-      for (const edge of exposedGrassEdges) {
-        const blend = new THREE.Mesh(
-          new THREE.BoxGeometry(cell * edge.sx, 0.018, cell * edge.sz),
-          fringeMat,
-        );
-        blend.position.set(cell * edge.x, 0.065, cell * edge.z);
-        group.add(blend);
-      }
+      addConnectedBlob(group, neighbours, cell, dirtMat, {
+        radius,
+        connectorWidth: cell * 0.58,
+        y: 0.047,
+        thickness: 0.034,
+        segments: 16,
+      });
     }
 
     if (tile.material === "rock") {
@@ -303,7 +364,7 @@ function buildSmartTileGroup(
 
     if (tile.material === "path") {
       // Full grass tile below prevents any hole or exposed terrain in the centre.
-      addTileBase(group, 0xa8d94f, cell, 0.012);
+      addTileBase(group, GRASS_COLOR, cell, 0.012);
       const pathMat = tileBaseMaterial(0xb69a67, 1);
       const transitionMat = tileBaseMaterial(0xa8895d, 1);
       const linked = pathDirections.filter((direction) =>
@@ -361,81 +422,43 @@ function buildSmartTileGroup(
     }
 
     if (tile.material === "water") {
-      const water = new THREE.Mesh(
-        new THREE.BoxGeometry(cell * 1.008, 0.035, cell * 1.008),
-        waterMaterial(),
-      );
-      water.position.y = 0.005;
-      group.add(water);
+      const neighbours: TileNeighbours = {
+        n: has(tile.x, tile.z - 1, "water"),
+        s: has(tile.x, tile.z + 1, "water"),
+        w: has(tile.x - 1, tile.z, "water"),
+        e: has(tile.x + 1, tile.z, "water"),
+      };
 
-      const shoreMat = tileBaseMaterial(0x8b724c, 1);
-      const grassLipMat = tileBaseMaterial(0x638f45, 1);
-      const exposed = waterEdges.filter((edge) =>
-        !has(tile.x + edge.dx, tile.z + edge.dz, "water"),
-      );
+      // One smart rounded shoreline stack:
+      // brown bank -> grass-colored top rim -> bright blue water.
+      // Every layer overlaps across connected tiles, so there are no seams.
+      const bankMat = tileBaseMaterial(0x8a6846, 1);
+      const grassRimMat = tileBaseMaterial(GRASS_COLOR, 1);
+      const waterMat = waterMaterial();
 
-      for (const edge of exposed) {
-        const bank = new THREE.Mesh(
-          new THREE.BoxGeometry(cell * edge.sx, 0.085, cell * edge.sz),
-          shoreMat,
-        );
-        bank.position.set(cell * edge.px, 0.032, cell * edge.pz);
-        bank.castShadow = true;
-        group.add(bank);
+      addConnectedBlob(group, neighbours, cell, bankMat, {
+        radius: cell * 0.49,
+        connectorWidth: cell * 0.88,
+        y: 0.038,
+        thickness: 0.07,
+        segments: 20,
+      });
 
-        const lip = new THREE.Mesh(
-          new THREE.BoxGeometry(
-            cell * (edge.sx === 0.14 ? edge.sx * 0.7 : edge.sx * 0.98),
-            0.045,
-            cell * (edge.sz === 0.14 ? edge.sz * 0.7 : edge.sz * 0.98),
-          ),
-          grassLipMat,
-        );
-        lip.position.set(cell * edge.px, 0.076, cell * edge.pz);
-        group.add(lip);
-      }
+      addConnectedBlob(group, neighbours, cell, grassRimMat, {
+        radius: cell * 0.455,
+        connectorWidth: cell * 0.80,
+        y: 0.073,
+        thickness: 0.026,
+        segments: 20,
+      });
 
-      // Rounded outer shoreline corners remove the hard square look.
-      const corners = [
-        { x: -1, z: -1, px: -0.48, pz: -0.48 },
-        { x: 1, z: -1, px: 0.48, pz: -0.48 },
-        { x: -1, z: 1, px: -0.48, pz: 0.48 },
-        { x: 1, z: 1, px: 0.48, pz: 0.48 },
-      ] as const;
-      for (const corner of corners) {
-        const horizontalExposed = !has(tile.x + corner.x, tile.z, "water");
-        const verticalExposed = !has(tile.x, tile.z + corner.z, "water");
-        if (!horizontalExposed || !verticalExposed) continue;
-
-        const bankCap = roundedGroundDisc(cell * 0.13, 0.086, shoreMat, 16);
-        bankCap.position.set(cell * corner.px, 0.033, cell * corner.pz);
-        group.add(bankCap);
-
-        const lipCap = roundedGroundDisc(cell * 0.078, 0.046, grassLipMat, 16);
-        lipCap.position.set(cell * corner.px, 0.077, cell * corner.pz);
-        group.add(lipCap);
-      }
-
-      // Occasional reeds on exposed banks give the water a game-ready natural edge.
-      if (exposed.length && seededTileRandom(tile.x, tile.z, 300) > 0.56) {
-        const reedMat = tileBaseMaterial(0x4d793f, 1);
-        const edge = exposed[Math.floor(seededTileRandom(tile.x, tile.z, 301) * exposed.length)];
-        for (let i = 0; i < 3; i++) {
-          const reed = new THREE.Mesh(
-            new THREE.ConeGeometry(cell * 0.025, cell * (0.12 + i * 0.025), 3),
-            reedMat,
-          );
-          reed.position.set(
-            cell * edge.px +
-              (seededTileRandom(tile.x, tile.z, 310 + i) - 0.5) * cell * (edge.sx > edge.sz ? 0.45 : 0.06),
-            cell * (0.08 + i * 0.012),
-            cell * edge.pz +
-              (seededTileRandom(tile.x, tile.z, 320 + i) - 0.5) * cell * (edge.sz > edge.sx ? 0.45 : 0.06),
-          );
-          reed.rotation.z = (seededTileRandom(tile.x, tile.z, 330 + i) - 0.5) * 0.18;
-          group.add(reed);
-        }
-      }
+      addConnectedBlob(group, neighbours, cell, waterMat, {
+        radius: cell * 0.405,
+        connectorWidth: cell * 0.69,
+        y: 0.092,
+        thickness: 0.02,
+        segments: 24,
+      });
     }
 
     root.add(group);
@@ -445,11 +468,11 @@ function buildSmartTileGroup(
 
 function waterMaterial() {
   return new THREE.MeshStandardMaterial({
-    color: 0x2a9bb0,
-    roughness: 0.18,
-    metalness: 0.05,
-    transparent: true,
-    opacity: 0.82,
+    color: WATER_COLOR,
+    roughness: 0.22,
+    metalness: 0.02,
+    transparent: false,
+    opacity: 1,
   });
 }
 
