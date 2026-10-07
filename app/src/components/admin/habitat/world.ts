@@ -152,6 +152,8 @@ export class HabitatWorld {
   private lastFrame = performance.now();
   private readonly views: Record<ViewId, ViewState>;
   private creatureSpan = 1.4;
+  private footprint = 0.7; // metres: how far the body reaches from its centre
+  private restY = 0; // height the creature is easing towards
 
   // Lights, same rig as the game's landscape scene.
   private readonly ambient = new THREE.HemisphereLight(0xd9efff, 0x3b5c42, 2.3);
@@ -525,20 +527,32 @@ diffuseColor.rgb = painted;`,
     this.stage.scale.setScalar(scale);
     this.stageBase.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
     this.creatureSpan = size.x * framing;
+    this.footprint = Math.max(0.3, size.x * scale * 0.4);
     this.creatureRoot = root;
     const normalize = (n: string) => n.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const idle = model.clips.find((c) => clipNames.includes(normalize(c.name)));
     this.mixer = new THREE.AnimationMixer(root);
     if (idle) this.mixer.clipAction(idle).play();
-    this.placeCreature();
+    this.placeCreature(true);
     for (const v of Object.values(this.views)) v.custom = false;
     this.layout();
   }
-  private placeCreature() {
-    const y = this.map.heightAt(this.creature.x, this.creature.z) + (this.env?.groundY ?? 0.04);
+  private placeCreature(snap = false) {
+    // The body is solid: it rests on the highest ground under its footprint, so a
+    // mound raised anywhere beneath it lifts it instead of passing through.
+    let ground = this.map.heightAt(this.creature.x, this.creature.z);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      ground = Math.max(
+        ground,
+        this.map.heightAt(this.creature.x + Math.cos(a) * this.footprint, this.creature.z + Math.sin(a) * this.footprint),
+      );
+    }
+    const y = ground + (this.env?.groundY ?? 0.04);
+    this.restY = y + this.stageBase.y;
     this.stage.position.set(
       this.creature.x + this.stageBase.x,
-      y + this.stageBase.y,
+      this.stage.position.y === 0 || snap ? this.restY : this.stage.position.y,
       this.creature.z + this.stageBase.z,
     );
     this.env?.setCompanionShadowPosition(this.creature.x, this.creature.z);
@@ -993,6 +1007,9 @@ diffuseColor.rgb = painted;`,
     const delta = Math.min((now - this.lastFrame) / 1000, 0.05);
     this.lastFrame = now;
     this.mixer?.update(delta);
+    if (Math.abs(this.stage.position.y - this.restY) > 0.001) {
+      this.stage.position.y += (this.restY - this.stage.position.y) * Math.min(1, delta * 12);
+    }
     this.env.update(now / 1000, fakeUnix(this.period));
     this.syncLightColors();
     if (this.env.consumeShadowUpdate()) this.renderer.shadowMap.needsUpdate = true;
