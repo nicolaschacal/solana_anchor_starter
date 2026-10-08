@@ -136,6 +136,8 @@ type Callbacks = {
   onNotice?: (message: string) => void;
   onLayout?: (panes: Pane[]) => void;
   onError?: (message: string) => void;
+  /** The caller draws its own sun, moon, stars and clouds, and wants a steeper sky gradient. */
+  ownSky?: boolean;
 };
 
 export class HabitatWorld {
@@ -424,6 +426,8 @@ diffuseColor.rgb = painted;`,
       grassExclusions: diorama ? [] : [{ x: 0, z: CREATURE_Z, radius: 1.35 }],
       props: defaultProps,
       scenery: !diorama,
+      skyBodies: !this.callbacks.ownSky,
+      skyRange: this.callbacks.ownSky ? [-0.6, 0.14] : undefined,
     });
     this.applyLights();
     this.lakeMesh?.removeFromParent();
@@ -628,6 +632,9 @@ diffuseColor.rgb = painted;`,
     if (shadowsChanged) this.key.castShadow = this.lighting.shadows;
     this.env.markShadowsDirty();
   }
+
+  /** The real world-clock time, so twilight follows the actual hour. */
+  clockMs: number | null = null;
 
   async setPeriod(period: WorldPeriod) {
     if (period === this.period) return;
@@ -1521,7 +1528,7 @@ diffuseColor.rgb = painted;`,
     if (Math.abs(this.stage.position.y - this.restY) > 0.001) {
       this.stage.position.y += (this.restY - this.stage.position.y) * Math.min(1, delta * 12);
     }
-    this.env.update(now / 1000, fakeUnix(this.period));
+    this.env.update(now / 1000, this.clockMs ?? fakeUnix(this.period));
     this.syncLightColors();
     if (this.env.consumeShadowUpdate()) this.renderer.shadowMap.needsUpdate = true;
     const r = this.renderer;

@@ -737,6 +737,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             creatures={worldCreatures}
             storageKey={worldKey}
             period={worldClock.period}
+            worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
             focusMint={focusMint}
             onExit={()=>setFocusMint(null)}

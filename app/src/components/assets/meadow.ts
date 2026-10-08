@@ -216,6 +216,10 @@ export function meadow(
     props?: boolean;
     /** Distant mountains. Dioramas turn them off. */
     scenery?: boolean;
+    /** false hides the painted sun, moon, stars and clouds (a caller draws its own). */
+    skyBodies?: boolean;
+    /** Height range (sin of elevation) over which the sky goes from horizon to zenith colour. */
+    skyRange?: [number, number];
   } = {},
 ) {
   const colors = {
@@ -262,6 +266,7 @@ export function meadow(
         uniforms: {
           topColor: { value: new THREE.Color(colors.sky) },
           horizonColor: { value: new THREE.Color(colors.horizon) },
+          range: { value: new THREE.Vector2(...(options.skyRange ?? [-0.04, 0.48])) },
         },
         vertexShader: `varying vec3 vSkyDirection;
         void main() {
@@ -272,11 +277,11 @@ export function meadow(
           gl_Position = projectionMatrix * vec4(direction, 1.0);
           gl_Position.z = gl_Position.w * 0.9999;
         }`,
-        fragmentShader: `uniform vec3 topColor; uniform vec3 horizonColor;
+        fragmentShader: `uniform vec3 topColor; uniform vec3 horizonColor; uniform vec2 range;
         varying vec3 vSkyDirection;
         void main() {
           float height = normalize(vSkyDirection).y;
-          float blend = smoothstep(-0.04, 0.48, height);
+          float blend = smoothstep(range.x, range.y, height);
           gl_FragColor = vec4(mix(horizonColor, topColor, blend), 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
@@ -358,6 +363,9 @@ diffuseColor.rgb *= 1.0 + macro;`,
     seed = (1664525 * seed + 1013904223) >>> 0;
     return seed / 4294967296;
   };
+  const skyGroup = new THREE.Group();
+  skyGroup.visible = options.skyBodies !== false;
+  group.add(skyGroup);
   const orb = new THREE.Mesh(
     track(new THREE.SphereGeometry(period === "Night" ? 0.8 : 1.04, 24, 16)),
     track(
@@ -375,7 +383,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     period === "Evening" ? 11 : 14,
     -64,
   );
-  group.add(orb);
+  skyGroup.add(orb);
   const glowCanvas = document.createElement("canvas");
   glowCanvas.width = glowCanvas.height = 128;
   const glowContext = glowCanvas.getContext("2d")!;
@@ -398,7 +406,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
   );
   halo.position.copy(orb.position);
   halo.scale.setScalar(period === "Night" ? 4.4 : 6.0);
-  group.add(halo);
+  skyGroup.add(halo);
 
   const cloudColor =
     period === "Night"
@@ -428,7 +436,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
       scale,
     );
     sprite.rotation.z = variant === 0 ? -0.035 : variant === 1 ? 0.025 : 0;
-    group.add(sprite);
+    skyGroup.add(sprite);
     clouds.push({ sprite, baseX: x, speed, phase });
   });
   // Stars are always allocated once and fade in with twilight, behind ridges.
@@ -454,7 +462,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     }),
   );
   const stars = new THREE.Points(starGeometry, starMaterial);
-  group.add(stars);
+  skyGroup.add(stars);
   const moon = new THREE.Mesh(
     track(new THREE.SphereGeometry(0.8, 20, 12)),
     track(
@@ -469,7 +477,7 @@ diffuseColor.rgb *= 1.0 + macro;`,
     ),
   );
   moon.position.set(-4.4, 14, -64);
-  if (period === "Evening") group.add(moon);
+  if (period === "Evening") skyGroup.add(moon);
   // A higher light angle illuminates the lawn; the distant sky disc is visual.
   const lightPosition = new THREE.Vector3(7, 10, -8);
 

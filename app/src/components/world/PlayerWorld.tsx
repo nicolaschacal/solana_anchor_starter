@@ -12,6 +12,7 @@ import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
 import { createWalker, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
+import { createSky, type WorldSky } from "./sky";
 import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
 import {
   BOARD,
@@ -42,6 +43,8 @@ type Props = {
   /** Where this player's layout is kept (one per wallet). */
   storageKey: string;
   period: WorldPeriod;
+  /** The world clock, in ms: twilight follows the real hour. */
+  worldTime?: number;
   /** A rebyter was tapped: it becomes the protagonist. */
   onSelect: (mint: string) => void;
   /** The protagonist, if any: the camera stays on it and the world holds still around it. */
@@ -82,7 +85,7 @@ const TAP_PIXELS = 8;
 
 const tileOfEntry = (e: { x: number; z: number }) => TileMap.tileOf(e.x, e.z);
 
-export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint = null, action = "idle", onActionComplete, onExit }: Props) {
+export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -99,6 +102,9 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
   onSelectRef.current = onSelect;
   const focusRef = useRef<string | null>(focusMint);
   focusRef.current = focusMint;
+  const clockRef = useRef<number | undefined>(worldTime);
+  clockRef.current = worldTime;
+  const skyRef = useRef<WorldSky | null>(null);
   const exitRef = useRef(onExit);
   exitRef.current = onExit;
   const doneRef = useRef(onActionComplete);
@@ -149,7 +155,7 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
     let dead = false;
     let world: HabitatWorld;
     try {
-      world = new HabitatWorld(host, canvas, { onNotice: (message) => say(NOTICES[message] ?? "That spot is not available.") });
+      world = new HabitatWorld(host, canvas, { onNotice: (message) => say(NOTICES[message] ?? "That spot is not available."), ownSky: true });
     } catch {
       return;
     }
@@ -214,6 +220,9 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
       }
       rig.update(dt);
       rig.apply(camera);
+      const clock = clockRef.current ?? Date.now();
+      world.clockMs = clock;
+      skyRef.current?.update(dt, camera, clock);
       // The selection ring follows what is selected.
       const sel = selectionRef.current;
       if (sel && editingRef.current) {
@@ -249,6 +258,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
       try {
         await world.init({ kind: "diorama", size: 5, data: { ...HabitatWorld.blank(5, period), props: [] } });
         world.setCarpetVisible(false);
+        world.clockMs = clockRef.current ?? Date.now();
+        skyRef.current = createSky(world.scene, world.centre, period);
       } catch {
         return;
       }
@@ -455,6 +466,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
         entity.mixer?.stopAllAction();
         disposeObject(entity.outer, false);
       }
+      skyRef.current?.dispose();
+      skyRef.current = null;
       entityMap.clear();
       walkers.current = [];
       for (const asset of loadedAssets.current) disposeAsset(asset);
@@ -472,7 +485,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
 
   // Day and night follow the world clock.
   useEffect(() => {
-    if (ready) void worldRef.current?.setPeriod(period).then(() => setPropCount(worldRef.current?.entries.length ?? 0));
+    if (ready) skyRef.current?.setPeriod(period);
+    void worldRef.current?.setPeriod(period).then(() => setPropCount(worldRef.current?.entries.length ?? 0));
   }, [period, ready]);
 
   // ---- Rebyters follow the layout -----------------------------------------------------
