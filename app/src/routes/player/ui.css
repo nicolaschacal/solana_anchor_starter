@@ -376,6 +376,22 @@
 .rb-ui .game-drawer button.game-drawer-balance>span{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
 .rb-ui .game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button){border-radius:var(--ui-r-md)!important;color:var(--ui-text-2)!important}
 .rb-ui .game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button)>span:not(.den-grid-icon){font-size:var(--ui-fs-body)!important;font-weight:600!important;color:inherit!important}
+/* Menu rows: links and buttons share one state model. The admin dark theme in theme.css
+   paints every <button> on the page, so the rows state their surface and border themselves. */
+.rb-ui .game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button){
+  background:transparent!important;border:1px solid transparent!important;color:var(--ui-text-2)!important;
+  -webkit-tap-highlight-color:transparent;
+}
+/* Hover only where there is a real pointer, so touch screens never keep a row lit. */
+@media(hover:hover){
+  .rb-ui .game-drawer :is(.game-drawer-nav a:not(.active),.game-drawer-nav button,.game-drawer-footer button:not(:disabled)):hover{
+    background:var(--ui-card-hover)!important;color:var(--ui-text)!important;
+  }
+}
+.rb-ui .game-drawer :is(.game-drawer-nav a:not(.active),.game-drawer-nav button,.game-drawer-footer button:not(:disabled)):active{
+  background:var(--ui-card-hover)!important;color:var(--ui-text)!important;
+}
+.rb-ui .game-drawer :is(.game-drawer-footer button:disabled){opacity:.55!important;cursor:default!important}
 .rb-ui .game-drawer .game-drawer-nav a.active{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important;color:var(--ui-accent)!important;box-shadow:inset 2px 0 var(--ui-accent)!important}
 .rb-ui .game-drawer-footer{border-top:1px solid var(--ui-line)!important}
 
