@@ -254,11 +254,13 @@
   background:inherit!important;clip-path:polygon(0 0,100% 0,50% 100%);
 }
 .rb-ui .monster-speech.needs-attention{border-color:rgba(255,184,107,.55)!important;color:var(--ui-warn)!important}
-.rb-ui .monster-speech.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both}
-.rb-ui .monster-speech.needs-attention.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both,rb-emote-bob 1.8s ease-in-out .42s infinite}
+.rb-ui .monster-speech:not([data-anchored]){visibility:hidden!important}
+.rb-ui .monster-speech[data-anchored].is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both}
+.rb-ui .monster-speech[data-anchored].needs-attention.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both,rb-emote-bob 1.8s ease-in-out .42s infinite}
 @keyframes rb-emote-pop{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:scale(1)}}
 @keyframes rb-emote-bob{50%{transform:translateY(-4px)}}
-@media(prefers-reduced-motion:reduce){.rb-ui .monster-speech.is-visible{animation:none}}
+@media(prefers-reduced-motion:reduce){.rb-ui .monster-speech:not([data-anchored]){visibility:hidden!important}
+.rb-ui .monster-speech[data-anchored].is-visible{animation:none}}
 /* Resting: the world dims as a whole instead of being cut by a black band. */
 .rb-ui .game-rest-overlay{
   inset:0!important;z-index:2!important;padding:24px!important;gap:10px!important;text-align:center!important;color:var(--ui-text)!important;

@@ -689,6 +689,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
           parentRect = (el.offsetParent ?? host).getBoundingClientRect();
         anchorOffset = { x: hostRect.left - parentRect.left, y: hostRect.top - parentRect.top };
       }
+      el.dataset.anchored = "true";
       el.style.setProperty("--head-x", `${anchorOffset.x + (headPoint.x * 0.5 + 0.5) * host.clientWidth}px`);
       el.style.setProperty("--head-y", `${anchorOffset.y + (0.5 - headPoint.y * 0.5) * host.clientHeight}px`);
     };
@@ -982,6 +983,8 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       companionRim?.removeFromParent();
       companionRimTarget?.removeFromParent();
       companionRim?.dispose();
+      const anchor = live.current.anchorRef?.current;
+      if (anchor) delete anchor.dataset.anchored;
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
@@ -1177,7 +1180,17 @@ export function EvolutionModel({
       if (resource) disposeModel(resource);
     };
   }, [uri]);
-  if (!uri || failed === uri)
+  const sprite = !uri || failed === uri;
+  // Without a 3D model there is no head to follow: the bubble keeps its default spot.
+  useEffect(() => {
+    const el = anchorRef?.current;
+    if (!sprite || !el) return;
+    el.dataset.anchored = "true";
+    return () => {
+      delete el.dataset.anchored;
+    };
+  });
+  if (sprite)
     return (
       <>
         <CreatureSprite evolution={evolution} />
