@@ -145,15 +145,17 @@ it("steps aside once the transaction settles when the scene cannot be built", as
   await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 });
 
+const origin = evolution(1, "mammal.exe", 0);
 it("plays the same sequence for a mint, born from a seed with no previous form", async () => {
   const tx = deferred();
   await act(async () =>
-    root.render(<EvolutionAnimation job={{ from: null, to, task: tx.promise }} stageNames={STAGES} onClose={vi.fn()} />),
+    root.render(<EvolutionAnimation job={{ from: null, to: origin, task: tx.promise }} stageNames={STAGES} onClose={vi.fn()} />),
   );
   expect(document.body.textContent).toContain("New Rebyter");
-  expect(document.body.textContent).toContain("Caniform");
+  expect(document.body.textContent).toContain("mammal.exe");
   expect(document.body.textContent).not.toContain("Evolved");
-  expect(document.querySelector<HTMLElement>(".evo-rail")?.hidden).toBe(true);
+  const rail = [...document.querySelectorAll<HTMLElement>(".evo-rail li")].map((li) => li.dataset.state);
+  expect(rail.slice(0, 3)).toEqual(["now", "todo", "todo"]);
   await vi.waitFor(() => expect(made[0]?.assets).toEqual(expect.arrayContaining(["from", "to"])));
   await act(async () => tx.resolve());
   await vi.waitFor(() => expect(continueButton()?.disabled).toBe(false));

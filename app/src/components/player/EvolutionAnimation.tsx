@@ -209,7 +209,7 @@ export function EvolutionAnimation({
           {to.name}
         </div>
         <div className="evo-sub">{from ? `Evolved from ${from.name}` : "Born on Solana"}</div>
-        <ol className="evo-rail" ref={railRef} aria-label="Stage" hidden={birth}>
+        <ol className="evo-rail" ref={railRef} aria-label="Stage">
           {stageNames.map((name, i) => (
             <li key={name} data-state={i < fromStage ? "done" : i === fromStage ? "now" : "todo"}>
               {name}

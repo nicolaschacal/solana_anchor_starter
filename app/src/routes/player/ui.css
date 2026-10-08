@@ -609,7 +609,6 @@
 .rb-ui .evo-name{font-size:var(--ui-fs-display)!important;font-weight:700!important;line-height:1.15!important;letter-spacing:-.01em!important;color:var(--ui-text)!important;text-wrap:balance!important;text-shadow:0 2px 24px rgba(92,214,255,.45)!important}
 .rb-ui .evo-sub{font-size:var(--ui-fs-body)!important;color:var(--ui-text-2)!important}
 .rb-ui .evo-rail{list-style:none!important;margin:2px 0 0!important;padding:0!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:6px!important}
-.rb-ui .evo-rail[hidden]{display:none!important}
 .rb-ui .evo-rail li{
   padding:3px 8px!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
   font-size:var(--ui-fs-micro)!important;font-weight:700!important;letter-spacing:.1em!important;color:var(--ui-text-3)!important;

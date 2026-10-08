@@ -537,7 +537,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   // Minting plays the same animation as evolving, born from a seed instead of a previous form.
   const mintCompanion=(familyId:number)=>{
     const origin=tree.evolutions.find(e=>e.stage===0&&e.enabled);
-    const task=player.create(familyId);
+    // The new Rebyter becomes the selected one, so the scene behind the animation shows it.
+    const task=player.create(familyId).then(created=>{setActiveMint(created.mint);return created;});
     if(origin)onBirth(null,origin,task);
     return task;
   };
