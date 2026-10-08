@@ -691,12 +691,6 @@ export function PlayerHome() {
       </button>
 
       <div className="monster-hud-right">
-        <button className="hud-square gl-panel" onClick={()=>setHabitatOpen(true)} aria-label="Choose habitat">
-          <Mountain/>
-        </button>
-        <button className="hud-square gl-panel" onClick={()=>void openDen()} aria-label="Open den">
-          <span className="den-grid-icon"><i/><i/><i/><i/></span>
-        </button>
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
           <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
           <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
