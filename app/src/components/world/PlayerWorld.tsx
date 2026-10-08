@@ -112,7 +112,9 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const doneRef = useRef(onActionComplete);
   doneRef.current = onActionComplete;
 
-  const owned = useMemo(() => creatures.map((c) => c.mint), [creatures]);
+  // The parent hands over a fresh array every tick; only a real change in who is owned matters.
+  const ownedKey = creatures.map((c) => c.mint).join("|");
+  const owned = useMemo(() => (ownedKey ? ownedKey.split("|") : []), [ownedKey]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
     reconcile(loadLayout(storageKey) ?? defaultLayout(creatures.map((c) => c.mint)), creatures.map((c) => c.mint)),
   );
@@ -565,8 +567,10 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
 
   // ---- Speech bubbles ------------------------------------------------------------------
 
+  const happyKey = creatures.filter((c) => c.happy && !c.emote).map((c) => c.mint).join("|");
+
   useEffect(() => {
-    const happy = creatures.filter((c) => c.happy && !c.emote && layout.placed.some((p) => p.mint === c.mint));
+    const happy = creaturesRef.current.filter((c) => c.happy && !c.emote && layout.placed.some((p) => p.mint === c.mint));
     if (!happy.length) {
       setGlance("");
       return;
@@ -587,7 +591,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       window.clearInterval(timer);
       setGlance("");
     };
-  }, [creatures, layout]);
+  }, [happyKey, layout]);
 
   // ---- Edit mode -------------------------------------------------------------------------
 
