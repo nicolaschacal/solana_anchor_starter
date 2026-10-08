@@ -46,6 +46,8 @@ type Props = {
   onSelect: (mint: string) => void;
   /** The protagonist, if any: the camera stays on it and the world holds still around it. */
   focusMint?: string | null;
+  /** The protagonist was tapped again: go back to the open view. */
+  onExit?: () => void;
   /** What the protagonist is doing (idle | touch | feed | train | train-power | sad). */
   action?: string;
   /** A one-shot action finished. */
@@ -80,7 +82,7 @@ const TAP_PIXELS = 8;
 
 const tileOfEntry = (e: { x: number; z: number }) => TileMap.tileOf(e.x, e.z);
 
-export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint = null, action = "idle", onActionComplete }: Props) {
+export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint = null, action = "idle", onActionComplete, onExit }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -97,6 +99,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
   onSelectRef.current = onSelect;
   const focusRef = useRef<string | null>(focusMint);
   focusRef.current = focusMint;
+  const exitRef = useRef(onExit);
+  exitRef.current = onExit;
   const doneRef = useRef(onActionComplete);
   doneRef.current = onActionComplete;
 
@@ -385,7 +389,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
       }
       const mint = pickRebyter(x, y, w, h);
       if (!mint) return;
-      onSelectRef.current(mint);
+      if (mint === focusRef.current && exitRef.current) exitRef.current();
+      else onSelectRef.current(mint);
     };
 
     const down = (event: PointerEvent) => {

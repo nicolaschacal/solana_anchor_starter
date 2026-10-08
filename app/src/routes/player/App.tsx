@@ -739,6 +739,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             period={worldClock.period}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
             focusMint={focusMint}
+            onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}
           />
