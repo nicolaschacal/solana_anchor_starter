@@ -506,6 +506,15 @@ function MintCompanionSheet({
 }
 
 export function PlayerHome() {
+  // The animation lives above the screen so it survives the refresh that follows a mint.
+  const animation=useEvolutionAnimation(STAGE_NAMES);
+  return <>
+    <PlayerHomeScreen onBirth={animation.play}/>
+    {animation.overlay}
+  </>;
+}
+
+function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution,task:Promise<unknown>)=>void}) {
   // Warm the bundled origin model while the user is looking at the login/guest
   // screen. Later GLTFLoader requests hit the browser cache instead of starting
   // a new network transfer after authentication.
@@ -525,6 +534,13 @@ export function PlayerHome() {
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const [minting,setMinting]=useState(false);
+  // Minting plays the same animation as evolving, born from a seed instead of a previous form.
+  const mintCompanion=(familyId:number)=>{
+    const origin=tree.evolutions.find(e=>e.stage===0&&e.enabled);
+    const task=player.create(familyId);
+    if(origin)onBirth(null,origin,task);
+    return task;
+  };
   const [feeding,setFeeding]=useState(false);
   const [training,setTraining]=useState(false);
   const [homeParams]=useSearchParams();
@@ -663,7 +679,7 @@ export function PlayerHome() {
     creating={player.creating}
     status={player.status}
     error={player.error || error}
-    onCreate={(familyId)=>{void player.create(familyId).catch(()=>undefined)}}
+    onCreate={(familyId)=>{void mintCompanion(familyId).catch(()=>undefined)}}
   /></Shell>;
 
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
@@ -848,7 +864,7 @@ export function PlayerHome() {
       status={player.status}
       error={player.error}
       onClose={()=>setMinting(false)}
-      onCreate={(familyId)=>{void player.create(familyId).then(()=>setMinting(false)).catch(()=>undefined)}}
+      onCreate={(familyId)=>{void mintCompanion(familyId).then(()=>setMinting(false)).catch(()=>undefined)}}
     />
   </main></Shell>;
 }

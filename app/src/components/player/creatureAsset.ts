@@ -42,3 +42,19 @@ export async function loadEvolutionAsset(evolution: Evolution): Promise<FxAsset>
   }
   return spriteCard(await loadCreatureImage(evolution));
 }
+
+/**
+ * What a new Rebyter is born from: a small glowing egg of DNA that stands where
+ * the previous body stands in an evolution. It dissolves into the helix like one.
+ */
+export function birthSeed(): FxAsset {
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color("#8fe3ff"),
+    emissive: new THREE.Color("#2f86f0"),
+    emissiveIntensity: 0.6,
+    roughness: 0.35,
+  });
+  const egg = new THREE.Mesh(new THREE.SphereGeometry(0.5, 48, 32), material);
+  egg.scale.set(0.8, 1.15, 0.8);
+  return { scene: egg };
+}
