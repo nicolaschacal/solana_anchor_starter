@@ -154,6 +154,12 @@ export class HabitatWorld {
   creatureSelected = false;
   /** Fixed cameras exactly as the player sees the game; orbit, pan and zoom are off. */
   playerView = false;
+  /**
+   * A host that draws the scene itself (the game's world view). While set, the
+   * editor's panes are replaced by one full-canvas render with the host's camera,
+   * and the editor's own creature, blob shadow and rim light are switched off.
+   */
+  private external: { camera: THREE.Camera; update: (dt: number, now: number) => void } | null = null;
   private creatureExtent = 1.8; // metres: the creature's longest side
   showGrid = true;
   lighting: Lighting = { ...DEFAULT_LIGHTING };
@@ -843,7 +849,8 @@ diffuseColor.rgb = painted;`,
       this.stage.position.y === 0 || snap ? this.restY : this.stage.position.y,
       this.creature.z + this.stageBase.z,
     );
-    this.env?.setCompanionShadowPosition(this.creature.x, this.creature.z);
+    this.env?.setCompanionShadowPosition(this.creature.x, this.creature.z, !this.external);
+    this.companionRim.visible = !this.external;
     this.companionRim.position.set(this.creature.x - 0.15, y + 2.45, this.creature.z - 2.15);
     this.companionRimTarget.position.set(this.creature.x, y + 1.0, this.creature.z);
   }
@@ -877,6 +884,30 @@ diffuseColor.rgb = painted;`,
     this.creatureSelected = on;
     if (on) this.selected = null;
     this.updateRing();
+  }
+
+  // ---- Hosting -----------------------------------------------------------------
+
+  /** Hands the frame over to a host with its own camera (or takes it back with null). */
+  setExternal(host: { camera: THREE.Camera; update: (dt: number, now: number) => void } | null) {
+    this.external = host;
+    this.placeCreature();
+  }
+  /** Height of the grass surface above a flat tile. */
+  get groundY() {
+    return this.env?.groundY ?? 0.04;
+  }
+  /** Asks for the sun's shadows to be redrawn (they are not refreshed every frame). */
+  markShadowsDirty() {
+    this.env?.markShadowsDirty();
+  }
+  /** Whether something walking can stand on this tile: inside, dry and without a solid prop. */
+  canStand(i: number, j: number) {
+    return this.map.inside(i, j) && !this.wet(i, j) && !this.solidOn(i, j);
+  }
+  /** Whether a prop of this kind could be put on this tile. */
+  propBlockReason(key: AssetKey, i: number, j: number, ignore?: PropEntry) {
+    return this.propBlock(key, i, j, ignore);
   }
 
   // ---- Terrain editing -------------------------------------------------------
@@ -1478,10 +1509,10 @@ diffuseColor.rgb = painted;`,
   private tick = (now: number) => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.tick);
-    if (document.hidden || !this.panes.length) return;
+    if (document.hidden || (!this.external && !this.panes.length)) return;
     const delta = Math.min((now - this.lastFrame) / 1000, 0.05);
     this.lastFrame = now;
-    this.mixer?.update(delta);
+    if (!this.external) this.mixer?.update(delta);
     if (Math.abs(this.stage.position.y - this.restY) > 0.001) {
       this.stage.position.y += (this.restY - this.stage.position.y) * Math.min(1, delta * 12);
     }
@@ -1490,6 +1521,17 @@ diffuseColor.rgb = painted;`,
     if (this.env.consumeShadowUpdate()) this.renderer.shadowMap.needsUpdate = true;
     const r = this.renderer;
     const H = this.host.clientHeight;
+    if (this.external) {
+      this.external.update(delta, now);
+      r.setScissorTest(false);
+      r.setViewport(0, 0, this.host.clientWidth, H);
+      r.clear();
+      const fogSaved = this.scene.fog;
+      this.scene.fog = null;
+      r.render(this.scene, this.external.camera);
+      this.scene.fog = fogSaved;
+      return;
+    }
     r.setScissorTest(false);
     r.clear();
     r.setScissorTest(true);

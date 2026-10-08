@@ -3,7 +3,7 @@ import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -12,11 +12,12 @@ import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
-  Bandage, Eye, Thermometer, Utensils,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
+import { EMOTES, needEmote, type Emote } from "../../components/player/emotes";
+import type { WorldCreature } from "../../components/world/PlayerWorld";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
@@ -28,8 +29,15 @@ import { RebytersLoginButton, useRebytersAuth } from "../../lib/rebyters/auth";
 import "./player.css";
 import "./ui.css";
 
+// The 3D world is loaded on demand: it brings the whole habitat engine with it.
+const PlayerWorld = lazy(() => import("../../components/world/PlayerWorld").then(m => ({ default: m.PlayerWorld })));
 const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
+/**
+ * The home screen opens on the 5x5 world with the player's rebyters walking around.
+ * Set this to false (or open the game with ?classic=1) to get the single close-up back.
+ */
+const WORLD_VIEW_ENABLED = true;
 
 const BALANCE_CACHE_TTL_MS = 30_000;
 const balanceCache = new Map<string,{at:number,value:number}>();
@@ -375,28 +383,6 @@ function evolutionRequirementStatus(
 }
 
 /** 45 → "45 min", 130 → "2h 10m". */
-/**
- * What the companion shows above its head. Icons are only for needs; when it has
- * none it just watches you (an eye) or, if it is happy, shows a heart.
- */
-type Emote="watch"|"love"|"food"|"sleep"|"sick"|"hurt"|"full";
-const EMOTES:Record<Emote,{Icon?:typeof Heart;text?:string;label:string;need:boolean}>={
-  watch:{Icon:Eye,label:"Your companion is watching you.",need:false},
-  love:{Icon:Heart,label:"Your companion is happy.",need:false},
-  food:{Icon:Apple,label:"Your companion is hungry.",need:true},
-  sleep:{text:"Zzz",label:"Your companion wants to sleep.",need:true},
-  sick:{Icon:Thermometer,label:"Your companion is sick.",need:true},
-  hurt:{Icon:Bandage,label:"Your companion is hurt.",need:true},
-  full:{Icon:Utensils,label:"Your companion is too full.",need:true},
-};
-/** The emote for what the companion needs right now, from the care guidance. */
-function needEmote(state:OwnedRebyter,guidance:ReturnType<typeof careGuidance>):Emote|null{
-  if(!guidance.message)return null;
-  if(guidance.recommended==="feed")return "food";
-  if(guidance.recommended==="rest")return "sleep";
-  if(guidance.recommended==="care")return state.condition&REBYTER_CONDITION.sick?"sick":"hurt";
-  return "full";
-}
 function formatMinutes(total:number) {
   const minutes=Math.max(0,Math.ceil(total));
   return minutes<60?`${minutes} min`:`${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;
@@ -557,6 +543,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const [minting,setMinting]=useState(false);
+  const [scene,setScene]=useState<"world"|"companion">("world");
+  const authForWorld=useRebytersAuth();
+  const { connection:worldConnection }=useConnection();
+  const worldKey=`rebyters:world:${worldConnection.rpcEndpoint}:${authForWorld.publicKey?.toBase58()??"guest"}`;
   // Minting plays the same animation as evolving, born from a seed instead of a previous form.
   const mintCompanion=(familyId:number)=>{
     const origin=tree.evolutions.find(e=>e.stage===0&&e.enabled);
@@ -568,6 +558,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [feeding,setFeeding]=useState(false);
   const [training,setTraining]=useState(false);
   const [homeParams]=useSearchParams();
+  const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
   const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
@@ -626,6 +617,14 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     return()=>{window.clearInterval(timer);window.clearTimeout(hide);setGlance(false);};
   },[active?.mint,need,mood]);
   const bubbleVisible=!resting&&(!!need||glance);
+
+  // Everyone the world can show, with what each one needs right now.
+  const worldCreatures=useMemo<WorldCreature[]>(()=>owned.flatMap(item=>{
+    const form=tree.evolutions.find(e=>e.id===item.evolutionId);
+    if(!form)return [];
+    return [{mint:item.mint,evolution:form,emote:needEmote(item,careGuidance(item)),happy:moodProfile(item)==="Happy"}];
+  }),[owned,tree]);
+  const worldView=worldEnabled&&scene==="world";
 
   const stageTimer=(()=>{
     if(!active||!evolution||!tree.balance||!evolution.paths.length) return null;
@@ -686,8 +685,29 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     onCreate={(familyId)=>{void mintCompanion(familyId).catch(()=>undefined)}}
   /></Shell>;
 
+  const clockHud=(
+      <div className="monster-hud-right">
+        <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
+          <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
+          <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
+        </div>
+      </div>
+  );
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
     <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()}/>
+    {worldView
+      ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
+        <Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
+          <PlayerWorld
+            creatures={worldCreatures}
+            storageKey={worldKey}
+            period={worldClock.period}
+            onSelect={mint=>{setActiveMint(mint);setScene("companion")}}
+          />
+        </Suspense>
+        {clockHud}
+      </section>
+      :
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
       <EvolutionModel
@@ -720,12 +740,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         </div>
       </button>
 
-      <div className="monster-hud-right">
-        <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
-          <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
-          <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
-        </div>
-      </div>
+      {clockHud}
+      {worldEnabled&&<button className="world-back hud-square gl-panel" onClick={()=>setScene("world")} aria-label="Back to the world" title="Back to the world"><Mountain/></button>}
 
       <div ref={bubbleRef} className={`monster-speech gl-panel${bubbleVisible?" is-visible":""}${EMOTES[emote].need?" needs-attention":""}`} role="status" aria-live="polite" aria-label={EMOTES[emote].label} aria-hidden={!bubbleVisible} key={emote}>{(()=>{const {Icon,text}=EMOTES[emote];return Icon?<Icon aria-hidden="true"/>:<b aria-hidden="true">{text}</b>;})()}</div>
 
@@ -740,7 +756,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
         {player.error&&<div className="interaction-error">{player.error}</div>}
       </div>
-    </section>
+    </section>}
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
@@ -797,7 +813,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             if(!form) return null;
             const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
             return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===active.mint?" active":""}`}>
-              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setDenOpen(false)}}>
+              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setScene("companion");setDenOpen(false)}}>
                 <div className="den-card-art"><CreatureSprite evolution={form}/></div>
                 <strong>{form.name}</strong>
                 <small>{STAGE_NAMES[form.stage]}</small>
