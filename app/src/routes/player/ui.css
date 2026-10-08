@@ -583,8 +583,6 @@
 }
 .rb-ui.evo-fx[data-leaving="true"]{opacity:0!important;pointer-events:none!important}
 .rb-ui.evo-fx>canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
-/* Scan lines over the effect. */
-.rb-ui.evo-fx::after{content:""!important;position:absolute!important;inset:0!important;z-index:1!important;pointer-events:none!important;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)!important;opacity:.5!important}
 .rb-ui .evo-status{
   position:absolute!important;left:0!important;right:0!important;z-index:2!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
   text-align:center!important;font-size:var(--ui-fs-label)!important;font-weight:500!important;letter-spacing:.04em!important;color:var(--ui-text-2)!important;
@@ -596,6 +594,7 @@
   position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:2!important;cursor:default!important;
   padding:0 16px calc(22px + env(safe-area-inset-bottom,0px))!important;
   display:grid!important;justify-items:center!important;gap:10px!important;text-align:center!important;
+  text-shadow:0 2px 14px rgba(3,10,24,.9)!important;
 }
 .rb-ui .evo-kicker{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--ui-warn)!important}
 .rb-ui .evo-name{font-size:var(--ui-fs-display)!important;font-weight:700!important;line-height:1.15!important;letter-spacing:-.01em!important;color:var(--ui-text)!important;text-wrap:balance!important;text-shadow:0 2px 24px rgba(92,214,255,.45)!important}

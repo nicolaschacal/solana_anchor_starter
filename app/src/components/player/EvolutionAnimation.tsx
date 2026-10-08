@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { EvolutionFx, readPalette, type FxUi } from "../../lib/rebyters/evolution-fx";
+import { EvolutionFx, type FxUi } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
-import { loadCreatureImage } from "./creatureImage";
+import { loadEvolutionAsset } from "./creatureAsset";
 
 export type EvolutionJob = {
   from: Evolution;
@@ -15,7 +15,7 @@ type Outcome = "pending" | "ok" | "failed";
 const FADE_OUT_MS = 320;
 
 /**
- * Full-screen evolution animation. It starts the moment the player presses
+ * Full-screen 3D evolution animation. It starts the moment the player presses
  * Evolve, holds the DNA helix while the transaction is confirmed, plays the
  * flash and the recompile when it succeeds, and fades out if it fails.
  */
@@ -109,12 +109,12 @@ export function EvolutionAnimation({
     const start = async () => {
       let fx: EvolutionFx;
       try {
-        const [a, b] = await Promise.all([loadCreatureImage(from), loadCreatureImage(to)]);
+        const [a, b] = await Promise.all([loadEvolutionAsset(from), loadEvolutionAsset(to)]);
         if (cancelled) return;
         fx = new EvolutionFx(
           canvas,
           { from: a, to: b },
-          { fromStage: from.stage, toStage: to.stage, reducedMotion: reduced, palette: readPalette() },
+          { fromStage: from.stage, toStage: to.stage, reducedMotion: reduced },
         );
       } catch {
         // No animation possible on this device: wait for the chain and step aside.
@@ -147,6 +147,7 @@ export function EvolutionAnimation({
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
       window.removeEventListener("resize", onResize);
+      fxRef.current?.dispose();
       fxRef.current = null;
     };
   }, [from, to, job]);

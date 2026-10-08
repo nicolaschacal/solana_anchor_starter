@@ -5,14 +5,14 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Evolution } from "../../lib/rebyters/types";
 import { EvolutionAnimation } from "./EvolutionAnimation";
 
-vi.mock("./creatureImage", () => ({ loadCreatureImage: async () => ({}) }));
+vi.mock("./creatureAsset", () => ({ loadEvolutionAsset: async () => ({}) }));
 vi.mock("../../lib/rebyters/evolution-fx", () => ({
-  readPalette: () => ({}),
   EvolutionFx: class {
     settled = false;
     resize() {}
     render() {}
     skip() {}
+    dispose() {}
     advance(_dt: number, settled: boolean) {
       this.settled = settled;
     }
