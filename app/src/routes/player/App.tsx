@@ -931,13 +931,12 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
     <RebyterPicker owned={owned} activeMint={active.mint} onSelect={setActiveMint} tree={tree}/>
     <section className="evolution-options">
       <div className="section-title"><div><small>NEXT STAGE</small><h2>{eligible.length?"Available evolutions":"No route unlocked yet"}</h2></div><span>{eligible.length}/{candidates.length}</span></div>
-      {candidates.map(({path,target,result,requirements,mandatoryRequirements,timer,timerRequired,timerCurrent,timerRemaining})=>{
+      {candidates.map(({path,target,result,requirements,mandatoryRequirements,timer,timerRemaining})=>{
         const known=discoveredIds.has(target.id);
         const traitMatches=requirements.filter(item=>item.passed).length;
         const mandatoryLeft=mandatoryRequirements.filter(item=>!item.passed).length;
         const timerLeft=timer&&!timer.passed?1:0;
         const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-traitMatches);
-        const totalLeft=mandatoryLeft+timerLeft+traitLeft;
         return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
           <div className="evolution-option-top">
             <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
@@ -950,20 +949,7 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
                   ?`Evolution unlocks in ${timerRemaining} min.`
                   :`${traitMatches}/${requirements.length} traits matched · need ${path.rule?.requiredGroups??0}.`}</p>
             </div>
-            <div className={result.eligible?"route-readiness ready":"route-readiness"}>
-              <strong>{result.eligible?"READY":`${totalLeft} LEFT`}</strong>
-              <small>{traitMatches}/{requirements.length} traits · need {path.rule?.requiredGroups??0}</small>
-            </div>
           </div>
-
-          {timer&&<div className={timer.passed?"evolution-timer ready":"evolution-timer"}>
-            <span><MoonStar/></span>
-            <div>
-              <small>EVOLUTION TIMER</small>
-              <strong>{timer.passed?"Time requirement met":`${timerRemaining} min remaining`}</strong>
-            </div>
-            <b>{timerCurrent}/{timerRequired} min</b>
-          </div>}
 
           <section className="requirement-block evolution-simple-requirements">
             <div className="requirement-block-head">

@@ -421,12 +421,12 @@
   }
 }
 /* Icon tile: the same square for every leading icon. */
-.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span,.evolution-timer>span,.evolution-option-art,.empty-orb),
+.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span,.evolution-option-art,.empty-orb),
 .rb-ui .food-grid>button>svg:first-child{
   box-sizing:border-box!important;flex:0 0 auto!important;width:40px!important;height:40px!important;display:grid!important;place-items:center!important;
   border:1px solid rgba(92,214,255,.20)!important;border-radius:var(--ui-r-sm)!important;background:rgba(92,214,255,.10)!important;color:var(--ui-accent)!important;
 }
-.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span,.evolution-timer>span) svg{width:var(--ui-icon)!important;height:var(--ui-icon)!important;stroke-width:1.8!important;color:var(--ui-accent)!important}
+.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span) svg{width:var(--ui-icon)!important;height:var(--ui-icon)!important;stroke-width:1.8!important;color:var(--ui-accent)!important}
 .rb-ui .food-grid>button>svg:first-child{padding:9px!important;stroke-width:1.8!important}
 .rb-ui :is(.account-card,.empty-side-note)>svg:first-child{
   box-sizing:border-box!important;flex:0 0 auto!important;width:40px!important;height:40px!important;padding:9px!important;stroke-width:1.8!important;
@@ -512,19 +512,10 @@
 .rb-ui .evolution-option.unlocked{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important}
 .rb-ui .evolution-option-copy strong{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
 .rb-ui .evolution-option-copy p{margin:2px 0 0!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
-.rb-ui :is(.route-readiness,.evolution-timer,.requirement-block,.account-wallet-id,.route-lock){
+.rb-ui :is(.requirement-block,.account-wallet-id,.route-lock){
   box-sizing:border-box!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-well)!important;box-shadow:none!important;
 }
-.rb-ui .route-readiness{padding:9px 12px!important}
-.rb-ui .route-readiness strong{font-size:var(--ui-fs-caption)!important;font-weight:700!important;letter-spacing:.1em!important;color:var(--ui-warn)!important}
-.rb-ui .route-readiness.ready{border-color:var(--ui-line-accent)!important;background:rgba(92,214,255,.09)!important}
-.rb-ui .route-readiness.ready strong{color:var(--ui-accent)!important}
-.rb-ui .route-readiness small,
 .rb-ui .requirement-block-head span{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-3)!important}
-.rb-ui .evolution-timer{padding:10px 12px!important;gap:12px!important}
-.rb-ui .evolution-timer small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;color:var(--ui-text-3)!important}
-.rb-ui .evolution-timer strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
-.rb-ui .evolution-timer b{font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-accent)!important;font-variant-numeric:tabular-nums!important}
 /* Requirements: a well with a header, then a check, a label and an optional detail per row. */
 .rb-ui .requirement-block{padding:14px!important;border-radius:var(--ui-r-md)!important}
 .rb-ui .requirement-block-head{margin-bottom:14px!important}
