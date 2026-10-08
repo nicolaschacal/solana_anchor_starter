@@ -668,6 +668,12 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     const followHead = () => {
       const el = live.current.anchorRef?.current;
       if (!el) return;
+      // Skinned meshes cache their box in the bind pose; refresh it so the bubble follows the animated body.
+      if (anchorFrame % 6 === 0)
+        stage.traverse((node) => {
+          const skinned = node as THREE.SkinnedMesh;
+          if (skinned.isSkinnedMesh) skinned.computeBoundingBox();
+        });
       headBox.setFromObject(stage);
       if (headBox.isEmpty()) return;
       headPoint
