@@ -365,11 +365,18 @@ function evolutionRequirementStatus(
   if(statLabels[metric]) return {passed,label:`${statLabels[metric]} ${plus||"+"}`,detail:""};
   if(metric==="care.bond") return {passed,label:`Bond ${plus||"+"}`,detail:""};
   if(metric==="care.discipline") return {passed,label:`Discipline ${plus||"+"}`,detail:""};
-  if(metric==="care.mistakes") return {passed,label:`Care mistakes ≤ ${hi}`,detail:`Current: ${value??0}`};
+  // Fewer allowed mistakes is a stricter route, so it earns more plusses, like the other rules.
+  if(metric==="care.mistakes") return {passed,label:`Well cared ${hi<=2?"+++":hi<=4?"++":"+"}`,detail:""};
   if(metric==="progression.stageAgeMinutes") return {passed,label:`${lo} min in this form`,detail:`Current: ${value??0} min`};
 
   const fallback=balance.metrics[metric]?.label??metric;
   return {passed,label:fallback,detail:""};
+}
+
+/** 45 → "45 min", 130 → "2h 10m". */
+function formatMinutes(total:number) {
+  const minutes=Math.max(0,Math.ceil(total));
+  return minutes<60?`${minutes} min`:`${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;
 }
 
 function RebyterPicker({
@@ -935,7 +942,6 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
         const known=discoveredIds.has(target.id);
         const traitMatches=requirements.filter(item=>item.passed).length;
         const mandatoryLeft=mandatoryRequirements.filter(item=>!item.passed).length;
-        const timerLeft=timer&&!timer.passed?1:0;
         const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-traitMatches);
         return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
           <div className="evolution-option-top">
@@ -943,10 +949,10 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
             <div className="evolution-option-copy">
               <small>{result.eligible?"ROUTE UNLOCKED":"EVOLUTION SIGNAL"}</small>
               <strong>{known?target.name:"Unknown form"}</strong>
-              <p>{result.eligible
-                ?"Ready to evolve."
-                :traitLeft===0&&mandatoryLeft===0&&timerLeft
-                  ?`Evolution unlocks in ${timerRemaining} min.`
+              <p>{timer&&!timer.passed
+                ?`Time left to evolve: ${formatMinutes(timerRemaining)}`
+                :timer||result.eligible
+                  ?"Ready to evolve!"
                   :`${traitMatches}/${requirements.length} traits matched · need ${path.rule?.requiredGroups??0}.`}</p>
             </div>
           </div>
