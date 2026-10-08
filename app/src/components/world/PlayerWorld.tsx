@@ -248,6 +248,7 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint
       const layoutNow = layoutRef.current;
       try {
         await world.init({ kind: "diorama", size: 5, data: { ...HabitatWorld.blank(5, period), props: [] } });
+        world.setCarpetVisible(false);
       } catch {
         return;
       }

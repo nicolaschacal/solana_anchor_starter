@@ -502,6 +502,11 @@ diffuseColor.rgb = painted;`,
     this.scene.add(this.baseTop, this.baseSides);
   }
 
+  /** The scattered carpet tufts can be hidden (the player's world keeps the bare ground). */
+  setCarpetVisible(visible: boolean) {
+    this.env.grass.visible = visible;
+  }
+
   /** The game's carpet covers a fixed patch of meadow; spread the same tufts over the diorama instead. */
   private refillCarpet() {
     const mesh = this.env.grass;
