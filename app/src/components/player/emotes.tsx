@@ -23,9 +23,11 @@ export const EMOTES: Record<
 
 /** The emote for what the companion needs right now, from the care guidance. */
 export function needEmote(state: CareState, guidance: ReturnType<typeof careGuidance>): Emote | null {
-  if (!guidance.message) return null;
   if (guidance.recommended === "feed") return "food";
   if (guidance.recommended === "rest") return "sleep";
   if (guidance.recommended === "care") return state.condition & REBYTER_CONDITION.sick ? "sick" : "hurt";
-  return "full";
+  // The status sheet calls under 20% fullness "Hungry", so the bubble says so too, even when the
+  // care guidance has nothing urgent to recommend.
+  if (state.fullness < 20) return "food";
+  return guidance.message ? "full" : null;
 }
