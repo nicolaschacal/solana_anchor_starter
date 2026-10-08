@@ -3,7 +3,7 @@ import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -127,13 +127,10 @@ function Shell({children,showNav=true}:{children:React.ReactNode;showNav?:boolea
   return <div className="player-bg"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
 }
 
-function Header() {
-  const embedded = useContext(PlayerPanelContext);
+/** Wallet balance as a short label ("1.99 SOL"); plain "SOL" until it is known. */
+function useSolBalanceLabel() {
   const wallet = useRebytersAuth();
   const { connection } = useConnection();
-  const navigate = useNavigate();
-  const {pathname}=useLocation();
-  const onAccount=pathname==="/account"||pathname.startsWith("/account/");
   const [solBalance,setSolBalance]=useState<number|null>(null);
 
   useEffect(()=>{
@@ -146,7 +143,63 @@ function Header() {
     return()=>{cancelled=true};
   },[connection,wallet.publicKey]);
 
-  const balanceLabel=solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
+  return solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
+}
+
+/**
+ * Side menu of the logged-in Home, shared by the mobile and web layouts.
+ * The edge tab summons it; the balance chip and Account both open the account panel.
+ */
+function GameDrawer({open,onOpen,onClose,onHabitats,onDen}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void}) {
+  const navigate=useNavigate();
+  const balanceLabel=useSolBalanceLabel();
+  const panel=useRef<HTMLElement>(null);
+
+  useEffect(()=>{
+    if(!open) return;
+    panel.current?.focus();
+    const onKey=(event:KeyboardEvent)=>{ if(event.key==="Escape") onClose(); };
+    // On web the dimmed area is only the world card; a press anywhere else closes too.
+    const onPress=(event:PointerEvent)=>{ if(!panel.current?.contains(event.target as Node)) onClose(); };
+    document.addEventListener("keydown",onKey);
+    document.addEventListener("pointerdown",onPress);
+    return()=>{
+      document.removeEventListener("keydown",onKey);
+      document.removeEventListener("pointerdown",onPress);
+    };
+  },[open,onClose]);
+
+  const go=(to:string)=>{onClose();navigate(to)};
+
+  return <>
+    <button className="game-drawer-tab gl-panel" onClick={onOpen} aria-label="Open navigation" aria-expanded={open}><ChevronRight/></button>
+    {open&&<div className="game-drawer-backdrop" onClick={onClose}>
+      <aside ref={panel} className="game-drawer" role="dialog" aria-modal="true" aria-label="Game navigation" tabIndex={-1} onClick={event=>event.stopPropagation()}>
+        <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button onClick={onClose} aria-label="Close navigation"><X/></button></div>
+        <button className="game-drawer-balance" onClick={()=>go("/account")} aria-label={`Balance ${balanceLabel}. Open account`}><CircleUserRound/><span>{balanceLabel}</span><ChevronDown/></button>
+        <nav className="game-drawer-nav" aria-label="Game sections">
+          <NavLink end to="/" onClick={onClose}><Home/><span>Home</span></NavLink>
+          <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
+          <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
+          <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
+          <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
+        </nav>
+        <div className="game-drawer-footer">
+          <button onClick={()=>go("/account")}><CircleUserRound/><span>Account</span></button>
+          <button disabled title="Coming soon"><Settings/><span>Settings</span><small>Soon</small></button>
+        </div>
+      </aside>
+    </div>}
+  </>;
+}
+
+function Header() {
+  const embedded = useContext(PlayerPanelContext);
+  const wallet = useRebytersAuth();
+  const navigate = useNavigate();
+  const {pathname}=useLocation();
+  const onAccount=pathname==="/account"||pathname.startsWith("/account/");
+  const balanceLabel=useSolBalanceLabel();
 
   if (embedded) return null;
   return <header className="player-head">
@@ -470,6 +523,7 @@ export function PlayerHome() {
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [drawerOpen,setDrawerOpen]=useState(false);
+  const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
   const [habitat,setHabitat]=useState(0);
   const [speech,setSpeech]=useState({text:"",sequence:0});
   const [speechVisible,setSpeechVisible]=useState(false);
@@ -488,7 +542,6 @@ export function PlayerHome() {
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
-  const navigate=useNavigate();
   const active = selectedCompanion(
     owned,
     activeMint,
@@ -605,24 +658,7 @@ export function PlayerHome() {
   /></Shell>;
 
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <button className="game-drawer-tab" onClick={()=>setDrawerOpen(true)} aria-label="Open navigation"><ChevronRight/></button>
-    {drawerOpen&&<div className="game-drawer-backdrop" onClick={()=>setDrawerOpen(false)}>
-      <aside className="game-drawer" onClick={event=>event.stopPropagation()} aria-label="Game navigation">
-        <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button onClick={()=>setDrawerOpen(false)} aria-label="Close navigation"><X/></button></div>
-        <div className="game-drawer-balance"><CircleUserRound/><span>Account</span><ChevronRight/></div>
-        <nav className="game-drawer-nav">
-          <NavLink end to="/" onClick={()=>setDrawerOpen(false)}><Home/><span>Home</span></NavLink>
-          <NavLink to="/lab" onClick={()=>setDrawerOpen(false)}><Atom/><span>Lab</span></NavLink>
-          <NavLink to="/atlas" onClick={()=>setDrawerOpen(false)}><BookOpen/><span>Atlas</span></NavLink>
-          <button onClick={()=>{setDrawerOpen(false);setHabitatOpen(true)}}><Mountain/><span>Habitats</span></button>
-          <button onClick={()=>{setDrawerOpen(false);void openDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
-        </nav>
-        <div className="game-drawer-footer">
-          <button onClick={()=>{setDrawerOpen(false);navigate("/account")}}><CircleUserRound/><span>Account</span></button>
-          <button disabled title="Coming soon"><Settings/><span>Settings</span><small>soon</small></button>
-        </div>
-      </aside>
-    </div>}
+    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()}/>
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
       <div className="viewer-glow"/>
       <EvolutionModel
@@ -655,12 +691,6 @@ export function PlayerHome() {
       </button>
 
       <div className="monster-hud-right">
-        <button className="hud-square gl-panel" onClick={()=>setHabitatOpen(true)} aria-label="Choose habitat">
-          <Mountain/>
-        </button>
-        <button className="hud-square gl-panel" onClick={()=>void openDen()} aria-label="Open den">
-          <span className="den-grid-icon"><i/><i/><i/><i/></span>
-        </button>
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
           <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
           <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>

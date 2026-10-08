@@ -3468,78 +3468,12 @@ html,body,#root{background:#04101f!important}
   }
   .game-frame .care-actions>button{height:66px!important;min-height:66px!important}
 
-  .game-drawer-tab{
-    position:absolute;z-index:58;left:0;top:43%;width:34px;height:78px;padding:0;
-    display:grid;place-items:center;border:1px solid rgba(132,220,255,.46);border-left:0;
-    border-radius:0 18px 18px 0;color:#dff8ff;
-    background:linear-gradient(150deg,rgba(22,104,166,.72),rgba(5,31,63,.78));
-    box-shadow:inset 0 1px rgba(255,255,255,.18),0 8px 26px rgba(0,12,32,.26);
-    -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
-  }
-  .game-drawer-tab svg{width:20px;height:20px;stroke-width:2}
-
-  .game-drawer-backdrop{
-    position:absolute;z-index:160;inset:0;background:rgba(1,9,22,.58);
-    -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
-  }
-  .game-drawer{
-    width:min(78%,310px);height:100%;box-sizing:border-box;padding:calc(24px + env(safe-area-inset-top,0px)) 18px calc(22px + env(safe-area-inset-bottom,0px));
-    display:flex;flex-direction:column;color:#eaf7ff;
-    border-right:1px solid rgba(127,211,255,.22);
-    background:linear-gradient(165deg,rgba(5,37,66,.97),rgba(2,19,40,.985) 62%,rgba(2,14,31,.99));
-    box-shadow:18px 0 55px rgba(0,5,18,.42);
-    animation:rebyterDrawerIn .2s ease-out;
-  }
-  @keyframes rebyterDrawerIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-  @media(prefers-reduced-motion:reduce){.game-drawer{animation:none}}
-
-  .game-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;margin:4px 2px 26px}
-  .game-drawer-head>div{display:flex;flex-direction:column}
-  .game-drawer-head strong{font-size:20px;line-height:1;letter-spacing:.13em}
-  .game-drawer-head small{margin-top:5px;color:#6f8eab;font-size:9px;letter-spacing:.13em}
-  .game-drawer-head>button{width:38px;height:38px;display:grid;place-items:center;padding:0;border:0;background:transparent;color:#9ab4cd}
-  .game-drawer-head>button svg{width:21px}
-
-  .game-drawer-balance{
-    min-height:58px;padding:0 15px;margin-bottom:18px;display:flex;align-items:center;gap:11px;
-    border:1px solid rgba(108,206,255,.19);border-radius:18px;
-    background:linear-gradient(145deg,rgba(19,93,149,.34),rgba(7,37,71,.54));
-  }
-  .game-drawer-balance svg:first-child{width:23px;color:#66dcff}
-  .game-drawer-balance span{flex:1;font-size:13px;font-weight:700}
-  .game-drawer-balance svg:last-child{width:16px;color:#6f8da9}
-
-  .game-drawer-nav{display:flex;flex-direction:column;gap:4px}
-  .game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button{
-    width:100%;min-height:54px;padding:0 14px;box-sizing:border-box;display:flex;align-items:center;gap:14px;
-    border:1px solid transparent;border-radius:16px;background:transparent;color:#91a9c1;
-    text-decoration:none;font:inherit;text-align:left;
-  }
-  .game-drawer-nav a svg,.game-drawer-nav button>svg,.game-drawer-footer button>svg{width:22px;height:22px;stroke-width:1.8;flex:0 0 auto}
-  .game-drawer-nav a span,.game-drawer-nav button>span,.game-drawer-footer button>span{font-size:14px;font-weight:650}
-  .game-drawer-nav a.active{
-    color:#62dcff;border-color:rgba(93,215,255,.2);
-    background:linear-gradient(90deg,rgba(29,152,214,.20),rgba(18,92,153,.09));
-    box-shadow:inset 2px 0 #51d9ff;
-  }
-  .game-drawer-nav .den-grid-icon{width:22px;height:22px;display:grid;grid-template-columns:repeat(2,6px);grid-template-rows:repeat(2,6px);gap:3px;place-content:center}
-  .game-drawer-nav .den-grid-icon i{display:block;border:1.5px solid currentColor;border-radius:2px}
-
-  .game-drawer-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(120,177,220,.11)}
-  .game-drawer-footer button{min-height:48px}
-  .game-drawer-footer button small{margin-left:auto;color:#57718b;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
-  .game-drawer-footer button:disabled{opacity:.5}
-
   /* With permanent chrome gone, use the top corners only for live game state. */
   .game-world .monster-id{top:calc(14px + env(safe-area-inset-top,0px))!important;left:14px!important}
   .game-world .monster-hud-right{top:calc(14px + env(safe-area-inset-top,0px))!important;right:14px!important}
-  .game-world .monster-hud-right .hud-square{display:none!important}
   .game-world .world-clock{min-width:104px!important}
 }
 
-@media (min-width:900px){
-  .game-drawer-tab,.game-drawer-backdrop{display:none!important}
-}
 
 
 /* Logged-out landing: preserve access to Login while keeping the world cinematic. */
@@ -3693,57 +3627,6 @@ html,body,#root{background:#04101f!important}
   .guest-features span{font-size:8px!important;letter-spacing:.08em!important;color:#d4e1eb!important}
 
   /* Logged-in home: exact hierarchy from the approved mockup. */
-  .game-home:not(.guest-home) .game-drawer-tab{
-    position:absolute!important;z-index:150!important;left:0!important;top:43%!important;
-    width:38px!important;height:92px!important;padding:0!important;
-    border:1px solid rgba(114,220,255,.55)!important;border-left:0!important;
-    border-radius:0 20px 20px 0!important;
-    background:linear-gradient(155deg,rgba(34,132,198,.72),rgba(8,49,91,.82))!important;
-    color:#f2fbff!important;
-    box-shadow:inset 0 1px rgba(255,255,255,.22),0 10px 30px rgba(0,10,26,.30)!important;
-    -webkit-backdrop-filter:blur(18px) saturate(155%);backdrop-filter:blur(18px) saturate(155%);
-  }
-  .game-home:not(.guest-home) .game-drawer-tab svg{width:21px!important;height:21px!important}
-
-  .game-home:not(.guest-home) .game-drawer-backdrop{
-    position:absolute!important;z-index:300!important;inset:0!important;
-    background:rgba(1,9,22,.54)!important;
-    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
-  }
-  .game-home:not(.guest-home) .game-drawer{
-    width:min(79vw,320px)!important;height:100%!important;padding:calc(25px + env(safe-area-inset-top,0px)) 18px calc(22px + env(safe-area-inset-bottom,0px))!important;
-    border-right:1px solid rgba(123,219,255,.24)!important;
-    background:
-      radial-gradient(circle at 18% 8%,rgba(23,117,177,.18),transparent 26%),
-      linear-gradient(180deg,rgba(4,35,63,.99),rgba(2,20,42,.995) 55%,rgba(2,14,31,.998))!important;
-    box-shadow:22px 0 70px rgba(0,4,18,.50)!important;
-  }
-  .game-drawer-head{margin-bottom:24px!important}
-  .game-drawer-head strong{font-size:21px!important;font-weight:900!important;letter-spacing:.14em!important;color:#fff!important}
-  .game-drawer-head small{font-size:9px!important;letter-spacing:.18em!important;color:#7f9db9!important}
-  .game-drawer-head>button{border:0!important;background:transparent!important;color:#a8bfd4!important}
-
-  .game-drawer-balance{
-    min-height:62px!important;margin-bottom:18px!important;padding:0 16px!important;border-radius:18px!important;
-    border:1px solid rgba(98,205,255,.20)!important;
-    background:linear-gradient(145deg,rgba(18,95,149,.34),rgba(7,39,74,.60))!important;
-  }
-  .game-drawer-balance span{font-size:14px!important;color:#edf8ff!important}
-
-  .game-drawer-nav{gap:4px!important}
-  .game-drawer-nav a,.game-drawer-nav button{
-    min-height:56px!important;padding:0 15px!important;border-radius:17px!important;
-    color:#96aec5!important;
-  }
-  .game-drawer-nav a.active{
-    color:#5fe0ff!important;
-    border-color:rgba(95,221,255,.18)!important;
-    background:linear-gradient(90deg,rgba(27,158,221,.23),rgba(11,74,126,.10))!important;
-    box-shadow:inset 2px 0 #59ddff!important;
-  }
-  .game-drawer-nav a svg,.game-drawer-nav button>svg{width:23px!important;height:23px!important}
-  .game-drawer-footer{padding-top:15px!important}
-
   .game-home:not(.guest-home) .game-viewer.game-world{height:100%!important;min-height:100%!important}
   .game-home:not(.guest-home) .game-controls{
     left:14px!important;right:14px!important;bottom:calc(15px + env(safe-area-inset-bottom,0px))!important;
@@ -4026,4 +3909,169 @@ html,body,#root{background:#04101f!important}
   border:0!important;
   box-shadow:none!important;
   background:none!important;
+}
+
+
+/* ==========================================================================
+   GAME DRAWER — side menu of the logged-in Home (mobile and web)
+   Single source of truth for the edge tab and the menu it opens. The tab
+   takes its surface from .gl-panel, so it always matches the top HUD chips.
+   ========================================================================== */
+.game-frame .game-home{--drawer-inset:0px;--drawer-radius:0px}
+@media(min-width:900px){
+  /* Web: the menu lives inside the rounded world card, not the whole window. */
+  .game-frame .game-home{--drawer-inset:16px 0 18px;--drawer-radius:28px}
+}
+
+.game-frame .game-drawer-tab{
+  position:absolute;z-index:150;left:0;top:44%;transform:translateY(-50%);
+  width:26px;height:64px;padding:0;display:grid;place-items:center;
+  border-left:0!important;border-radius:0 14px 14px 0;cursor:pointer;
+  transition:width .16s ease,border-color .16s ease;
+}
+.game-frame .game-drawer-tab svg{width:17px;height:17px;stroke-width:2;color:#6ddcff}
+.game-frame .game-drawer-tab:focus-visible{outline:2px solid #99edff;outline-offset:2px}
+@media(hover:hover){.game-frame .game-drawer-tab:hover{width:30px;border-color:rgba(130,225,255,.55)!important}}
+.game-home.drawer-is-open .game-drawer-tab,
+.game-home:has(> .game-sheet-backdrop) .game-drawer-tab,
+.game-home:has(> .origin-sheet-backdrop) .game-drawer-tab{opacity:0;pointer-events:none}
+@media(min-width:900px){
+  .game-frame .game-drawer-tab{top:50%;width:28px;height:72px;border-radius:0 15px 15px 0}
+}
+
+.game-drawer-backdrop{
+  position:absolute;z-index:300;inset:var(--drawer-inset);overflow:hidden;border-radius:var(--drawer-radius);
+  background:rgba(1,9,22,.54);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  animation:rebyterDrawerFade .2s ease-out;
+}
+.game-drawer{
+  width:min(79%,320px);height:100%;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;
+  padding:calc(24px + env(safe-area-inset-top,0px)) 18px calc(20px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;color:#eaf7ff;outline:none;
+  font-family:'Sora',system-ui,sans-serif;
+  border-right:1px solid rgba(123,219,255,.24);
+  background:
+    radial-gradient(circle at 18% 8%,rgba(23,117,177,.18),transparent 26%),
+    linear-gradient(180deg,rgba(4,35,63,.99),rgba(2,20,42,.995) 55%,rgba(2,14,31,.998));
+  box-shadow:22px 0 70px rgba(0,4,18,.50);
+  animation:rebyterDrawerIn .22s ease-out;
+}
+@keyframes rebyterDrawerIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes rebyterDrawerFade{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.game-drawer,.game-drawer-backdrop{animation:none}}
+
+.game-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:4px 2px 22px}
+.game-drawer-head>div{display:flex;flex-direction:column;min-width:0}
+.game-drawer-head strong{font-size:21px;font-weight:800;line-height:1;letter-spacing:.14em;color:#fff}
+.game-drawer-head small{margin-top:6px;font-size:9px;letter-spacing:.18em;color:#7f9db9}
+.game-drawer-head>button{
+  width:36px;height:36px;margin:-8px -8px 0 0;flex:0 0 auto;display:grid;place-items:center;padding:0;
+  border:0;border-radius:12px;background:transparent;color:#a8bfd4;cursor:pointer;
+}
+.game-drawer-head>button svg{width:20px;height:20px}
+
+/* One row geometry for the balance chip, the sections and the footer. */
+.game-drawer :is(.game-drawer-balance,.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button){
+  width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-start;gap:14px;
+  margin:0;padding:0 14px;border:1px solid transparent;border-radius:16px;background:transparent;
+  color:#96aec5;font:inherit;text-align:left;text-decoration:none;cursor:pointer;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.game-drawer :is(.game-drawer-balance,.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button)>svg{
+  width:22px;height:22px;flex:0 0 auto;stroke-width:1.8;
+}
+.game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button)>span:not(.den-grid-icon){
+  flex:1 1 auto;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.game-drawer :is(a,button):focus-visible{outline:2px solid #66dcff;outline-offset:2px}
+
+.game-drawer button.game-drawer-balance{
+  min-height:52px;margin-bottom:18px;gap:11px;color:#edf8ff;
+  border-color:rgba(98,205,255,.22);
+  background:linear-gradient(145deg,rgba(18,95,149,.34),rgba(7,39,74,.60));
+}
+.game-drawer button.game-drawer-balance>svg:first-child{color:#66dcff}
+.game-drawer button.game-drawer-balance>span{flex:1 1 auto;min-width:0;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.game-drawer button.game-drawer-balance>svg:last-child{width:16px;height:16px;color:#7f9db9}
+
+.game-drawer-nav{display:flex;flex-direction:column;gap:4px}
+.game-drawer .game-drawer-nav :is(a,button){min-height:50px}
+.game-drawer .game-drawer-nav a.active{
+  color:#5fe0ff;border-color:rgba(95,221,255,.18);
+  background:linear-gradient(90deg,rgba(27,158,221,.23),rgba(11,74,126,.10));
+  box-shadow:inset 2px 0 #59ddff;
+}
+.game-drawer .den-grid-icon{
+  width:22px;height:22px;flex:0 0 auto;display:grid;grid-template-columns:repeat(2,7px);grid-template-rows:repeat(2,7px);
+  gap:3px;place-content:center;
+}
+.game-drawer .den-grid-icon i{display:block;border:1.6px solid currentColor;border-radius:2px}
+
+.game-drawer-footer{margin-top:auto;padding-top:14px;border-top:1px solid rgba(120,177,220,.14);display:flex;flex-direction:column;gap:2px}
+.game-drawer-nav+.game-drawer-footer{margin-top:auto}
+.game-drawer .game-drawer-footer button{min-height:46px}
+.game-drawer .game-drawer-footer button small{
+  flex:0 0 auto;padding:3px 8px;border:1px solid rgba(150,174,197,.38);border-radius:999px;
+  font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8ea6bd;
+}
+.game-drawer .game-drawer-footer button:disabled{opacity:.6;cursor:default}
+@media(hover:hover){
+  .game-drawer :is(.game-drawer-nav a:not(.active),.game-drawer-nav button,.game-drawer-footer button:not(:disabled)):hover{
+    color:#d6efff;background:rgba(255,255,255,.05);
+  }
+  .game-drawer button.game-drawer-balance:hover{border-color:rgba(130,225,255,.5)}
+  .game-drawer-head>button:hover{color:#fff;background:rgba(255,255,255,.06)}
+}
+
+
+/* ==========================================================================
+   WORLD CLOCK CHIP — time of day, top right of the world
+   Larger than the base HUD chip but always shorter than the identity chip
+   (68px, 64px on small phones). Each period gets its own lit badge built from
+   the HUD glass: tinted fill, bright rim, soft glow in the period colour.
+   ========================================================================== */
+.game-frame .game-world .world-clock{
+  --clock-h:54px;--clock-face:38px;
+  height:var(--clock-h)!important;min-height:var(--clock-h)!important;max-height:var(--clock-h)!important;
+  min-width:0!important;padding:0 14px 0 8px!important;gap:10px!important;border-radius:18px!important;
+}
+.game-frame .world-clock strong{font-size:14px;font-weight:650;line-height:1.15;letter-spacing:.01em;color:#f4faff}
+.game-frame .world-clock small{margin-top:2px;font-size:10px;line-height:1.2;color:#b9d2e6}
+
+.game-frame .world-clock-face{
+  --tone:#6ddcff;--tone-soft:rgba(109,220,255,.30);--tone-deep:rgba(20,70,120,.55);
+  position:relative;width:var(--clock-face);height:var(--clock-face);border-radius:50%;
+  color:var(--tone);border:1px solid color-mix(in srgb,var(--tone) 55%,transparent);
+  background:
+    radial-gradient(circle at 32% 24%,rgba(255,255,255,.30),transparent 46%),
+    radial-gradient(circle at 50% 60%,var(--tone-soft),var(--tone-deep) 78%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -6px 12px rgba(0,12,32,.30),0 0 14px var(--tone-soft);
+}
+.game-frame .world-clock-face svg{
+  width:21px;height:21px;stroke-width:1.9;fill:currentColor;fill-opacity:.20;
+  filter:drop-shadow(0 0 5px var(--tone-soft));
+}
+.game-frame .world-clock-face.morning{--tone:#ffd08a;--tone-soft:rgba(255,190,120,.36);--tone-deep:rgba(40,110,160,.55)}
+.game-frame .world-clock-face.day{--tone:#ffe27a;--tone-soft:rgba(255,214,92,.42);--tone-deep:rgba(28,120,190,.55)}
+.game-frame .world-clock-face.evening{--tone:#ffab7d;--tone-soft:rgba(255,128,104,.38);--tone-deep:rgba(70,48,130,.60)}
+.game-frame .world-clock-face.night{--tone:#bfe4ff;--tone-soft:rgba(120,170,255,.36);--tone-deep:rgba(22,30,92,.66)}
+
+/* A slow breath of light keeps the badge alive without pulling focus. */
+.game-frame .world-clock-face::after{
+  content:"";position:absolute;inset:-4px;border-radius:50%;pointer-events:none;
+  border:1px solid color-mix(in srgb,var(--tone) 40%,transparent);opacity:.0;
+  animation:worldClockBreath 4.5s ease-in-out infinite;
+}
+@keyframes worldClockBreath{0%,100%{opacity:0;transform:scale(.92)}50%{opacity:.55;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.game-frame .world-clock-face::after{animation:none;opacity:.3}}
+
+@media(max-width:420px){
+  .game-frame .game-world .world-clock{--clock-h:50px;--clock-face:34px;padding:0 11px 0 7px!important;gap:8px!important;border-radius:17px!important}
+  .game-frame .world-clock strong{font-size:13px}
+  .game-frame .world-clock small{font-size:9px}
+  .game-frame .world-clock-face svg{width:19px;height:19px}
+}
+@media(max-width:340px){
+  .game-frame .game-world .world-clock{--clock-h:46px;--clock-face:30px;padding:0 9px 0 6px!important;gap:6px!important}
+  .game-frame .world-clock-face svg{width:17px;height:17px}
 }
