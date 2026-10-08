@@ -250,8 +250,8 @@
 .rb-ui .monster-speech svg{width:26px!important;height:26px!important;stroke-width:1.8!important}
 .rb-ui .monster-speech b{font-size:var(--ui-fs-lead)!important;font-weight:700!important;letter-spacing:.06em!important;line-height:1!important}
 .rb-ui .monster-speech::after{
-  content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);
-  background:inherit!important;border:1px solid transparent;border-right-color:inherit;border-bottom-color:inherit;border-radius:0 0 4px 0;
+  content:"";position:absolute;left:50%;top:100%;width:16px;height:8px;margin:-1px 0 0 -8px;
+  background:inherit!important;clip-path:polygon(0 0,100% 0,50% 100%);
 }
 .rb-ui .monster-speech.needs-attention{border-color:rgba(255,184,107,.55)!important;color:var(--ui-warn)!important}
 .rb-ui .monster-speech.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both}
