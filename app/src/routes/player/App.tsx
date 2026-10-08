@@ -16,6 +16,9 @@ import {
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
+import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
+import { useInventory } from "../../lib/economy/inventory";
+import { useRbtyrBalance } from "../../lib/economy/token";
 import { EMOTES, needEmote, type Emote } from "../../components/player/emotes";
 import type { WorldCreature } from "../../components/world/PlayerWorld";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
@@ -161,7 +164,7 @@ function useSolBalanceLabel() {
  * Side menu of the logged-in Home, shared by the mobile and web layouts.
  * The edge tab summons it; the balance chip and Account both open the account panel.
  */
-function GameDrawer({open,onOpen,onClose,onHabitats,onDen}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void}) {
+function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void}) {
   const navigate=useNavigate();
   const balanceLabel=useSolBalanceLabel();
   const panel=useRef<HTMLElement>(null);
@@ -192,6 +195,7 @@ function GameDrawer({open,onOpen,onClose,onHabitats,onDen}:{open:boolean;onOpen:
           <NavLink end to="/" onClick={onClose}><Home/><span>Home</span></NavLink>
           <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
           <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
+          <button onClick={()=>{onClose();onStore()}}><ShoppingBag/><span>Store</span></button>
           <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
           <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
         </nav>
@@ -568,6 +572,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
+  const [storeOpen,setStoreOpen]=useState(false);
+  const rbtyr=useRbtyrBalance();
+  const inventory=useInventory();
   const [drawerOpen,setDrawerOpen]=useState(false);
   const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
   const [habitat,setHabitat]=useState(0);
@@ -731,6 +738,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>):null;
   const clockHud=(
       <div className="monster-hud-right">
+        {worldView&&!focusMint&&<BalanceChip balance={rbtyr} onOpen={()=>setStoreOpen(true)}/>}
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
           <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
           <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
@@ -738,7 +746,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>
   );
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()}/>
+    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)}/>
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
         <Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
@@ -808,6 +816,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         </div>
       </section>
     </div>}
+
+    {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
     {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
       <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>

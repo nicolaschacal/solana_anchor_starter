@@ -702,6 +702,52 @@
 .rb-ui .world-care>.game-controls,.rb-ui .world-scene>.monster-id{animation:world-focus-in .4s ease both!important}
 @keyframes world-focus-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.rb-ui .world-care>.game-controls,.rb-ui .world-scene>.monster-id{animation:none!important}}
+
+/* ---- Store and $RBTYR balance ---------------------------------------------- */
+.rb-ui .store-coin{display:grid!important;place-items:center!important;width:26px!important;height:26px!important;border-radius:var(--ui-r-pill)!important;background:linear-gradient(180deg,#ffe08a,#f2b33d)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 6px rgba(242,179,61,.28)!important;flex:none!important}
+.rb-ui .store-coin svg{width:15px!important;height:15px!important;color:#5a3b06!important;stroke-width:2.2!important}
+.rb-ui .rbtyr-chip{height:42px!important;display:flex!important;align-items:center!important;gap:7px!important;padding:0 12px 0 8px!important;border-radius:var(--ui-r-lg)!important;cursor:pointer!important;color:var(--ui-text)!important}
+.rb-ui .rbtyr-chip strong{font-size:var(--ui-fs-label)!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;letter-spacing:.01em!important}
+.rb-ui .store-sheet{width:min(640px,100%)!important}
+.rb-ui .store-balance{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:10px 12px!important;padding:12px 14px!important;margin-bottom:14px!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-well)!important}
+.rb-ui .store-balance .store-coin{width:34px!important;height:34px!important}
+.rb-ui .store-balance .store-coin svg{width:19px!important;height:19px!important}
+.rb-ui .store-balance-copy{display:flex!important;flex-direction:column!important;gap:2px!important}
+.rb-ui .store-balance-copy small{font-size:var(--ui-fs-micro)!important;letter-spacing:.08em!important;text-transform:uppercase!important;color:var(--ui-text-3)!important}
+.rb-ui .store-balance-copy strong{font-size:var(--ui-fs-title)!important;font-weight:700!important;color:var(--ui-text)!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .store-balance-copy em{font-style:normal!important;font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-text-2)!important}
+.rb-ui .store-soon{margin-left:auto!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-warn)!important}
+.rb-ui .store-tabs{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important;padding:4px!important;margin-bottom:14px!important;border-radius:var(--ui-r-md)!important;background:var(--ui-well)!important;border:1px solid var(--ui-line)!important}
+.rb-ui .store-tabs button{height:36px!important;border:0!important;border-radius:var(--ui-r-sm)!important;background:transparent!important;color:var(--ui-text-2)!important;font:600 var(--ui-fs-label)/1 var(--ui-font)!important;cursor:pointer!important}
+.rb-ui .store-tabs button.active{background:var(--ui-selected)!important;color:var(--ui-text)!important;box-shadow:inset 0 0 0 1px var(--ui-line-accent)!important}
+.rb-ui .store-tabs button:focus-visible{box-shadow:var(--ui-focus)!important;outline:none!important}
+.rb-ui .store-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))!important;gap:10px!important;overflow-y:auto!important;min-height:0!important;flex-shrink:1!important;padding-bottom:2px!important}
+.rb-ui .store-card{display:flex!important;flex-direction:column!important;gap:10px!important;padding:12px!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-card)!important;min-width:0!important}
+.rb-ui .store-card-art{position:relative!important;display:grid!important;place-items:center!important;height:84px!important;border-radius:var(--ui-r-sm)!important;background:radial-gradient(70% 90% at 50% 100%,rgba(92,214,255,.22),transparent 70%),var(--ui-well)!important}
+.rb-ui .store-card-art svg{width:38px!important;height:38px!important;stroke-width:1.6!important;color:var(--ui-accent-hi)!important}
+.rb-ui .store-card.cat-food .store-card-art{background:radial-gradient(70% 90% at 50% 100%,rgba(255,184,107,.24),transparent 70%),var(--ui-well)!important}
+.rb-ui .store-card.cat-food .store-card-art svg{color:var(--ui-warn)!important}
+.rb-ui .store-card.cat-machine .store-card-art{background:radial-gradient(70% 90% at 50% 100%,rgba(182,167,255,.26),transparent 70%),var(--ui-well)!important}
+.rb-ui .store-card.cat-machine .store-card-art svg{color:var(--ui-special)!important}
+.rb-ui .store-card.cat-decor .store-card-art{background:radial-gradient(70% 90% at 50% 100%,rgba(100,221,176,.22),transparent 70%),var(--ui-well)!important}
+.rb-ui .store-card.cat-decor .store-card-art svg{color:var(--ui-good)!important}
+.rb-ui .store-card.climate-arid .store-card-art svg{color:#ffd27a!important}
+.rb-ui .store-card.climate-cold .store-card-art svg{color:#cfeaff!important}
+.rb-ui .store-card.climate-humid .store-card-art svg{color:#7fe0d2!important}
+.rb-ui .store-card.climate-volcanic .store-card-art svg{color:#ff9a6b!important}
+.rb-ui .store-owned{position:absolute!important;top:8px!important;right:8px!important;padding:2px 8px!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-good)!important;color:var(--ui-on-good)!important;font-size:var(--ui-fs-micro)!important;font-weight:700!important}
+.rb-ui .store-card-copy{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;flex:1 1 auto!important}
+.rb-ui .store-card-copy strong{font-size:var(--ui-fs-body)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .store-card-copy small{font-size:var(--ui-fs-caption)!important;line-height:1.35!important;color:var(--ui-text-2)!important}
+.rb-ui .store-card-copy em{font-style:normal!important;font-size:var(--ui-fs-micro)!important;line-height:1.35!important;color:var(--ui-accent)!important;font-weight:500!important}
+.rb-ui .store-card-foot{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+.rb-ui .store-price{display:inline-flex!important;align-items:center!important;gap:5px!important;font-size:var(--ui-fs-label)!important;font-weight:700!important;color:#ffd27a!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .store-price svg{width:15px!important;height:15px!important}
+.rb-ui .store-price.free{color:var(--ui-good)!important;font-weight:600!important}
+.rb-ui .store-buy{height:34px!important;min-height:34px!important;width:auto!important;padding:0 12px!important;font-size:var(--ui-fs-caption)!important;gap:5px!important}
+.rb-ui .store-buy svg{width:14px!important;height:14px!important}
+.rb-ui .store-buy:disabled{filter:grayscale(.6)!important;opacity:.6!important}
+@media(max-width:420px){.rb-ui .store-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}.rb-ui .store-card{padding:10px!important}.rb-ui .store-card-art{height:68px!important}.rb-ui .store-soon{margin-left:0!important;width:100%!important}}
 }
 
 /* Status sheet header: a small live portrait on the left, name and stage beside it. */
