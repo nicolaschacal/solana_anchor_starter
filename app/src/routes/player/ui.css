@@ -640,3 +640,15 @@
 @media(prefers-reduced-motion:reduce){.rb-ui.evo-fx,.rb-ui .evo-status,.rb-ui .evo-rail li{transition:none!important}}
 
 }
+
+/* Status sheet header: a small live portrait on the left, name and stage beside it. */
+.rb-ui .status-sheet-head{align-items:center!important;gap:14px!important}
+.rb-ui .status-sheet-head .status-title{flex:1!important;min-width:0!important}
+.rb-ui .status-portrait{
+  position:relative!important;flex:0 0 auto!important;width:84px!important;height:84px!important;overflow:hidden!important;
+  border-radius:var(--ui-r-md)!important;border:1px solid var(--ui-line)!important;
+  background:radial-gradient(ellipse at 50% 70%,rgba(47,134,240,.38),rgba(8,20,42,.9))!important;
+}
+.rb-ui .status-portrait :is(.evolution-model,.asset-viewport,.asset-canvas,.creature-sprite){width:100%!important;height:100%!important}
+.rb-ui .status-portrait .asset-canvas canvas{width:100%!important;height:100%!important;display:block!important}
+.rb-ui .status-portrait .asset-touch{display:none!important}

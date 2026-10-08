@@ -744,7 +744,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
+        <div className="game-sheet-head status-sheet-head"><div className="status-portrait"><EvolutionModel evolution={evolution} portrait/></div><div className="status-title"><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
         <div className="sheet-section-label">Habits & build</div>
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
@@ -761,7 +761,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         </div>
         <div className="sheet-section-label">Condition</div>
         <div className="trait-pills condition-pills">{conditionLabels(active.condition).map(label=><span key={label}>{label}</span>)}<span>Care mistakes: {active.careMistakes}</span><span>DNA: {active.dnaByteLength} bytes</span></div>
-        <p className="training-intro" role="status">{guidance?.message||"Your companion feels well."} Care uses 2 energy and 1 fullness. Rest restores 30 energy and uses 2 fullness.</p>
         <div className="sheet-section-label">Learned skills</div>
         <div className="trait-pills skill-pills">{learnedSkillNames(active.learnedSkills).length?learnedSkillNames(active.learnedSkills).map(name=><span key={name}>{name}</span>):<span>None yet</span>}</div>
         <div className="sheet-section-label">Core stats</div>

@@ -51,6 +51,8 @@ function findActionClip(clips: THREE.AnimationClip[], action: string) {
 
 export type ViewerHandle = { thumbnail: () => Promise<Blob> };
 type Props = {
+  /** A small front-facing portrait: fixed camera, no ground. */
+  portrait?: boolean;
   landscape?: boolean;
   creatureScale?: number;
   creatureYOffset?: number;
@@ -72,6 +74,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   {
     model,
     landscape = false,
+    portrait = false,
     creatureScale = 1,
     creatureYOffset = 0,
     creatureZOffset = 0,
@@ -381,6 +384,13 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       controls.enableZoom = false;
       controls.enableRotate = false;
     }
+    if (portrait) {
+      camera.position.set(0, target.y + 0.12, 3.8);
+      controls.target.copy(target);
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.enableRotate = false;
+    }
     controls.enableDamping = true;
     controls.minDistance = 1;
     controls.maxDistance = 12;
@@ -390,7 +400,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       new THREE.MeshStandardMaterial({ color: 0x172e54, roughness: 1 }),
     );
     ground.position.y = -0.09;
-    if (!landscape) scene.add(ground);
+    if (!landscape && !portrait) scene.add(ground);
     const helper = new THREE.SkeletonHelper(root);
     helper.visible = live.current.skeleton;
     scene.add(helper);
@@ -989,7 +999,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [model, landscape, creatureScale, creatureYOffset, creatureZOffset, creatureVisualBoost]);
+  }, [model, landscape, portrait, creatureScale, creatureYOffset, creatureZOffset, creatureVisualBoost]);
   useEffect(() => changeAnimation.current(), [action, clips]);
   useEffect(() => changeDebug.current(), [skeleton, selectedBone]);
   useEffect(() => changePeriod.current(period), [period]);
@@ -1136,6 +1146,7 @@ export function EvolutionModel({
   action = "idle",
   sleeping = false,
   landscape = false,
+  portrait = false,
   period = "Day",
   worldTime,
   onActionComplete,
@@ -1144,6 +1155,7 @@ export function EvolutionModel({
   anchorRef?: RefObject<HTMLElement | null>;
   worldTime?: number;
   landscape?: boolean;
+  portrait?: boolean;
   period?: WorldPeriod;
   evolution: Evolution;
   action?: string;
@@ -1208,6 +1220,7 @@ export function EvolutionModel({
       {loaded?.uri === uri ? (
         <AssetViewer
           landscape={landscape}
+          portrait={portrait}
           period={period}
           worldTime={worldTime}
           creatureScale={evolution.stage === 0 ? 0.9 : 1}
