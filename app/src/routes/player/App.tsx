@@ -228,7 +228,7 @@ function Stat({icon,label,value}:{icon:React.ReactNode;label:string;value:string
 
 function rhythmProfile(values:number[]) {
   const total=values.reduce((n,v)=>n+(v??0),0);
-  if (!total) return {label:"Undetermined",detail:"Interact at different times to reveal a rhythm."};
+  if (!total) return {label:"No routine yet",detail:"Interact at different times to reveal a rhythm."};
   const labels=["Nocturnal","Early bird","Diurnal","Evening"];
   const details=[
     "Most interactions happen at night.",
@@ -238,13 +238,13 @@ function rhythmProfile(values:number[]) {
   ];
   let best=0;
   for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
-  return {label:labels[best]??"Undetermined",detail:details[best]??""};
+  return {label:labels[best]??"No routine yet",detail:details[best]??""};
 }
 function dietProfile(values:number[]) {
   const labels=["Meat leaning","Plant leaning","Fish leaning","Fruit leaning"];
   const details=["Prefers meat-based meals.","Leans toward plants.","Shows a preference for fish.","Frequently chooses fruit."];
   const total=values.reduce((n,v)=>n+(v??0),0);
-  if (!total) return {label:"Undetermined",detail:"Feed different foods to reveal a preference."};
+  if (!total) return {label:"No diet yet",detail:"Feed different foods to reveal a preference."};
   let best=0;
   for(let i=1;i<values.length;i++) if((values[i]??0)>(values[best]??0)) best=i;
   return {label:labels[best]??"Mixed",detail:details[best]??"Has a mixed diet."};
@@ -744,14 +744,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head status-sheet-head"><div className="status-portrait"><CreatureSprite evolution={evolution}/></div><div className="status-title"><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
-        <div className="sheet-section-label">Habits & build</div>
-        <div className="trait-pills">
-          <span>{rhythmProfile(active.timeInteractions).label}</span>
-          <span>{dietProfile(active.diet).label}</span>
-          <span>{disciplineProfile(active.discipline)}</span>
-          <span>Weight {active.weight}</span>
-        </div>
+        <div className="game-sheet-head status-sheet-head"><div className="status-portrait"><CreatureSprite evolution={evolution}/></div><div className="status-title"><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2><div className="trait-pills status-chips">  <span>{rhythmProfile(active.timeInteractions).label}</span>  <span>{dietProfile(active.diet).label}</span>  <span>{disciplineProfile(active.discipline)}</span>  <span>Weight {active.weight}</span></div></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
         <div className="sheet-section-label">How it feels · {moodProfile(active)}</div>
         <div className="state-bars">
           <div className="status-fullness"><span>Fullness</span><i><b style={{width:`${active.fullness}%`}}/></i><strong>{active.fullness}%</strong></div>
