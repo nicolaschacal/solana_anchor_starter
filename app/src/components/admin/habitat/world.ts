@@ -138,6 +138,8 @@ type Callbacks = {
   onError?: (message: string) => void;
   /** The caller draws its own sun, moon, stars and clouds, and wants a steeper sky gradient. */
   ownSky?: boolean;
+  /** The caller draws the ground's base (an island, say) instead of the square earth block. */
+  ownBase?: boolean;
 };
 
 export class HabitatWorld {
@@ -449,7 +451,7 @@ diffuseColor.rgb = painted;`,
       this.env.lake.visible = false;
       this.env.bank.visible = false;
       this.env.path.visible = false;
-      this.buildBase();
+      if (!this.callbacks.ownBase) this.buildBase();
       this.refillCarpet();
       const half = Math.max(4.5, this.size * 0.8);
       cam.left = cam.bottom = -half;

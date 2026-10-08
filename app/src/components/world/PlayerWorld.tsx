@@ -12,6 +12,7 @@ import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
 import { createWalker, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
+import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
 import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
 import {
@@ -105,6 +106,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const clockRef = useRef<number | undefined>(worldTime);
   clockRef.current = worldTime;
   const skyRef = useRef<WorldSky | null>(null);
+  const islandRef = useRef<Island | null>(null);
   const exitRef = useRef(onExit);
   exitRef.current = onExit;
   const doneRef = useRef(onActionComplete);
@@ -155,7 +157,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
     let dead = false;
     let world: HabitatWorld;
     try {
-      world = new HabitatWorld(host, canvas, { onNotice: (message) => say(NOTICES[message] ?? "That spot is not available."), ownSky: true });
+      world = new HabitatWorld(host, canvas, { onNotice: (message) => say(NOTICES[message] ?? "That spot is not available."), ownSky: true, ownBase: true });
     } catch {
       return;
     }
@@ -223,6 +225,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       const clock = clockRef.current ?? Date.now();
       world.clockMs = clock;
       skyRef.current?.update(dt, camera, clock);
+      islandRef.current?.update(performance.now() / 1000);
       // The selection ring follows what is selected.
       const sel = selectionRef.current;
       if (sel && editingRef.current) {
@@ -258,6 +261,8 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       try {
         await world.init({ kind: "diorama", size: 5, data: { ...HabitatWorld.blank(5, period), props: [] } });
         world.setCarpetVisible(false);
+        world.setGrid(false);
+        islandRef.current = createIsland(world.scene, world.centre);
         world.clockMs = clockRef.current ?? Date.now();
         skyRef.current = createSky(world.scene, world.centre, period);
       } catch {
@@ -466,6 +471,8 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
         entity.mixer?.stopAllAction();
         disposeObject(entity.outer, false);
       }
+      islandRef.current?.dispose();
+      islandRef.current = null;
       skyRef.current?.dispose();
       skyRef.current = null;
       entityMap.clear();
@@ -586,6 +593,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   useEffect(() => {
     const rig = rigRef.current;
     if (!rig) return;
+    worldRef.current?.setGrid(editing);
     if (!focusRef.current) rig.setMode(editing ? "top" : "free");
     if (!editing) {
       setArmed(null);
