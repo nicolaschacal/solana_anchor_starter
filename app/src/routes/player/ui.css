@@ -240,27 +240,30 @@
 .rb-ui .world-clock{border-radius:var(--ui-r-lg)!important}
 .rb-ui .world-clock strong{font-size:var(--ui-fs-body)!important;font-weight:600!important;color:var(--ui-text)!important}
 .rb-ui .world-clock small{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-2)!important}
-/* The companion's thought bubble: one icon, popping out above its head. */
+/* The companion's thought bubble: it follows the top of the creature (--head-x/--head-y, set by the scene). */
 .rb-ui .monster-speech{
-  display:grid!important;place-items:center!important;width:54px!important;height:54px!important;padding:0!important;
-  top:61%!important;border-radius:var(--ui-r-lg)!important;overflow:visible!important;transform-origin:50% calc(100% + 14px)!important;
+  display:grid!important;place-items:center!important;min-width:54px!important;height:54px!important;padding:0 12px!important;
+  left:var(--head-x,50%)!important;top:var(--head-y,61%)!important;translate:-50% calc(-100% - 16px)!important;transform:none!important;
+  border-radius:var(--ui-r-lg)!important;overflow:visible!important;transform-origin:50% calc(100% + 16px)!important;
   color:var(--ui-accent)!important;
 }
 .rb-ui .monster-speech svg{width:26px!important;height:26px!important;stroke-width:1.8!important}
+.rb-ui .monster-speech b{font-size:var(--ui-fs-lead)!important;font-weight:700!important;letter-spacing:.06em!important;line-height:1!important}
 .rb-ui .monster-speech::after{
   content:"";position:absolute;left:50%;bottom:-7px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);
   background:inherit!important;border:1px solid transparent;border-right-color:inherit;border-bottom-color:inherit;border-radius:0 0 4px 0;
 }
 .rb-ui .monster-speech.needs-attention{border-color:rgba(255,184,107,.55)!important;color:var(--ui-warn)!important}
-.rb-ui .monster-speech.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both,rb-emote-bob 2.6s ease-in-out .42s infinite}
-@keyframes rb-emote-pop{from{opacity:0;transform:translateX(-50%) scale(.2)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-@keyframes rb-emote-bob{50%{transform:translateX(-50%) translateY(-4px)}}
+.rb-ui .monster-speech.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both}
+.rb-ui .monster-speech.needs-attention.is-visible{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both,rb-emote-bob 1.8s ease-in-out .42s infinite}
+@keyframes rb-emote-pop{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:scale(1)}}
+@keyframes rb-emote-bob{50%{transform:translateY(-4px)}}
 @media(prefers-reduced-motion:reduce){.rb-ui .monster-speech.is-visible{animation:none}}
 /* Resting: the world dims as a whole instead of being cut by a black band. */
 .rb-ui .game-rest-overlay{
   inset:0!important;z-index:2!important;padding:24px!important;gap:10px!important;text-align:center!important;color:var(--ui-text)!important;
-  background:radial-gradient(90% 60% at 50% 45%,rgba(10,34,66,.72),rgba(1,6,16,.94) 78%)!important;
-  -webkit-backdrop-filter:blur(4px)!important;backdrop-filter:blur(4px)!important;
+  background:#0a2040!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
 }
 .rb-ui .game-rest-overlay>svg{width:36px!important;height:36px!important;color:var(--ui-accent)!important;stroke-width:1.6!important}
 .rb-ui .game-rest-overlay strong{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}

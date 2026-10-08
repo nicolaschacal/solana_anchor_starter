@@ -12,7 +12,7 @@ import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
-  Bandage, CircleAlert, MapPin, Thermometer, Utensils,
+  Bandage, Eye, Thermometer, Utensils,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -375,19 +375,19 @@ function evolutionRequirementStatus(
 }
 
 /** 45 → "45 min", 130 → "2h 10m". */
-/** What the companion shows in its speech bubble: an icon instead of a sentence. */
-type Emote="love"|"joy"|"food"|"sleep"|"sick"|"hurt"|"full"|"train"|"place"|"alert";
-const EMOTES:Record<Emote,{Icon:typeof Heart;warn:boolean}>={
-  love:{Icon:Heart,warn:false},
-  joy:{Icon:Sparkles,warn:false},
-  food:{Icon:Apple,warn:true},
-  sleep:{Icon:MoonStar,warn:true},
-  sick:{Icon:Thermometer,warn:true},
-  hurt:{Icon:Bandage,warn:true},
-  full:{Icon:Utensils,warn:true},
-  train:{Icon:Dumbbell,warn:false},
-  place:{Icon:MapPin,warn:false},
-  alert:{Icon:CircleAlert,warn:true},
+/**
+ * What the companion shows above its head. Icons are only for needs; when it has
+ * none it just watches you (an eye) or, if it is happy, shows a heart.
+ */
+type Emote="watch"|"love"|"food"|"sleep"|"sick"|"hurt"|"full";
+const EMOTES:Record<Emote,{Icon?:typeof Heart;text?:string;label:string;need:boolean}>={
+  watch:{Icon:Eye,label:"Your companion is watching you.",need:false},
+  love:{Icon:Heart,label:"Your companion is happy.",need:false},
+  food:{Icon:Apple,label:"Your companion is hungry.",need:true},
+  sleep:{text:"Zzz",label:"Your companion wants to sleep.",need:true},
+  sick:{Icon:Thermometer,label:"Your companion is sick.",need:true},
+  hurt:{Icon:Bandage,label:"Your companion is hurt.",need:true},
+  full:{Icon:Utensils,label:"Your companion is too full.",need:true},
 };
 /** The emote for what the companion needs right now, from the care guidance. */
 function needEmote(state:OwnedRebyter,guidance:ReturnType<typeof careGuidance>):Emote|null{
@@ -574,20 +574,11 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [drawerOpen,setDrawerOpen]=useState(false);
   const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
   const [habitat,setHabitat]=useState(0);
-  const [speech,setSpeech]=useState<{text:string;emote:Emote;sequence:number}>({text:"",emote:"love",sequence:0});
-  const [speechVisible,setSpeechVisible]=useState(false);
-  const setReaction=(text:string,emote:Emote="joy")=>setSpeech(previous=>({text,emote,sequence:previous.sequence+1}));
-  useEffect(()=>{
-    if(!speech.text)return;
-    setSpeechVisible(true);
-    const timer=window.setTimeout(()=>setSpeechVisible(false),4500);
-    return()=>window.clearTimeout(timer);
-  },[speech]);
+    const bubbleRef=useRef<HTMLDivElement>(null);
   const [visualAction,setVisualAction]=useState("idle");
   const [resting,setResting]=useState(false);
   const [restPending,setRestPending]=useState(false);
   const [actionWarning,setActionWarning]=useState<{action:RebyterInteraction;message:string}|null>(null);
-  const [completed,setCompleted]=useState<{mint:string;action:RebyterInteraction;condition:number;stats:number}|null>(null);
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
@@ -614,39 +605,27 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
 
   const guidance=active?careGuidance(active):null;
-  const needMessage=guidance?.message||"";
-  useEffect(()=>{
-    if(!completed||active?.mint!==completed.mint)return;
-    const cured=[];
-    if((completed.condition&REBYTER_CONDITION.sick)&&!(active.condition&REBYTER_CONDITION.sick))cured.push("sickness");
-    if((completed.condition&REBYTER_CONDITION.injured)&&!(active.condition&REBYTER_CONDITION.injured))cured.push("injury");
-    const remaining=active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured);
-    const result=cured.length?`Recovered from ${cured.join(" and ")}. `:"";
-    const hint=remaining?`Still ${[active.condition&REBYTER_CONDITION.sick?"sick":"",active.condition&REBYTER_CONDITION.injured?"injured":""].filter(Boolean).join(" and ")}. ${careGuidance(active).message}`:"";
-    const need=needEmote(active,careGuidance(active));
-    if(completed.action==="care"||completed.action==="rest")setReaction(result+hint|| (completed.action==="rest"?"Energy recovered.":"Care complete. Bond updated."),remaining?(need??"alert"):completed.action==="care"?"love":"joy");
-    else if(completed.action==="train"){const gained=active.hp+active.atk+active.def+active.spd>completed.stats;setReaction(gained?"Training complete. Stats improved.":"No stat gains. "+careGuidance(active).training,gained?"train":(need??"sleep"));}
-    else if(completed.action==="feed"){const overfed=!!(active.condition&REBYTER_CONDITION.overfed);setReaction(overfed?"Meal complete. Now overfed — wait before feeding again.":"Meal complete. Fullness increased.",overfed?"full":"food");}
-    else setReaction(careGuidance(active).message||"Play complete.",need??"joy");
-    setCompleted(null);
-  },[completed,active]);
-
   async function interact(action:RebyterInteraction,option=0){
     if(!active)return;
-    const before={mint:active.mint,action,condition:active.condition,stats:active.hp+active.atk+active.def+active.spd};
     try{
       await player.interact(active.mint,action,option);
-      setCompleted(before);
-    }catch{setReaction("Action failed. Please check the error below.","alert");throw new Error("Interaction failed");}
+    }catch{throw new Error("Interaction failed");}
   }
 
+  // Needs stay on screen until they are met. Otherwise the companion only glances at you now and then.
+  const need=active&&guidance?needEmote(active,guidance):null;
+  const mood=active?moodProfile(active):"";
+  const emote:Emote=need??(mood==="Happy"?"love":"watch");
+  const [glance,setGlance]=useState(false);
   useEffect(()=>{
-    if(!active?.mint)return;
-    const showAmbient=()=>setReaction(needMessage||"Your companion is watching you.",(guidance?needEmote(active,guidance):null)??"love");
-    if(!completed)showAmbient();
-    const timer=window.setInterval(showAmbient,30000);
-    return()=>window.clearInterval(timer);
-  },[active?.mint,needMessage]);
+    if(!active?.mint||need){setGlance(false);return;}
+    let hide=0;
+    const show=()=>{setGlance(true);window.clearTimeout(hide);hide=window.setTimeout(()=>setGlance(false),4500);};
+    show();
+    const timer=window.setInterval(show,30000);
+    return()=>{window.clearInterval(timer);window.clearTimeout(hide);setGlance(false);};
+  },[active?.mint,need,mood]);
+  const bubbleVisible=!resting&&(!!need||glance);
 
   const stageTimer=(()=>{
     if(!active||!evolution||!tree.balance||!evolution.paths.length) return null;
@@ -716,6 +695,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         action={companionAction}
         onActionComplete={()=>setVisualAction("idle")}
         sleeping={resting}
+        anchorRef={bubbleRef}
         landscape
         period={worldClock.period}
         worldTime={worldClock.now}
@@ -747,7 +727,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         </div>
       </div>
 
-      <div className={`monster-speech gl-panel${speechVisible?" is-visible":""}${EMOTES[speech.emote].warn?" needs-attention":""}`} role="status" aria-live="polite" aria-label={speech.text} title={speech.text} aria-hidden={!speechVisible} key={speech.sequence}>{(()=>{const {Icon}=EMOTES[speech.emote];return <Icon aria-hidden="true"/>;})()}</div>
+      <div ref={bubbleRef} className={`monster-speech gl-panel${bubbleVisible?" is-visible":""}${EMOTES[emote].need?" needs-attention":""}`} role="status" aria-live="polite" aria-label={EMOTES[emote].label} aria-hidden={!bubbleVisible} key={emote}>{(()=>{const {Icon,text}=EMOTES[emote];return Icon?<Icon aria-hidden="true"/>:<b aria-hidden="true">{text}</b>;})()}</div>
 
       <div className="game-controls">
         <div className="care-actions">
@@ -805,7 +785,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             key={name}
             className={`habitat-card habitat-tone-${index}${habitat===index?" selected":""}`}
             disabled={state==="Locked"}
-            onClick={()=>{setHabitat(index);setReaction(`${name} selected.`,"place")}}
+            onClick={()=>{setHabitat(index)}}
           >
             <span className="habitat-preview"><Mountain/></span>
             <strong>{name}</strong>

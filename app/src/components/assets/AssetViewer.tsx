@@ -9,6 +9,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type RefObject,
 } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -64,6 +65,8 @@ type Props = {
   selectedBone?: string;
   sleeping?: boolean;
   onActionComplete?: (action: string) => void;
+  /** An element that follows the top of the creature: gets --head-x / --head-y in its offset parent's pixels. */
+  anchorRef?: RefObject<HTMLElement | null>;
 };
 export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
   {
@@ -81,6 +84,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     selectedBone = "",
     sleeping = false,
     onActionComplete,
+    anchorRef,
   },
   ref,
 ) {
@@ -101,6 +105,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     period,
     worldTime,
     onActionComplete,
+    anchorRef,
   });
   live.current = {
     action,
@@ -112,6 +117,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
     period,
     worldTime,
     onActionComplete,
+    anchorRef,
   };
   const changeAnimation = useRef<() => void>(() => {});
   const changeDebug = useRef<() => void>(() => {});
@@ -653,6 +659,33 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
       changePlayback.current();
     });
     intersection.observe(host);
+    // Keeps the anchor element (the speech bubble) just above the creature's head,
+    // wherever it walks and whatever its size.
+    const headBox = new THREE.Box3(),
+      headPoint = new THREE.Vector3();
+    let anchorFrame = 0,
+      anchorOffset = { x: 0, y: 0 };
+    const followHead = () => {
+      const el = live.current.anchorRef?.current;
+      if (!el) return;
+      headBox.setFromObject(stage);
+      if (headBox.isEmpty()) return;
+      headPoint
+        .set(
+          (headBox.min.x + headBox.max.x) / 2,
+          headBox.max.y,
+          (headBox.min.z + headBox.max.z) / 2,
+        )
+        .project(camera);
+      if (!Number.isFinite(headPoint.x + headPoint.y)) return;
+      if (anchorFrame++ % 30 === 0) {
+        const hostRect = host.getBoundingClientRect(),
+          parentRect = (el.offsetParent ?? host).getBoundingClientRect();
+        anchorOffset = { x: hostRect.left - parentRect.left, y: hostRect.top - parentRect.top };
+      }
+      el.style.setProperty("--head-x", `${anchorOffset.x + (headPoint.x * 0.5 + 0.5) * host.clientWidth}px`);
+      el.style.setProperty("--head-y", `${anchorOffset.y + (0.5 - headPoint.y * 0.5) * host.clientHeight}px`);
+    };
     const tick = (now: number) => {
       const delta = Math.min((now - last) / 1000, 0.05);
       last = now;
@@ -850,6 +883,7 @@ export const AssetViewer = forwardRef<ViewerHandle, Props>(function AssetViewer(
             renderer.shadowMap.needsUpdate = true;
         }
         renderer.render(scene, camera);
+        followHead();
         raf = requestAnimationFrame(tick);
       } else {
         raf = 0;
@@ -1096,7 +1130,9 @@ export function EvolutionModel({
   period = "Day",
   worldTime,
   onActionComplete,
+  anchorRef,
 }: {
+  anchorRef?: RefObject<HTMLElement | null>;
   worldTime?: number;
   landscape?: boolean;
   period?: WorldPeriod;
@@ -1163,6 +1199,7 @@ export function EvolutionModel({
           action={action}
           sleeping={sleeping}
           onActionComplete={onActionComplete}
+          anchorRef={anchorRef}
         />
       ) : (
         <div className="asset-viewer-message">Loading companion…</div>
