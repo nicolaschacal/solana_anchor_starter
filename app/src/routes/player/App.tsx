@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
+import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
 import { sampleMammal } from "../../lib/rebyters/sample";
 import type { Evolution, TreeJson } from "../../lib/rebyters/types";
@@ -846,6 +847,15 @@ export function PlayerHome() {
 }
 
 export function PlayerLab() {
+  // The animation lives above the screen so it survives the refresh that follows an evolution.
+  const animation=useEvolutionAnimation(STAGE_NAMES);
+  return <>
+    <PlayerLabScreen onEvolve={animation.play}/>
+    {animation.overlay}
+  </>;
+}
+
+function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,task:Promise<unknown>)=>void}) {
   const navigate=useNavigate();
   const { connected }=useRebytersAuth();
   const player=usePlayerCollection();
@@ -972,7 +982,11 @@ export function PlayerLab() {
             </div>
           </section>
 
-          {result.eligible?<button className="ui-btn ui-btn-primary evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
+          {result.eligible?<button className="ui-btn ui-btn-primary evolve-route-button" disabled={!!player.interactingMint} onClick={()=>{
+            const task=player.evolve(active.mint,evolution.id,target.id,tree);
+            onEvolve(evolution,target,task);
+            task.catch(()=>undefined);
+          }}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
         </article>
       })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}

@@ -2,15 +2,18 @@ import { isMammalPilot, MAMMAL_PILOT } from "../../lib/assets/catalog";
 import { useEffect, useState } from "react";
 import type { Evolution } from "../../lib/rebyters/types";
 
-// Local concept sprites follow workbook body plans until production art is supplied.
+/** The image the game shows for a form, when it ships one. */
+export function creatureSpriteUri(e: Evolution) {
+  const current = e.assets?.thumbnailUri || e.assets?.imageUri;
+  return isMammalPilot(e) &&
+    (!current || current === "/assets/rebyters/mammal/mammal-exe.svg")
+    ? MAMMAL_PILOT.thumbnailUri
+    : current;
+}
+
 export function CreatureSprite({ evolution: e }: { evolution: Evolution }) {
   const [failed, setFailed] = useState(false);
-  const current = e.assets?.thumbnailUri || e.assets?.imageUri;
-  const uri =
-    isMammalPilot(e) &&
-    (!current || current === "/assets/rebyters/mammal/mammal-exe.svg")
-      ? MAMMAL_PILOT.thumbnailUri
-      : current;
+  const uri = creatureSpriteUri(e);
   useEffect(() => setFailed(false), [uri]);
   if (uri && !failed)
     return (
@@ -21,6 +24,11 @@ export function CreatureSprite({ evolution: e }: { evolution: Evolution }) {
         onError={() => setFailed(true)}
       />
     );
+  return <CreatureArt evolution={e} />;
+}
+
+// Local concept sprites follow workbook body plans until production art is supplied.
+export function CreatureArt({ evolution: e }: { evolution: Evolution }) {
   const name = e.name.toLowerCase();
   const family = `${e.family} ${name}`.toLowerCase();
   const aquatic = /cetacean|pinniped|dolphin|whale|seal|abyssal|leviathan/.test(

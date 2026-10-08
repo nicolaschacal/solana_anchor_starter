@@ -46,6 +46,9 @@
   --ui-warn:#ffb86b;
   --ui-bad:#ff8fa3;
   --ui-special:#b6a7ff;
+  --ui-on-good:#06261c;
+  --ui-on-warn:#221407;
+  --ui-void:#02081a;
 
   --ui-line:rgba(170,224,255,.16);
   --ui-line-strong:rgba(170,224,255,.30);
@@ -506,14 +509,16 @@
 .rb-ui .evolution-timer small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;color:var(--ui-text-3)!important}
 .rb-ui .evolution-timer strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
 .rb-ui .evolution-timer b{font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-accent)!important;font-variant-numeric:tabular-nums!important}
-.rb-ui .requirement-block{padding:12px!important}
-.rb-ui .requirement-block-head{margin-bottom:10px!important}
+/* Requirements: a well with a header, then a check, a label and an optional detail per row. */
+.rb-ui .requirement-block{padding:14px!important;border-radius:var(--ui-r-md)!important}
+.rb-ui .requirement-block-head{margin-bottom:14px!important}
 .rb-ui .requirement-block-head strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
-.rb-ui .requirement-row{min-height:40px!important;padding:8px 10px!important;border:0!important;border-radius:var(--ui-r-xs)!important;background:var(--ui-card)!important}
-.rb-ui .requirement-row strong{font-size:var(--ui-fs-caption)!important;font-weight:500!important;color:var(--ui-text)!important}
-.rb-ui .requirement-row small{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-3)!important}
-.rb-ui .requirement-row i{width:20px!important;height:20px!important;font-size:var(--ui-fs-caption)!important;font-weight:700!important;font-style:normal!important;border-radius:50%!important;color:var(--ui-warn)!important;background:rgba(255,184,107,.12)!important}
-.rb-ui .requirement-row.passed i{color:var(--ui-good)!important;background:rgba(100,221,176,.13)!important}
+.rb-ui .requirement-list{gap:14px 16px!important}
+.rb-ui .requirement-row{grid-template-columns:20px minmax(0,1fr)!important;gap:10px!important;align-items:start!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}
+.rb-ui .requirement-row strong{display:block!important;font-size:var(--ui-fs-label)!important;font-weight:600!important;line-height:1.3!important;color:var(--ui-text)!important}
+.rb-ui .requirement-row small{display:block!important;margin-top:1px!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text-3)!important}
+.rb-ui .requirement-row i{width:20px!important;height:20px!important;display:grid!important;place-items:center!important;font-size:var(--ui-fs-micro)!important;font-weight:700!important;font-style:normal!important;border-radius:50%!important;color:var(--ui-warn)!important;background:rgba(255,184,107,.12)!important}
+.rb-ui .requirement-row.passed i{color:var(--ui-on-good)!important;background:var(--ui-good)!important}
 .rb-ui .route-lock{min-height:var(--ui-control-h)!important;margin-top:12px!important;padding:0 14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;font-size:var(--ui-fs-label)!important;font-weight:500!important;color:var(--ui-text-3)!important}
 .rb-ui .route-lock svg{width:16px!important;height:16px!important}
 .rb-ui .evolution-empty strong{font-size:var(--ui-fs-lead)!important}
@@ -569,5 +574,42 @@
 .rb-ui .guest-hero p{font-size:var(--ui-fs-lead)!important;color:#d6e7f5!important}
 .rb-ui .guest-features span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.06em!important;color:#d4e1eb!important}
 .rb-ui .guest-features svg{color:var(--ui-accent)!important}
+
+/* ---- 8. Evolution animation ---------------------------------------------- */
+.rb-ui.evo-fx{
+  position:fixed!important;inset:0!important;z-index:400!important;display:block!important;
+  background:var(--ui-void)!important;cursor:pointer!important;touch-action:manipulation!important;outline:none!important;
+  opacity:1!important;transition:opacity .3s ease!important;
+}
+.rb-ui.evo-fx[data-leaving="true"]{opacity:0!important;pointer-events:none!important}
+.rb-ui.evo-fx>canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
+/* Scan lines over the effect. */
+.rb-ui.evo-fx::after{content:""!important;position:absolute!important;inset:0!important;z-index:1!important;pointer-events:none!important;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px)!important;opacity:.5!important}
+.rb-ui .evo-status{
+  position:absolute!important;left:0!important;right:0!important;z-index:2!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
+  text-align:center!important;font-size:var(--ui-fs-label)!important;font-weight:500!important;letter-spacing:.04em!important;color:var(--ui-text-2)!important;
+  opacity:0!important;transition:opacity .25s ease!important;
+}
+.rb-ui .evo-status[data-visible="true"]{opacity:1!important}
+/* The banner's opacity, transform and pointer events are driven per frame by the animation. */
+.rb-ui .evo-banner{
+  position:absolute!important;left:0!important;right:0!important;bottom:0!important;z-index:2!important;cursor:default!important;
+  padding:0 16px calc(22px + env(safe-area-inset-bottom,0px))!important;
+  display:grid!important;justify-items:center!important;gap:10px!important;text-align:center!important;
+}
+.rb-ui .evo-kicker{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.16em!important;text-transform:uppercase!important;color:var(--ui-warn)!important}
+.rb-ui .evo-name{font-size:var(--ui-fs-display)!important;font-weight:700!important;line-height:1.15!important;letter-spacing:-.01em!important;color:var(--ui-text)!important;text-wrap:balance!important;text-shadow:0 2px 24px rgba(92,214,255,.45)!important}
+.rb-ui .evo-sub{font-size:var(--ui-fs-body)!important;color:var(--ui-text-2)!important}
+.rb-ui .evo-rail{list-style:none!important;margin:2px 0 0!important;padding:0!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:6px!important}
+.rb-ui .evo-rail li{
+  padding:3px 8px!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;
+  font-size:var(--ui-fs-micro)!important;font-weight:700!important;letter-spacing:.1em!important;color:var(--ui-text-3)!important;
+  transition:background .25s ease,color .25s ease,border-color .25s ease!important;
+}
+.rb-ui .evo-rail li[data-state="done"]{border-color:var(--ui-line-accent)!important;color:var(--ui-accent-hi)!important}
+.rb-ui .evo-rail li[data-state="now"]{border-color:var(--ui-warn)!important;background:var(--ui-warn)!important;color:var(--ui-on-warn)!important}
+.rb-ui .evo-banner .ui-btn{width:min(100%,320px)!important;margin-top:6px!important}
+@media(max-height:620px){.rb-ui .evo-sub{display:none!important}}
+@media(prefers-reduced-motion:reduce){.rb-ui.evo-fx,.rb-ui .evo-status,.rb-ui .evo-rail li{transition:none!important}}
 
 }

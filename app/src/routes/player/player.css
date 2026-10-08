@@ -2086,7 +2086,7 @@ button.account-card.account-nav-card{
 .evolution-simple-requirements .requirement-row small{
   font-size:7px;
 }
-@media(max-width:390px){
+@media(max-width:340px){
   .evolution-simple-requirements .requirement-list{grid-template-columns:1fr}
 }
 
