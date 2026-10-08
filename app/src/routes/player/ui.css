@@ -649,6 +649,4 @@
   border-radius:var(--ui-r-md)!important;border:1px solid var(--ui-line)!important;
   background:radial-gradient(ellipse at 50% 70%,rgba(47,134,240,.38),rgba(8,20,42,.9))!important;
 }
-.rb-ui .status-portrait :is(.evolution-model,.asset-viewport,.asset-canvas,.creature-sprite){width:100%!important;height:100%!important}
-.rb-ui .status-portrait .asset-canvas canvas{width:100%!important;height:100%!important;display:block!important}
-.rb-ui .status-portrait .asset-touch{display:none!important}
+.rb-ui .status-portrait .creature-sprite{width:100%!important;height:100%!important;object-fit:contain!important}

@@ -744,7 +744,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head status-sheet-head"><div className="status-portrait"><EvolutionModel evolution={evolution} portrait/></div><div className="status-title"><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
+        <div className="game-sheet-head status-sheet-head"><div className="status-portrait"><CreatureSprite evolution={evolution}/></div><div className="status-title"><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
         <div className="sheet-section-label">Habits & build</div>
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
