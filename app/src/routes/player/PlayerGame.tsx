@@ -102,7 +102,7 @@ export function PlayerGame() {
         </div>
       </ScenePausedContext.Provider>
       <div
-        className="player-panel-backdrop"
+        className="player-panel-backdrop rb-ui"
         hidden={!panel}
         onClick={(event) => {
           if (event.target === event.currentTarget) navigate("/");
@@ -129,7 +129,7 @@ export function PlayerGame() {
               })}
             </nav>
             <button
-              className="player-panel-close"
+              className="ui-close player-panel-close"
               aria-label="Back to companion"
               onClick={() => navigate("/")}
             >

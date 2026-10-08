@@ -1,0 +1,573 @@
+/* ==========================================================================
+   REBYTERS UI — the one visual system for the whole player experience
+   --------------------------------------------------------------------------
+   Everything the player sees (world HUD, side menu, sheets, Lab, Atlas,
+   Account, sign-in, empty and loading states) is skinned from this file.
+
+   How it is wired
+   - Tokens live on :root as --ui-*; change the look there.
+   - The component rules sit in the cascade layer `rebyters-ui` and every
+     declaration carries !important. That is deliberate: important
+     declarations in a layer outrank the important declarations of unlayered
+     CSS, so this file wins over the older stacked rules in player.css without
+     selector tricks. player.css still owns layout (position, grids, sizes of
+     the world); colour, type, radius, surface and control styling belong here.
+   - Scope: any subtree marked .rb-ui (the game shell, the Lab/Atlas/Account
+     panel and the sign-in / wallet dialogs).
+
+   The system
+   - Type     one family (Sora), four weights, seven sizes; nothing under 11px.
+   - Colour   one accent (cyan). Green / amber / rose / violet only ever mean
+              good / warning / danger / special, or one of the four stats.
+   - Surface  HUD glass (floats over the world) -> panel (sheets, dialogs,
+              menu) -> card (rows and tiles) -> well (inset read-only areas).
+   - Radius   8, 12, 16, 20, 26, pill.
+   - Controls primary / secondary / ghost / danger buttons, one close button,
+              one tag, one selected state, one locked state.
+   ========================================================================== */
+:root{
+  --ui-font:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+
+  --ui-fs-micro:11px;   /* kickers, tags, meta */
+  --ui-fs-caption:12px; /* secondary lines */
+  --ui-fs-label:13px;   /* control labels, tile titles */
+  --ui-fs-body:14px;    /* body copy, row titles */
+  --ui-fs-lead:16px;    /* card titles */
+  --ui-fs-title:20px;   /* sheet and section titles */
+  --ui-fs-display:26px; /* page titles */
+
+  --ui-text:#eaf3ff;
+  --ui-text-2:#a9bfd6;
+  --ui-text-3:#7f97b2;
+  --ui-accent:#5cd6ff;
+  --ui-accent-hi:#8fe6ff;
+  --ui-on-accent:#04203c;
+  --ui-good:#64ddb0;
+  --ui-warn:#ffb86b;
+  --ui-bad:#ff8fa3;
+  --ui-special:#b6a7ff;
+
+  --ui-line:rgba(170,224,255,.16);
+  --ui-line-strong:rgba(170,224,255,.30);
+  --ui-line-accent:rgba(92,214,255,.55);
+
+  --ui-r-xs:8px;--ui-r-sm:12px;--ui-r-md:16px;--ui-r-lg:20px;--ui-r-xl:26px;--ui-r-pill:999px;
+
+  --ui-hud:radial-gradient(130% 75% at 8% -8%,rgba(190,232,255,.17),transparent 58%),linear-gradient(155deg,rgba(60,120,182,.30) 0%,rgba(14,40,76,.46) 48%,rgba(6,22,46,.58) 100%);
+  --ui-panel:radial-gradient(120% 60% at 12% 0%,rgba(46,132,196,.22),transparent 60%),linear-gradient(180deg,rgba(9,40,72,.97) 0%,rgba(4,24,48,.985) 52%,rgba(3,16,34,.99) 100%);
+  --ui-card:rgba(140,196,255,.06);
+  --ui-card-hover:rgba(140,196,255,.11);
+  --ui-well:rgba(0,10,28,.34);
+  --ui-selected:linear-gradient(135deg,rgba(40,170,232,.26),rgba(14,84,140,.14));
+  --ui-primary:linear-gradient(180deg,#86e5ff 0%,#4fcdf8 55%,#35b9ee 100%);
+  --ui-scrim:rgba(1,8,20,.62);
+
+  --ui-shadow-panel:0 24px 70px rgba(0,6,20,.55),inset 0 1px 0 rgba(255,255,255,.14);
+  --ui-shadow-hud:0 5px 14px rgba(0,8,24,.20);
+  --ui-shadow-primary:0 8px 22px rgba(40,188,255,.26),inset 0 1px 0 rgba(255,255,255,.55);
+  --ui-focus:0 0 0 2px #04162c,0 0 0 4px #8fe6ff;
+
+  --ui-control-h:48px;
+  --ui-icon:20px;
+}
+
+@layer rebyters-ui{
+
+/* ---- 1. Foundation ------------------------------------------------------- */
+.rb-ui,.rb-ui :is(button,input,select,textarea,a,code,h1,h2,h3,p,small,strong,em,b,span,div,label){font-family:var(--ui-font)!important}
+.rb-ui{color:var(--ui-text)!important;-webkit-font-smoothing:antialiased!important}
+.rb-ui :is(h1,h2,h3,strong,b){font-weight:600!important}
+.rb-ui :is(small,em,label){font-size:var(--ui-fs-micro)!important;font-weight:400!important;font-style:normal!important;line-height:1.35!important}
+.rb-ui small{color:var(--ui-text-2)!important}
+.rb-ui p{color:var(--ui-text-2)!important;font-weight:400!important;line-height:1.5!important}
+.rb-ui h1{font-size:var(--ui-fs-display)!important;line-height:1.15!important;letter-spacing:-.01em!important;color:var(--ui-text)!important}
+.rb-ui h2{font-size:var(--ui-fs-title)!important;line-height:1.2!important;letter-spacing:-.005em!important;color:var(--ui-text)!important}
+.rb-ui :is(button,a,input):focus-visible{outline:none!important;box-shadow:var(--ui-focus)!important}
+.rb-ui svg{flex-shrink:0!important}
+
+/* Kicker: the small uppercase line above every title. */
+.rb-ui :is(.game-sheet-head,.origin-sheet-head,.player-page-head,.section-title,.empty-companion-card)>:is(small,div>small),
+.rb-ui :is(.game-sheet-head,.origin-sheet-head,.section-title)>div>small,
+.rb-ui .auth-kicker,
+.rb-ui :is(.account-card,.trainer-profile-head)>div>small,
+.rb-ui .companion-picker>div>small,
+.rb-ui .evolution-option-copy>small{
+  font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.14em!important;text-transform:uppercase!important;color:var(--ui-accent)!important;line-height:1.2!important;
+}
+/* Section label inside a sheet or page. */
+.rb-ui .sheet-section-label,
+.rb-ui .discovery-stage>h2,
+.rb-ui .lineage-stage-label :is(small,strong),
+.rb-ui .money-label{
+  font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:var(--ui-text-3)!important;line-height:1.2!important;
+}
+.rb-ui .discovery-stage>h2>span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;color:var(--ui-accent)!important;letter-spacing:.04em!important}
+
+/* ---- 2. Buttons ---------------------------------------------------------- */
+.rb-ui .ui-btn{
+  box-sizing:border-box!important;min-height:var(--ui-control-h)!important;height:auto!important;padding:0 18px!important;margin:0!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;
+  border:1px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-md)!important;
+  background:var(--ui-card)!important;color:var(--ui-text)!important;box-shadow:none!important;
+  font-size:var(--ui-fs-body)!important;font-weight:600!important;line-height:1.2!important;letter-spacing:.005em!important;text-decoration:none!important;text-align:center!important;
+  cursor:pointer!important;transition:transform .14s ease,filter .14s ease,background .14s ease,border-color .14s ease!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+.rb-ui .ui-btn>svg{width:var(--ui-icon)!important;height:var(--ui-icon)!important;stroke-width:1.9!important;color:currentColor!important}
+.rb-ui .ui-btn :is(strong,span){color:inherit!important}
+.rb-ui .ui-btn:disabled{opacity:.5!important;cursor:not-allowed!important;filter:saturate(.6)!important}
+.rb-ui .ui-btn:not(:disabled):active{transform:translateY(1px)!important}
+
+.rb-ui .ui-btn-primary{
+  border-color:rgba(200,244,255,.75)!important;background:var(--ui-primary)!important;color:var(--ui-on-accent)!important;
+  box-shadow:var(--ui-shadow-primary)!important;font-weight:700!important;
+}
+.rb-ui .ui-btn-secondary{border-color:var(--ui-line-strong)!important;background:var(--ui-card)!important;color:var(--ui-text)!important}
+.rb-ui .ui-btn-ghost{border-color:transparent!important;background:transparent!important;color:var(--ui-text-2)!important}
+.rb-ui .ui-btn-danger{border-color:rgba(255,143,163,.34)!important;background:rgba(255,143,163,.08)!important;color:var(--ui-bad)!important}
+.rb-ui .ui-btn-sm{min-height:38px!important;padding:0 14px 0 10px!important;border-radius:var(--ui-r-sm)!important;font-size:var(--ui-fs-label)!important;gap:6px!important}
+.rb-ui .ui-btn-sm>svg{width:18px!important;height:18px!important}
+@media(hover:hover){
+  .rb-ui .ui-btn-primary:not(:disabled):hover{filter:brightness(1.07)!important}
+  .rb-ui .ui-btn-secondary:not(:disabled):hover{background:var(--ui-card-hover)!important;border-color:var(--ui-line-accent)!important}
+  .rb-ui .ui-btn-ghost:not(:disabled):hover{color:var(--ui-text)!important;background:var(--ui-card)!important}
+  .rb-ui .ui-btn-danger:not(:disabled):hover{background:rgba(255,143,163,.15)!important}
+}
+/* Rich button: icon, a title with a supporting line, and a chevron. */
+.rb-ui .ui-btn-rich{
+  width:100%!important;min-height:64px!important;padding:10px 16px!important;justify-content:flex-start!important;gap:12px!important;text-align:left!important;
+  display:flex!important;grid-template-columns:none!important;
+}
+.rb-ui .ui-btn-rich>span{flex:1 1 auto!important;min-width:0!important;display:flex!important;flex-direction:column!important;gap:2px!important;padding:0!important;background:transparent!important;width:auto!important;height:auto!important;border-radius:0!important}
+.rb-ui .ui-btn-rich>span:first-child:has(svg){flex:0 0 auto!important;display:grid!important;place-items:center!important;width:40px!important;height:40px!important;border-radius:var(--ui-r-sm)!important;background:rgba(4,32,60,.12)!important}
+.rb-ui .ui-btn-rich strong{font-size:var(--ui-fs-body)!important;font-weight:700!important;line-height:1.25!important;color:var(--ui-on-accent)!important}
+.rb-ui .ui-btn-rich small{font-size:var(--ui-fs-micro)!important;font-weight:500!important;line-height:1.3!important;color:rgba(4,32,60,.72)!important;margin:0!important}
+.rb-ui .ui-btn-rich>svg:last-child{margin-left:auto!important;width:18px!important;height:18px!important;opacity:.7!important}
+
+/* Full-width actions at the foot of a sheet or card. */
+.rb-ui :is(.game-sheet,.origin-sheet,.auth-modal,.evolution-option,.empty-companion-card)>.ui-btn{width:100%!important}
+.rb-ui .game-sheet>.ui-btn+.ui-btn{margin-top:8px!important}
+.rb-ui .den-mint-cta{justify-content:space-between!important;margin-top:14px!important}
+.rb-ui .den-mint-cta>strong{flex:1!important;text-align:left!important;font-size:var(--ui-fs-body)!important;font-weight:700!important}
+.rb-ui .evolve-route-button{margin-top:12px!important}
+.rb-ui .guest-login-button{width:min(78vw,280px)!important;min-height:54px!important;border-radius:var(--ui-r-lg)!important;font-size:var(--ui-fs-lead)!important}
+.rb-ui .account-logout{display:flex!important;justify-content:center!important;padding:8px 0 0!important}
+.rb-ui .account-logout .ui-btn{min-width:160px!important}
+.rb-ui .account-money-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+
+/* The one close button. */
+.rb-ui .ui-close{
+  box-sizing:border-box!important;flex:0 0 auto!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;margin:0!important;
+  display:grid!important;place-items:center!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;
+  background:rgba(255,255,255,.05)!important;color:var(--ui-text-2)!important;box-shadow:none!important;cursor:pointer!important;
+  font-size:0!important;line-height:0!important;transition:background .14s ease,color .14s ease,border-color .14s ease!important;
+}
+.rb-ui .ui-close svg{width:18px!important;height:18px!important;stroke-width:2!important;color:currentColor!important}
+.rb-ui .ui-close:disabled{opacity:.4!important;cursor:not-allowed!important}
+@media(hover:hover){.rb-ui .ui-close:not(:disabled):hover{background:var(--ui-card-hover)!important;color:var(--ui-text)!important;border-color:var(--ui-line-strong)!important}}
+.rb-ui .auth-modal>.ui-close{position:absolute!important;top:16px!important;right:16px!important}
+
+/* Header chips: balance and sign in. */
+.rb-ui .player-head :is(.user-menu-trigger,.header-login-trigger,.wallet-balance-trigger){
+  box-sizing:border-box!important;width:auto!important;height:44px!important;min-height:44px!important;min-width:0!important;max-width:none!important;flex:0 0 auto!important;padding:0 14px!important;gap:9px!important;white-space:nowrap!important;overflow:visible!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  border:1px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-hud)!important;color:var(--ui-text)!important;
+  box-shadow:var(--ui-shadow-hud)!important;font-size:var(--ui-fs-label)!important;font-weight:600!important;
+  -webkit-backdrop-filter:blur(18px) saturate(150%)!important;backdrop-filter:blur(18px) saturate(150%)!important;
+}
+.rb-ui .player-head :is(.user-menu-trigger,.header-login-trigger,.wallet-balance-trigger) span{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .player-head :is(.user-menu-trigger,.header-login-trigger,.wallet-balance-trigger)>svg:first-child{display:block!important;width:18px!important;height:18px!important;color:var(--ui-accent)!important}
+
+/* ---- 3. Tags, notes, feedback ------------------------------------------- */
+.rb-ui .trait-pills{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+.rb-ui .trait-pills>span,
+.rb-ui .section-title>span,
+.rb-ui .origin-pick>b,
+.rb-ui .origin-pick-lock,
+.rb-ui .game-drawer-footer button small{
+  box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;gap:6px!important;min-height:28px!important;height:auto!important;padding:0 12px!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-card)!important;
+  color:var(--ui-text)!important;font-size:var(--ui-fs-caption)!important;font-weight:500!important;line-height:1!important;letter-spacing:0!important;text-transform:none!important;white-space:nowrap!important;
+}
+.rb-ui .origin-pick>b{border-color:var(--ui-line-accent)!important;background:rgba(92,214,255,.14)!important;color:var(--ui-accent)!important;font-weight:600!important}
+.rb-ui :is(.origin-pick-lock,.game-drawer-footer button small,.section-title>span){color:var(--ui-text-3)!important}
+.rb-ui .origin-pick-lock svg{width:13px!important;height:13px!important}
+.rb-ui .game-drawer-footer button small{min-height:22px!important;padding:0 9px!important;font-size:var(--ui-fs-micro)!important;letter-spacing:.08em!important;text-transform:uppercase!important}
+.rb-ui .mint-sheet .origin-pick.available:after{content:none!important;display:none!important}
+
+.rb-ui .ui-note,
+.rb-ui .training-intro,
+.rb-ui .auth-note{
+  margin:12px 0 0!important;padding:0!important;border:0!important;background:transparent!important;border-radius:0!important;
+  font-size:var(--ui-fs-caption)!important;font-weight:400!important;line-height:1.5!important;color:var(--ui-text-2)!important;text-align:left!important;
+}
+.rb-ui .ui-note{text-align:center!important;color:var(--ui-text-3)!important}
+.rb-ui .training-intro.companion-guidance{
+  margin:0 0 14px!important;padding:12px 14px!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-well)!important;
+  font-size:var(--ui-fs-label)!important;color:var(--ui-text)!important;
+}
+.rb-ui :is(.game-sheet-head,.origin-sheet-head)+.training-intro{margin-top:0!important;margin-bottom:14px!important}
+
+.rb-ui :is(.create-error,.interaction-error,.auth-error,.money-status,.create-status,.interaction-status){
+  box-sizing:border-box!important;margin:12px 0 0!important;padding:10px 12px!important;border:1px solid rgba(255,143,163,.32)!important;border-radius:var(--ui-r-sm)!important;
+  background:rgba(255,143,163,.10)!important;color:#ffc6cf!important;box-shadow:none!important;
+  font-size:var(--ui-fs-caption)!important;font-weight:400!important;line-height:1.4!important;text-align:left!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+.rb-ui :is(.create-status,.interaction-status,.money-status.success){border-color:rgba(92,214,255,.30)!important;background:rgba(92,214,255,.09)!important;color:#c9f1ff!important}
+.rb-ui .money-status.success{border-color:rgba(100,221,176,.32)!important;background:rgba(100,221,176,.10)!important;color:#c4f3e1!important}
+.rb-ui .interaction-status{display:flex!important;align-items:center!important;gap:8px!important}
+.rb-ui .interaction-status svg{width:16px!important;height:16px!important;color:var(--ui-accent)!important}
+.rb-ui .game-controls :is(.interaction-error,.interaction-status){margin-top:10px!important;background:rgba(40,12,24,.72)!important;-webkit-backdrop-filter:blur(12px)!important;backdrop-filter:blur(12px)!important}
+.rb-ui .game-controls .interaction-status{background:rgba(6,30,56,.72)!important}
+
+/* ---- 4. World HUD -------------------------------------------------------- */
+.rb-ui :is(.gl-panel,.care-actions>button){
+  border:1px solid var(--ui-line)!important;background:var(--ui-hud)!important;color:var(--ui-text)!important;box-shadow:var(--ui-shadow-hud)!important;
+}
+.rb-ui .care-actions>button{border-radius:var(--ui-r-md)!important}
+.rb-ui .care-actions>button svg{width:22px!important;height:22px!important;stroke-width:1.7!important;color:var(--ui-accent)!important}
+.rb-ui .care-actions>button span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.01em!important;color:var(--ui-text)!important}
+.rb-ui .care-actions>button.recommended-action{border-color:var(--ui-line-accent)!important;background:var(--ui-selected),var(--ui-hud)!important}
+.rb-ui .monster-id{border-radius:var(--ui-r-lg)!important}
+.rb-ui .monster-id-thumb{border-radius:var(--ui-r-sm)!important;border:1px solid var(--ui-line)!important;background:rgba(115,205,255,.10)!important}
+.rb-ui .monster-id-copy>strong{font-size:15px!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .monster-id-level{font-size:var(--ui-fs-micro)!important;font-weight:400!important;color:var(--ui-text-2)!important}
+.rb-ui .monster-id.ready .monster-id-level{color:var(--ui-accent)!important;font-weight:600!important}
+.rb-ui .world-clock{border-radius:var(--ui-r-lg)!important}
+.rb-ui .world-clock strong{font-size:var(--ui-fs-body)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .world-clock small{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-2)!important}
+.rb-ui .monster-speech{border-radius:var(--ui-r-md)!important;font-size:var(--ui-fs-label)!important;font-weight:400!important;line-height:1.4!important;color:var(--ui-text)!important;padding:10px 16px!important}
+.rb-ui .monster-speech.needs-attention{border-color:rgba(255,184,107,.55)!important}
+/* Resting: the world dims as a whole instead of being cut by a black band. */
+.rb-ui .game-rest-overlay{
+  inset:0!important;z-index:2!important;padding:24px!important;gap:10px!important;text-align:center!important;color:var(--ui-text)!important;
+  background:radial-gradient(90% 60% at 50% 45%,rgba(10,34,66,.72),rgba(1,6,16,.94) 78%)!important;
+  -webkit-backdrop-filter:blur(4px)!important;backdrop-filter:blur(4px)!important;
+}
+.rb-ui .game-rest-overlay>svg{width:36px!important;height:36px!important;color:var(--ui-accent)!important;stroke-width:1.6!important}
+.rb-ui .game-rest-overlay strong{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .game-rest-overlay small{font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important;max-width:32ch!important}
+.rb-ui .game-rest-overlay .ui-btn{margin-top:10px!important;min-width:180px!important}
+.rb-ui .atlas-model-preview{margin:0!important;max-width:none!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-lg)!important;background:var(--ui-well)!important}
+.rb-ui .den-loading{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;padding:28px 0!important}
+.rb-ui .den-loading svg,.rb-ui .viewer-loading-indicator svg{width:16px!important;height:16px!important;color:var(--ui-accent)!important}
+.rb-ui .viewer-loading-indicator span{font-size:var(--ui-fs-label)!important;color:var(--ui-text-2)!important}
+.rb-ui :is(.growth-track,.atlas-progress>div,.state-bars i){height:6px!important;min-height:6px!important;border-radius:var(--ui-r-pill)!important;background:rgba(255,255,255,.10)!important;overflow:hidden!important}
+.rb-ui :is(.growth-track,.atlas-progress>div)>i{border-radius:var(--ui-r-pill)!important;background:linear-gradient(90deg,#38a7ff,var(--ui-accent))!important;box-shadow:0 0 8px rgba(74,215,255,.24)!important}
+
+/* ---- 5. Panels: sheets, dialogs, side menu ------------------------------- */
+.rb-ui :is(.game-sheet-backdrop,.origin-sheet-backdrop),
+.rb-ui.auth-modal-backdrop{
+  position:fixed!important;inset:0!important;top:0!important;height:auto!important;width:auto!important;z-index:400!important;box-sizing:border-box!important;
+  display:flex!important;align-items:flex-end!important;justify-content:center!important;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))!important;
+  background:var(--ui-scrim)!important;-webkit-backdrop-filter:blur(6px)!important;backdrop-filter:blur(6px)!important;
+}
+.rb-ui.auth-modal-backdrop{z-index:1000!important}
+.rb-ui :is(.game-sheet,.origin-sheet,.auth-modal){
+  position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;transform:none!important;margin:0!important;box-sizing:border-box!important;
+  width:min(560px,100%)!important;height:auto!important;min-height:0!important;max-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+  display:flex!important;flex-direction:column!important;padding:22px 18px 18px!important;
+  border:1px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-xl)!important;background:var(--ui-panel)!important;color:var(--ui-text)!important;
+  box-shadow:var(--ui-shadow-panel)!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+.rb-ui :is(.game-sheet,.origin-sheet,.auth-modal)>*{flex-shrink:0!important}
+/* Grab handle: drawn once, for every sheet. */
+.rb-ui :is(.game-sheet,.origin-sheet)::before,
+.rb-ui .auth-sheet-handle{
+  content:""!important;display:block!important;position:absolute!important;top:8px!important;left:50%!important;transform:translateX(-50%)!important;margin:0!important;
+  width:40px!important;height:4px!important;border-radius:var(--ui-r-pill)!important;background:rgba(196,221,255,.30)!important;
+}
+.rb-ui :is(.game-sheet,.origin-sheet)::after{content:none!important;display:none!important}
+@media(min-width:900px){
+  .rb-ui :is(.game-sheet-backdrop,.origin-sheet-backdrop),
+  .rb-ui.auth-modal-backdrop{align-items:center!important;padding:32px!important}
+  .rb-ui :is(.game-sheet,.origin-sheet,.auth-modal){padding:24px 24px 22px!important}
+  .rb-ui :is(.game-sheet,.origin-sheet)::before,
+  .rb-ui .auth-sheet-handle{display:none!important}
+  .rb-ui :is(.den-sheet,.status-sheet){width:min(640px,100%)!important}
+  .rb-ui .auth-modal{width:min(460px,100%)!important}
+}
+.rb-ui :is(.game-sheet-head,.origin-sheet-head){
+  display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;margin:0 0 16px!important;padding:0!important;border:0!important;
+}
+.rb-ui :is(.game-sheet-head,.origin-sheet-head)>div{min-width:0!important;display:flex!important;flex-direction:column!important;gap:5px!important}
+.rb-ui :is(.game-sheet-head,.origin-sheet-head) h2{margin:0!important;font-size:var(--ui-fs-title)!important;font-weight:600!important}
+.rb-ui :is(.game-sheet-head,.origin-sheet-head) p{margin:2px 0 0!important;font-size:var(--ui-fs-label)!important}
+.rb-ui .sheet-section-label{margin:18px 0 10px!important}
+.rb-ui .game-sheet-head+.sheet-section-label{margin-top:2px!important}
+
+/* Sign-in and wallet dialogs share the sheet anatomy. */
+.rb-ui .auth-modal>.auth-kicker{display:block!important;margin:0 52px 6px 0!important}
+.rb-ui .auth-modal>h2{margin:0 52px 8px 0!important;font-size:var(--ui-fs-title)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .auth-copy{margin:0 0 16px!important;font-size:var(--ui-fs-label)!important;color:var(--ui-text-2)!important;line-height:1.5!important}
+.rb-ui .auth-or{display:flex!important;align-items:center!important;gap:12px!important;margin:16px 0 12px!important;padding:0!important}
+.rb-ui .auth-or::before,.rb-ui .auth-or::after{content:""!important;flex:1!important;height:1px!important;background:var(--ui-line)!important}
+.rb-ui .auth-or span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:var(--ui-text-3)!important;background:transparent!important;padding:0!important}
+.rb-ui .auth-wallet-list{display:flex!important;flex-direction:column!important;gap:8px!important}
+.rb-ui .money-label{display:block!important;margin:14px 0 8px!important}
+.rb-ui :is(.money-input,.deposit-address){
+  box-sizing:border-box!important;display:block!important;width:100%!important;min-height:var(--ui-control-h)!important;padding:13px 14px!important;margin:0!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-well)!important;color:var(--ui-text)!important;
+  font-size:var(--ui-fs-body)!important;font-weight:500!important;line-height:1.4!important;word-break:break-all!important;outline:none!important;
+}
+.rb-ui .money-input::placeholder{color:var(--ui-text-3)!important}
+.rb-ui .money-input:focus{border-color:var(--ui-line-accent)!important}
+.rb-ui .auth-modal>.ui-btn{margin-top:16px!important}
+
+/* Lab / Atlas / Account dialog. */
+.rb-ui.player-panel-backdrop{
+  padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px))!important;
+  background:var(--ui-scrim)!important;-webkit-backdrop-filter:blur(6px)!important;backdrop-filter:blur(6px)!important;
+}
+.rb-ui .player-panel-dialog{
+  border:1px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-xl)!important;background:var(--ui-panel)!important;color:var(--ui-text)!important;
+  box-shadow:var(--ui-shadow-panel)!important;
+}
+.rb-ui .player-panel-header{gap:10px!important;padding:12px!important;border-bottom:1px solid var(--ui-line)!important;background:transparent!important}
+.rb-ui .player-panel-content{padding:20px 18px 24px!important}
+/* Pages render in normal flow inside the dialog; the dialog owns scrolling and padding. */
+.rb-ui .player-panel-frame .player-main{position:static!important;inset:auto!important;width:100%!important;max-width:none!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;background:transparent!important;display:flex!important;flex-direction:column!important;gap:18px!important}
+@media(min-width:900px){
+  .rb-ui.player-panel-backdrop{padding:32px!important}
+  .rb-ui .player-panel-content{padding:26px 28px 30px!important}
+  .rb-ui .player-panel-header{padding:14px!important}
+}
+
+/* Segmented navigation: panel tabs, bottom bar, header links, atlas families. */
+.rb-ui :is(.player-panel-header nav,.player-nav,.desktop-top-nav,.atlas-family-tabs){gap:6px!important}
+.rb-ui .player-nav{border:1px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-lg)!important;background:var(--ui-hud)!important;box-shadow:var(--ui-shadow-hud)!important;padding:6px!important}
+.rb-ui :is(.player-panel-header nav a,.player-nav a,.desktop-top-nav a,.atlas-family-tabs button){
+  box-sizing:border-box!important;border:1px solid transparent!important;border-radius:var(--ui-r-sm)!important;background:transparent!important;color:var(--ui-text-2)!important;
+  box-shadow:none!important;text-decoration:none!important;font-size:var(--ui-fs-label)!important;font-weight:600!important;
+  transition:background .14s ease,border-color .14s ease,color .14s ease!important;
+}
+.rb-ui :is(.player-panel-header nav a,.desktop-top-nav a){min-height:44px!important;height:44px!important;padding:0 12px!important;gap:8px!important}
+.rb-ui :is(.player-panel-header nav a,.player-nav a,.desktop-top-nav a,.atlas-family-tabs button) :is(span,strong){font-size:var(--ui-fs-label)!important;font-weight:600!important;color:inherit!important}
+.rb-ui .player-nav a span{font-size:var(--ui-fs-micro)!important}
+.rb-ui :is(.player-panel-header nav a,.player-nav a,.desktop-top-nav a,.atlas-family-tabs button)>svg{width:var(--ui-icon)!important;height:var(--ui-icon)!important;stroke-width:1.8!important;color:currentColor!important}
+.rb-ui :is(.player-panel-header nav a,.player-nav a,.desktop-top-nav a).active,
+.rb-ui .atlas-family-tabs button.active{
+  border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important;color:var(--ui-accent)!important;box-shadow:none!important;
+}
+.rb-ui .atlas-family-tabs button{min-height:60px!important;padding:8px 6px!important}
+.rb-ui .atlas-family-tabs button:disabled{opacity:.5!important;color:var(--ui-text-3)!important;background:var(--ui-card)!important;border-color:var(--ui-line)!important}
+.rb-ui .atlas-family-tabs button small{display:none!important}
+@media(hover:hover){
+  .rb-ui :is(.player-panel-header nav a,.player-nav a,.desktop-top-nav a):not(.active):hover{color:var(--ui-text)!important;background:var(--ui-card)!important}
+}
+
+/* Side menu. */
+.rb-ui .game-drawer-backdrop{background:var(--ui-scrim)!important}
+.rb-ui .game-drawer{background:var(--ui-panel)!important;border-right:1px solid var(--ui-line-strong)!important;box-shadow:22px 0 70px rgba(0,4,18,.5)!important}
+.rb-ui .game-drawer-head strong{font-size:var(--ui-fs-title)!important;font-weight:700!important;letter-spacing:.14em!important;color:var(--ui-text)!important}
+.rb-ui .game-drawer-head small{font-size:var(--ui-fs-micro)!important;letter-spacing:.16em!important;color:var(--ui-text-3)!important}
+.rb-ui .game-drawer-head>button{
+  width:40px!important;height:40px!important;margin:-6px -6px 0 0!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;
+  background:rgba(255,255,255,.05)!important;color:var(--ui-text-2)!important;
+}
+.rb-ui .game-drawer-head>button svg{width:18px!important;height:18px!important;stroke-width:2!important}
+.rb-ui .game-drawer button.game-drawer-balance{border-color:var(--ui-line-strong)!important;background:var(--ui-card)!important;border-radius:var(--ui-r-md)!important;color:var(--ui-text)!important}
+.rb-ui .game-drawer button.game-drawer-balance>span{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button){border-radius:var(--ui-r-md)!important;color:var(--ui-text-2)!important}
+.rb-ui .game-drawer :is(.game-drawer-nav a,.game-drawer-nav button,.game-drawer-footer button)>span:not(.den-grid-icon){font-size:var(--ui-fs-body)!important;font-weight:600!important;color:inherit!important}
+.rb-ui .game-drawer .game-drawer-nav a.active{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important;color:var(--ui-accent)!important;box-shadow:inset 2px 0 var(--ui-accent)!important}
+.rb-ui .game-drawer-footer{border-top:1px solid var(--ui-line)!important}
+
+/* ---- 6. Cards ------------------------------------------------------------ */
+/* Row card: icon tile, title, supporting lines, trailing element. */
+.rb-ui :is(.training-grid>button,.food-grid>button,.origin-pick,.auth-wallet-option,.account-nav-card,.companion-picker,.evolution-option,.account-card,.atlas-progress,.empty-companion-card,.empty-side-note,.evolution-empty){
+  box-sizing:border-box!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-card)!important;color:var(--ui-text)!important;
+  box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  transition:background .14s ease,border-color .14s ease!important;
+}
+.rb-ui :is(.companion-picker,.evolution-option,.account-card,.account-nav-card,.atlas-progress,.empty-companion-card,.empty-side-note,.evolution-empty){border-radius:var(--ui-r-lg)!important}
+.rb-ui :is(.training-grid>button,.food-grid>button,.auth-wallet-option){
+  width:100%!important;min-height:64px!important;height:auto!important;padding:11px 14px!important;display:flex!important;align-items:center!important;gap:12px!important;text-align:left!important;cursor:pointer!important;
+}
+.rb-ui :is(.training-grid,.food-grid,.origin-sheet-grid){display:grid!important;gap:8px!important}
+.rb-ui :is(.training-grid>button,.food-grid>button,.auth-wallet-option,.origin-pick)>span:not([class]){flex:1 1 auto!important;min-width:0!important;display:flex!important;flex-direction:column!important;gap:3px!important}
+.rb-ui :is(.training-grid>button,.food-grid>button,.auth-wallet-option,.origin-pick) strong{font-size:var(--ui-fs-body)!important;font-weight:600!important;line-height:1.25!important;color:var(--ui-text)!important}
+.rb-ui :is(.training-grid>button,.food-grid>button,.auth-wallet-option,.origin-pick) small{font-size:var(--ui-fs-caption)!important;font-weight:400!important;line-height:1.35!important;color:var(--ui-text-2)!important}
+.rb-ui .training-grid>button small{color:var(--ui-accent)!important;font-weight:500!important}
+.rb-ui .training-grid>button em{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-3)!important}
+.rb-ui .food-grid>button small.meal-warning{color:var(--ui-warn)!important}
+.rb-ui :is(.training-grid>button,.food-grid>button)>svg:last-child:not(:first-child){width:18px!important;height:18px!important;color:var(--ui-text-3)!important;margin-left:auto!important}
+.rb-ui :is(.training-grid>button,.food-grid>button,.origin-pick.available,.auth-wallet-option):disabled{opacity:.5!important;cursor:not-allowed!important}
+@media(hover:hover){
+  .rb-ui :is(.training-grid>button,.food-grid>button,.origin-pick.available,.auth-wallet-option,.account-nav-card,.discovery-card:not(.locked),.lineage-card.selectable,.den-card:not(.active),.habitat-card:not(:disabled):not(.selected),.companion-picker-row>button:not(.active)):not(:disabled):hover{
+    background:var(--ui-card-hover)!important;border-color:var(--ui-line-accent)!important;
+  }
+}
+/* Icon tile: the same square for every leading icon. */
+.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span,.evolution-timer>span,.evolution-option-art,.empty-orb),
+.rb-ui .food-grid>button>svg:first-child{
+  box-sizing:border-box!important;flex:0 0 auto!important;width:40px!important;height:40px!important;display:grid!important;place-items:center!important;
+  border:1px solid rgba(92,214,255,.20)!important;border-radius:var(--ui-r-sm)!important;background:rgba(92,214,255,.10)!important;color:var(--ui-accent)!important;
+}
+.rb-ui :is(.training-icon,.origin-pick-icon,.trainer-profile-head>span,.evolution-timer>span) svg{width:var(--ui-icon)!important;height:var(--ui-icon)!important;stroke-width:1.8!important;color:var(--ui-accent)!important}
+.rb-ui .food-grid>button>svg:first-child{padding:9px!important;stroke-width:1.8!important}
+.rb-ui :is(.account-card,.empty-side-note)>svg:first-child{
+  box-sizing:border-box!important;flex:0 0 auto!important;width:40px!important;height:40px!important;padding:9px!important;stroke-width:1.8!important;
+  border:1px solid rgba(92,214,255,.20)!important;border-radius:var(--ui-r-sm)!important;background:rgba(92,214,255,.10)!important;color:var(--ui-accent)!important;
+}
+.rb-ui .evolution-option .evolution-option-art{width:56px!important;height:56px!important;border-radius:var(--ui-r-md)!important}
+.rb-ui .evolution-option-art>svg{width:24px!important;height:24px!important;color:var(--ui-text-3)!important}
+.rb-ui .empty-companion-card .empty-orb{width:88px!important;height:88px!important;border-radius:var(--ui-r-xl)!important;margin:0 auto 18px!important}
+.rb-ui .empty-orb svg{width:36px!important;height:36px!important;color:var(--ui-accent)!important}
+.rb-ui .fallback-wallet-mark{width:40px!important;height:40px!important;border-radius:var(--ui-r-sm)!important;font-size:var(--ui-fs-lead)!important;font-weight:700!important}
+.rb-ui .auth-wallet-option img{width:40px!important;height:40px!important;border-radius:var(--ui-r-sm)!important}
+
+/* Origin picker rows. */
+.rb-ui .origin-pick{width:100%!important;min-height:0!important;height:auto!important;padding:14px!important;display:grid!important;grid-template-columns:40px minmax(0,1fr)!important;gap:10px 12px!important;align-items:center!important;text-align:left!important;cursor:pointer!important}
+.rb-ui .origin-pick>:is(b,.origin-pick-lock){grid-column:2!important;justify-self:start!important}
+.rb-ui .origin-pick.locked{opacity:.55!important;cursor:not-allowed!important}
+@media(min-width:900px){
+  .rb-ui :is(.training-grid,.food-grid,.origin-sheet-grid){grid-template-columns:1fr 1fr!important}
+}
+
+/* Tile card: art on top, name and one supporting line. */
+.rb-ui :is(.den-card,.habitat-card,.discovery-card,.lineage-card,.companion-picker-row>button){
+  box-sizing:border-box!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-card)!important;color:var(--ui-text)!important;
+  box-shadow:none!important;transition:background .14s ease,border-color .14s ease!important;
+}
+.rb-ui :is(.den-card,.habitat-card,.discovery-card,.lineage-card,.companion-picker-row>button) :is(strong,span){font-size:var(--ui-fs-label)!important;font-weight:600!important;line-height:1.25!important;color:var(--ui-text)!important}
+.rb-ui :is(.den-card,.habitat-card,.discovery-card,.lineage-card) small{font-size:var(--ui-fs-micro)!important;font-weight:500!important;line-height:1.3!important;color:var(--ui-text-2)!important;letter-spacing:0!important;text-transform:none!important}
+.rb-ui .den-card small{letter-spacing:.1em!important;text-transform:uppercase!important;color:var(--ui-text-3)!important}
+.rb-ui :is(.den-card.active,.habitat-card.selected,.lineage-card.active,.companion-picker-row>button.active){
+  border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important;box-shadow:inset 0 0 0 1px rgba(92,214,255,.25)!important;
+}
+.rb-ui :is(.habitat-card.selected,.lineage-card.active,.discovery-card:not(.locked)) small{color:var(--ui-accent)!important}
+.rb-ui :is(.habitat-card:disabled,.discovery-card.locked,.lineage-card.locked){opacity:.5!important;background:var(--ui-card)!important;cursor:not-allowed!important}
+.rb-ui :is(.discovery-card.locked,.lineage-card.locked) :is(strong,small){color:var(--ui-text-3)!important}
+.rb-ui :is(.discovery-card.locked,.lineage-card.locked)>svg{width:22px!important;height:22px!important;color:var(--ui-text-3)!important}
+.rb-ui .den-card-select{border:0!important;border-radius:var(--ui-r-md)!important;background:transparent!important}
+.rb-ui :is(.den-card-art,.habitat-preview){border-radius:var(--ui-r-sm)!important;border:1px solid var(--ui-line)!important}
+.rb-ui .den-card-art{background:var(--ui-well)!important}
+.rb-ui .den-mint-link{font-size:var(--ui-fs-micro)!important;font-weight:500!important;color:var(--ui-text-3)!important;border-radius:var(--ui-r-xs)!important;text-decoration:none!important}
+.rb-ui .den-mint-link svg{width:12px!important;height:12px!important}
+.rb-ui .den-loading{font-size:var(--ui-fs-label)!important;color:var(--ui-text-2)!important}
+
+/* Status sheet. */
+.rb-ui .state-bars{display:grid!important;gap:8px!important}
+.rb-ui .state-bars>div{
+  box-sizing:border-box!important;min-height:38px!important;padding:0 14px!important;display:grid!important;grid-template-columns:84px minmax(0,1fr) 44px!important;align-items:center!important;gap:12px!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-card)!important;
+}
+.rb-ui .state-bars span{font-size:var(--ui-fs-caption)!important;font-weight:500!important;color:var(--ui-text-2)!important}
+.rb-ui .state-bars strong{font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-text)!important;text-align:right!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .state-bars i>b{display:block!important;height:100%!important;border-radius:var(--ui-r-pill)!important}
+.rb-ui .status-fullness i>b{background:var(--ui-good)!important}
+.rb-ui .status-energy i>b{background:var(--ui-special)!important}
+.rb-ui .status-bond i>b{background:var(--ui-bad)!important}
+.rb-ui .status-discipline i>b{background:var(--ui-warn)!important}
+.rb-ui .sheet-stat-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}
+.rb-ui .sheet-stat-grid>div{
+  box-sizing:border-box!important;min-height:64px!important;padding:10px 6px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;
+  border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-card)!important;
+}
+.rb-ui .sheet-stat-grid small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;color:var(--ui-text-3)!important}
+.rb-ui .sheet-stat-grid strong{font-size:var(--ui-fs-title)!important;font-weight:700!important;line-height:1!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .stat-hp strong{color:var(--ui-good)!important}
+.rb-ui .stat-atk strong{color:var(--ui-warn)!important}
+.rb-ui .stat-def strong{color:var(--ui-accent)!important}
+.rb-ui .stat-spd strong{color:var(--ui-special)!important}
+
+/* ---- 7. Pages inside the dialog ------------------------------------------ */
+.rb-ui .player-page-head{padding:0!important;margin:0!important;display:flex!important;flex-direction:column!important;gap:8px!important}
+.rb-ui .player-page-head h1{margin:0!important;font-size:var(--ui-fs-display)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .player-page-head p{margin:0!important;font-size:var(--ui-fs-body)!important;color:var(--ui-text-2)!important;max-width:60ch!important}
+.rb-ui .section-title{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:12px!important;margin:0 0 12px!important}
+.rb-ui .section-title>div{display:flex!important;flex-direction:column!important;gap:5px!important}
+.rb-ui .section-title h2{margin:0!important;font-size:var(--ui-fs-title)!important;font-weight:600!important}
+
+/* Lab. */
+.rb-ui .companion-picker{padding:14px!important}
+.rb-ui .companion-picker>div:first-child{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important}
+.rb-ui .companion-picker>div>strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text-2)!important}
+.rb-ui .companion-picker-row>button span{font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
+.rb-ui .companion-picker-row>button.active span{color:var(--ui-text)!important}
+.rb-ui .evolution-option{padding:14px!important}
+.rb-ui .evolution-option.unlocked{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important}
+.rb-ui .evolution-option-copy strong{font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .evolution-option-copy p{margin:2px 0 0!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
+.rb-ui :is(.route-readiness,.evolution-timer,.requirement-block,.account-wallet-id,.route-lock){
+  box-sizing:border-box!important;border:1px solid var(--ui-line)!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-well)!important;box-shadow:none!important;
+}
+.rb-ui .route-readiness{padding:9px 12px!important}
+.rb-ui .route-readiness strong{font-size:var(--ui-fs-caption)!important;font-weight:700!important;letter-spacing:.1em!important;color:var(--ui-warn)!important}
+.rb-ui .route-readiness.ready{border-color:var(--ui-line-accent)!important;background:rgba(92,214,255,.09)!important}
+.rb-ui .route-readiness.ready strong{color:var(--ui-accent)!important}
+.rb-ui .route-readiness small,
+.rb-ui .requirement-block-head span{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-3)!important}
+.rb-ui .evolution-timer{padding:10px 12px!important;gap:12px!important}
+.rb-ui .evolution-timer small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;color:var(--ui-text-3)!important}
+.rb-ui .evolution-timer strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .evolution-timer b{font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-accent)!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .requirement-block{padding:12px!important}
+.rb-ui .requirement-block-head{margin-bottom:10px!important}
+.rb-ui .requirement-block-head strong{font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .requirement-row{min-height:40px!important;padding:8px 10px!important;border:0!important;border-radius:var(--ui-r-xs)!important;background:var(--ui-card)!important}
+.rb-ui .requirement-row strong{font-size:var(--ui-fs-caption)!important;font-weight:500!important;color:var(--ui-text)!important}
+.rb-ui .requirement-row small{font-size:var(--ui-fs-micro)!important;color:var(--ui-text-3)!important}
+.rb-ui .requirement-row i{width:20px!important;height:20px!important;font-size:var(--ui-fs-caption)!important;font-weight:700!important;font-style:normal!important;border-radius:50%!important;color:var(--ui-warn)!important;background:rgba(255,184,107,.12)!important}
+.rb-ui .requirement-row.passed i{color:var(--ui-good)!important;background:rgba(100,221,176,.13)!important}
+.rb-ui .route-lock{min-height:var(--ui-control-h)!important;margin-top:12px!important;padding:0 14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;font-size:var(--ui-fs-label)!important;font-weight:500!important;color:var(--ui-text-3)!important}
+.rb-ui .route-lock svg{width:16px!important;height:16px!important}
+.rb-ui .evolution-empty strong{font-size:var(--ui-fs-lead)!important}
+.rb-ui .evolution-empty p{font-size:var(--ui-fs-label)!important}
+
+/* Atlas. */
+.rb-ui .atlas-progress{padding:16px!important}
+.rb-ui .atlas-progress>span{font-size:var(--ui-fs-label)!important;color:var(--ui-text-2)!important}
+.rb-ui .atlas-progress>span strong{font-size:var(--ui-fs-label)!important;font-weight:700!important;color:var(--ui-text)!important}
+.rb-ui .atlas-progress>div{margin-top:12px!important}
+.rb-ui .discovery-stage>h2{display:flex!important;justify-content:space-between!important;align-items:center!important;margin:0 0 10px!important}
+.rb-ui .lineage-stage-label strong{color:var(--ui-text-2)!important}
+.rb-ui .lineage-arrow svg{width:18px!important;height:18px!important;color:var(--ui-text-3)!important}
+
+/* A sheet opened from a page must sit above that page's bottom bar and header. */
+.rb-ui .player-shell>.player-main:has(> :is(.origin-sheet-backdrop,.game-sheet-backdrop)){z-index:200!important}
+
+/* Lineage map: one layout at every width — stage label, its cards, then a connector. */
+.rb-ui .player-lineage-map{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;overflow:visible!important;padding:0!important}
+.rb-ui .lineage-stage{display:block!important;min-width:0!important;position:relative!important}
+.rb-ui .lineage-stage-label{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;min-width:0!important;margin:0 0 10px!important}
+.rb-ui .lineage-stage-label :is(small,strong){display:inline!important}
+.rb-ui .lineage-stage-cards{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(148px,1fr))!important;gap:10px!important;min-width:0!important}
+.rb-ui .lineage-card{min-width:0!important;min-height:124px!important}
+.rb-ui .lineage-arrow{width:100%!important;height:28px!important;display:grid!important;place-items:center!important}
+.rb-ui .lineage-arrow svg{transform:rotate(90deg)!important}
+
+/* Account. */
+.rb-ui .account-card{padding:18px!important}
+.rb-ui :is(.account-card,.trainer-profile-head)>div>:is(strong,h2){display:block!important;margin:5px 0 3px!important;font-size:var(--ui-fs-lead)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui :is(.account-card,.trainer-profile-head)>div>p{margin:0!important;font-size:var(--ui-fs-caption)!important;font-weight:400!important;color:var(--ui-text-2)!important}
+.rb-ui .account-nav-card{padding:16px!important;text-align:left!important;cursor:pointer!important;background:var(--ui-card)!important}
+.rb-ui .account-nav-card>svg:last-child,
+.rb-ui .trainer-profile-head>svg:last-child{width:18px!important;height:18px!important;color:var(--ui-text-3)!important}
+.rb-ui .account-wallet-id{min-height:44px!important;padding:0 14px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
+.rb-ui .account-wallet-id small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.12em!important;color:var(--ui-text-3)!important}
+.rb-ui .account-wallet-id code{font-size:var(--ui-fs-label)!important;font-weight:500!important;color:var(--ui-text)!important;font-variant-numeric:tabular-nums!important}
+
+/* Empty and first-run states. */
+.rb-ui .empty-companion-card{padding:28px 22px!important}
+.rb-ui .empty-companion-card :is(h1,p){margin-left:auto!important;margin-right:auto!important;text-align:center!important}
+.rb-ui .empty-companion-card h1{margin-top:8px!important;margin-bottom:10px!important;font-size:var(--ui-fs-display)!important;font-weight:600!important}
+.rb-ui .empty-companion-card p{margin-top:0!important;margin-bottom:20px!important;font-size:var(--ui-fs-body)!important;color:var(--ui-text-2)!important}
+.rb-ui .empty-side-note{padding:16px!important}
+.rb-ui .empty-side-note strong{font-size:var(--ui-fs-body)!important;font-weight:600!important;color:var(--ui-text)!important}
+.rb-ui .empty-side-note p{margin:4px 0 0!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
+
+/* Brand lockup. */
+.rb-ui .player-logo{font-size:18px!important;font-weight:700!important;letter-spacing:.14em!important;color:var(--ui-text)!important}
+.rb-ui .player-brand small{margin-top:5px!important;font-size:var(--ui-fs-micro)!important;font-weight:400!important;letter-spacing:.16em!important;color:var(--ui-text-3)!important}
+.rb-ui .guest-title strong{font-weight:700!important}
+.rb-ui .guest-title span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.34em!important;color:var(--ui-text-2)!important}
+.rb-ui .guest-hero p{font-size:var(--ui-fs-lead)!important;color:#d6e7f5!important}
+.rb-ui .guest-features span{font-size:var(--ui-fs-micro)!important;font-weight:600!important;letter-spacing:.06em!important;color:#d4e1eb!important}
+.rb-ui .guest-features svg{color:var(--ui-accent)!important}
+
+}

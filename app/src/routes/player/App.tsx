@@ -24,6 +24,7 @@ import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { REBYTER_CONDITION } from "../../lib/rebyters/companions";
 import { RebytersLoginButton, useRebytersAuth } from "../../lib/rebyters/auth";
 import "./player.css";
+import "./ui.css";
 
 const fallbackTree = sampleMammal();
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
@@ -124,7 +125,7 @@ function Nav() {
 function Shell({children,showNav=true}:{children:React.ReactNode;showNav?:boolean}) {
   const embedded = useContext(PlayerPanelContext);
   if (embedded) return <div className="game-frame player-panel-frame">{children}</div>;
-  return <div className="player-bg"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
+  return <div className="player-bg rb-ui"><div className="player-shell game-frame">{children}{showNav&&<Nav/>}</div></div>;
 }
 
 /** Wallet balance as a short label ("1.99 SOL"); plain "SOL" until it is known. */
@@ -416,12 +417,12 @@ function EmptyCompanion({
         ? "Create your first Rebyter and start shaping its evolution through your choices."
         : "Connect a wallet or, later, use passkey onboarding to access your companions."}</p>
       {connected
-        ? <button className="first-companion-cta" onClick={()=>setChoosing(true)}>
+        ? <button className="ui-btn ui-btn-primary ui-btn-rich first-companion-cta" onClick={()=>setChoosing(true)}>
             <Sparkles/>
             <span><strong>Mint your first companion</strong><small>Choose an origin family · 0 SOL creation price</small></span>
             <ChevronRight/>
           </button>
-        : <RebytersLoginButton className="empty-login-button"/>}
+        : <RebytersLoginButton className="ui-btn ui-btn-primary empty-login-button"/>}
       {status&&<div className="create-status">{status}</div>}
       {error&&<div className="create-error">{error}</div>}
     </section>
@@ -476,7 +477,7 @@ function MintCompanionSheet({
     <section className="origin-sheet mint-sheet" onClick={e=>e.stopPropagation()}>
       <div className="origin-sheet-head">
         <div><small>NEW COMPANION</small><h2>Mint another Rebyter</h2><p>Every Rebyter gets unique on-chain DNA. There is no one-companion limit per wallet.</p></div>
-        <button className="origin-sheet-close" disabled={creating} onClick={onClose}>×</button>
+        <button className="ui-close" aria-label="Close" disabled={creating} onClick={onClose}><X/></button>
       </div>
       <div className="origin-sheet-grid">
         {families.map(item=>{const Icon=item.icon;return <button
@@ -635,7 +636,7 @@ export function PlayerHome() {
         <div className="guest-title"><strong>REBYTERS</strong><span>DIGITAL COMPANIONS</span></div>
         <div className="guest-divider"><i/><Sparkles/><i/></div>
         <p>Raise. Evolve. Own.<br/>On Solana.</p>
-        <RebytersLoginButton className="guest-login-button"/>
+        <RebytersLoginButton className="ui-btn ui-btn-primary guest-login-button"/>
       </div>
       <div className="guest-features" aria-label="Rebyters features">
         <div><Heart/><span>RAISE</span></div>
@@ -670,7 +671,7 @@ export function PlayerHome() {
         period={worldClock.period}
         worldTime={worldClock.now}
       />
-      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
+      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button className="ui-btn ui-btn-secondary" disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
 
       <button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
         <span className="monster-id-thumb"><CreatureSprite evolution={evolution}/></span>
@@ -714,7 +715,7 @@ export function PlayerHome() {
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
       <section className="game-sheet status-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="sheet-close-text" onClick={()=>setDetailOpen(false)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>{STAGE_NAMES[evolution.stage]}</small><h2>{evolution.name}</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDetailOpen(false)}><X/></button></div>
         <div className="sheet-section-label">Habits & build</div>
         <div className="trait-pills">
           <span>{rhythmProfile(active.timeInteractions).label}</span>
@@ -744,7 +745,7 @@ export function PlayerHome() {
 
     {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
       <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>ENVIRONMENT</small><h2>Habitats</h2></div><button className="sheet-close-text" onClick={()=>setHabitatOpen(false)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>ENVIRONMENT</small><h2>Habitats</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setHabitatOpen(false)}><X/></button></div>
         <div className="habitat-rail">
           {[
             ["Verdant Meadow","Equipped"],
@@ -762,13 +763,13 @@ export function PlayerHome() {
             <small>{habitat===index?"Equipped":state}</small>
           </button>)}
         </div>
-        <button className="habitat-action" disabled>Environment selection is visual for now</button>
+        <p className="ui-note">Environment selection is visual for now.</p>
       </section>
     </div>}
 
     {denOpen&&<div className="game-sheet-backdrop" onClick={()=>setDenOpen(false)}>
       <section className="game-sheet den-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button className="sheet-close-text" onClick={()=>setDenOpen(false)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDenOpen(false)}><X/></button></div>
         {player.loading&&!player.ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
           {owned.map((item,index)=>{
             const form=tree.evolutions.find(e=>e.id===item.evolutionId);
@@ -786,13 +787,13 @@ export function PlayerHome() {
             </article>;
           })}
         </div>}
-        <button className="den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
+        <button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
       </section>
     </div>}
 
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
       <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}><X/></button></div>
         <p className="training-intro companion-guidance" role="status">{guidance?.training} Energy: {active.energy}% · Fullness: {active.fullness}%.</p>
         <div className="training-grid">
           <button disabled={!!player.interactingMint} onClick={()=>void interact("train",0).then(()=>{setTraining(false);setVisualAction("train-power");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>{trainingGains(guidance?.tier??0,[1,3,0,0])}</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
@@ -807,7 +808,7 @@ export function PlayerHome() {
 
     {feeding&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setFeeding(false)}>
       <section className="game-sheet food-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="sheet-close-text" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}><X/></button></div>
         <p className="training-intro">Fullness: {active.fullness}% · Feed only what your companion needs.</p>
         <div className="food-grid">
           {[
@@ -826,10 +827,10 @@ export function PlayerHome() {
 
     {actionWarning&&<div className="game-sheet-backdrop" onClick={()=>setActionWarning(null)}>
       <section className="game-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>COMPANION NEEDS</small><h2>Recover first</h2></div><button className="sheet-close-text" onClick={()=>setActionWarning(null)}>Close</button></div>
+        <div className="game-sheet-head"><div><small>COMPANION NEEDS</small><h2>Recover first</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setActionWarning(null)}><X/></button></div>
         <p className="training-intro companion-guidance">{actionWarning.message} You can continue, but this action may not help recovery.</p>
-        <button className="den-mint-cta compact" onClick={()=>setActionWarning(null)}>Back to companion</button>
-        <button className="sheet-close-text" onClick={()=>{const action=actionWarning.action;setActionWarning(null);void interact(action).then(()=>setVisualAction(action==="play"||action==="care"?"touch":action)).catch(()=>undefined)}}>Continue anyway</button>
+        <button className="ui-btn ui-btn-primary" onClick={()=>setActionWarning(null)}>Back to companion</button>
+        <button className="ui-btn ui-btn-ghost" onClick={()=>{const action=actionWarning.action;setActionWarning(null);void interact(action).then(()=>setVisualAction(action==="play"||action==="care"?"touch":action)).catch(()=>undefined)}}>Continue anyway</button>
       </section>
     </div>}
 
@@ -857,8 +858,8 @@ export function PlayerLab() {
     <div className="player-page-head"><small>EVOLUTION LAB</small><h1>No Rebyter selected</h1><p>{connected?"Mint a companion before the Lab can evaluate evolution routes.":"Login to analyze the evolution routes of your companions."}</p></div>
     <div className="lab-empty-spacer"/>
     {connected
-      ? <button className="lab-bottom-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Mint a Rebyter</strong><small>Start from the Home viewer</small></span><ChevronRight/></button>
-      : <RebytersLoginButton className="lab-bottom-cta login-cta"/>}
+      ? <button className="ui-btn ui-btn-primary ui-btn-rich lab-bottom-cta" onClick={()=>navigate("/")}><ShoppingBag/><span><strong>Mint a Rebyter</strong><small>Start from the Home viewer</small></span><ChevronRight/></button>
+      : <RebytersLoginButton className="ui-btn ui-btn-primary lab-bottom-cta login-cta"/>}
   </main></Shell>;
   const evolution=tree.evolutions.find(e=>e.id===active.evolutionId);
   if(!evolution) return <Shell><Header/><main className="player-main"><div className="create-error">Current evolution is missing from the active atlas.</div></main></Shell>;
@@ -971,7 +972,7 @@ export function PlayerLab() {
             </div>
           </section>
 
-          {result.eligible?<button className="evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
+          {result.eligible?<button className="ui-btn ui-btn-primary evolve-route-button" disabled={!!player.interactingMint} onClick={()=>void player.evolve(active.mint,evolution.id,target.id,tree).catch(()=>undefined)}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
         </article>
       })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}
@@ -986,7 +987,7 @@ function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evol
   const lineage=fullEvolutionLineage(tree,evolution.id);
   const grouped=STAGE_NAMES.map((label,stage)=>({label,stage,items:lineage.filter(e=>e.stage===stage)})).filter(x=>x.items.length);
   return <>
-    <button className="atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
+    <button className="ui-btn ui-btn-secondary ui-btn-sm atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
     <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Your discovered branch stays visible. Unknown forms remain hidden until one of your Rebyters actually reaches them.</p></div>
     {modelUriFor(evolution)&&<div className="atlas-model-preview"><EvolutionModel evolution={evolution}/></div>}
     <div className="player-lineage-map">
@@ -1018,8 +1019,14 @@ export function PlayerAtlas() {
   const [selectedId,setSelectedId]=useState<number|null>(null);
   const stages=useMemo(()=>[0,1,2,3,4,5].map(stage=>({stage,items:tree.evolutions.filter(e=>e.stage===stage)})),[tree]);
   const selected=selectedId===null?undefined:tree.evolutions.find(e=>e.id===selectedId);
-  if (selected) return <Shell><Header/><main className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} onSelect={setSelectedId} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
-  return <Shell><Header/><main className="player-main atlas-player">
+  // Moving between the atlas and a lineage is a page change: start it at the top.
+  const page=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    const scroller=page.current?.closest(".player-panel-content")??page.current;
+    scroller?.scrollTo({top:0});
+  },[selectedId]);
+  if (selected) return <Shell><Header/><main ref={page} className="player-main atlas-player"><AtlasLineage evolution={selected} onBack={()=>setSelectedId(null)} onSelect={setSelectedId} tree={tree} discoveredIds={ownedEvolutionIds}/></main></Shell>;
+  return <Shell><Header/><main ref={page} className="player-main atlas-player">
     <section className="atlas-family-dock"><div className="atlas-family-tabs" aria-label="Evolution families">
       <button className="active"><Shield/><span><strong>Mammal</strong><small>Active atlas</small></span></button>
       <button disabled><Droplets/><span><strong>Amphibian</strong><small>Locked</small></span><LockKeyhole/></button>
@@ -1101,10 +1108,10 @@ export function PlayerAccount() {
       </div>
       {wallet.connected
         ? <div className="account-wallet-id"><small>SOLANA ADDRESS</small><code title={address}>{shortAddress}</code></div>
-        : <RebytersLoginButton className="account-login-button"/>}
+        : <RebytersLoginButton className="ui-btn ui-btn-primary account-login-button"/>}
       {wallet.kind==="passkey"&&<div className="account-money-actions">
-        <button onClick={()=>setMoneySheet("deposit")}><Copy/> Deposit</button>
-        <button onClick={()=>{setWithdrawStatus("");setMoneySheet("withdraw")}}><Send/> Withdraw</button>
+        <button className="ui-btn ui-btn-secondary" onClick={()=>setMoneySheet("deposit")}><Copy/> Deposit</button>
+        <button className="ui-btn ui-btn-secondary" onClick={()=>{setWithdrawStatus("");setMoneySheet("withdraw")}}><Send/> Withdraw</button>
       </div>}
     </section>
 
@@ -1118,20 +1125,20 @@ export function PlayerAccount() {
     </div>
 
     {wallet.connected&&<div className="account-logout">
-      <button onClick={()=>void logOut()}>Log out</button>
+      <button className="ui-btn ui-btn-danger" onClick={()=>void logOut()}>Log out</button>
     </div>}
 
-    {moneySheet&&<div className="auth-modal-backdrop money-modal-backdrop" onClick={()=>!sending&&setMoneySheet(null)}>
+    {moneySheet&&<div className="auth-modal-backdrop money-modal-backdrop rb-ui" onClick={()=>!sending&&setMoneySheet(null)}>
       <section className="auth-modal money-modal" onClick={e=>e.stopPropagation()}>
         <div className="auth-sheet-handle"/>
-        <button className="auth-close" disabled={sending} onClick={()=>setMoneySheet(null)}>×</button>
+        <button className="ui-close auth-close" aria-label="Close" disabled={sending} onClick={()=>setMoneySheet(null)}><X/></button>
         {moneySheet==="deposit"?<>
           <small className="auth-kicker">RECEIVE SOL</small>
           <h2>Deposit</h2>
           <p className="auth-copy">Send SOL on Solana devnet to your Rebyters passkey address.</p>
           <label className="money-label">Your Solana deposit address</label>
           <code className="deposit-address">{address}</code>
-          <button className="money-primary" onClick={()=>void copyAddress()}><Copy/> Copy address</button>
+          <button className="ui-btn ui-btn-primary money-primary" onClick={()=>void copyAddress()}><Copy/> Copy address</button>
           <p className="auth-note">Only send assets on the Solana network. Keep enough SOL available for transaction fees.</p>
         </>:<>
           <small className="auth-kicker">SEND SOL</small>
@@ -1142,7 +1149,7 @@ export function PlayerAccount() {
           <label className="money-label">Amount</label>
           <input className="money-input" value={withdrawAmount} onChange={e=>setWithdrawAmount(e.target.value)} placeholder="0.00" inputMode="decimal"/>
           <p className="auth-note">Keep a little SOL for network fees.</p>
-          <button className="money-primary" disabled={sending} onClick={()=>void withdraw()}><Send/> {sending?"Sending…":"Send SOL"}</button>
+          <button className="ui-btn ui-btn-primary money-primary" disabled={sending} onClick={()=>void withdraw()}><Send/> {sending?"Sending…":"Send SOL"}</button>
           {withdrawStatus&&<p className={withdrawStatus.startsWith("Sent")?"money-status success":"money-status"}>{withdrawStatus}</p>}
         </>}
       </section>
@@ -1188,10 +1195,10 @@ export function PlayerAcquire() {
       <dl><div><dt>Creation price</dt><dd>0 SOL</dd></div><div><dt>Token standard</dt><dd>Token-2022 · 1/1</dd></div><div><dt>DNA</dt><dd>Compact 50-byte DNA</dd></div><div><dt>Base state</dt><dd>Ready to train</dd></div></dl>
       {!wallet.connected
         ? <RebytersLoginButton className="create-rebyter-cta login-create-cta"/>
-        : <button className="create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
+        : <button className="ui-btn ui-btn-primary ui-btn-rich create-rebyter-cta" disabled={player.creating} onClick={()=>void create()}><Dna/><span><strong>{player.creating?"Creating Mammal…":"Create Mammal"}</strong><small>0 SOL creation price · network rent/gas still applies</small></span><ChevronRight/></button>}
       {player.status&&<div className="create-status">{player.status}</div>}
       {player.error&&<div className="create-error">{player.error}</div>}
-      <button className="text-back" onClick={()=>navigate("/")}><ChevronLeft/> Back home</button>
+      <button className="ui-btn ui-btn-ghost text-back" onClick={()=>navigate("/")}><ChevronLeft/> Back home</button>
     </section>
   </main></Shell>;
 }

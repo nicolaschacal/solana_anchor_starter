@@ -132,15 +132,15 @@ function RebytersLoginModal(){
     finally{setBusy(false)}
   }
 
-  return <div className="auth-modal-backdrop" onClick={()=>!busy&&auth.closeLogin()}>
+  return <div className="auth-modal-backdrop rb-ui" onClick={()=>!busy&&auth.closeLogin()}>
     <section className="auth-modal" role="dialog" aria-modal="true" aria-label="Sign in to Rebyters" onClick={e=>e.stopPropagation()}>
       <div className="auth-sheet-handle"/>
-      <button className="auth-close" onClick={auth.closeLogin} disabled={busy} aria-label="Close"><X/></button>
+      <button className="ui-close auth-close" onClick={auth.closeLogin} disabled={busy} aria-label="Close"><X/></button>
       <small className="auth-kicker">SECURE ACCESS</small>
       <h2>Sign in</h2>
       <p className="auth-copy">Use a passkey for a walletless experience, or connect any Solana wallet detected on this device.</p>
 
-      <button className="auth-passkey" onClick={()=>void passkey()} disabled={busy||!passkeysSupported()}>
+      <button className="ui-btn ui-btn-primary ui-btn-rich auth-passkey" onClick={()=>void passkey()} disabled={busy||!passkeysSupported()}>
         <span><KeyRound/></span>
         <span><strong>{busy?"Waiting for passkey…":"Sign in with passkey"}</strong><small>Face ID, Touch ID or your device passkey</small></span>
         <ShieldCheck/>
