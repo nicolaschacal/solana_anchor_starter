@@ -12,6 +12,7 @@ import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
   Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
+  Bandage, CircleAlert, MapPin, Thermometer, Utensils,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -374,6 +375,28 @@ function evolutionRequirementStatus(
 }
 
 /** 45 → "45 min", 130 → "2h 10m". */
+/** What the companion shows in its speech bubble: an icon instead of a sentence. */
+type Emote="love"|"joy"|"food"|"sleep"|"sick"|"hurt"|"full"|"train"|"place"|"alert";
+const EMOTES:Record<Emote,{Icon:typeof Heart;warn:boolean}>={
+  love:{Icon:Heart,warn:false},
+  joy:{Icon:Sparkles,warn:false},
+  food:{Icon:Apple,warn:true},
+  sleep:{Icon:MoonStar,warn:true},
+  sick:{Icon:Thermometer,warn:true},
+  hurt:{Icon:Bandage,warn:true},
+  full:{Icon:Utensils,warn:true},
+  train:{Icon:Dumbbell,warn:false},
+  place:{Icon:MapPin,warn:false},
+  alert:{Icon:CircleAlert,warn:true},
+};
+/** The emote for what the companion needs right now, from the care guidance. */
+function needEmote(state:OwnedRebyter,guidance:ReturnType<typeof careGuidance>):Emote|null{
+  if(!guidance.message)return null;
+  if(guidance.recommended==="feed")return "food";
+  if(guidance.recommended==="rest")return "sleep";
+  if(guidance.recommended==="care")return state.condition&REBYTER_CONDITION.sick?"sick":"hurt";
+  return "full";
+}
 function formatMinutes(total:number) {
   const minutes=Math.max(0,Math.ceil(total));
   return minutes<60?`${minutes} min`:`${Math.floor(minutes/60)}h ${String(minutes%60).padStart(2,"0")}m`;
@@ -551,9 +574,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [drawerOpen,setDrawerOpen]=useState(false);
   const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
   const [habitat,setHabitat]=useState(0);
-  const [speech,setSpeech]=useState({text:"",sequence:0});
+  const [speech,setSpeech]=useState<{text:string;emote:Emote;sequence:number}>({text:"",emote:"love",sequence:0});
   const [speechVisible,setSpeechVisible]=useState(false);
-  const setReaction=(text:string)=>setSpeech(previous=>({text,sequence:previous.sequence+1}));
+  const setReaction=(text:string,emote:Emote="joy")=>setSpeech(previous=>({text,emote,sequence:previous.sequence+1}));
   useEffect(()=>{
     if(!speech.text)return;
     setSpeechVisible(true);
@@ -600,10 +623,11 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     const remaining=active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured);
     const result=cured.length?`Recovered from ${cured.join(" and ")}. `:"";
     const hint=remaining?`Still ${[active.condition&REBYTER_CONDITION.sick?"sick":"",active.condition&REBYTER_CONDITION.injured?"injured":""].filter(Boolean).join(" and ")}. ${careGuidance(active).message}`:"";
-    if(completed.action==="care"||completed.action==="rest")setReaction(result+hint|| (completed.action==="rest"?"Energy recovered.":"Care complete. Bond updated."));
-    else if(completed.action==="train")setReaction(active.hp+active.atk+active.def+active.spd>completed.stats?"Training complete. Stats improved.":"No stat gains. "+careGuidance(active).training);
-    else if(completed.action==="feed")setReaction(active.condition&REBYTER_CONDITION.overfed?"Meal complete. Now overfed — wait before feeding again.":"Meal complete. Fullness increased.");
-    else setReaction(careGuidance(active).message||"Play complete.");
+    const need=needEmote(active,careGuidance(active));
+    if(completed.action==="care"||completed.action==="rest")setReaction(result+hint|| (completed.action==="rest"?"Energy recovered.":"Care complete. Bond updated."),remaining?(need??"alert"):completed.action==="care"?"love":"joy");
+    else if(completed.action==="train"){const gained=active.hp+active.atk+active.def+active.spd>completed.stats;setReaction(gained?"Training complete. Stats improved.":"No stat gains. "+careGuidance(active).training,gained?"train":(need??"sleep"));}
+    else if(completed.action==="feed"){const overfed=!!(active.condition&REBYTER_CONDITION.overfed);setReaction(overfed?"Meal complete. Now overfed — wait before feeding again.":"Meal complete. Fullness increased.",overfed?"full":"food");}
+    else setReaction(careGuidance(active).message||"Play complete.",need??"joy");
     setCompleted(null);
   },[completed,active]);
 
@@ -613,12 +637,12 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     try{
       await player.interact(active.mint,action,option);
       setCompleted(before);
-    }catch{setReaction("Action failed. Please check the error below.");throw new Error("Interaction failed");}
+    }catch{setReaction("Action failed. Please check the error below.","alert");throw new Error("Interaction failed");}
   }
 
   useEffect(()=>{
     if(!active?.mint)return;
-    const showAmbient=()=>setReaction(needMessage||"Your companion is watching you.");
+    const showAmbient=()=>setReaction(needMessage||"Your companion is watching you.",(guidance?needEmote(active,guidance):null)??"love");
     if(!completed)showAmbient();
     const timer=window.setInterval(showAmbient,30000);
     return()=>window.clearInterval(timer);
@@ -723,7 +747,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         </div>
       </div>
 
-      <div className={`monster-speech gl-panel${speechVisible?" is-visible":""}${needMessage&&speech.text===needMessage?" needs-attention":""}`} role="status" aria-live="polite" aria-hidden={!speechVisible}>{speech.text}</div>
+      <div className={`monster-speech gl-panel${speechVisible?" is-visible":""}${EMOTES[speech.emote].warn?" needs-attention":""}`} role="status" aria-live="polite" aria-label={speech.text} title={speech.text} aria-hidden={!speechVisible} key={speech.sequence}>{(()=>{const {Icon}=EMOTES[speech.emote];return <Icon aria-hidden="true"/>;})()}</div>
 
       <div className="game-controls">
         <div className="care-actions">
@@ -781,7 +805,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             key={name}
             className={`habitat-card habitat-tone-${index}${habitat===index?" selected":""}`}
             disabled={state==="Locked"}
-            onClick={()=>{setHabitat(index);setReaction(`${name} selected.`)}}
+            onClick={()=>{setHabitat(index);setReaction(`${name} selected.`,"place")}}
           >
             <span className="habitat-preview"><Mountain/></span>
             <strong>{name}</strong>
