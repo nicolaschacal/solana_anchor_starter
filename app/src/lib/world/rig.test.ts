@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LIMITS, WorldRig, angleDelta } from "./rig";
+import { FOCUS, LIMITS, WorldRig, angleDelta } from "./rig";
 
 const run = (rig: WorldRig, seconds: number, dt = 0.05) => {
   for (let t = 0; t < seconds; t += dt) rig.update(dt);
@@ -84,5 +84,37 @@ describe("world camera", () => {
 
   it("takes the short way round", () => {
     expect(angleDelta(0.1, Math.PI * 2 - 0.1)).toBeCloseTo(-0.2);
+  });
+
+  it("focus: comes close to the rebyter, keeps it centred, and stays low", () => {
+    const rig = make();
+    rig.setFocus(true, { x: 1, z: -2 }, 0.9, 1.2);
+    run(rig, 5);
+    expect(rig.mode).toBe("focus");
+    expect(rig.cur.x).toBeCloseTo(1, 1);
+    expect(rig.cur.z).toBeCloseTo(-2, 1);
+    expect(rig.cur.dist).toBeLessThan(8);
+    expect(rig.cur.pitch).toBeCloseTo(FOCUS.pitch, 1);
+    rig.trackFocus({ x: 2, z: -1 }, 0.9);
+    run(rig, 5);
+    expect(rig.cur.x).toBeCloseTo(2, 1);
+    rig.orbit(0, 50);
+    run(rig, 4);
+    expect(rig.cur.pitch).toBeLessThanOrEqual(FOCUS.maxPitch + 1e-6);
+    for (let n = 0; n < 40; n++) rig.zoom(0.6);
+    run(rig, 4);
+    expect(rig.cur.dist).toBeGreaterThanOrEqual(FOCUS.minDist - 1e-6);
+  });
+
+  it("focus does not tour, and leaving it returns to the regular view", () => {
+    const rig = make();
+    rig.setFocus(true, { x: 0, z: 0 });
+    run(rig, 30);
+    expect(rig.isTouring).toBe(false);
+    rig.setFocus(false);
+    run(rig, 5);
+    expect(rig.mode).toBe("free");
+    expect(rig.cur.pitch).toBeGreaterThan(0.5);
+    expect(rig.cur.dist).toBeGreaterThan(5);
   });
 });

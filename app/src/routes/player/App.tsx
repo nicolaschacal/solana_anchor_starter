@@ -543,7 +543,13 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const { owned, tree, loading, error } = player;
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const [minting,setMinting]=useState(false);
-  const [scene,setScene]=useState<"world"|"companion">("world");
+  const [focusMint,setFocusMint]=useState<string|null>(null);
+  useEffect(()=>{
+    if(!focusMint)return;
+    const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape")setFocusMint(null)};
+    window.addEventListener("keydown",onKey);
+    return ()=>window.removeEventListener("keydown",onKey);
+  },[focusMint]);
   const authForWorld=useRebytersAuth();
   const { connection:worldConnection }=useConnection();
   const worldKey=`rebyters:world:${worldConnection.rpcEndpoint}:${authForWorld.publicKey?.toBase58()??"guest"}`;
@@ -624,7 +630,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     if(!form)return [];
     return [{mint:item.mint,evolution:form,emote:needEmote(item,careGuidance(item)),happy:moodProfile(item)==="Happy"}];
   }),[owned,tree]);
-  const worldView=worldEnabled&&scene==="world";
+  const worldView=worldEnabled;
 
   const stageTimer=(()=>{
     if(!active||!evolution||!tree.balance||!evolution.paths.length) return null;
@@ -685,6 +691,35 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     onCreate={(familyId)=>{void mintCompanion(familyId).catch(()=>undefined)}}
   /></Shell>;
 
+  const restOverlay=active&&evolution&&resting?(<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button className="ui-btn ui-btn-secondary" disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>):null;
+  const idChip=active&&evolution?(<button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
+        <span className="monster-id-thumb"><CreatureSprite evolution={evolution}/></span>
+        <div className="monster-id-copy">
+          <strong>{evolution.name}</strong>
+          <span className="monster-id-level">
+            {growthReady
+              ?"Ready to evolve!"
+              :`Level ${active.level} - ${evolution.stage===0?"Bit":STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}`}
+          </span>
+          <div
+            className="growth-track monster-id-growth"
+            aria-label={`Growth ${Math.round(growthProgress)}%`}
+          >
+            <i style={{width:`${growthProgress}%`}}/>
+          </div>
+        </div>
+      </button>):null;
+  const careControls=active?(<div className="game-controls">
+        <div className="care-actions">
+          <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span>{guidance?.recommended==="feed"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
+          <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+          <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
+        </div>
+        {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
+        {player.error&&<div className="interaction-error">{player.error}</div>}
+      </div>):null;
   const clockHud=(
       <div className="monster-hud-right">
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
@@ -702,10 +737,19 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             creatures={worldCreatures}
             storageKey={worldKey}
             period={worldClock.period}
-            onSelect={mint=>{setActiveMint(mint);setScene("companion")}}
+            onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
+            focusMint={focusMint}
+            action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
+            onActionComplete={()=>setVisualAction("idle")}
           />
         </Suspense>
         {clockHud}
+        {focusMint&&active?.mint===focusMint&&<>
+          {restOverlay}
+          {idChip}
+          <button className="world-back hud-square gl-panel" onClick={()=>setFocusMint(null)} aria-label="Back to the world" title="Back to the world"><Mountain/></button>
+          <div className="world-care">{careControls}</div>
+        </>}
       </section>
       :
     <section className={`game-viewer game-world habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
@@ -720,42 +764,16 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         period={worldClock.period}
         worldTime={worldClock.now}
       />
-      {resting&&<div className="game-rest-overlay" role="status"><MoonStar/><strong>{evolution.name} is resting</strong><small>{restPending?"Confirming rest…":guidance?.message||"Energy recovered. Ready when you are."}</small><button className="ui-btn ui-btn-secondary" disabled={restPending} onClick={()=>setResting(false)}>Turn lights on</button></div>}
+      {restOverlay}
 
-      <button className={`monster-id gl-panel${growthReady?" ready":""}`} onClick={()=>setDetailOpen(true)}>
-        <span className="monster-id-thumb"><CreatureSprite evolution={evolution}/></span>
-        <div className="monster-id-copy">
-          <strong>{evolution.name}</strong>
-          <span className="monster-id-level">
-            {growthReady
-              ?"Ready to evolve!"
-              :`Level ${active.level} - ${evolution.stage===0?"Bit":STAGE_NAMES[evolution.stage].charAt(0)+STAGE_NAMES[evolution.stage].slice(1).toLowerCase()}`}
-          </span>
-          <div
-            className="growth-track monster-id-growth"
-            aria-label={`Growth ${Math.round(growthProgress)}%`}
-          >
-            <i style={{width:`${growthProgress}%`}}/>
-          </div>
-        </div>
-      </button>
+      {idChip}
 
       {clockHud}
-      {worldEnabled&&<button className="world-back hud-square gl-panel" onClick={()=>setScene("world")} aria-label="Back to the world" title="Back to the world"><Mountain/></button>}
+      
 
       <div ref={bubbleRef} className={`monster-speech gl-panel${bubbleVisible?" is-visible":""}${EMOTES[emote].need?" needs-attention":""}`} role="status" aria-live="polite" aria-label={EMOTES[emote].label} aria-hidden={!bubbleVisible} key={emote}>{(()=>{const {Icon,text}=EMOTES[emote];return Icon?<Icon aria-hidden="true"/>:<b aria-hidden="true">{text}</b>;})()}</div>
 
-      <div className="game-controls">
-        <div className="care-actions">
-          <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span>{guidance?.recommended==="feed"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
-          <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
-          <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
-        </div>
-        {player.interactingMint===active.mint&&<div className="interaction-status"><Sparkles/> Updating on-chain DNA…</div>}
-        {player.error&&<div className="interaction-error">{player.error}</div>}
-      </div>
+      {careControls}
     </section>}
 
     {detailOpen&&<div className="game-sheet-backdrop" onClick={()=>setDetailOpen(false)}>
@@ -813,7 +831,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             if(!form) return null;
             const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
             return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===active.mint?" active":""}`}>
-              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setScene("companion");setDenOpen(false)}}>
+              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setFocusMint(item.mint);setDenOpen(false)}}>
                 <div className="den-card-art"><CreatureSprite evolution={form}/></div>
                 <strong>{form.name}</strong>
                 <small>{STAGE_NAMES[form.stage]}</small>

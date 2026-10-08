@@ -14,6 +14,8 @@ export type Spot = { x: number; z: number };
 export const FOV = 42;
 
 export const LIMITS = { minPitch: 0.24, maxPitch: 1.18, minDist: 3.2, topPitch: 1.5 } as const;
+/** Limits while one rebyter is the protagonist: a close, low camera that can swing around it. */
+export const FOCUS = { minPitch: 0.08, maxPitch: 0.6, minDist: 2.6, maxDist: 7.5, pitch: 0.24 } as const;
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const TAU = Math.PI * 2;
@@ -32,7 +34,7 @@ const IDLE_BEFORE_TOUR = 7;
 const SHOT_SECONDS = 7;
 
 export class WorldRig {
-  mode: "free" | "top" = "free";
+  mode: "free" | "top" | "focus" = "free";
   cur: Pose;
   goal: Pose;
   aspect = 1;
@@ -43,6 +45,9 @@ export class WorldRig {
   private holdUntil = 0;
   private time = 0;
   private zoomed = false;
+  private focusZoomed = false;
+  private focusSpot: Spot = { x: 0, z: 0 };
+  private focusHeight = 0.9;
   private aspectKnown = false;
 
   constructor(
@@ -85,14 +90,20 @@ export class WorldRig {
     }
   }
   orbit(dYaw: number, dPitch: number) {
-    if (this.mode !== "free") return;
+    if (this.mode === "top") return;
     this.interrupt();
+    const [lo, hi] = this.mode === "focus" ? [FOCUS.minPitch, FOCUS.maxPitch] : [LIMITS.minPitch, LIMITS.maxPitch];
     this.goal.yaw += dYaw;
-    this.goal.pitch = clamp(this.goal.pitch + dPitch, LIMITS.minPitch, LIMITS.maxPitch);
+    this.goal.pitch = clamp(this.goal.pitch + dPitch, lo, hi);
   }
   zoom(factor: number) {
-    if (this.mode !== "free") return;
+    if (this.mode === "top") return;
     this.interrupt();
+    if (this.mode === "focus") {
+      this.focusZoomed = true;
+      this.goal.dist = clamp(this.goal.dist * factor, FOCUS.minDist, FOCUS.maxDist);
+      return;
+    }
     this.zoomed = true;
     this.goal.dist = clamp(this.goal.dist * factor, LIMITS.minDist, this.maxDist);
   }
@@ -116,6 +127,38 @@ export class WorldRig {
       this.goal = { ...this.home(), yaw: this.cur.yaw };
     }
   }
+  /** A rebyter becomes the protagonist: the camera comes to it, in front of the way it faces. */
+  setFocus(on: boolean, spot?: Spot, height = 0.9, yaw?: number) {
+    if (on) {
+      if (spot) this.focusSpot = spot;
+      this.focusHeight = height;
+      this.mode = "focus";
+      this.focusZoomed = false;
+      this.interrupt();
+      this.goal = {
+        yaw: yaw ?? this.cur.yaw,
+        pitch: FOCUS.pitch,
+        dist: this.focusDist(),
+        x: this.focusSpot.x,
+        y: this.focusHeight * 0.34,
+        z: this.focusSpot.z,
+      };
+    } else if (this.mode === "focus") {
+      this.mode = "free";
+      this.interrupt();
+      this.zoomed = false;
+      this.goal = { ...this.home(), yaw: this.cur.yaw };
+    }
+  }
+  /** Keeps the protagonist centred while it moves. */
+  trackFocus(spot: Spot, height: number) {
+    this.focusSpot = spot;
+    this.focusHeight = height;
+  }
+  private focusDist() {
+    return clamp(fitDistance(0.85, this.aspect), 2.8, 7);
+  }
+
   setAspect(aspect: number) {
     const first = !this.aspectKnown;
     this.aspectKnown = true;
@@ -123,6 +166,8 @@ export class WorldRig {
     if (this.mode === "top") {
       this.goal.dist = this.topDist();
       this.goal.z = this.centre.z + this.topShift();
+    } else if (this.mode === "focus") {
+      if (!this.focusZoomed) this.goal.dist = this.focusDist();
     } else if (first) {
       // The first real screen size: start from the right distance for it.
       const home = this.home();
@@ -163,6 +208,11 @@ export class WorldRig {
   update(dt: number) {
     this.time += dt;
     this.idle += dt;
+    if (this.mode === "focus") {
+      this.goal.x = this.focusSpot.x;
+      this.goal.z = this.focusSpot.z;
+      this.goal.y = this.focusHeight * 0.34;
+    }
     if (this.mode === "free" && this.time >= this.holdUntil) {
       if (!this.touring && this.idle >= IDLE_BEFORE_TOUR) {
         this.touring = true;
@@ -181,7 +231,7 @@ export class WorldRig {
       }
     }
     // Ease towards the goal. Tours are slower and softer than the player's own moves.
-    const rate = this.touring ? 1.1 : this.mode === "top" ? 3 : 5;
+    const rate = this.touring ? 1.1 : this.mode === "top" ? 3 : this.mode === "focus" ? 3.5 : 5;
     const k = 1 - Math.exp(-rate * dt);
     const c = this.cur;
     const g = this.goal;

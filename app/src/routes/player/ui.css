@@ -698,6 +698,10 @@
 @media(prefers-reduced-motion:reduce){.rb-ui .world-canvas,.rb-ui .world-emote-bubble{transition:none!important;animation:none!important}}
 .rb-ui .world-back{position:absolute!important;right:14px!important;top:66px!important;z-index:8!important;cursor:pointer!important}
 .rb-ui .world-back svg{width:20px!important;height:20px!important;color:var(--ui-accent)!important;stroke-width:1.8!important}
+.rb-ui .world-care{display:contents!important}
+.rb-ui .world-care>.game-controls,.rb-ui .world-scene>.monster-id{animation:world-focus-in .4s ease both!important}
+@keyframes world-focus-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.rb-ui .world-care>.game-controls,.rb-ui .world-scene>.monster-id{animation:none!important}}
 }
 
 /* Status sheet header: a small live portrait on the left, name and stage beside it. */

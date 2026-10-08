@@ -20,6 +20,9 @@ export type Entity = {
   idle: THREE.AnimationAction | null;
   walk: THREE.AnimationAction | null;
   walkWeight: number;
+  clips: THREE.AnimationClip[];
+  /** A one-off action (feed, play, touch…) or a mood loop (sad) is playing. */
+  action: THREE.AnimationAction | null;
 };
 
 /** How tall a rebyter stands on a tile, as the editor's diorama sizes it. */
@@ -77,15 +80,15 @@ export function buildEntity(mint: string, asset: FxAsset): Entity {
       walk.setEffectiveWeight(0);
     }
   }
-  return { mint, outer, height: size.y * scale, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0 };
+  return { mint, outer, height: size.y * scale, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
 }
 
 /** Eases the walk and idle animations into each other. */
 export function blendWalk(entity: Entity, walking: boolean, dt: number) {
-  const target = walking && entity.walk ? 1 : 0;
+  const target = walking && entity.walk && !entity.action ? 1 : 0;
   entity.walkWeight += (target - entity.walkWeight) * Math.min(1, dt * 7);
   entity.walk?.setEffectiveWeight(entity.walkWeight);
-  entity.idle?.setEffectiveWeight(1 - entity.walkWeight);
+  entity.idle?.setEffectiveWeight(entity.action ? 0 : 1 - entity.walkWeight);
 }
 
 export function disposeObject(root: THREE.Object3D, geometry = true) {
@@ -103,4 +106,48 @@ export function disposeObject(root: THREE.Object3D, geometry = true) {
 /** Releases a loaded asset's own geometry and textures. */
 export function disposeAsset(asset: FxAsset) {
   disposeObject(asset.scene, true);
+}
+
+const ACTION_CLIPS: Record<string, string[]> = {
+  touch: ["touch", "touchspin", "bouncehappy", "happy"],
+  sad: ["sad"],
+  feed: ["feed", "feeding"],
+  play: ["play", "playhappy", "bouncehappy", "happy"],
+  train: ["train", "attackslam", "training"],
+  care: ["care", "carehappy", "bouncehappy", "happy"],
+};
+
+/**
+ * Plays a named action on a rebyter. "sad" loops until stopped; the rest play once and
+ * call `onDone`. Returns false (and does nothing) when the model has no such clip.
+ */
+export function playAction(entity: Entity, name: string, onDone?: () => void) {
+  const key = name === "train-power" ? "train" : name;
+  const wanted = ACTION_CLIPS[key];
+  const mixer = entity.mixer;
+  if (!wanted || !mixer) return false;
+  const clip = entity.clips.find((c) => wanted.includes(normalize(c.name)));
+  if (!clip) return false;
+  stopAction(entity);
+  const action = mixer.clipAction(clip).reset();
+  const loops = key === "sad";
+  action.setLoop(loops ? THREE.LoopRepeat : THREE.LoopOnce, loops ? Infinity : 1);
+  action.clampWhenFinished = true;
+  action.fadeIn(0.15).play();
+  entity.action = action;
+  if (!loops) {
+    const finished = (event: { action: THREE.AnimationAction }) => {
+      if (event.action !== action) return;
+      mixer.removeEventListener("finished", finished);
+      if (entity.action === action) stopAction(entity);
+      onDone?.();
+    };
+    mixer.addEventListener("finished", finished);
+  }
+  return true;
+}
+
+export function stopAction(entity: Entity) {
+  entity.action?.fadeOut(0.2);
+  entity.action = null;
 }

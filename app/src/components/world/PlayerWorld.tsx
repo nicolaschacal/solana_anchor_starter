@@ -12,7 +12,7 @@ import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
 import { createWalker, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
-import { blendWalk, buildEntity, disposeAsset, disposeObject, type Entity } from "./entity";
+import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
 import {
   BOARD,
   MAX_PLACED,
@@ -42,8 +42,14 @@ type Props = {
   /** Where this player's layout is kept (one per wallet). */
   storageKey: string;
   period: WorldPeriod;
-  /** A rebyter was tapped: open its close-up. */
+  /** A rebyter was tapped: it becomes the protagonist. */
   onSelect: (mint: string) => void;
+  /** The protagonist, if any: the camera stays on it and the world holds still around it. */
+  focusMint?: string | null;
+  /** What the protagonist is doing (idle | touch | feed | train | train-power | sad). */
+  action?: string;
+  /** A one-shot action finished. */
+  onActionComplete?: () => void;
 };
 
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
@@ -71,11 +77,10 @@ const NOTICES: Record<string, string> = {
   "Ya hay un objeto sólido en esa baldosa.": "There is already an object on that tile.",
 };
 const TAP_PIXELS = 8;
-const FOCUS_MS = 520;
 
 const tileOfEntry = (e: { x: number; z: number }) => TileMap.tileOf(e.x, e.z);
 
-export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) {
+export function PlayerWorld({ creatures, storageKey, period, onSelect, focusMint = null, action = "idle", onActionComplete }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -90,6 +95,10 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
   creaturesRef.current = creatures;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const focusRef = useRef<string | null>(focusMint);
+  focusRef.current = focusMint;
+  const doneRef = useRef(onActionComplete);
+  doneRef.current = onActionComplete;
 
   const owned = useMemo(() => creatures.map((c) => c.mint), [creatures]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
@@ -177,7 +186,8 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
       let moving = false;
       const calm = editingRef.current;
       for (const walker of walkers.current) {
-        if (!calm || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: 0.45 });
+        const starring = walker.id === focusRef.current;
+        if ((!calm && !starring) || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: 0.45 });
         const entity = entities.current.get(walker.id);
         if (!entity) continue;
         const p = walkerPosition(walker);
@@ -186,8 +196,9 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
         entity.outer.position.set(x, world.map.heightAt(x, z) + world.groundY, z);
         entity.outer.visible = true;
         if (walker.walking) moving = true;
+        if (starring) rig.trackFocus({ x, z }, entity.height);
         if (entity.billboard) entity.yaw = rig.cur.yaw;
-        else entity.yaw += angleDelta(entity.yaw, walker.yaw) * Math.min(1, dt * 7);
+        else entity.yaw += angleDelta(entity.yaw, starring && !walker.walking ? rig.cur.yaw : walker.yaw) * Math.min(1, dt * 7);
         entity.outer.rotation.y = entity.yaw;
         blendWalk(entity, walker.walking, dt);
         entity.mixer?.update(dt);
@@ -374,12 +385,7 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
       }
       const mint = pickRebyter(x, y, w, h);
       if (!mint) return;
-      const walker = walkers.current.find((k) => k.id === mint);
-      if (walker) {
-        const p = walkerPosition(walker);
-        rigRef.current?.focus({ x: OX + p.x, z: OZ + p.z }, 3.3, FOCUS_MS / 1000);
-      }
-      window.setTimeout(() => !dead && onSelectRef.current(mint), FOCUS_MS);
+      onSelectRef.current(mint);
     };
 
     const down = (event: PointerEvent) => {
@@ -560,12 +566,59 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
   useEffect(() => {
     const rig = rigRef.current;
     if (!rig) return;
-    rig.setMode(editing ? "top" : "free");
+    if (!focusRef.current) rig.setMode(editing ? "top" : "free");
     if (!editing) {
       setArmed(null);
       setSelection(null);
     }
   }, [editing, ready]);
+
+  // ---- Protagonist ---------------------------------------------------------------------------
+
+  const focusedBefore = useRef<string | null>(null);
+  useEffect(() => {
+    const rig = rigRef.current;
+    if (!rig || !ready) return;
+    if (focusMint) {
+      if (editingRef.current) {
+        persistRef.current();
+        setEditing(false);
+      }
+      const current = layoutRef.current;
+      if (!current.placed.some((p) => p.mint === focusMint) && owned.includes(focusMint)) {
+        const world = worldRef.current;
+        const tile = freeTile(
+          current.placed.map((p) => ({ i: p.i, j: p.j })),
+          (i, j) => !world || !world.canStand(i, j),
+        );
+        const base = current.placed.length >= MAX_PLACED ? current.placed.slice(1) : current.placed;
+        if (tile) setLayout({ ...current, placed: [...base, { mint: focusMint, ...tile }] });
+      }
+      const walker = walkers.current.find((k) => k.id === focusMint);
+      const entity = entities.current.get(focusMint);
+      const p = walker ? walkerPosition(walker) : null;
+      rig.setFocus(true, p ? { x: OX + p.x, z: OZ + p.z } : undefined, entity?.height ?? 0.9);
+    } else if (focusedBefore.current) {
+      rig.setFocus(false);
+    }
+    focusedBefore.current = focusMint;
+  }, [focusMint, ready, owned, setLayout]);
+
+  // What the protagonist is doing: care animations play on the rebyter in the world.
+  useEffect(() => {
+    if (!ready || !focusMint) return;
+    const entity = entities.current.get(focusMint);
+    if (!entity) return;
+    if (action === "idle") {
+      stopAction(entity);
+      return;
+    }
+    const played = playAction(entity, action, () => doneRef.current?.());
+    if (!played) doneRef.current?.();
+    return () => {
+      if (action === "sad") stopAction(entity);
+    };
+  }, [action, ready, focusMint, layout]);
 
   const finishEditing = () => {
     persistRef.current();
@@ -657,7 +710,7 @@ export function PlayerWorld({ creatures, storageKey, period, onSelect }: Props) 
           ))}
       </div>
 
-      {ready && !editing && (
+      {ready && !editing && !focusMint && (
         <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Edit habitat">
           <Pencil />
           <span>Edit</span>
