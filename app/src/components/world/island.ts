@@ -116,15 +116,31 @@ export function createIsland(scene: THREE.Scene, centre: { x: number; z: number 
   // A few rocks drifting below and around.
   const rockGeometry = new THREE.IcosahedronGeometry(1, 0);
   const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x6a5642, flatShading: true, roughness: 1 });
-  const rocks = [0, 1, 2, 3].map((n) => {
+  const rocks = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
     const mesh = new THREE.Mesh(rockGeometry, rockMaterial);
     const angle = 0.7 + n * 1.65 + rand() * 0.4;
-    const radius = 4.1 + rand() * 1.2;
-    const size = 0.16 + rand() * 0.22;
+    const radius = 3.9 + rand() * 3.2;
+    const size = 0.14 + rand() * (n % 3 === 0 ? 0.3 : 0.2);
     mesh.scale.set(size * 1.2, size, size);
     mesh.rotation.set(rand() * 3, rand() * 3, rand() * 3);
     group.add(mesh);
-    return { mesh, x: Math.cos(angle) * radius, z: Math.sin(angle) * radius, y: -0.9 - rand() * 1.6, phase: rand() * 6 };
+    return { mesh, x: Math.cos(angle) * radius, z: Math.sin(angle) * radius, y: -0.6 - rand() * 3.8, phase: rand() * 6 };
+  });
+  // Small islets far off, the same shape in miniature.
+  const islets = [
+    { angle: 0.5, radius: 13, y: -3.5, size: 0.34 },
+    { angle: 2.5, radius: 17, y: -6.5, size: 0.26 },
+    { angle: 4.3, radius: 15, y: -2.2, size: 0.22 },
+    { angle: 5.6, radius: 21, y: -8, size: 0.4 },
+  ].map((spec, n) => {
+    const islet = new THREE.Group();
+    const lowerBody = new THREE.Mesh(body, bodyMaterial);
+    const lowerTop = new THREE.Mesh(lawnGeometry, lawnMaterial);
+    islet.add(lowerBody, lowerTop);
+    islet.scale.setScalar(spec.size);
+    islet.rotation.y = n * 1.9;
+    group.add(islet);
+    return { islet, ...spec };
   });
   scene.add(group);
 
@@ -133,6 +149,9 @@ export function createIsland(scene: THREE.Scene, centre: { x: number; z: number 
       for (const rock of rocks) {
         rock.mesh.position.set(rock.x, rock.y + Math.sin(seconds * 0.6 + rock.phase) * 0.12, rock.z);
         rock.mesh.rotation.y += 0.002;
+      }
+      for (const [n, spec] of islets.entries()) {
+        spec.islet.position.set(Math.cos(spec.angle) * spec.radius, spec.y + Math.sin(seconds * 0.35 + n * 2) * 0.3, Math.sin(spec.angle) * spec.radius);
       }
     },
     dispose() {

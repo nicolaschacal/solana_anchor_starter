@@ -273,6 +273,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       world.creature = { x: OX + 60, z: OZ + 60 };
       rig = new WorldRig(world.centre, 2.9, spots);
       rigRef.current = rig;
+      rig.intro();
       if (layoutNow.props) {
         await world.restore({ ...world.snapshot(), props: layoutNow.props.map((p, n) => ({ id: n + 1, ...p })) });
       } else {

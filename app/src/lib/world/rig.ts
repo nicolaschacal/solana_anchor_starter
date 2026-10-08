@@ -49,6 +49,8 @@ export class WorldRig {
   private focusSpot: Spot = { x: 0, z: 0 };
   private focusHeight = 0.9;
   private aspectKnown = false;
+  private introPending = false;
+  private introUntil = 0;
 
   constructor(
     readonly centre: Spot,
@@ -82,7 +84,22 @@ export class WorldRig {
 
   // ---- Input ------------------------------------------------------------------
 
+  /** The opening shot: rise from beneath the island, wide and slow, towards the usual view. */
+  intro(seconds = 4.6) {
+    this.introSeconds = seconds;
+    if (this.aspectKnown) this.startIntro();
+    else this.introPending = true;
+  }
+  private introSeconds = 4.6;
+  private startIntro() {
+    this.introPending = false;
+    const home = this.home();
+    this.cur = { yaw: home.yaw - 1.15, pitch: 0.16, dist: Math.min(this.maxDist * 1.25, home.dist * 2.1), x: home.x, y: -1.6, z: home.z };
+    this.goal = { ...home };
+    this.introUntil = this.time + this.introSeconds;
+  }
   private interrupt() {
+    this.introUntil = 0;
     this.idle = 0;
     if (this.touring) {
       this.touring = false;
@@ -172,6 +189,7 @@ export class WorldRig {
       // The first real screen size: start from the right distance for it.
       const home = this.home();
       this.cur.dist = this.goal.dist = home.dist;
+      if (this.introPending) this.startIntro();
     } else if (!this.zoomed && !this.touring) this.goal.dist = this.homeDist;
     else this.goal.dist = clamp(this.goal.dist, LIMITS.minDist, this.maxDist);
   }
@@ -231,7 +249,7 @@ export class WorldRig {
       }
     }
     // Ease towards the goal. Tours are slower and softer than the player's own moves.
-    const rate = this.touring ? 1.1 : this.mode === "top" ? 3 : this.mode === "focus" ? 3.5 : 5;
+    const rate = this.time < this.introUntil ? 0.95 : this.touring ? 1.1 : this.mode === "top" ? 3 : this.mode === "focus" ? 3.5 : 5;
     const k = 1 - Math.exp(-rate * dt);
     const c = this.cur;
     const g = this.goal;

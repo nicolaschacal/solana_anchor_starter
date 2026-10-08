@@ -147,6 +147,18 @@ export function createSky(scene: THREE.Scene, centre: { x: number; z: number }, 
     drifting.push({ mesh, radius, angle, speed: (0.006 + rand() * 0.008) * (n % 2 ? 1 : -1) });
     clouds.add(mesh);
   }
+  // A sea of larger clouds far below the island, so it reads as floating in the air.
+  for (let n = 0; n < 11; n++) {
+    const mesh = new THREE.Mesh(geometries[n % 3], cloudMaterial);
+    const radius = 5 + rand() * 30;
+    const angle = (n / 11) * Math.PI * 2 + rand() * 0.5;
+    mesh.position.set(0, -15 + rand() * 6.5, 0);
+    const scale = 1.8 + rand() * 1.3;
+    mesh.scale.set(scale * (1 + rand() * 0.3), scale * (0.8 + rand() * 0.3), scale);
+    mesh.rotation.y = rand() * Math.PI * 2;
+    drifting.push({ mesh, radius, angle, speed: (0.004 + rand() * 0.006) * (n % 2 ? 1 : -1) });
+    clouds.add(mesh);
+  }
   scene.add(clouds);
 
   const sunDir = new THREE.Vector3();
