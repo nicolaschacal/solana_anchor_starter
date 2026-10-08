@@ -951,9 +951,11 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
               <strong>{known?target.name:"Unknown form"}</strong>
               <p>{timer&&!timer.passed
                 ?`Time left to evolve: ${formatMinutes(timerRemaining)}`
-                :timer||result.eligible
-                  ?"Ready to evolve!"
-                  :`${traitMatches}/${requirements.length} traits matched · need ${path.rule?.requiredGroups??0}.`}</p>
+                :timer
+                  ?"Time requirement met"
+                  :result.eligible
+                    ?"Ready to evolve!"
+                    :`${traitMatches}/${requirements.length} traits matched · need ${path.rule?.requiredGroups??0}.`}</p>
             </div>
           </div>
 
