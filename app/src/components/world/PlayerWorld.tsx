@@ -203,7 +203,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
         const p = walkerPosition(walker);
         const x = OX + p.x,
           z = OZ + p.z;
-        entity.outer.position.set(x, world.map.heightAt(x, z) + world.groundY, z);
+        entity.outer.position.set(x, world.map.heightAt(x, z), z);
         entity.outer.visible = true;
         if (walker.walking) moving = true;
         if (starring) rig.trackFocus({ x, z }, entity.height);
