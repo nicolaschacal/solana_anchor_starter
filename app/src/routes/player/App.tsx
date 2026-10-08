@@ -850,12 +850,18 @@ export function PlayerLab() {
   // The animation lives above the screen so it survives the refresh that follows an evolution.
   const animation=useEvolutionAnimation(STAGE_NAMES);
   return <>
-    <PlayerLabScreen onEvolve={animation.play}/>
+    <PlayerLabScreen onEvolve={animation.play} onWarm={animation.prewarm}/>
     {animation.overlay}
   </>;
 }
 
-function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,task:Promise<unknown>)=>void}) {
+/** Builds the evolution scene while the Evolve button is on screen, so pressing it starts instantly. */
+function EvolveWarmup({ from, to, onWarm }:{from:Evolution;to:Evolution;onWarm:(from:Evolution,to:Evolution)=>void}) {
+  useEffect(()=>{ onWarm(from,to); },[from,to,onWarm]);
+  return null;
+}
+
+function PlayerLabScreen({ onEvolve, onWarm }:{onEvolve:(from:Evolution,to:Evolution,task:Promise<unknown>)=>void;onWarm:(from:Evolution,to:Evolution)=>void}) {
   const navigate=useNavigate();
   const { connected }=useRebytersAuth();
   const player=usePlayerCollection();
@@ -982,6 +988,7 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
             </div>
           </section>
 
+          {result.eligible&&<EvolveWarmup from={evolution} to={target} onWarm={onWarm}/>}
           {result.eligible?<button className="ui-btn ui-btn-primary evolve-route-button" disabled={!!player.interactingMint} onClick={()=>{
             const task=player.evolve(active.mint,evolution.id,target.id,tree);
             onEvolve(evolution,target,task);

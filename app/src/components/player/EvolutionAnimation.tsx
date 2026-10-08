@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
-import { EvolutionFx, type FxUi } from "../../lib/rebyters/evolution-fx";
+import type { EvolutionFx, FxUi } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
-import { loadEvolutionAsset } from "./creatureAsset";
+import { createEvolutionSession, type EvolutionSession } from "./creatureAsset";
 
 export type EvolutionJob = {
   from: Evolution;
   to: Evolution;
   /** The evolve transaction. The animation holds its helix until this settles. */
   task: Promise<unknown>;
+  /** The scene, already built (or being built) for this evolution. */
+  session: EvolutionSession;
 };
 
 type Outcome = "pending" | "ok" | "failed";
@@ -30,7 +32,7 @@ export function EvolutionAnimation({
 }) {
   const { from, to } = job;
   const rootRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLOListElement>(null);
@@ -70,18 +72,18 @@ export function EvolutionAnimation({
 
   // The animation loop.
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const stage = stageRef.current;
     const banner = bannerRef.current;
     const status = statusRef.current;
     const rail = railRef.current;
-    if (!canvas || !banner || !status || !rail) return;
+    if (!stage || !banner || !status || !rail) return;
+    stage.append(job.session.canvas);
 
     let cancelled = false;
     let raf = 0;
     let timer = 0;
     let last = 0;
     let shownStage = -1;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
     const paint = (ui: FxUi) => {
       banner.style.opacity = String(ui.reveal);
@@ -109,13 +111,8 @@ export function EvolutionAnimation({
     const start = async () => {
       let fx: EvolutionFx;
       try {
-        const [a, b] = await Promise.all([loadEvolutionAsset(from), loadEvolutionAsset(to)]);
+        fx = await job.session.ready;
         if (cancelled) return;
-        fx = new EvolutionFx(
-          canvas,
-          { from: a, to: b },
-          { fromStage: from.stage, toStage: to.stage, reducedMotion: reduced },
-        );
       } catch {
         // No animation possible on this device: wait for the chain and step aside.
         await job.task.catch(() => undefined);
@@ -147,7 +144,6 @@ export function EvolutionAnimation({
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
       window.removeEventListener("resize", onResize);
-      fxRef.current?.dispose();
       fxRef.current = null;
     };
   }, [from, to, job]);
@@ -163,8 +159,8 @@ export function EvolutionAnimation({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
+        // The sequence cannot be skipped; once it has finished, Escape is Continue.
         if (revealed.current) closeRef.current();
-        else fxRef.current?.skip(outcome.current === "ok");
       } else if (event.key === "Tab") {
         event.preventDefault();
         event.stopPropagation();
@@ -186,12 +182,8 @@ export function EvolutionAnimation({
       aria-label="Evolution"
       tabIndex={-1}
       data-leaving={leaving}
-      onClick={(event) => {
-        if (!bannerRef.current?.contains(event.target as Node))
-          fxRef.current?.skip(outcome.current === "ok");
-      }}
     >
-      <canvas ref={canvasRef} aria-hidden="true" />
+      <div className="evo-stage" ref={stageRef} aria-hidden="true" />
       <div className="evo-status" ref={statusRef} role="status" data-visible="false">
         Confirming on Solana…
       </div>
@@ -219,21 +211,71 @@ export function EvolutionAnimation({
   );
 }
 
+/** Scenes kept built so the next Evolve opens instantly (each holds a WebGL context). */
+const MAX_WARM = 2;
+
 /**
- * Owns the animation for a screen. Call `play` with the evolve transaction the
- * moment the player presses Evolve, and render `overlay` next to the screen.
+ * Owns the animation for a screen. Call `prewarm` while an evolution is
+ * available so its scene is built in advance, `play` with the evolve
+ * transaction the moment the player presses Evolve, and render `overlay`
+ * next to the screen.
  */
 export function useEvolutionAnimation(stageNames: readonly string[]): {
   play: (from: Evolution, to: Evolution, task: Promise<unknown>) => void;
+  prewarm: (from: Evolution, to: Evolution) => void;
   overlay: ReactElement | null;
 } {
   const [job, setJob] = useState<EvolutionJob | null>(null);
-  const play = useCallback((from: Evolution, to: Evolution, task: Promise<unknown>) => {
-    setJob((current) => current ?? { from, to, task });
+  const warm = useRef(new Map<string, EvolutionSession>());
+
+  const prewarm = useCallback((from: Evolution, to: Evolution) => {
+    const key = `${from.id}>${to.id}`;
+    const sessions = warm.current;
+    if (sessions.has(key)) return;
+    try {
+      sessions.set(key, createEvolutionSession(from, to));
+    } catch {
+      return; // no canvas or WebGL here: play will build on demand and fall back
+    }
+    while (sessions.size > MAX_WARM) {
+      const [oldest] = sessions.keys();
+      sessions.get(oldest)?.dispose();
+      sessions.delete(oldest);
+    }
   }, []);
-  const close = useCallback(() => setJob(null), []);
+
+  // Kept in a ref as well: state updaters must stay pure, and these create and dispose scenes.
+  const current = useRef<EvolutionJob | null>(null);
+
+  const play = useCallback((from: Evolution, to: Evolution, task: Promise<unknown>) => {
+    if (current.current) return;
+    const key = `${from.id}>${to.id}`;
+    const sessions = warm.current;
+    const session = sessions.get(key) ?? createEvolutionSession(from, to);
+    sessions.delete(key); // the overlay owns it from here
+    sessions.forEach((s) => s.dispose());
+    sessions.clear();
+    current.current = { from, to, task, session };
+    setJob(current.current);
+  }, []);
+
+  const close = useCallback(() => {
+    current.current?.session.dispose();
+    current.current = null;
+    setJob(null);
+  }, []);
+
+  useEffect(() => {
+    const sessions = warm.current;
+    return () => {
+      sessions.forEach((s) => s.dispose());
+      sessions.clear();
+    };
+  }, []);
+
   return {
     play,
+    prewarm,
     overlay: job ? <EvolutionAnimation job={job} stageNames={stageNames} onClose={close} /> : null,
   };
 }

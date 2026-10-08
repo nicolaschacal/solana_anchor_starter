@@ -578,11 +578,13 @@
 /* ---- 8. Evolution animation ---------------------------------------------- */
 .rb-ui.evo-fx{
   position:fixed!important;inset:0!important;z-index:400!important;display:block!important;
-  background:var(--ui-void)!important;cursor:pointer!important;touch-action:manipulation!important;outline:none!important;
+  background:radial-gradient(70% 55% at 50% 66%,rgba(47,134,240,.34),transparent 70%),var(--ui-void)!important;
+  touch-action:manipulation!important;outline:none!important;
   opacity:1!important;transition:opacity .3s ease!important;
 }
 .rb-ui.evo-fx[data-leaving="true"]{opacity:0!important;pointer-events:none!important}
-.rb-ui.evo-fx>canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
+.rb-ui.evo-fx>.evo-stage{position:absolute!important;inset:0!important}
+.rb-ui.evo-fx .evo-stage>canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
 .rb-ui .evo-status{
   position:absolute!important;left:0!important;right:0!important;z-index:2!important;bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
   text-align:center!important;font-size:var(--ui-fs-label)!important;font-weight:500!important;letter-spacing:.04em!important;color:var(--ui-text-2)!important;

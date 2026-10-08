@@ -30,11 +30,3 @@ it("does not stall when the transaction settles before the helix", () => {
   run(clock, TIMELINE.settle + 0.5, true);
   expect(clock.time).toBeGreaterThan(TIMELINE.settle);
 });
-
-it("skip jumps to the finished state only once settled", () => {
-  const clock = new EvolutionClock();
-  clock.skip(false);
-  expect(clock.time).toBe(TIMELINE.hold);
-  clock.skip(true);
-  expect(clock.time).toBeGreaterThanOrEqual(TIMELINE.skipTo);
-});

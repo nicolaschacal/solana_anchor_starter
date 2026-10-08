@@ -5,22 +5,24 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Evolution } from "../../lib/rebyters/types";
 import { EvolutionAnimation } from "./EvolutionAnimation";
 
-vi.mock("./creatureAsset", () => ({ loadEvolutionAsset: async () => ({}) }));
-vi.mock("../../lib/rebyters/evolution-fx", () => ({
-  EvolutionFx: class {
-    settled = false;
-    resize() {}
-    render() {}
-    skip() {}
-    dispose() {}
-    advance(_dt: number, settled: boolean) {
-      this.settled = settled;
-    }
-    get ui() {
-      return { reveal: this.settled ? 1 : 0, stageReached: this.settled, waiting: !this.settled };
-    }
-  },
-}));
+class FakeFx {
+  settled = false;
+  resize() {}
+  render() {}
+  dispose() {}
+  advance(_dt: number, settled: boolean) {
+    this.settled = settled;
+  }
+  get ui() {
+    return { reveal: this.settled ? 1 : 0, stageReached: this.settled, waiting: !this.settled };
+  }
+}
+const session = (ready: Promise<unknown> = Promise.resolve(new FakeFx())) => ({
+  key: "10>20",
+  canvas: document.createElement("canvas"),
+  ready: ready as Promise<never>,
+  dispose: vi.fn(),
+});
 
 const evolution = (id: number, name: string, stage: number) => ({ id, name, stage }) as Evolution;
 const from = evolution(10, "Fangbit", 1);
@@ -49,9 +51,9 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
-async function mount(task: Promise<unknown>, onClose = vi.fn()) {
+async function mount(task: Promise<unknown>, onClose = vi.fn(), s = session()) {
   await act(async () =>
-    root.render(<EvolutionAnimation job={{ from, to, task }} stageNames={STAGES} onClose={onClose} />),
+    root.render(<EvolutionAnimation job={{ from, to, task, session: s }} stageNames={STAGES} onClose={onClose} />),
   );
   return onClose;
 }
@@ -93,4 +95,19 @@ it("handles Escape itself so the panel behind the overlay stays open", async () 
   });
   expect(behind).not.toHaveBeenCalled();
   document.removeEventListener("keydown", behind);
+});
+
+it("puts the prepared canvas on screen immediately and cannot be skipped by clicking", async () => {
+  const s = session();
+  await mount(new Promise(() => undefined), vi.fn(), s);
+  expect(overlay()?.contains(s.canvas)).toBe(true);
+  await act(async () => overlay()?.click());
+  expect(continueButton()?.disabled).toBe(true);
+});
+
+it("steps aside when the scene cannot be built", async () => {
+  const tx = deferred();
+  const onClose = await mount(tx.promise, vi.fn(), session(Promise.reject(new Error("no webgl"))));
+  await act(async () => tx.resolve());
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 });

@@ -27,8 +27,6 @@ export const TIMELINE = {
   reprintEnd: 3.05,
   reveal: 3.15,
   settle: 3.5,
-  /** `skip` jumps here once the transaction has settled. */
-  skipTo: 3.7,
   hit: 0.07,
   // Reduced motion: a plain cross-fade once the transaction settles.
   reducedFade: 0.7,
@@ -81,15 +79,6 @@ export class EvolutionClock {
       this.hitLeft = TIMELINE.hit;
     }
   }
-
-  skip(settled: boolean) {
-    if (settled) {
-      this.time = Math.max(this.time, TIMELINE.skipTo);
-      this.flashed = true;
-    } else if (this.time < TIMELINE.hold) {
-      this.time = TIMELINE.hold;
-    }
-  }
 }
 
 export type FxAsset = { scene: THREE.Object3D; clips?: THREE.AnimationClip[] };
@@ -112,10 +101,12 @@ type Prepared = {
 type Samples = { pos: Float32Array; col: Float32Array };
 
 const N = 14000;
-const CYAN = new THREE.Color("#52f0d8");
+/** The game's accent blue, and a deeper blue for the stage. */
+const CYAN = new THREE.Color("#5cd6ff");
+const DEEP = new THREE.Color("#2f86f0");
 const AMBER = new THREE.Color("#ffc968");
 const WHITE = new THREE.Color("#ffffff");
-const VOID = "#030a18";
+const VOID = "#02081a";
 const SSR = "#define SSR(a,b,x) (1.-smoothstep(b,a,x))\n";
 const PASS_VERT = "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}";
 
@@ -351,15 +342,15 @@ export class EvolutionFx {
     this.scene.fog = new THREE.FogExp2(VOID, 0.045);
 
     // Lights
-    this.scene.add(new THREE.HemisphereLight("#9fd8ff", "#16102a", 1.05));
+    this.scene.add(new THREE.HemisphereLight("#a8cfff", "#0a1838", 0.85));
     const key = new THREE.DirectionalLight("#ffffff", 2.4);
     key.position.set(3, 6, 4);
     this.scene.add(key);
-    this.rimA = new THREE.PointLight("#52f0d8", 18, 14, 2);
+    this.rimA = new THREE.PointLight("#4aa8ff", 18, 14, 2);
     this.rimA.position.set(-3.2, 2.2, -2.4);
     this.rimB = new THREE.PointLight("#ffc968", 5, 14, 2);
     this.rimB.position.set(3.4, 1.2, -2.8);
-    this.core = new THREE.PointLight("#bffcf2", 0, 9, 2);
+    this.core = new THREE.PointLight("#cfe8ff", 0, 9, 2);
     this.core.position.set(0, 1.2, 0);
     this.scene.add(this.rimA, this.rimB, this.core);
 
@@ -395,7 +386,7 @@ export class EvolutionFx {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      uniforms: { uT: { value: 0 }, uPower: { value: 0 }, uCol: { value: CYAN.clone() } },
+      uniforms: { uT: { value: 0 }, uPower: { value: 0 }, uCol: { value: DEEP.clone() } },
       vertexShader: "varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
       fragmentShader: `${SSR}uniform float uT,uPower;uniform vec3 uCol;varying vec2 vP;
  void main(){float r=length(vP);
@@ -403,7 +394,7 @@ export class EvolutionFx {
   float main=SSR(.05,0.,abs(r-1.45))*(.55+uPower*2.4);
   float inner=SSR(.04,0.,abs(r-.85-.1*sin(uT*2.)))*.25*(1.+uPower);
   float spokes=SSR(.02,0.,abs(sin(atan(vP.y,vP.x)*12.+uT*.4))-.985)*SSR(3.,1.4,r)*smoothstep(1.2,1.5,r)*.5;
-  float glow=exp(-r*r*.5)*(.10+uPower*.55);
+  float glow=exp(-r*r*.5)*(.14+uPower*.6);
   float fade=SSR(6.5,2.,r);
   gl_FragColor=vec4(uCol*(rings+main+inner+spokes+glow)*fade*.55,1.);}`,
     });
@@ -412,7 +403,7 @@ export class EvolutionFx {
     floor.position.y = 0.002;
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(12, 64),
-      new THREE.MeshStandardMaterial({ color: "#06101f", roughness: 0.95, metalness: 0 }),
+      new THREE.MeshStandardMaterial({ color: "#050f26", roughness: 0.95, metalness: 0 }),
     );
     ground.rotation.x = -Math.PI / 2;
     this.scene.add(floor, ground);
@@ -422,7 +413,7 @@ export class EvolutionFx {
       depthWrite: false,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
-      uniforms: { uA: { value: 0 }, uCol: { value: CYAN.clone() }, uT: { value: 0 } },
+      uniforms: { uA: { value: 0 }, uCol: { value: DEEP.clone() }, uT: { value: 0 } },
       vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
       fragmentShader: `uniform float uA,uT;uniform vec3 uCol;varying vec2 vUv;
  void main(){float s=.5+.5*sin(vUv.x*60.+vUv.y*8.-uT*3.);float a=pow(1.-vUv.y,1.6)*smoothstep(0.,.08,vUv.y)*(.35+.65*s)*uA;
@@ -454,7 +445,7 @@ export class EvolutionFx {
       vertexShader:
         "varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}",
       fragmentShader:
-        "uniform float uA;varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.2);gl_FragColor=vec4(vec3(.7,1.,.95)*f*uA*2.5,1.);}",
+        "uniform float uA;varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.2);gl_FragColor=vec4(vec3(.72,.9,1.)*f*uA*2.5,1.);}",
     });
     this.shell = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 32), this.shellMat);
     this.shell.visible = false;
@@ -493,7 +484,7 @@ export class EvolutionFx {
  void main(){vec3 p=position;p.y=mod(p.y+uT*(.12+aSeed*.3+uBoost*.9),5.);p.x+=sin(uT*.5+aSeed*30.)*.2;
   vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=uPx*(2.+aSeed*3.+uBoost*3.)*(7./-mv.z);
   vA=(.25+.75*sin(uT*2.+aSeed*40.)*.5+.375)*(.4+uBoost);}`,
-      fragmentShader: `${SSR}varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=SSR(.5,0.,d);gl_FragColor=vec4(vec3(.5,1.,.9)*a*vA,1.);}`,
+      fragmentShader: `${SSR}varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=SSR(.5,0.,d);gl_FragColor=vec4(vec3(.55,.82,1.)*a*vA,1.);}`,
     });
     this.scene.add(new THREE.Points(emGeo, this.embers));
 
@@ -608,14 +599,6 @@ export class EvolutionFx {
     this.flashLevel *= Math.pow(0.001, dt);
   }
 
-  skip(settled: boolean) {
-    if (this.reduced) {
-      if (settled) this.reducedTime = Math.max(this.reducedTime, TIMELINE.reducedReveal);
-      return;
-    }
-    this.clock.skip(settled);
-  }
-
   get ui(): FxUi {
     if (this.reduced)
       return {
@@ -724,7 +707,7 @@ export class EvolutionFx {
       smooth(0, 0.6, t) * 0.55 * (1 - smooth(T.reprint, T.reprint + 0.5, t)) * (done ? 0 : 1) +
       (c.flashed ? Math.exp(-since * 3.5) * 0.9 : 0);
     this.columnMat.uniforms.uA.value = clamp(columnA);
-    (this.columnMat.uniforms.uCol.value as THREE.Color).copy(CYAN).lerp(WHITE, col);
+    (this.columnMat.uniforms.uCol.value as THREE.Color).copy(DEEP).lerp(WHITE, col);
     this.column.scale.set(1 + col * 0.4, 1, 1 + col * 0.4);
     this.embers.uniforms.uBoost.value = boost;
     this.core.intensity = col * 8 + (c.flashed ? Math.max(0, 10 * Math.exp(-since * 6)) : 0);

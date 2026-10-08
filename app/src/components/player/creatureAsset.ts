@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { loader } from "../../lib/assets/rig";
 import { modelUriFor } from "../../lib/assets/catalog";
-import type { FxAsset } from "../../lib/rebyters/evolution-fx";
+import { EvolutionFx, type FxAsset } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
 import { loadCreatureImage } from "./creatureImage";
 
@@ -41,4 +41,42 @@ export async function loadEvolutionAsset(evolution: Evolution): Promise<FxAsset>
     }
   }
   return spriteCard(await loadCreatureImage(evolution));
+}
+
+/**
+ * One evolution, built ahead of time: its models are loaded, sampled and its
+ * shaders compiled on a detached canvas, so that playing it is instant.
+ */
+export type EvolutionSession = {
+  key: string;
+  canvas: HTMLCanvasElement;
+  /** Resolves once the scene is ready to draw; rejects when WebGL or the models are unavailable. */
+  ready: Promise<EvolutionFx>;
+  dispose: () => void;
+};
+
+export function createEvolutionSession(from: Evolution, to: Evolution): EvolutionSession {
+  const canvas = document.createElement("canvas");
+  let disposed = false;
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const ready = Promise.all([loadEvolutionAsset(from), loadEvolutionAsset(to)]).then(([a, b]) => {
+    const fx = new EvolutionFx(
+      canvas,
+      { from: a, to: b },
+      { fromStage: from.stage, toStage: to.stage, reducedMotion: reduced },
+    );
+    return fx;
+  });
+  ready.catch(() => undefined);
+  return {
+    key: `${from.id}>${to.id}`,
+    canvas,
+    ready,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      canvas.remove();
+      ready.then((fx) => fx.dispose(), () => undefined);
+    },
+  };
 }
