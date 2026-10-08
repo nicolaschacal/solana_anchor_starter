@@ -5,24 +5,41 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { Evolution } from "../../lib/rebyters/types";
 import { EvolutionAnimation } from "./EvolutionAnimation";
 
-class FakeFx {
-  settled = false;
-  resize() {}
-  render() {}
-  dispose() {}
-  advance(_dt: number, settled: boolean) {
-    this.settled = settled;
-  }
-  get ui() {
-    return { reveal: this.settled ? 1 : 0, stageReached: this.settled, waiting: !this.settled };
-  }
-}
-const session = (ready: Promise<unknown> = Promise.resolve(new FakeFx())) => ({
-  key: "10>20",
-  canvas: document.createElement("canvas"),
-  ready: ready as Promise<never>,
-  dispose: vi.fn(),
-});
+type Fake = {
+  assets: string[];
+  disposed: boolean;
+};
+const h = vi.hoisted(() => ({ made: [] as Fake[], failConstruct: false }));
+const made = h.made;
+vi.mock("./creatureAsset", () => ({ loadEvolutionAsset: async () => ({}) }));
+vi.mock("../../lib/rebyters/evolution-fx", () => ({
+  EvolutionFx: class {
+    settled = false;
+    assets: string[] = [];
+    disposed = false;
+    constructor() {
+      if (h.failConstruct) throw new Error("no webgl");
+      h.made.push(this);
+    }
+    setFrom() {
+      this.assets.push("from");
+    }
+    setTo() {
+      this.assets.push("to");
+    }
+    resize() {}
+    render() {}
+    dispose() {
+      this.disposed = true;
+    }
+    advance(_dt: number, settled: boolean) {
+      this.settled = settled;
+    }
+    get ui() {
+      return { reveal: this.settled ? 1 : 0, stageReached: this.settled, waiting: !this.settled };
+    }
+  },
+}));
 
 const evolution = (id: number, name: string, stage: number) => ({ id, name, stage }) as Evolution;
 const from = evolution(10, "Fangbit", 1);
@@ -31,6 +48,8 @@ const STAGES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
 
 let root: Root, host: HTMLDivElement;
 beforeEach(() => {
+  made.length = 0;
+  h.failConstruct = false;
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   host = document.createElement("div");
   document.body.append(host);
@@ -51,9 +70,9 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
-async function mount(task: Promise<unknown>, onClose = vi.fn(), s = session()) {
+async function mount(task: Promise<unknown>, onClose = vi.fn()) {
   await act(async () =>
-    root.render(<EvolutionAnimation job={{ from, to, task, session: s }} stageNames={STAGES} onClose={onClose} />),
+    root.render(<EvolutionAnimation job={{ from, to, task }} stageNames={STAGES} onClose={onClose} />),
   );
   return onClose;
 }
@@ -97,17 +116,31 @@ it("handles Escape itself so the panel behind the overlay stays open", async () 
   document.removeEventListener("keydown", behind);
 });
 
-it("puts the prepared canvas on screen immediately and cannot be skipped by clicking", async () => {
-  const s = session();
-  await mount(new Promise(() => undefined), vi.fn(), s);
-  expect(overlay()?.contains(s.canvas)).toBe(true);
+it("draws the stage straight away, then hands the creatures over as they load", async () => {
+  await mount(new Promise(() => undefined));
+  expect(made).toHaveLength(1);
+  expect(overlay()?.querySelector(".evo-stage canvas")).not.toBeNull();
+  await vi.waitFor(() => expect(made[0].assets.sort()).toEqual(["from", "to"]));
+});
+
+it("cannot be skipped by clicking", async () => {
+  await mount(new Promise(() => undefined));
   await act(async () => overlay()?.click());
   expect(continueButton()?.disabled).toBe(true);
 });
 
-it("steps aside when the scene cannot be built", async () => {
+it("releases the scene when it closes", async () => {
+  await mount(new Promise(() => undefined));
+  await act(async () => root.render(<div />));
+  expect(made[0].disposed).toBe(true);
+  expect(document.querySelector(".evo-stage canvas")).toBeNull();
+});
+
+it("steps aside once the transaction settles when the scene cannot be built", async () => {
+  h.failConstruct = true;
   const tx = deferred();
-  const onClose = await mount(tx.promise, vi.fn(), session(Promise.reject(new Error("no webgl"))));
+  const onClose = await mount(tx.promise);
+  expect(onClose).not.toHaveBeenCalled();
   await act(async () => tx.resolve());
   await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 });

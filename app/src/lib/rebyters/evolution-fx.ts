@@ -56,7 +56,8 @@ export class EvolutionClock {
     return !this.flashed && this.time >= TIMELINE.hold;
   }
 
-  advance(dt: number, settled: boolean) {
+  /** `limit` holds the clock back while the scene is still being built. */
+  advance(dt: number, settled: boolean, limit = Infinity) {
     this.justFlashed = false;
     if (this.hitLeft > 0) {
       this.hitLeft -= dt;
@@ -72,7 +73,7 @@ export class EvolutionClock {
       this.time = TIMELINE.hold;
       return;
     }
-    this.time += dt;
+    this.time = Math.min(this.time + dt, limit);
     if (!this.flashed && this.time >= TIMELINE.flash) {
       this.flashed = true;
       this.justFlashed = true;
@@ -298,13 +299,17 @@ export class EvolutionFx {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(36, 1, 0.1, 80);
-  private composer: EffectComposer;
-  private bloom: UnrealBloomPass;
-  private post: ShaderPass;
+  private composer: EffectComposer | null = null;
+  private bloom: UnrealBloomPass | null = null;
+  private post: ShaderPass | null = null;
   private clock = new EvolutionClock();
-  private from: Prepared;
-  private to: Prepared;
-  private points: THREE.Points;
+  private from: Prepared | null = null;
+  private to: Prepared | null = null;
+  private points: THREE.Points | null = null;
+  private pendingFrom: FxAsset | null = null;
+  private pendingTo: FxAsset | null = null;
+  private sampledFrom: Samples | null = null;
+  private sampledTo: Samples | null = null;
   private morph: THREE.ShaderMaterial;
   private floor: THREE.ShaderMaterial;
   private column: THREE.Mesh;
@@ -327,10 +332,14 @@ export class EvolutionFx {
   private readonly reduced: boolean;
   private size = { w: 0, h: 0 };
 
+  /**
+   * Draws the empty stage straight away. The creatures, the post-processing
+   * and the particles are added one step per frame as they become available
+   * (`setFrom`, `setTo`), and the clock waits for them.
+   */
   constructor(
     private canvas: HTMLCanvasElement,
-    assets: { from: FxAsset; to: FxAsset },
-    options: FxOptions,
+    private options: FxOptions,
   ) {
     this.reduced = !!options.reducedMotion;
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
@@ -354,32 +363,6 @@ export class EvolutionFx {
     this.core.position.set(0, 1.2, 0);
     this.scene.add(this.rimA, this.rimB, this.core);
 
-    // Post: scene → NaN guard → bloom → chromatic split / vignette / flash → tone map
-    const composer = new EffectComposer(renderer);
-    this.composer = composer;
-    composer.addPass(new RenderPass(this.scene, this.camera));
-    composer.addPass(
-      new ShaderPass({
-        uniforms: { tDiffuse: { value: null } },
-        vertexShader: PASS_VERT,
-        fragmentShader:
-          "uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);if(any(isnan(c))||any(isinf(c)))c=vec4(0.);gl_FragColor=vec4(clamp(c.rgb,0.,24.),c.a);}",
-      }),
-    );
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.4, 0.55, 0.9);
-    composer.addPass(this.bloom);
-    this.post = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, uCA: { value: 0 }, uVig: { value: 0.55 }, uFlash: { value: 0 } },
-      vertexShader: PASS_VERT,
-      fragmentShader: `uniform sampler2D tDiffuse;uniform float uCA,uVig,uFlash;varying vec2 vUv;
- void main(){vec2 d=vUv-.5;float r=length(d);vec2 o=normalize(d+1e-5)*uCA*(.2+r*1.6);
-  vec3 c=vec3(texture2D(tDiffuse,vUv+o).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-o).b);
-  c*=1.-uVig*smoothstep(.35,.95,r*1.25);
-  c+=vec3(uFlash);
-  gl_FragColor=vec4(c,1.);}`,
-    });
-    composer.addPass(this.post);
-    composer.addPass(new OutputPass());
 
     // Stage dressing
     this.floor = new THREE.ShaderMaterial({
@@ -488,25 +471,6 @@ export class EvolutionFx {
     });
     this.scene.add(new THREE.Points(emGeo, this.embers));
 
-    // The two creatures
-    const growth = clamp(1 + 0.07 * (options.toStage - options.fromStage), 1, 1.2);
-    this.from = prepare(assets.from, 1.9, 2.4);
-    this.to = prepare(assets.to, 1.9 * growth, 2.4 * growth);
-    this.from.u.uDir.value = 0;
-    this.to.u.uD.value = 1;
-    this.to.holder.visible = false;
-    this.scene.add(this.from.holder, this.to.holder);
-
-    const a = sortByHeight(sample(this.from));
-    const b = sortByHeight(sample(this.to));
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.BufferAttribute(a.pos, 3));
-    geometry.setAttribute("aB", new THREE.BufferAttribute(b.pos, 3));
-    geometry.setAttribute("aCa", new THREE.BufferAttribute(a.col, 3));
-    geometry.setAttribute("aCb", new THREE.BufferAttribute(b.col, 3));
-    const random = new Float32Array(N * 4);
-    for (let i = 0; i < random.length; i++) random[i] = Math.random();
-    geometry.setAttribute("aR", new THREE.BufferAttribute(random, 4));
     this.morph = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
@@ -557,13 +521,99 @@ export class EvolutionFx {
  }`,
       fragmentShader: `${SSR}uniform float uAlpha;varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);float a=SSR(.5,.05,d);gl_FragColor=vec4(vC*a*vA*uAlpha,1.);}`,
     });
-    this.points = new THREE.Points(geometry, this.morph);
-    this.points.frustumCulled = false;
-    this.points.visible = !this.reduced;
-    this.scene.add(this.points);
-
     this.resize();
     this.render();
+  }
+
+  /** The next creature to appear on stage. */
+  setFrom(asset: FxAsset) {
+    this.pendingFrom = asset;
+  }
+
+  /** The creature it evolves into. */
+  setTo(asset: FxAsset) {
+    this.pendingTo = asset;
+  }
+
+  private buildComposer() {
+    // Post: scene → NaN guard → bloom → chromatic split / vignette / flash → tone map
+    const composer = new EffectComposer(this.renderer);
+    composer.addPass(new RenderPass(this.scene, this.camera));
+    composer.addPass(
+      new ShaderPass({
+        uniforms: { tDiffuse: { value: null } },
+        vertexShader: PASS_VERT,
+        fragmentShader:
+          "uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);if(any(isnan(c))||any(isinf(c)))c=vec4(0.);gl_FragColor=vec4(clamp(c.rgb,0.,24.),c.a);}",
+      }),
+    );
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.4, 0.55, 0.9);
+    composer.addPass(this.bloom);
+    this.post = new ShaderPass({
+      uniforms: { tDiffuse: { value: null }, uCA: { value: 0 }, uVig: { value: 0.55 }, uFlash: { value: 0 } },
+      vertexShader: PASS_VERT,
+      fragmentShader: `uniform sampler2D tDiffuse;uniform float uCA,uVig,uFlash;varying vec2 vUv;
+ void main(){vec2 d=vUv-.5;float r=length(d);vec2 o=normalize(d+1e-5)*uCA*(.2+r*1.6);
+  vec3 c=vec3(texture2D(tDiffuse,vUv+o).r,texture2D(tDiffuse,vUv).g,texture2D(tDiffuse,vUv-o).b);
+  c*=1.-uVig*smoothstep(.35,.95,r*1.25);
+  c+=vec3(uFlash);
+  gl_FragColor=vec4(c,1.);}`,
+    });
+    composer.addPass(this.post);
+    composer.addPass(new OutputPass());
+    composer.setSize(this.size.w, this.size.h);
+    this.composer = composer;
+  }
+
+  /** One heavy step per frame, so the stage stays responsive while it fills in. */
+  private work() {
+    if (!this.composer) return this.buildComposer();
+    if (this.pendingFrom && !this.from) {
+      const from = prepare(this.pendingFrom, 1.9, 2.4);
+      from.u.uDir.value = 0;
+      this.scene.add(from.holder);
+      this.from = from;
+      this.pendingFrom = null;
+      return;
+    }
+    if (this.pendingTo && !this.to) {
+      const growth = clamp(1 + 0.07 * (this.options.toStage - this.options.fromStage), 1, 1.2);
+      const to = prepare(this.pendingTo, 1.9 * growth, 2.4 * growth);
+      to.u.uD.value = 1;
+      to.holder.visible = false;
+      this.scene.add(to.holder);
+      this.to = to;
+      this.pendingTo = null;
+      return;
+    }
+    if (this.reduced || !this.from || !this.to || this.points) return;
+    if (!this.sampledFrom) {
+      this.sampledFrom = sortByHeight(sample(this.from));
+      return;
+    }
+    if (!this.sampledTo) {
+      this.sampledTo = sortByHeight(sample(this.to));
+      return;
+    }
+    const { sampledFrom: a, sampledTo: b } = this;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(a.pos, 3));
+    geometry.setAttribute("aB", new THREE.BufferAttribute(b.pos, 3));
+    geometry.setAttribute("aCa", new THREE.BufferAttribute(a.col, 3));
+    geometry.setAttribute("aCb", new THREE.BufferAttribute(b.col, 3));
+    const random = new Float32Array(N * 4);
+    for (let i = 0; i < random.length; i++) random[i] = Math.random();
+    geometry.setAttribute("aR", new THREE.BufferAttribute(random, 4));
+    const points = new THREE.Points(geometry, this.morph);
+    points.frustumCulled = false;
+    this.scene.add(points);
+    this.points = points;
+    this.sampledFrom = this.sampledTo = null;
+  }
+
+  private draw() {
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   /** Match the canvas to its on-screen size. */
@@ -573,7 +623,7 @@ export class EvolutionFx {
     if (w === this.size.w && h === this.size.h) return;
     this.size = { w, h };
     this.renderer.setSize(w, h, false);
-    this.composer.setSize(w, h);
+    this.composer?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     const px = (Math.min(window.devicePixelRatio || 1, 2) * h) / 900;
@@ -584,13 +634,17 @@ export class EvolutionFx {
   advance(dt: number, settled: boolean) {
     this.wall += dt;
     this.lastSettled = settled;
-    this.from.mixer?.update(dt);
-    this.to.mixer?.update(dt);
+    this.work();
+    this.from?.mixer?.update(dt);
+    this.to?.mixer?.update(dt);
+    // The sequence begins once the creature is on stage and pauses before the
+    // dissolve until the particles exist.
+    if (!this.from) return;
     if (this.reduced) {
-      if (settled) this.reducedTime += dt;
+      if (settled && this.to) this.reducedTime += dt;
       return;
     }
-    this.clock.advance(dt, settled);
+    this.clock.advance(dt, settled, this.points ? Infinity : TIMELINE.dissolve - 0.01);
     if (this.clock.justFlashed) {
       this.shake = 1;
       this.flashLevel = 0.4;
@@ -640,15 +694,19 @@ export class EvolutionFx {
 
     if (this.reduced) {
       const fade = smooth(0, T.reducedFade, this.reducedTime);
-      this.from.u.uD.value = fade;
-      this.from.holder.visible = fade < 1;
-      this.to.holder.visible = fade > 0;
-      this.to.u.uD.value = 1 - fade;
+      if (this.from) {
+        this.from.u.uD.value = fade;
+        this.from.holder.visible = fade < 1;
+      }
+      if (this.to) {
+        this.to.holder.visible = fade > 0;
+        this.to.u.uD.value = 1 - fade;
+      }
       this.target.y = 1.15;
       this.frameCamera(Math.sin(wall * 0.25) * 0.4, 0.12, 6.2 * dist, 36);
       this.floor.uniforms.uPower.value = 0.1;
       this.embers.uniforms.uBoost.value = 0.05;
-      this.composer.render();
+      this.draw();
       return;
     }
 
@@ -664,14 +722,18 @@ export class EvolutionFx {
     const boost = charge * 0.6 + smooth(T.form, T.hold, t) * 1.2;
 
     // Old body dissolves from the top while the helix pulls it apart; the new one grows from the feet.
-    this.from.u.uD.value = smooth(T.dissolve, T.form + 0.55, t);
-    this.from.u.uAm.value = charge * 0.35 * (1 - smooth(T.dissolve, T.form, t));
-    this.from.holder.visible = t < T.form + 0.62;
+    if (this.from) {
+      this.from.u.uD.value = smooth(T.dissolve, T.form + 0.55, t);
+      this.from.u.uAm.value = charge * 0.35 * (1 - smooth(T.dissolve, T.form, t));
+      this.from.holder.visible = t < T.form + 0.62;
+    }
     const reveal = smooth(T.reprint + 0.25, T.reveal + 0.35, t);
-    this.to.holder.visible = t >= T.reprint;
-    this.to.u.uD.value = 1 - reveal;
-    this.to.u.uAm.value = (1 - reveal) * 0.1;
-    this.to.holder.rotation.y = done ? Math.sin(wall * 0.5) * 0.35 * clamp((t - T.reveal) / 1.2) : 0;
+    if (this.to) {
+      this.to.holder.visible = t >= T.reprint;
+      this.to.u.uD.value = 1 - reveal;
+      this.to.u.uAm.value = (1 - reveal) * 0.1;
+      this.to.holder.rotation.y = done ? Math.sin(wall * 0.5) * 0.35 * clamp((t - T.reveal) / 1.2) : 0;
+    }
 
     m.uForm.value = form;
     m.uCollapse.value = col;
@@ -731,10 +793,12 @@ export class EvolutionFx {
     this.waveMat.opacity = 1 - sp;
 
     // Post
-    this.post.uniforms.uCA.value = c.flashed ? 0.012 * Math.exp(-since * 4.5) : 0;
-    this.post.uniforms.uFlash.value = this.flashLevel;
-    this.bloom.strength = 0.4 + (c.flashed ? 0.7 * Math.exp(-since * 4) : 0) + col * 0.35;
-    this.composer.render();
+    if (this.post) {
+      this.post.uniforms.uCA.value = c.flashed ? 0.012 * Math.exp(-since * 4.5) : 0;
+      this.post.uniforms.uFlash.value = this.flashLevel;
+    }
+    if (this.bloom) this.bloom.strength = 0.4 + (c.flashed ? 0.7 * Math.exp(-since * 4) : 0) + col * 0.35;
+    this.draw();
   }
 
   dispose() {
@@ -755,7 +819,8 @@ export class EvolutionFx {
     geometries.forEach((g) => g.dispose());
     materials.forEach((mat) => mat.dispose());
     textures.forEach((tex) => tex.dispose());
-    this.composer.dispose();
+    this.composer?.dispose();
     this.renderer.dispose();
+    this.renderer.forceContextLoss();
   }
 }
