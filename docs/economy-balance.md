@@ -93,4 +93,16 @@ SOL ~ $113 (rate implied by an earlier wallet screenshot). Run `cost-report` in 
   no accounts at all, so a typical day (~25 actions) costs ~0.000125 SOL (~$0.014), about $0.42 a month.
 - One-time costs of a new player: the starter pack (profile + habitat NFT mint) and the Rebyter mint, plus
   ~0.0015 SOL for the first token account of each decor/machine item type and of Gems.
-  The measured table is at the end of this file (filled from `cost-report`).
+
+Measured on devnet (new wallet, real client code, `cost-report`):
+
+| Action | Network fee | Deposit locked |
+|---|---|---|
+| claim ration, feed, play, care, rest, save layout, buy food | 0.000005 SOL | none |
+| starter pack (profile + habitat NFT + first meals) | 0.00001 SOL | 0.0086 SOL |
+| create first Rebyter | 0.00001 SOL | 0.0053 SOL |
+| buy Gems (first time) | 0.000005 SOL | 0.0015 SOL |
+| buy a decor item (first of its type) | 0.000005 SOL | 0.0015 SOL |
+
+Before this redesign, claiming the first ration locked 0.0061 SOL and the Rebyter 0.0075 SOL; now the daily loop
+locks nothing. The one-time total for a new player is ~0.016 SOL (~$1.8) before any purchase.
