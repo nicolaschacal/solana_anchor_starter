@@ -7,7 +7,7 @@ import { DEPLOYMENT } from "./deployment";
 /** The game currency. Its mint is configured once the token exists (VITE_GEM_MINT). */
 export const GEMS = {
   symbol: "Gems",
-  mint: parseMint((import.meta.env.VITE_GEM_MINT as string | undefined) || DEPLOYMENT.gemMint || undefined),
+  mint: parseMint((import.meta.env?.VITE_GEM_MINT as string | undefined) || DEPLOYMENT.gemMint || undefined),
 };
 
 function parseMint(value: string | undefined) {

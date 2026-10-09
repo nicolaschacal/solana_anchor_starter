@@ -18,6 +18,7 @@ on:
           - publish-rebalance
           - publish-workbook
           - setup-economy
+          - smoke-feed
 
 permissions:
   contents: write
@@ -126,6 +127,17 @@ jobs:
           cd app
           npm ci
           npm run setup:economy
+
+      - name: smoke test feeding on devnet
+        if: inputs.action == 'smoke-feed'
+        env:
+          SOLANA_WALLET_PATH: ../artifacts/private/admin-keypair.json
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
+          trap 'exec >&- 2>&-; sleep 2' EXIT
+          cd app
+          npm ci
+          npm run smoke:feed
 
       - name: publish to Irys devnet
         if: startsWith(inputs.action, 'publish-')

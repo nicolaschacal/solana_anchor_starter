@@ -34,8 +34,7 @@ A free player can keep roughly 4–5 Rebyters alive. More than that is a choice 
 
 - Gems: 1 Gem = 0.0001 SOL (500 Gems = 0.05 SOL, bigger packs are ~10–30% cheaper per Gem).
 - Gem food: 3–4 Gems per meal (≈ 0.0003–0.0004 SOL); the ×99 meat pack is ~10% cheaper per meal.
-- Sparks food: 8 Sparks per meal (40 per pack of 5), so Sparks are ~2x as expensive per meal as Gems are in time,
-  but they cost nothing. Sparks also buy decor (60–180), which competes with food for the same ~36/day.
+- Sparks food: 8 Sparks per meal (40 per pack of 5), so Sparks cost nothing but are scarce. Sparks also buy decor (60–180), which competes with food for the same ~36/day.
 - Rough monthly food bill for the paying part: 6 Rebyters ≈ 0.04 SOL, 10 Rebyters ≈ 0.15 SOL.
 
 ## Why it holds together

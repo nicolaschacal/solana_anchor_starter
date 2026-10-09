@@ -14,7 +14,8 @@
     "publish:workbook": "tsx scripts/publish-workbook.ts",
     "publish:current": "tsx scripts/publish-current.ts",
     "publish:rebalance": "tsx scripts/publish-rebalance.ts",
-    "setup:economy": "tsx scripts/setup-economy.ts"
+    "setup:economy": "tsx scripts/setup-economy.ts",
+    "smoke:feed": "tsx scripts/smoke-feed.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.0",
