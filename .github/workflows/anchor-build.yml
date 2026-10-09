@@ -1,0 +1,53 @@
+name: anchor-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (version pinned in rust-toolchain.toml)
+        run: |
+          rustup show
+          rustc --version
+          cargo --version
+
+      - name: Install Solana CLI 4.1.2
+        run: |
+          curl -sSfL -o solana.tar.bz2 https://github.com/anza-xyz/agave/releases/download/v4.1.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          tar xjf solana.tar.bz2
+          echo "$PWD/solana-release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor 1.2.0
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL -o "$HOME/.local/bin/anchor" https://github.com/coral-xyz/anchor/releases/download/v1.2.0/anchor-1.2.0-x86_64-unknown-linux-gnu
+          chmod +x "$HOME/.local/bin/anchor"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: |
+          solana --version
+          anchor --version
+
+      - name: Throwaway wallet for the build (not the real admin key)
+        run: |
+          mkdir -p artifacts/private
+          solana-keygen new --no-bip39-passphrase --silent --force -o artifacts/private/admin-keypair.json
+
+      - name: anchor build
+        run: anchor build
+
+      - name: Show build output
+        run: ls -la target/deploy target/idl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: program-build
+          path: |
+            target/deploy/solana_anchor_starter.so
+            target/idl/solana_anchor_starter.json
