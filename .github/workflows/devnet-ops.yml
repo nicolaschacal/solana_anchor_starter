@@ -51,6 +51,11 @@ jobs:
         run: |
           mkdir -p artifacts/private
           if [ -z "$ADMIN_KEYPAIR" ]; then
+            if [ "${{ inputs.action }}" = "test" ] || [ "${{ inputs.action }}" = "build" ]; then
+              echo "No ADMIN_KEYPAIR secret: using a throwaway wallet for this action."
+              solana-keygen new --no-bip39-passphrase --silent --force -o artifacts/private/admin-keypair.json
+              exit 0
+            fi
             echo "Secret ADMIN_KEYPAIR is not set. Add it in Settings > Secrets and variables > Actions."
             exit 1
           fi
