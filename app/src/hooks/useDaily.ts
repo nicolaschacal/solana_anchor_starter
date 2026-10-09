@@ -18,7 +18,7 @@ export type Daily = {
   day: number;
   rationReady: boolean;
   quests: QuestState[];
-  /** Meals in stock: meat, plants, fish, fruit. */
+  /** Meals in stock per food (all tiers added): meat, plants, fish, fruit. */
   food: number[];
   /** Quests that can be claimed right now. */
   claimable: number;
@@ -32,7 +32,7 @@ export function useDaily(): Daily {
   const [raw, setRaw] = useState<Raw | null>(null);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-  const available = DEPLOYMENT.rationUnits > 0 && DEPLOYMENT.food.packMeals > 0;
+  const available = DEPLOYMENT.rationUnits > 0 && DEPLOYMENT.food.prices.length > 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000);
@@ -84,7 +84,7 @@ export function useDaily(): Daily {
       day,
       rationReady: available && (raw?.rationDay ?? 0) < day,
       quests,
-      food: raw?.food ?? [0, 0, 0, 0],
+      food: [0, 1, 2, 3].map((kind) => [0, 1, 2, 3].reduce((sum, tier) => sum + (raw?.food[kind * 4 + tier] ?? 0), 0)),
       claimable: quests.filter((q) => q.done && !q.claimed).length,
       now,
     };

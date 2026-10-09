@@ -4040,3 +4040,18 @@ html,body,#root{background:#04101f!important}
   .game-frame .game-world .world-clock{--clock-h:46px;--clock-face:30px;padding:0 9px 0 6px!important;gap:6px!important}
   .game-frame .world-clock-face svg{width:17px;height:17px}
 }
+
+/* Food in four tiers: one row per food, four meals each. */
+.food-grid{grid-template-columns:1fr}
+.food-row{display:grid;gap:6px}
+.food-group{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#4a6a82}
+.food-group small{font-size:9px;text-transform:none;letter-spacing:0;color:#8096a7}
+.food-tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.food-grid .food-tier{min-height:70px;padding:8px;grid-template-columns:1fr;gap:3px;position:relative}
+.food-grid .food-tier>svg{width:16px}
+.food-grid .food-tier strong{font-size:10px}
+.food-grid .food-tier small{font-size:8px}
+.food-grid .food-tier.meal-warning{border-color:#e7b25c}
+.food-grid .food-count{position:absolute;top:6px;right:8px;font-size:10px;color:#2f88d7}
+.machine-badge{color:#2f88d7;font-style:normal;font-weight:700}
+@media(max-width:520px){.food-tiers{grid-template-columns:repeat(2,minmax(0,1fr))}}

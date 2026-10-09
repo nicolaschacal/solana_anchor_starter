@@ -25,11 +25,11 @@ import { budgetIxs } from "./budget";
 import { refreshBalances } from "./token";
 
 const enc = new TextEncoder();
-export const economyPda = () => PublicKey.findProgramAddressSync([enc.encode("economy2")], PROGRAM_ID)[0];
+export const economyPda = () => PublicKey.findProgramAddressSync([enc.encode("economy3")], PROGRAM_ID)[0];
 export const itemTypePda = (itemId: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, itemId, true);
-  return PublicKey.findProgramAddressSync([enc.encode("item2"), bytes], PROGRAM_ID)[0];
+  return PublicKey.findProgramAddressSync([enc.encode("item3"), bytes], PROGRAM_ID)[0];
 };
 
 type Wallet = AnchorWallet;
@@ -199,11 +199,11 @@ export async function reclaimRent(connection: Connection, wallet: Wallet, accoun
   }
 }
 
-/** Burn Gems, receive packs of one food (meals are added to the profile; nothing is minted). */
-export async function buyFood(connection: Connection, wallet: Wallet, foodType: number, packs = 1) {
+/** Burn Gems, receive meals of one food and tier (counters in the profile; nothing is minted). */
+export async function buyFood(connection: Connection, wallet: Wallet, foodType: number, tier: number, amount = 1) {
   const gemMint = need(DEPLOYMENT.gemMint, "Gems");
   const ix = await getProgram(connection, wallet)
-    .methods.buyFood(foodType, packs)
+    .methods.buyFood(foodType, tier, amount)
     .accountsStrict({
       owner: wallet.publicKey,
       economy: economyPda(),

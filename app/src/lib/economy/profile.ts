@@ -8,7 +8,7 @@ export type ProfileState = {
   questDay: number;
   counts: number[];
   claimed: number;
-  /** Meals in stock: meat, plants, fish, fruit. */
+  /** Meals in stock, index food * 4 + tier (meat, plants, fish, fruit; plain to feast). */
   food: number[];
   starterClaimed: boolean;
   /** Mint of the habitat NFT shown when the game opens, or null. */

@@ -1,3 +1,4 @@
+import type { StoreItem } from "../lib/economy/catalog";
 import { useCallback, useEffect, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import type { TreeJson } from "../lib/rebyters/types";
@@ -266,6 +267,7 @@ export function usePlayerRebyters() {
       mint: string,
       action: RebyterInteraction,
       option = 0,
+      machine?: StoreItem,
     ) => {
       if (!anchorWallet) throw new Error("Connect a wallet");
       setInteractingMint(mint);
@@ -285,6 +287,7 @@ export function usePlayerRebyters() {
           mint,
           action,
           option,
+          machine,
         );
         invalidatePlayerSnapshot(auth.publicKey?.toBase58());
         await refresh(true);
@@ -315,6 +318,7 @@ export function usePlayerRebyters() {
       sourceId: number,
       targetId: number,
       tree: TreeJson,
+      item?: StoreItem,
     ) => {
       if (!anchorWallet) throw new Error("Connect a wallet");
       setInteractingMint(mint);
@@ -329,6 +333,7 @@ export function usePlayerRebyters() {
           tree,
           sourceId,
           targetId,
+          item,
         );
         invalidatePlayerSnapshot(auth.publicKey?.toBase58());
         await refresh(true);

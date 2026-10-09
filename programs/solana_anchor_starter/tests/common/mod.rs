@@ -30,10 +30,10 @@ pub fn registry() -> Pubkey {
     Pubkey::find_program_address(&[b"registry"], &program_id()).0
 }
 pub fn economy() -> Pubkey {
-    Pubkey::find_program_address(&[b"economy2"], &program_id()).0
+    Pubkey::find_program_address(&[b"economy3"], &program_id()).0
 }
 pub fn item_pda(id: u16) -> Pubkey {
-    Pubkey::find_program_address(&[b"item2", &id.to_le_bytes()], &program_id()).0
+    Pubkey::find_program_address(&[b"item3", &id.to_le_bytes()], &program_id()).0
 }
 pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     get_associated_token_address_with_program_id(owner, mint, &token_2022::ID)
@@ -334,7 +334,7 @@ pub const PAID_HABITAT: u16 = 101;
 pub const PAID_HABITAT_PRICE: u64 = 50;
 
 pub fn daily_pda(owner: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"profile3", owner.as_ref()], &program_id()).0
+    Pubkey::find_program_address(&[b"profile4", owner.as_ref()], &program_id()).0
 }
 
 pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {

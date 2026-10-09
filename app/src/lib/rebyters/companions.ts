@@ -22,8 +22,8 @@ import {
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
 import { budgetIxs } from "../economy/budget";
-import { claimStarterPack, ensureProfileIx } from "../economy/actions";
-import { STARTER_HABITAT_ID } from "../economy/catalog";
+import { claimStarterPack, ensureProfileIx, itemTypePda } from "../economy/actions";
+import { STARTER_HABITAT_ID, itemIdOf, type StoreItem } from "../economy/catalog";
 import { DEPLOYMENT } from "../economy/deployment";
 import { fetchProfileState } from "../economy/profile";
 import { refreshBalances } from "../economy/token";
@@ -462,7 +462,7 @@ export async function createRebyter(
       ownerTokenAccount,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
-    })
+    } as never)
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
@@ -507,6 +507,8 @@ export async function interactWithRebyter(
   mintString: string,
   action: RebyterInteraction,
   option = 0,
+  /** Training: the specialised machine (catalog item) the wallet holds, for its bonus. */
+  machine?: StoreItem,
 ) {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
@@ -523,11 +525,13 @@ export async function interactWithRebyter(
   const program = getProgram(connection, anchorWallet);
 
   let builder;
-  if (action === "feed") builder = program.methods.feed(option);
+  if (action === "feed") builder = program.methods.feed(Math.floor(option / 4), option % 4);
   else if (action === "play") builder = program.methods.play();
   else if (action === "care") builder = program.methods.care();
   else if (action === "rest") builder = program.methods.rest();
   else builder = program.methods.train(option);
+  const machineMint = machine ? DEPLOYMENT.items[machine.id]?.mint : undefined;
+  const machineId = machine ? itemIdOf(machine) : null;
 
   // The profile counts today's actions for the quests; wallets without one (or with a legacy one)
   // get it created in the same transaction.
@@ -546,7 +550,16 @@ export async function interactWithRebyter(
     const state = await fetchProfileState(connection, wallet.publicKey).catch(() => null);
     if (!state || (state.food[option] ?? 0) < 1) throw new Error("You are out of that food. Claim your daily ration or visit the store.");
   }
-  const ix = await builder.accountsStrict(base as never).instruction();
+  const optional =
+    action === "train" && machineMint && machineId !== null
+      ? {
+          itemType: itemTypePda(machineId),
+          machineAccount: getAssociatedTokenAddressSync(new PublicKey(machineMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID),
+        }
+      : action === "train"
+        ? { itemType: null, machineAccount: null }
+        : {};
+  const ix = await builder.accountsStrict({ ...base, ...optional } as never).instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...budgetIxs(), ...preInstructions, ix);
@@ -577,6 +590,8 @@ export async function evolveRebyter(
   tree: TreeJson,
   sourceId: number,
   targetId: number,
+  /** An evolution item in the wallet: it is burned and replaces the rule's requirements. */
+  item?: StoreItem,
 ) {
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
@@ -602,6 +617,16 @@ export async function evolveRebyter(
   );
   const rebyterAuthority = rebyterAuthorityPda(mint);
   const program = getProgram(connection, anchorWallet);
+  const itemMint = item ? DEPLOYMENT.items[item.id]?.mint : undefined;
+  const itemId = item ? itemIdOf(item) : null;
+  const itemAccounts =
+    itemMint && itemId !== null
+      ? {
+          itemType: itemTypePda(itemId),
+          itemMint: new PublicKey(itemMint),
+          ownerItemAccount: getAssociatedTokenAddressSync(new PublicKey(itemMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID),
+        }
+      : { itemType: null, itemMint: null, ownerItemAccount: null };
 
   const ix = await program.methods
     .evolve(
@@ -621,9 +646,10 @@ export async function evolveRebyter(
       registry: registryPda(),
       tree: treePda(evolutionTree.family.id, evolutionTree.version),
       ruleSet: treePda(evolutionTree.family.id, evolutionTree.version),
+      ...itemAccounts,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
-    })
+    } as never)
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");

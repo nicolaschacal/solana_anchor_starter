@@ -1,105 +1,13 @@
 {
   "cluster": "devnet",
   "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
-  "economy": "Fe1YegpT55fxj4jDvWTTo5C7fCyNbbNV5BGQsHVxU1kB",
+  "economy": "",
   "treasury": "AQfKYtAVyZARgKxSt6ZpqwLAtDNeE1LF8Jk5FYWteqbv",
-  "gemMint": "458yd8JjArutDLjLaTeSTHQy8vTjLbUkpB63dkk9AnJq",
+  "gemMint": null,
   "food": {
-    "packMeals": 5,
-    "prices": [
-      20,
-      15,
-      20,
-      15
-    ]
+    "prices": []
   },
-  "rationUnits": 2,
-  "packs": [
-    {
-      "id": 0,
-      "gems": 500,
-      "priceLamports": 50000000
-    },
-    {
-      "id": 1,
-      "gems": 1200,
-      "priceLamports": 100000000
-    },
-    {
-      "id": 2,
-      "gems": 3000,
-      "priceLamports": 220000000
-    },
-    {
-      "id": 3,
-      "gems": 7000,
-      "priceLamports": 500000000
-    }
-  ],
-  "items": {
-    "habitat-meadow-5": {
-      "itemId": 100,
-      "mint": null
-    },
-    "habitat-oasis-10": {
-      "itemId": 101,
-      "mint": null
-    },
-    "habitat-frost-10": {
-      "itemId": 102,
-      "mint": null
-    },
-    "habitat-jungle-15": {
-      "itemId": 103,
-      "mint": null
-    },
-    "habitat-ember-15": {
-      "itemId": 104,
-      "mint": null
-    },
-    "machine-power": {
-      "itemId": 105,
-      "mint": "DGQA2PE5sXhv74rZNsWTdCEMvPVEjxoPYw188ReDfeU1"
-    },
-    "machine-endurance": {
-      "itemId": 106,
-      "mint": "H9Nx4n1ZHXgg7mD7TEVvkf7yin2As5ZfzUK1YDhhXJoR"
-    },
-    "machine-defense": {
-      "itemId": 107,
-      "mint": "GteFVpS6AtUgoKqxJ6mmcGq8GMP9CQRYwSXnwNK2u85y"
-    },
-    "machine-speed": {
-      "itemId": 108,
-      "mint": "ByRg6VhMUg6QkmZDVCSEeQeQZrDAnoSRkFKkmuevHNmH"
-    },
-    "machine-combat": {
-      "itemId": 109,
-      "mint": "9nCaNHNorCYTG1vLazMCQ2mkkYoY8DGK9qbmGNpgTDj1"
-    },
-    "machine-balance": {
-      "itemId": 110,
-      "mint": "6aBfH4NxNCGJPoer2FUomD9HZWGV69bXLbFkvbHbELUY"
-    },
-    "decor-pine": {
-      "itemId": 111,
-      "mint": "9627YkWmn4nFrRqrGqewFzyHe3ejDkz85FNQR28A1Fta"
-    },
-    "decor-hero": {
-      "itemId": 112,
-      "mint": "FGNg5UPEbgCMUueVZZExAg16KqNYqvFLLYTgm3bzpekx"
-    },
-    "decor-log": {
-      "itemId": 113,
-      "mint": "GAebVKvRQ5kGZpsSugJ7mm6CmMswRZadoiBgde4NDczu"
-    },
-    "decor-lantern": {
-      "itemId": 114,
-      "mint": "5HUwyMJ941HLwMwJnWqPseuokX8Z5uGWfbDTsgqQxcsJ"
-    },
-    "decor-flowers": {
-      "itemId": 115,
-      "mint": "BsNsShxQJjhxVkVAPcNiDiHomdaRaDSFSwh7Y6Q6Z7YB"
-    }
-  }
+  "rationUnits": 0,
+  "packs": [],
+  "items": {}
 }

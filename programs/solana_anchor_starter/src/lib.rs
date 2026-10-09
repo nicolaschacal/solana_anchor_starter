@@ -405,7 +405,7 @@ pub mod solana_anchor_starter {
         )?;
 
         let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy2", &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy3", &bump]];
         mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
@@ -461,7 +461,7 @@ pub mod solana_anchor_starter {
         )?;
 
         let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy2", &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy3", &bump]];
         mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
@@ -580,8 +580,8 @@ pub mod solana_anchor_starter {
         let bit = 1u8 << slot;
         require!(profile.claimed & bit == 0, RegistryError::QuestAlreadyClaimed);
         profile.claimed |= bit;
-        let slot = food_type * FOOD_TIERS;
-        profile.food[slot] = profile.food[slot].saturating_add(u16::from(meals));
+        let food_slot = food_type * FOOD_TIERS;
+        profile.food[food_slot] = profile.food[food_slot].saturating_add(u16::from(meals));
         emit!(QuestClaimed {
             owner: ctx.accounts.owner.key(),
             day,
@@ -1977,7 +1977,7 @@ pub struct InitializePlayer<'info> {
         init,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile3", owner.key().as_ref()],
+        seeds = [b"profile4", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -2068,7 +2068,7 @@ pub struct CreateRebyter<'info> {
         init_if_needed,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile3", owner.key().as_ref()],
+        seeds = [b"profile4", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -2107,7 +2107,7 @@ pub struct CreateHabitatType<'info> {
         init,
         payer = authority,
         space = 8 + ItemType::INIT_SPACE,
-        seeds = [b"item2", item_id.to_le_bytes().as_ref()],
+        seeds = [b"item3", item_id.to_le_bytes().as_ref()],
         bump
     )]
     pub item_type: Account<'info, ItemType>,
@@ -2119,11 +2119,11 @@ pub struct CreateHabitatType<'info> {
 pub struct CreateHabitat<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Box<Account<'info, Economy>>,
-    #[account(seeds = [b"item2", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(seeds = [b"item3", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Box<Account<'info, ItemType>>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -2174,7 +2174,7 @@ pub struct SelectHabitat<'info> {
         constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
     )]
     pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
@@ -2183,9 +2183,9 @@ pub struct SelectHabitat<'info> {
 pub struct BuyFood<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: InterfaceAccount<'info, Mint>,
@@ -2218,7 +2218,7 @@ pub struct InteractRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     /// The player's profile: counts the action for today's quests.
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
@@ -2241,7 +2241,7 @@ pub struct TrainRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     /// Optional: the type of the specialised machine the wallet holds (only the program creates these).
     pub item_type: Option<Box<Account<'info, ItemType>>>,
@@ -2257,7 +2257,7 @@ pub struct EvolveRebyter<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"profile3", owner.key().as_ref()],
+        seeds = [b"profile4", owner.key().as_ref()],
         bump,
         has_one = owner
     )]
@@ -2504,7 +2504,7 @@ pub struct InitializeEconomy<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(init, payer = authority, space = 8 + Economy::INIT_SPACE, seeds = [b"economy2"], bump)]
+    #[account(init, payer = authority, space = 8 + Economy::INIT_SPACE, seeds = [b"economy3"], bump)]
     pub economy: Account<'info, Economy>,
     pub gem_mint: InterfaceAccount<'info, Mint>,
     pub token_program: Program<'info, Token2022>,
@@ -2516,7 +2516,7 @@ pub struct AdminEconomy<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"economy2"], bump = economy.bump)]
+    #[account(mut, seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
 }
 
@@ -2527,13 +2527,13 @@ pub struct CreateItemType<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
     #[account(
         init,
         payer = authority,
         space = 8 + ItemType::INIT_SPACE,
-        seeds = [b"item2", item_id.to_le_bytes().as_ref()],
+        seeds = [b"item3", item_id.to_le_bytes().as_ref()],
         bump
     )]
     pub item_type: Account<'info, ItemType>,
@@ -2547,7 +2547,7 @@ pub struct UpdateItemType<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"item2", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(mut, seeds = [b"item3", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
 }
 
@@ -2555,7 +2555,7 @@ pub struct UpdateItemType<'info> {
 pub struct BuyGems<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
     /// CHECK: must equal the treasury stored in the economy account.
     #[account(mut, address = economy.treasury)]
@@ -2579,9 +2579,9 @@ pub struct BuyGems<'info> {
 pub struct BuyItem<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(seeds = [b"item2", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(seeds = [b"item3", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: InterfaceAccount<'info, Mint>,
@@ -2610,16 +2610,16 @@ pub struct BuyItem<'info> {
 #[derive(Accounts)]
 pub struct ClaimDailyRation<'info> {
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 
 #[derive(Accounts)]
 pub struct ClaimQuest<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 

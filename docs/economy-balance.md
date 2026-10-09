@@ -18,7 +18,7 @@ players start a new account.
   fixed-size field (`LAYOUT`, 230 bytes as hex) inside the habitat's own metadata, so saving never reallocates
   and the layout travels with the habitat if it is transferred. The profile only remembers which habitat is
   `active_habitat`. Objects only show if the wallet holds them (decor beyond what is held is hidden, not deleted).
-- **One PDA per player:** `PlayerProfile` (`profile3`): pokedex, ration day, quest counters, food, starter flag,
+- **One PDA per player:** `PlayerProfile` (`profile4`): pokedex, ration day, quest counters, food, starter flag,
   active habitat.
 - **Starter pack,** claimed once per wallet together with the first Rebyter (own transaction, because a second
   mint does not fit next to the evolution proof): the profile, a free Verdant Meadow (5x5) habitat NFT and 3 meals
@@ -28,7 +28,7 @@ players start a new account.
 
 On-chain pieces: `buy_gems`, `buy_item` (decor/machines), `buy_food`, `create_habitat` (free starter or Gems),
 `set_habitat_layout`, `select_habitat`, `claim_daily_ration`, `claim_quest`, `set_food` and
-`create_habitat_type` / `create_item_type` (admin). PDA seeds: `economy2`, `item2`, `profile3`,
+`create_habitat_type` / `create_item_type` (admin). PDA seeds: `economy2`, `item2`, `profile4`,
 `habitat_authority`.
 
 ## Demand: what feeding costs

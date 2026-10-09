@@ -1,6 +1,8 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
+import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
+import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { Suspense, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -41,6 +43,20 @@ import "./ui.css";
 // The 3D world is loaded on demand: it brings the whole habitat engine with it.
 const PlayerWorld = lazy(() => import("../../components/world/PlayerWorld").then(m => ({ default: m.PlayerWorld })));
 const fallbackTree = sampleMammal();
+const FOOD_DIET = ["carnivore", "herbivore", "piscivore", "frugivore"];
+const TRAININGS = [
+  { id: 0, name: "Power", icon: <Zap/>, gains: [1,3,0,0], cost: "Energy −22 · Weight −1" },
+  { id: 1, name: "Endurance", icon: <Heart/>, gains: [4,0,0,1], cost: "Energy −24 · Weight −2" },
+  { id: 2, name: "Defense", icon: <Shield/>, gains: [1,0,3,0], cost: "Energy −18" },
+  { id: 3, name: "Speed", icon: <Sparkles/>, gains: [0,1,0,3], cost: "Energy −22 · Weight −2" },
+  { id: 4, name: "Combat", icon: <Dna/>, gains: [0,2,1,1], cost: "Energy −25 · Fullness −6" },
+  { id: 5, name: "Balanced", icon: <Activity/>, gains: [1,1,1,1], cost: "Energy −16 · Fullness −6" },
+];
+/** The strongest machine for this training that the wallet holds (none = the normal rate). */
+function bestMachine(inventory: Inventory, training: number): MachineItem | undefined {
+  return CATALOG.filter((i): i is MachineItem => i.category === "machine" && i.training === training && inventory.count(i) > 0)
+    .sort((a, b) => b.bonusPct - a.bonusPct)[0];
+}
 const STAGE_NAMES = ["ORIGIN", "BYTE", "KYLO", "MEGA", "GIGA", "TERA"];
 /**
  * The home screen opens on the 5x5 world with the player's rebyters walking around.
@@ -620,10 +636,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
 
   const guidance=active?careGuidance(active):null;
-  async function interact(action:RebyterInteraction,option=0){
+  async function interact(action:RebyterInteraction,option=0,_unused=0,machine?:MachineItem){
     if(!active)return;
     try{
-      await player.interact(active.mint,action,option);
+      await player.interact(active.mint,action,option,machine);
     }catch{throw new Error("Interaction failed");}
   }
 
@@ -890,12 +906,14 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}><X/></button></div>
         <p className="training-intro companion-guidance" role="status">{guidance?.training} Energy: {active.energy}% · Fullness: {active.fullness}%.</p>
         <div className="training-grid">
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",0).then(()=>{setTraining(false);setVisualAction("train-power");}).catch(()=>undefined)}><span className="training-icon"><Zap/></span><span><strong>Power</strong><small>{trainingGains(guidance?.tier??0,[1,3,0,0])}</small><em>Energy −22 · Weight −1</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",1).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Heart/></span><span><strong>Endurance</strong><small>{trainingGains(guidance?.tier??0,[4,0,0,1])}</small><em>Energy −24 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",2).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Shield/></span><span><strong>Defense</strong><small>{trainingGains(guidance?.tier??0,[1,0,3,0])}</small><em>Energy −18</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",3).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Sparkles/></span><span><strong>Speed</strong><small>{trainingGains(guidance?.tier??0,[0,1,0,3])}</small><em>Energy −22 · Weight −2</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",4).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Dna/></span><span><strong>Combat</strong><small>{trainingGains(guidance?.tier??0,[0,2,1,1])}</small><em>Energy −25 · Fullness −6</em></span><ChevronRight/></button>
-          <button disabled={!!player.interactingMint} onClick={()=>void interact("train",5).then(()=>{setTraining(false);setVisualAction("train");}).catch(()=>undefined)}><span className="training-icon"><Activity/></span><span><strong>Balanced</strong><small>{trainingGains(guidance?.tier??0,[1,1,1,1])}</small><em>Energy −16 · Fullness −6</em></span><ChevronRight/></button>
+          {TRAININGS.map(t=>{
+            const machine=bestMachine(inventory,t.id);
+            return <button key={t.id} disabled={!!player.interactingMint} onClick={()=>void interact("train",t.id,0,machine).then(()=>{setTraining(false);setVisualAction(t.id===0?"train-power":"train");}).catch(()=>undefined)}>
+              <span className="training-icon">{t.icon}</span>
+              <span><strong>{t.name}</strong><small>{trainingGains(guidance?.tier??0,t.gains,machine?.bonusPct??0)}</small><em>{t.cost}</em>{machine&&<em className="machine-badge">{machine.name} · +{machine.bonusPct}%</em>}</span>
+              <ChevronRight/>
+            </button>;
+          })}
         </div>
       </section>
     </div>}
@@ -905,15 +923,19 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         <div className="game-sheet-head"><div><small>FEED</small><h2>Choose a meal</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setFeeding(false)}><X/></button></div>
         <p className="training-intro">Fullness: {active.fullness}% · Feed only what your companion needs.</p>
         <div className="food-grid">
-          {[
-            ["Meat","Builds carnivore history",0],
-            ["Plants","Builds herbivore history",1],
-            ["Fish","Builds piscivore history",2],
-            ["Fruit","Builds frugivore history",3],
-          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint||(inventory.food(Number(id))<1&&DEPLOYMENT.food.packMeals>0)} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
-            <Apple/><span><strong>{String(name)}</strong><small className={mealWarning(active,Number(id))?"meal-warning":""}>{mealWarning(active,Number(id))||String(desc)}</small></span>
-            {DEPLOYMENT.food.packMeals>0&&<b className="food-count" aria-label={`${inventory.food(Number(id))} in your wallet`}>×{inventory.food(Number(id))}</b>}
-          </button>)}
+          {FOOD_GROUPS.map((group,food)=><div key={group} className="food-row">
+            <strong className="food-group">{group}<small>{FOOD_DIET[food]}</small></strong>
+            <div className="food-tiers">
+              {FOOD_NAMES[food].map((name,tier)=>{
+                const stock=inventory.meals(food,tier);
+                const warn=mealWarning(active,food,tier);
+                return <button key={name} className={`food-tier${warn?" meal-warning":""}`} title={warn||`${name}: +${fullnessOf(food,tier)} fullness, diet x${FOOD_TIER_DIET[tier]}`} disabled={!!player.interactingMint||stock<1} onClick={()=>void interact("feed",foodSlot(food,tier)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
+                  <Apple/><span><strong>{name}</strong><small>+{fullnessOf(food,tier)} · ×{FOOD_TIER_DIET[tier]}</small></span>
+                  <b className="food-count" aria-label={`${stock} in stock`}>×{stock}</b>
+                </button>;
+              })}
+            </div>
+          </div>)}
         </div>
         {player.status&&<div className="create-status">{player.status}</div>}
         {player.error&&<div className="create-error">{player.error}</div>}
@@ -1018,6 +1040,7 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
     timerCurrent:number;
     timerRemaining:number;
   }[];
+  const labInventory=useInventory();
   const eligible=candidates.filter(c=>c.result.eligible);
   const discoveredIds=new Set([...(playerProfile?.discoveries??[]),...owned.map(x=>x.evolutionId)]);
   return <Shell><Header/><main className="player-main evolution-player">
@@ -1030,6 +1053,8 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
         const traitMatches=requirements.filter(item=>item.passed).length;
         const mandatoryLeft=mandatoryRequirements.filter(item=>!item.passed).length;
         const traitLeft=Math.max(0,(path.rule?.requiredGroups??0)-traitMatches);
+        const evoItem=evolutionItemFor(target.id);
+        const hasItem=!!evoItem&&labInventory.count(evoItem)>0;
         return <article className={result.eligible?"evolution-option unlocked":"evolution-option"} key={target.id}>
           <div className="evolution-option-top">
             <div className="evolution-option-art">{known?<CreatureSprite evolution={target}/>:<LockKeyhole/>}</div>
@@ -1068,6 +1093,11 @@ function PlayerLabScreen({ onEvolve }:{onEvolve:(from:Evolution,to:Evolution,tas
             onEvolve(evolution,target,task);
             task.catch(()=>undefined);
           }}>{player.interactingMint===active.mint?"Evolving…":known?"Evolve":"Evolve mystery"}<ChevronRight/></button>:<span className="route-lock"><LockKeyhole/> {traitLeft>0?"Match more route traits":mandatoryLeft>0?"Resolve the care requirement":"Wait for the evolution timer"}</span>}
+          {!result.eligible&&hasItem&&evoItem&&<button className="ui-btn ui-btn-secondary evolve-route-button" disabled={!!player.interactingMint} onClick={()=>{
+            const task=player.evolve(active.mint,evolution.id,target.id,tree,evoItem);
+            onEvolve(evolution,target,task);
+            task.catch(()=>undefined);
+          }}><Sparkles/> Use {evoItem.name}<ChevronRight/></button>}
         </article>
       })}
       {!candidates.length&&<div className="evolution-empty"><Dna/><strong>This form has no outgoing evolution routes.</strong><p>It may be a valid final form for this life.</p></div>}

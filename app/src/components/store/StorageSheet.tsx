@@ -9,7 +9,7 @@ import { useRebytersAuth } from "../../lib/rebyters/auth";
 import { FoodArt } from "./FoodArt";
 import { detailFor, iconFor } from "./StoreSheet";
 
-const SECTION_LABEL: Record<string, string> = { habitat: "Habitats", food: "Food", machine: "Machines", decor: "Decor" };
+const SECTION_LABEL: Record<string, string> = { habitat: "Habitats", food: "Food", machine: "Machines", evolution: "Evolution items", decor: "Decor" };
 
 /** Everything the wallet holds, grouped by type. Read from the wallet; nothing is stored by the game. */
 export function StorageSheet({ balance, inventory, onClose }: { balance: GemBalance; inventory: Inventory; onClose: () => void }) {

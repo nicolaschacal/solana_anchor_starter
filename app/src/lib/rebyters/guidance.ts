@@ -19,13 +19,17 @@ export function careGuidance(s:CareState) {
   const care=sick||injured ? !canCare ? message : "Care can cure your current condition. Energy −2 · Fullness −1." : "Care builds bond. Energy −2 · Fullness −1.";
   return {recommended,message,training:training+(injuryRisk?" Risk of injury.":""),tier,care};
 }
-export function mealWarning(s:CareState,food:number){
-  const gain=[22,16,18,14][food];
+export function mealWarning(s:CareState,food:number,tier=0){
+  const gain=Math.floor([22,16,18,14][food]*[100,150,220,300][tier]/100);
   if(s.condition&C.overfed)return "Already overfed. Another meal adds a care mistake and may cause sickness.";
   if(s.fullness>=90)return "Too full. This meal causes overfeeding and adds a care mistake.";
   return s.fullness+gain>=95?"This meal will overfeed your Rebyter. Choose a lighter meal or wait.":"";
 }
-export function trainingGains(tier:number,gains:number[]){
+export function trainingGains(tier:number,gains:number[],bonusPct=0){
   if(!tier)return "No stat gains";
-  return gains.map((gain,index)=>gain?`${["HP","ATK","DEF","SPD"][index]} +${tier===2?gain:Math.ceil(gain/2)}`:"").filter(Boolean).join(" · ");
+  return gains.map((gain,index)=>{
+    if(!gain)return "";
+    const base=tier===2?gain:Math.ceil(gain/2);
+    return `${["HP","ATK","DEF","SPD"][index]} +${Math.floor((base*(100+bonusPct)+99)/100)}`;
+  }).filter(Boolean).join(" · ");
 }

@@ -27,6 +27,8 @@ export function iconFor(item: StoreItem): Icon {
       return FOOD_ICON[item.food];
     case "machine":
       return MACHINE_ICON[item.training] ?? Dumbbell;
+    case "evolution":
+      return Dna;
     default:
       return DECOR_ICON[item.prop] ?? Mountain;
   }
@@ -37,9 +39,11 @@ export function detailFor(item: StoreItem) {
     case "habitat":
       return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${item.slots} rebyters`;
     case "food":
-      return `${item.pack} meals · used up when fed`;
+      return "Used up when fed";
     case "machine":
       return item.bonus;
+    case "evolution":
+      return `${item.stageLabel} form · used up on evolving`;
     default:
       return "Place it anywhere in your habitat";
   }
@@ -142,7 +146,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
             const Glyph = iconFor(item);
             const owned = inventory.count(item);
             const starter = owned === Number.POSITIVE_INFINITY || item.price === 0;
-            const forSale = item.category === "food" ? DEPLOYMENT.food.packMeals > 0 : item.category === "habitat" ? itemIdOf(item) !== null : !!item.mint;
+            const forSale = item.category === "food" ? DEPLOYMENT.food.prices.length > 0 : item.category === "habitat" ? itemIdOf(item) !== null : !!item.mint;
             const affordable = balance.amount >= item.price;
             const state = starter ? "starter" : !balance.launched || !forSale ? "soon" : affordable ? "buy" : "short";
             return (
@@ -174,7 +178,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                       onClick={() =>
                         run(item.id, item.category === "food" ? `${item.name} added to your food` : `${item.name} added to your wallet`, () =>
                           item.category === "food"
-                            ? buyFood(connection, anchorWallet!, item.food)
+                            ? buyFood(connection, anchorWallet!, item.food, item.tier)
                             : item.category === "habitat"
                               ? buyHabitat(connection, anchorWallet!, item.id)
                               : buyItem(connection, anchorWallet!, itemIdOf(item)!, item.mint!),

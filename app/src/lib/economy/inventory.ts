@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorldLayout } from "../../components/world/layout";
 import { useRebytersAuth } from "../rebyters/auth";
 import { layoutFromHex } from "../rebyters/habitat-layout";
-import { CATALOG, type StoreItem } from "./catalog";
+import { CATALOG, foodSlot, type StoreItem } from "./catalog";
 import { DEPLOYMENT } from "./deployment";
 import { fetchProfileState, type ProfileState } from "./profile";
 import { BALANCE_EVENT } from "./token";
@@ -27,8 +27,10 @@ export type OwnedHabitat = {
 export type Inventory = {
   /** Units of the item; starter items report Infinity; food reports meals in stock. */
   count(item: StoreItem): number;
-  /** Meals of one kind (0 meat, 1 plants, 2 fish, 3 fruit). */
+  /** Meals of one kind across all tiers (0 meat, 1 plants, 2 fish, 3 fruit). */
   food(kind: number): number;
+  /** Meals of one kind and tier (0 plain .. 3 feast). */
+  meals(kind: number, tier: number): number;
   habitats: OwnedHabitat[];
   /** The habitat shown when the game opens: the profile's choice if still held, else the first one. */
   activeHabitat: OwnedHabitat | null;
@@ -137,14 +139,15 @@ export function useInventory(): Inventory {
     return {
       count: (item) => {
         if (item.starter) return STARTER;
-        if (item.category === "food") return profile?.food[item.food] ?? 0;
+        if (item.category === "food") return profile?.food[foodSlot(item.food, item.tier)] ?? 0;
         if (item.category === "habitat") {
           const id = DEPLOYMENT.items[item.id]?.itemId;
           return id === undefined ? 0 : habitats.filter((h) => h.itemId === id).length;
         }
         return item.mint ? (balances.get(item.mint) ?? 0) : 0;
       },
-      food: (kind) => profile?.food[kind] ?? 0,
+      food: (kind) => [0, 1, 2, 3].reduce((sum, tier) => sum + (profile?.food[foodSlot(kind, tier)] ?? 0), 0),
+      meals: (kind, tier) => profile?.food[foodSlot(kind, tier)] ?? 0,
       habitats,
       activeHabitat: active,
       starterClaimed: !!profile?.starterClaimed,

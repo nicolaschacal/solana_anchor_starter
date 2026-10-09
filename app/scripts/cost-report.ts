@@ -64,9 +64,10 @@ async function main() {
   });
   await measure("claim daily ration", () => claimDailyRation(connection, wallet as never, true));
   await measure("feed", () => interactWithRebyter(connection, wallet as never, wallet, mint, "feed", 0));
-  await measure("feed again", () => interactWithRebyter(connection, wallet as never, wallet, mint, "feed", 1));
+  await measure("feed again", () => interactWithRebyter(connection, wallet as never, wallet, mint, "feed", 4));
   await measure("play", () => interactWithRebyter(connection, wallet as never, wallet, mint, "play", 0));
   await measure("care", () => interactWithRebyter(connection, wallet as never, wallet, mint, "care", 0));
+  await measure("train (normal rate, no machine)", () => interactWithRebyter(connection, wallet as never, wallet, mint, "train", 5));
   await measure("rest", () => interactWithRebyter(connection, wallet as never, wallet, mint, "rest", 0));
   await measure("save habitat layout", () =>
     saveHabitatLayout(connection, wallet as never, habitat, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
@@ -75,7 +76,7 @@ async function main() {
     const sig = await buyGems(connection, wallet as never, pack.id);
     return sig;
   });
-  await measure("buy a pack of food with Gems", () => buyFood(connection, wallet as never, 0, 1));
+  await measure("buy one Steak (tier 1) with Gems", () => buyFood(connection, wallet as never, 0, 1));
   const flowers = DEPLOYMENT.items["decor-flowers"];
   await measure("buy a decor item (first time, new account)", () => buyItem(connection, wallet as never, flowers.itemId, flowers.mint!, 1));
 

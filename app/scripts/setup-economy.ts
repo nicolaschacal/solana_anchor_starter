@@ -28,7 +28,8 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { CATALOG, registrable } from "../src/lib/economy/catalog";
+import { CATALOG, FOOD_PRICES, registrable } from "../src/lib/economy/catalog";
+import { fetchActiveFamilyTree } from "../src/lib/rebyters/companions";
 import { PROGRAM_ID, registryPda } from "../src/lib/rebyters/config";
 import { getProgram } from "../src/lib/rebyters/registry";
 
@@ -50,8 +51,6 @@ const GEM_PACKS = [
  * enough to keep the three Rebyters of a 5x5 habitat fed but not to steer their diet or to grow.
  */
 const RATION_UNITS = 2;
-/** Meals in one purchased pack of food (the catalog sells "×5"). */
-const PACK_MEALS = 5;
 
 type Deployment = {
   cluster: "devnet";
@@ -59,18 +58,18 @@ type Deployment = {
   economy: string;
   treasury: string;
   gemMint: string | null;
-  food: { packMeals: number; prices: number[] };
+  food: { prices: number[] };
   rationUnits: number;
   packs: { id: number; gems: number; priceLamports: number }[];
-  items: Record<string, { itemId: number; mint: string | null }>;
+  items: Record<string, { itemId: number; mint: string | null; evoTarget?: number }>;
 };
 
 const enc = new TextEncoder();
-const economyPda = PublicKey.findProgramAddressSync([enc.encode("economy2")], PROGRAM_ID)[0];
+const economyPda = PublicKey.findProgramAddressSync([enc.encode("economy3")], PROGRAM_ID)[0];
 const itemPda = (id: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, id, true);
-  return PublicKey.findProgramAddressSync([enc.encode("item2"), bytes], PROGRAM_ID)[0];
+  return PublicKey.findProgramAddressSync([enc.encode("item3"), bytes], PROGRAM_ID)[0];
 };
 
 async function loadKeypair(path: string) {
@@ -111,7 +110,7 @@ async function main() {
       economy: economyPda.toBase58(),
       treasury: authority.toBase58(),
       gemMint: null,
-      food: { packMeals: 0, prices: [] },
+      food: { prices: [] },
       rationUnits: 0,
       packs: [],
       items: {},
@@ -190,33 +189,45 @@ async function main() {
     console.log(`Pack ${id}: ${pack.gems} Gems for ${pack.sol} SOL`);
   }
 
-  // 3. Food: the free ration, the pack size and the price of a pack (meat, plants, fish, fruit).
-  const foodPrices = [0, 1, 2, 3].map((kind) => CATALOG.find((i) => i.category === "food" && i.food === kind)!.price);
+  // 3. Food: the free ration and the price of one meal of every food and tier.
   const economyNow = await (program.account as any).economy.fetch(economyPda);
   const sameFood =
     Number(economyNow.rationUnits) === RATION_UNITS &&
-    Number(economyNow.foodPackMeals) === PACK_MEALS &&
-    (economyNow.foodPrices as { toString(): string }[]).every((p, n) => Number(p.toString()) === foodPrices[n]);
+    (economyNow.foodPrices as { toString(): string }[]).every((p, n) => Number(p.toString()) === FOOD_PRICES[n]);
   if (!sameFood) {
     await program.methods
-      .setFood(RATION_UNITS, PACK_MEALS, foodPrices.map((p) => new BN(p)) as never)
+      .setFood(RATION_UNITS, FOOD_PRICES.map((p) => new BN(p)) as never)
       .accountsStrict({ authority, registry: registryPda(), economy: economyPda })
       .rpc();
-    console.log(`Food: ration ${RATION_UNITS} of each, packs of ${PACK_MEALS} at ${foodPrices.join("/")} Gems`);
+    console.log(`Food: ration ${RATION_UNITS} plain meals of each; ${FOOD_PRICES.length} prices set`);
   }
-  state.food = { packMeals: PACK_MEALS, prices: foodPrices };
+  state.food = { prices: FOOD_PRICES };
   state.rationUnits = RATION_UNITS;
   await save();
+
+  // The evolution ids of the active atlas, by key (evolution items name the form they create).
+  let evoIds = new Map<string, number>();
+  try {
+    const family = await fetchActiveFamilyTree(connection, 0);
+    evoIds = new Map(family.tree.evolutions.map((e) => [e.key ?? e.name.toLowerCase().replace(/\s+/g, "_"), e.id]));
+  } catch (error) {
+    console.log("Active atlas unavailable, evolution items are skipped:", error instanceof Error ? error.message : error);
+  }
 
   // 4. Store items: habitat kinds (no mint) and sellable decor and machines (one mint each).
   for (const [index, item] of registrable.entries()) {
     if (state.items[item.id]) continue;
     const itemId = 100 + index;
+    const evoTarget = item.category === "evolution" ? evoIds.get(item.evoKey) : undefined;
+    if (item.category === "evolution" && !evoTarget) {
+      console.log(`Skipping ${item.id}: no form with key ${item.evoKey} in the active atlas`);
+      continue;
+    }
     // Created by an earlier run that did not get to save its progress: adopt it.
     if (await connection.getAccountInfo(itemPda(itemId))) {
       const existing = await (program.account as any).itemType.fetch(itemPda(itemId));
       const mint = existing.mint.equals(PublicKey.default) ? null : existing.mint.toBase58();
-      state.items[item.id] = { itemId, mint };
+      state.items[item.id] = { itemId, mint, ...(evoTarget ? { evoTarget } : {}) };
       await save();
       console.log(`Item ${item.id} -> #${itemId} (already on chain)`);
       continue;
@@ -235,7 +246,14 @@ async function main() {
     } else {
       const mint = await createMint({});
       await program.methods
-        .createItemType(itemId, new BN(item.price), 1)
+        .createItemType(
+          itemId,
+          new BN(item.price),
+          1,
+          item.category === "machine" ? item.training : 255,
+          item.category === "machine" ? item.bonusPct : 0,
+          evoTarget ?? 0,
+        )
         .accountsStrict({
           authority,
           registry: registryPda(),
@@ -246,7 +264,7 @@ async function main() {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
-      state.items[item.id] = { itemId, mint: mint.toBase58() };
+      state.items[item.id] = { itemId, mint: mint.toBase58(), ...(evoTarget ? { evoTarget } : {}) };
     }
     await save();
     console.log(`Item ${item.id} -> #${itemId}`);
