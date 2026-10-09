@@ -182,11 +182,27 @@ pub fn set_pack_ix(authority: &Pubkey, pack_id: u8, gems: u64, price: u64) -> In
     )
 }
 pub fn create_item_ix(authority: &Pubkey, id: u16, mint: &Pubkey, price: u64, units: u16) -> Instruction {
+    create_special_item_ix(authority, id, mint, price, units, solana_anchor_starter::NO_MACHINE, 0, 0)
+}
+/// A plain item, a training machine (`machine_training`, `machine_bonus`) or an evolution item (`evo_target`).
+pub fn create_special_item_ix(
+    authority: &Pubkey,
+    id: u16,
+    mint: &Pubkey,
+    price: u64,
+    units: u16,
+    machine_training: u8,
+    machine_bonus: u8,
+    evo_target: u16,
+) -> Instruction {
     ix(
         instruction::CreateItemType {
             item_id: id,
             price_gems: price,
             units_per_purchase: units,
+            machine_training,
+            machine_bonus,
+            evo_target,
         },
         accounts::CreateItemType {
             authority: *authority,
@@ -291,7 +307,7 @@ pub fn world() -> World {
         &admin,
         &[],
         vec![
-            set_food_ix(&admin.pubkey(), RATION_UNITS, PACK_MEALS, FOOD_PRICES),
+            set_food_ix(&admin.pubkey(), RATION_UNITS, FOOD_PRICES),
             create_habitat_type_ix(&admin.pubkey(), STARTER_HABITAT, 0),
             create_habitat_type_ix(&admin.pubkey(), PAID_HABITAT, PAID_HABITAT_PRICE),
         ],
@@ -311,8 +327,8 @@ pub fn world() -> World {
 
 pub const DAY: i64 = 86_400;
 pub const RATION_UNITS: u8 = 5;
-pub const PACK_MEALS: u8 = 5;
-pub const FOOD_PRICES: [u64; 4] = [10, 11, 12, 13];
+/// Gem price of one meal, index type * 4 + tier.
+pub const FOOD_PRICES: [u64; 16] = [4, 6, 9, 12, 3, 4, 6, 8, 4, 6, 9, 12, 3, 4, 6, 8];
 pub const STARTER_HABITAT: u16 = 100;
 pub const PAID_HABITAT: u16 = 101;
 pub const PAID_HABITAT_PRICE: u64 = 50;
@@ -344,9 +360,9 @@ pub fn read_daily(svm: &LiteSVM, owner: &Pubkey) -> PlayerProfile {
     PlayerProfile::try_deserialize(&mut &account.data[..]).unwrap()
 }
 
-pub fn set_food_ix(authority: &Pubkey, ration_units: u8, pack_meals: u8, prices: [u64; 4]) -> Instruction {
+pub fn set_food_ix(authority: &Pubkey, ration_units: u8, prices: [u64; 16]) -> Instruction {
     ix(
-        instruction::SetFood { ration_units, pack_meals, prices },
+        instruction::SetFood { ration_units, prices },
         accounts::AdminEconomy {
             authority: *authority,
             registry: registry(),
@@ -383,9 +399,9 @@ pub fn claim_quest_ix(owner: &Pubkey, slot: u8) -> Instruction {
         },
     )
 }
-pub fn buy_food_ix(owner: &Pubkey, gem_mint: &Pubkey, food_type: u8, packs: u16) -> Instruction {
+pub fn buy_food_ix(owner: &Pubkey, gem_mint: &Pubkey, food_type: u8, tier: u8, amount: u16) -> Instruction {
     ix(
-        instruction::BuyFood { food_type, packs },
+        instruction::BuyFood { food_type, tier, amount },
         accounts::BuyFood {
             owner: *owner,
             economy: economy(),

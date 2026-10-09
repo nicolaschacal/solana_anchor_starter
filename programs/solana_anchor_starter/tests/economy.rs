@@ -175,7 +175,7 @@ fn the_economy_rejects_badly_shaped_gem_mints() {
     send(&mut svm, &admin, &[], ixs).expect("well-shaped gem mint is accepted");
 }
 
-/// Food is bought with Gems and lands in the profile as meals; nothing is minted.
+/// Food is bought with Gems, one tier at a time, and lands in the profile as meals; nothing is minted.
 #[test]
 fn food_is_bought_with_gems_into_the_profile() {
     let mut w = world();
@@ -183,16 +183,21 @@ fn food_is_bought_with_gems_into_the_profile() {
     send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
     send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
 
-    // Two packs of fish (type 2): 2 x 12 Gems, 2 x 5 meals.
-    send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 2, 2)]).expect("buy food");
-    assert_eq!(token_amount(&w.svm, &ata(&player, &w.gem_mint)), PACK_GEMS - 2 * FOOD_PRICES[2]);
-    assert_eq!(read_daily(&w.svm, &player).food, [0, 0, 2 * u16::from(PACK_MEALS), 0]);
+    // Two big fish meals (type 2, tier 2) and one fruit feast (type 3, tier 3).
+    send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 2, 2, 2)]).expect("buy food");
+    send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 3, 3, 1)]).expect("buy a feast");
+    let spent = 2 * FOOD_PRICES[2 * 4 + 2] + FOOD_PRICES[3 * 4 + 3];
+    assert_eq!(token_amount(&w.svm, &ata(&player, &w.gem_mint)), PACK_GEMS - spent);
+    let food = read_daily(&w.svm, &player).food;
+    assert_eq!(food[2 * 4 + 2], 2);
+    assert_eq!(food[3 * 4 + 3], 1);
+    assert_eq!(food.iter().map(|n| u32::from(*n)).sum::<u32>(), 3);
 
-    // Unknown food, no packs, too many packs and too few Gems change nothing.
-    for (kind, packs) in [(4u8, 1u16), (0, 0), (0, 100), (0, 50)] {
-        assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, kind, packs)]).is_err());
+    // Unknown food or tier, no meals, too many meals and too few Gems change nothing.
+    for (kind, tier, amount) in [(4u8, 0u8, 1u16), (0, 4, 1), (0, 0, 0), (0, 0, 100), (3, 3, 99)] {
+        assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, kind, tier, amount)]).is_err());
     }
-    assert_eq!(read_daily(&w.svm, &player).food, [0, 0, 2 * u16::from(PACK_MEALS), 0]);
+    assert_eq!(read_daily(&w.svm, &player).food, food);
 }
 
 #[test]
@@ -200,5 +205,24 @@ fn food_needs_a_profile() {
     let mut w = world();
     let player = w.player.pubkey();
     send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
-    assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 0, 1)]).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 0, 0, 1)]).is_err());
+}
+
+/// Machines and evolution items are registered with what they do; nonsense is refused.
+#[test]
+fn special_items_are_validated_when_registered() {
+    let mut w = world();
+    let admin = w.admin.pubkey();
+    let mut register = |id: u16, training: u8, bonus: u8, evo: u16| {
+        let mint = Keypair::new();
+        create_mint(&mut w.svm, &w.admin, &mint, &economy(), false, None).unwrap();
+        send(&mut w.svm, &w.admin, &[], vec![create_special_item_ix(&admin, id, &mint.pubkey(), 50, 1, training, bonus, evo)])
+    };
+    register(300, 0, 50, 0).expect("a power machine with +50%");
+    register(301, 255, 0, 77).expect("an evolution item");
+    assert!(register(302, 6, 50, 0).is_err(), "no such training");
+    assert!(register(303, 0, 0, 0).is_err(), "a machine must give a bonus");
+    assert!(register(304, 0, 201, 0).is_err(), "bonus above the cap");
+    assert!(register(305, 255, 10, 0).is_err(), "a bonus without a machine");
+    assert!(register(306, 1, 50, 77).is_err(), "cannot be both a machine and an evolution item");
 }

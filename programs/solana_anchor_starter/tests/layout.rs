@@ -32,7 +32,11 @@ fn the_starter_pack_gives_a_habitat_and_the_first_meals_once() {
     let profile = read_daily(&w.svm, &player);
     assert!(profile.starter_claimed);
     assert_eq!(profile.active_habitat, mint);
-    assert_eq!(profile.food, [STARTER_MEALS; 4]);
+    let mut expected = [0u16; 16];
+    for food_type in 0..4 {
+        expected[food_type * 4] = STARTER_MEALS;
+    }
+    assert_eq!(profile.food, expected);
     // A fresh habitat has an empty, unset layout of fixed size.
     let bytes = habitat_layout_bytes(&w.svm, &mint);
     assert_eq!(bytes.len(), HABITAT_LAYOUT_BYTES);

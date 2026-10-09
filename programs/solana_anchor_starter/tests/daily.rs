@@ -4,8 +4,11 @@ mod common;
 use common::*;
 use solana_anchor_starter::{game_day, quest_food, quest_for, QUESTS_PER_DAY, QUEST_TEMPLATES};
 
+/// Meals of each food at the plain tier (what the ration and the quests give).
 fn food(w: &World, owner: &Pubkey) -> [u16; 4] {
-    read_daily(&w.svm, owner).food
+    let all = read_daily(&w.svm, owner).food;
+    assert!(all.iter().enumerate().all(|(i, n)| i % 4 == 0 || *n == 0), "only plain meals are given for free");
+    [all[0], all[4], all[8], all[12]]
 }
 
 #[test]
@@ -45,7 +48,7 @@ fn the_ration_is_off_until_configured() {
     let player = w.player.pubkey();
     set_time(&mut w.svm, 100 * DAY);
     send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
-    send(&mut w.svm, &w.admin, &[], vec![set_food_ix(&admin, 0, PACK_MEALS, FOOD_PRICES)]).unwrap();
+    send(&mut w.svm, &w.admin, &[], vec![set_food_ix(&admin, 0, FOOD_PRICES)]).unwrap();
     assert!(send(&mut w.svm, &w.player, &[], vec![claim_ration_ix(&player)]).is_err());
 }
 
@@ -108,11 +111,12 @@ fn a_quest_needs_enough_of_its_own_action() {
 fn only_the_authority_configures_the_food_economy() {
     let mut w = world();
     let (admin, other) = (w.admin.pubkey(), w.other.pubkey());
-    let ixs = vec![set_food_ix(&other, 9, PACK_MEALS, FOOD_PRICES)];
+    let ixs = vec![set_food_ix(&other, 9, FOOD_PRICES)];
     assert!(send(&mut w.svm, &w.other, &[], ixs).is_err());
-    // Prices and pack size must be positive.
-    assert!(send(&mut w.svm, &w.admin, &[], vec![set_food_ix(&admin, 5, 0, FOOD_PRICES)]).is_err());
-    assert!(send(&mut w.svm, &w.admin, &[], vec![set_food_ix(&admin, 5, 5, [1, 0, 1, 1])]).is_err());
+    // Every price must be positive.
+    let mut zero = FOOD_PRICES;
+    zero[7] = 0;
+    assert!(send(&mut w.svm, &w.admin, &[], vec![set_food_ix(&admin, 5, zero)]).is_err());
 }
 
 #[test]
@@ -141,7 +145,7 @@ fn counters_reset_when_a_new_day_starts() {
         discoveries: vec![],
         starter_claimed: false,
         active_habitat: Pubkey::default(),
-        food: [0; 4],
+        food: [0; 16],
         ration_day: 0,
         quest_day: 0,
         counts: [0; 5],

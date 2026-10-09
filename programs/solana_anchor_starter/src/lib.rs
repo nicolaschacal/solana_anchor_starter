@@ -62,6 +62,18 @@ pub const QUEST_TEMPLATES: [(u8, u8, u8); 8] = [
 ];
 /// Meals of each food a new player starts with (part of the starter pack).
 pub const STARTER_MEALS: u16 = 3;
+pub const FOOD_TYPES: usize = 4;
+pub const FOOD_TIERS: usize = 4;
+/// Counters in the profile: food type * 4 + tier (0 = plain, 3 = feast).
+pub const FOOD_SLOTS: usize = FOOD_TYPES * FOOD_TIERS;
+/// Saturation and weight of a meal, in percent of the plain meal, per tier.
+pub const FOOD_TIER_PCT: [u16; FOOD_TIERS] = [100, 150, 220, 300];
+/// How much a meal of each tier counts in the diet history that drives evolution.
+pub const FOOD_TIER_DIET: [u16; FOOD_TIERS] = [1, 2, 3, 4];
+/// `machine_training` of an item that is not a training machine.
+pub const NO_MACHINE: u8 = 255;
+/// Highest bonus (percent) a machine can give.
+pub const MAX_MACHINE_BONUS: u8 = 200;
 /// A habitat NFT keeps its layout in one fixed-size metadata field (hex), so saving never reallocates:
 /// set flag + placed Rebyters + prop count + props.
 pub const HABITAT_LAYOUT_BYTES: usize = 1 + MAX_PLACED_SLOTS * 34 + 1 + MAX_PROP_SLOTS * 9;
@@ -278,8 +290,7 @@ pub mod solana_anchor_starter {
         economy.treasury = treasury;
         economy.gem_mint = ctx.accounts.gem_mint.key();
         economy.gem_packs = [GemPack::default(); MAX_GEM_PACKS];
-        economy.food_prices = [0; 4];
-        economy.food_pack_meals = 0;
+        economy.food_prices = [0; FOOD_SLOTS];
         economy.ration_units = 0;
         economy.bump = ctx.bumps.economy;
         Ok(())
@@ -308,14 +319,23 @@ pub mod solana_anchor_starter {
     }
 
     /// Registers an item mint (created client-side, 0 decimals, mint authority =
-    /// economy PDA). Items are plain transferable tokens bought with Gems.
+    /// economy PDA). Items are plain transferable tokens bought with Gems. A training machine
+    /// names the training it improves and its bonus (percent of the gains); an evolution item
+    /// names the evolution id it turns a Rebyter into. Plain items pass NO_MACHINE, 0 and 0.
     pub fn create_item_type(
         ctx: Context<CreateItemType>,
         item_id: u16,
         price_gems: u64,
         units_per_purchase: u16,
+        machine_training: u8,
+        machine_bonus: u8,
+        evo_target: u16,
     ) -> Result<()> {
         require!(price_gems > 0 && units_per_purchase > 0, RegistryError::InvalidQuantity);
+        let is_machine = machine_training != NO_MACHINE;
+        require!(!is_machine || (machine_training < 6 && machine_bonus > 0 && machine_bonus <= MAX_MACHINE_BONUS), RegistryError::InvalidMachine);
+        require!(is_machine || machine_bonus == 0, RegistryError::InvalidMachine);
+        require!(!(is_machine && evo_target != 0), RegistryError::InvalidMachine);
         let economy_key = ctx.accounts.economy.key();
         validate_economy_mint(
             &ctx.accounts.item_mint,
@@ -329,6 +349,9 @@ pub mod solana_anchor_starter {
         item.price_gems = price_gems;
         item.units_per_purchase = units_per_purchase;
         item.active = true;
+        item.machine_training = machine_training;
+        item.machine_bonus = machine_bonus;
+        item.evo_target = evo_target;
         item.bump = ctx.bumps.item_type;
         Ok(())
     }
@@ -346,6 +369,9 @@ pub mod solana_anchor_starter {
         item.price_gems = price_gems;
         item.units_per_purchase = 1;
         item.active = true;
+        item.machine_training = NO_MACHINE;
+        item.machine_bonus = 0;
+        item.evo_target = 0;
         item.bump = ctx.bumps.item_type;
         Ok(())
     }
@@ -463,37 +489,33 @@ pub mod solana_anchor_starter {
     // player's own profile: free to earn, paid for with Gems, never a token.
     // ---------------------------------------------------------------------
 
-    /// Sets the food economy: meals of each food in the daily ration (0 = off), meals per
-    /// purchased pack, and the Gem price of one pack of each food (meat, plant, fish, fruit).
+    /// Sets the food economy: meals of each plain food in the daily ration (0 = off) and the Gem
+    /// price of one meal for every food (meat, plants, fish, fruit) and tier (index type * 4 + tier).
     pub fn set_food(
         ctx: Context<AdminEconomy>,
         ration_units: u8,
-        pack_meals: u8,
-        prices: [u64; 4],
+        prices: [u64; FOOD_SLOTS],
     ) -> Result<()> {
-        require!(pack_meals > 0, RegistryError::InvalidQuantity);
         require!(prices.iter().all(|p| *p > 0), RegistryError::InvalidQuantity);
         let economy = &mut ctx.accounts.economy;
         economy.ration_units = ration_units;
-        economy.food_pack_meals = pack_meals;
         economy.food_prices = prices;
         Ok(())
     }
 
-    /// Player burns Gems and gets `packs` packs of one food added to their profile.
-    pub fn buy_food(ctx: Context<BuyFood>, food_type: u8, packs: u16) -> Result<()> {
-        require!(food_type < 4, RegistryError::InvalidFood);
+    /// Player burns Gems and gets `amount` meals of one food and tier added to their profile.
+    pub fn buy_food(ctx: Context<BuyFood>, food_type: u8, tier: u8, amount: u16) -> Result<()> {
+        require!(usize::from(food_type) < FOOD_TYPES, RegistryError::InvalidFood);
+        require!(usize::from(tier) < FOOD_TIERS, RegistryError::InvalidFood);
         require!(
-            packs >= 1 && packs <= MAX_PURCHASE_QUANTITY,
+            amount >= 1 && amount <= MAX_PURCHASE_QUANTITY,
             RegistryError::InvalidQuantity
         );
-        let economy = &ctx.accounts.economy;
-        require!(economy.food_pack_meals > 0, RegistryError::ItemInactive);
-        let cost = economy.food_prices[usize::from(food_type)]
-            .checked_mul(u64::from(packs))
-            .ok_or(RegistryError::MathOverflow)?;
-        let meals = u16::from(economy.food_pack_meals)
-            .checked_mul(packs)
+        let slot = usize::from(food_type) * FOOD_TIERS + usize::from(tier);
+        let price = ctx.accounts.economy.food_prices[slot];
+        require!(price > 0, RegistryError::ItemInactive);
+        let cost = price
+            .checked_mul(u64::from(amount))
             .ok_or(RegistryError::MathOverflow)?;
         require!(
             ctx.accounts.owner_gem_account.amount >= cost,
@@ -510,12 +532,13 @@ pub mod solana_anchor_starter {
             ),
             cost,
         )?;
-        let food = &mut ctx.accounts.player_profile.food[usize::from(food_type)];
-        *food = food.checked_add(meals).ok_or(RegistryError::MathOverflow)?;
+        let food = &mut ctx.accounts.player_profile.food[slot];
+        *food = food.checked_add(amount).ok_or(RegistryError::MathOverflow)?;
         emit!(FoodPurchased {
             owner: ctx.accounts.owner.key(),
             food_type,
-            meals,
+            tier,
+            meals: amount,
             gems_spent: cost,
         });
         Ok(())
@@ -529,8 +552,9 @@ pub mod solana_anchor_starter {
         let profile = &mut ctx.accounts.player_profile;
         require!(profile.ration_day < day, RegistryError::RationAlreadyClaimed);
         profile.ration_day = day;
-        for food in profile.food.iter_mut() {
-            *food = food.saturating_add(u16::from(units));
+        for food_type in 0..FOOD_TYPES {
+            let slot = food_type * FOOD_TIERS;
+            profile.food[slot] = profile.food[slot].saturating_add(u16::from(units));
         }
         emit!(RationClaimed {
             owner: ctx.accounts.owner.key(),
@@ -556,7 +580,8 @@ pub mod solana_anchor_starter {
         let bit = 1u8 << slot;
         require!(profile.claimed & bit == 0, RegistryError::QuestAlreadyClaimed);
         profile.claimed |= bit;
-        profile.food[food_type] = profile.food[food_type].saturating_add(u16::from(meals));
+        let slot = food_type * FOOD_TIERS;
+        profile.food[slot] = profile.food[slot].saturating_add(u16::from(meals));
         emit!(QuestClaimed {
             owner: ctx.accounts.owner.key(),
             day,
@@ -596,7 +621,9 @@ pub mod solana_anchor_starter {
             let profile = &mut ctx.accounts.player_profile;
             require!(!profile.starter_claimed, RegistryError::StarterClaimed);
             profile.starter_claimed = true;
-            profile.food = [STARTER_MEALS; 4];
+            for food_type in 0..FOOD_TYPES {
+                profile.food[food_type * FOOD_TIERS] = STARTER_MEALS;
+            }
         } else {
             let gems = ctx
                 .accounts
@@ -957,14 +984,15 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit. Uses up one meal of
-    /// that food from the profile.
-    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
-        require!(food_type < 4, RegistryError::InvalidFood);
-        let meals = &mut ctx.accounts.player_profile.food[usize::from(food_type)];
+    /// Feed with one of four food groups (0 meat, 1 plant, 2 fish, 3 fruit) and one of four
+    /// tiers (0 plain .. 3 feast). Uses up one meal of that food and tier from the profile.
+    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8, tier: u8) -> Result<()> {
+        require!(usize::from(food_type) < FOOD_TYPES, RegistryError::InvalidFood);
+        require!(usize::from(tier) < FOOD_TIERS, RegistryError::InvalidFood);
+        let meals = &mut ctx.accounts.player_profile.food[usize::from(food_type) * FOOD_TIERS + usize::from(tier)];
         require!(*meals > 0, RegistryError::NoFood);
         *meals -= 1;
-        interact_with(&ctx.accounts, InteractionKind::Feed(food_type))?;
+        interact_with(&ctx.accounts, InteractionKind::Feed(food_type, tier))?;
         record_action(&mut ctx.accounts.player_profile, ACTION_FEED)
     }
 
@@ -987,11 +1015,38 @@ pub mod solana_anchor_starter {
         record_action(&mut ctx.accounts.player_profile, ACTION_REST)
     }
 
-    /// Train with one of six machines:
+    /// Train with one of six trainings:
     /// 0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced.
-    pub fn train(ctx: Context<InteractRebyter>, training_type: u8) -> Result<()> {
+    /// Everyone trains at the normal rate. A specialised machine of the matching training held in
+    /// the wallet (pass its item type and token account) adds its bonus to the gains.
+    pub fn train(ctx: Context<TrainRebyter>, training_type: u8) -> Result<()> {
         require!(training_type < 6, RegistryError::InvalidTraining);
-        interact_with(&ctx.accounts, InteractionKind::Train(training_type))?;
+        let bonus = match (&ctx.accounts.item_type, &ctx.accounts.machine_account) {
+            (None, None) => 0,
+            (Some(item), Some(held)) => {
+                require!(
+                    item.active
+                        && item.machine_training == training_type
+                        && held.mint == item.mint
+                        && held.amount >= 1,
+                    RegistryError::InvalidMachine
+                );
+                item.machine_bonus
+            }
+            _ => return err!(RegistryError::InvalidMachine),
+        };
+        {
+            let accounts = &ctx.accounts;
+            let (mint, authority, token_program) = (
+                accounts.mint.to_account_info(),
+                accounts.rebyter_authority.to_account_info(),
+                accounts.token_program.to_account_info(),
+            );
+            apply_interaction(
+                &Target { owner: accounts.owner.key(), mint: &mint, rebyter_authority: &authority, token_program: &token_program },
+                InteractionKind::Train(training_type, bonus),
+            )?;
+        }
         record_action(&mut ctx.accounts.player_profile, ACTION_TRAIN)
     }
 
@@ -1048,11 +1103,42 @@ pub mod solana_anchor_starter {
             RegistryError::InvalidEvolutionProof
         );
         msg!("evolve: rule proof verified");
-        require!(
-            evaluate_compact_rule(&rule_bytes, &dna, clock.unix_timestamp.max(0) as u32)?,
-            RegistryError::EvolutionRequirements
-        );
-        msg!("evolve: rule requirements verified");
+        match (
+            &ctx.accounts.item_type,
+            &ctx.accounts.item_mint,
+            &ctx.accounts.owner_item_account,
+        ) {
+            (None, None, None) => {
+                require!(
+                    evaluate_compact_rule(&rule_bytes, &dna, clock.unix_timestamp.max(0) as u32)?,
+                    RegistryError::EvolutionRequirements
+                );
+                msg!("evolve: rule requirements verified");
+            }
+            (Some(item), Some(item_mint), Some(held)) => {
+                require!(
+                    item.active
+                        && item.evo_target == target_id
+                        && item_mint.key() == item.mint
+                        && held.mint == item.mint
+                        && held.amount >= 1,
+                    RegistryError::InvalidEvolutionItem
+                );
+                burn(
+                    CpiContext::new(
+                        ctx.accounts.token_program.key(),
+                        Burn {
+                            mint: item_mint.to_account_info(),
+                            from: held.to_account_info(),
+                            authority: ctx.accounts.owner.to_account_info(),
+                        },
+                    ),
+                    1,
+                )?;
+                msg!("evolve: evolution item used");
+            }
+            _ => return err!(RegistryError::InvalidEvolutionItem),
+        }
 
         let source_id = dna.evolution_id;
         // Also record the current form. This safely backfills a player who
@@ -1168,11 +1254,11 @@ pub mod solana_anchor_starter {
 
 #[derive(Clone, Copy)]
 enum InteractionKind {
-    Feed(u8),
+    Feed(u8, u8),
     Play,
     Care,
     Rest,
-    Train(u8),
+    Train(u8, u8),
 }
 
 #[derive(Clone)]
@@ -1377,13 +1463,14 @@ fn apply_interaction(accounts: &Target<'_, '_>, kind: InteractionKind) -> Result
     materialize_lazy_state(&mut dna, now);
 
     match kind {
-        InteractionKind::Feed(food_type) => {
+        InteractionKind::Feed(food_type, food_tier) => {
             let i = usize::from(food_type);
+            let pct = FOOD_TIER_PCT[usize::from(food_tier)];
             let was_overfed = has_condition(&dna, CONDITION_OVERFED) || dna.fullness >= 90;
-            let fullness_gain = [22u8, 16, 18, 14][i];
+            let fullness_gain = (u16::from([22u8, 16, 18, 14][i]) * pct / 100) as u8;
             let base_weight = [2u8, 1, 1, 1][i];
-            let weight_gain = base_weight;
-            dna.diet[i] = dna.diet[i].saturating_add(1);
+            let weight_gain = (u16::from(base_weight) * pct / 100).max(1) as u8;
+            dna.diet[i] = dna.diet[i].saturating_add(FOOD_TIER_DIET[usize::from(food_tier)]);
             dna.fullness = dna.fullness.saturating_add(fullness_gain).min(100);
             dna.weight = dna.weight.saturating_add(weight_gain);
             dna.energy = dna.energy.saturating_add(4).min(100);
@@ -1465,7 +1552,7 @@ fn apply_interaction(accounts: &Target<'_, '_>, kind: InteractionKind) -> Result
             if dna.energy >= 85 { clear_condition(&mut dna, CONDITION_INJURED); }
             if fullness_before == 0 { add_condition(&mut dna, CONDITION_SICK); }
         }
-        InteractionKind::Train(training_type) => {
+        InteractionKind::Train(training_type, machine_bonus) => {
             let energy_before = dna.energy;
             let sick_or_injured = has_condition(&dna, CONDITION_SICK)
                 || has_condition(&dna, CONDITION_INJURED);
@@ -1480,10 +1567,14 @@ fn apply_interaction(accounts: &Target<'_, '_>, kind: InteractionKind) -> Result
                 5 => (1, 1, 1, 1, 16, 1),
                 _ => return err!(RegistryError::InvalidTraining),
             };
-            dna.hp = dna.hp.saturating_add(scaled_gain(hp_gain, tier));
-            dna.atk = dna.atk.saturating_add(scaled_gain(atk_gain, tier));
-            dna.def = dna.def.saturating_add(scaled_gain(def_gain, tier));
-            dna.spd = dna.spd.saturating_add(scaled_gain(spd_gain, tier));
+            let boosted = |gain: u16| {
+                let g = scaled_gain(gain, tier);
+                (g * (100 + u16::from(machine_bonus)) + 99) / 100
+            };
+            dna.hp = dna.hp.saturating_add(boosted(hp_gain));
+            dna.atk = dna.atk.saturating_add(boosted(atk_gain));
+            dna.def = dna.def.saturating_add(boosted(def_gain));
+            dna.spd = dna.spd.saturating_add(boosted(spd_gain));
             dna.energy = dna.energy.saturating_sub(energy_cost);
             dna.fullness = dna.fullness.saturating_sub(6);
             dna.weight = dna.weight.saturating_sub(weight_loss);
@@ -1530,11 +1621,11 @@ fn apply_interaction(accounts: &Target<'_, '_>, kind: InteractionKind) -> Result
         owner: accounts.owner,
         mint: mint_key,
         action: match kind {
-            InteractionKind::Feed(_) => 0,
+            InteractionKind::Feed(..) => 0,
             InteractionKind::Play => 1,
             InteractionKind::Care => 2,
             InteractionKind::Rest => 3,
-            InteractionKind::Train(_) => 4,
+            InteractionKind::Train(..) => 4,
         },
         time_bucket: bucket as u8,
     });
@@ -1799,8 +1890,8 @@ pub struct PlayerProfile {
     pub starter_claimed: bool,
     /// The habitat NFT shown when the game opens (default key = none yet).
     pub active_habitat: Pubkey,
-    /// Meals in stock: meat, plant, fish, fruit.
-    pub food: [u16; 4],
+    /// Meals in stock, index food type * 4 + tier (meat, plants, fish, fruit; plain to feast).
+    pub food: [u16; FOOD_SLOTS],
     pub discoveries: Vec<u16>,
 }
 
@@ -1831,7 +1922,7 @@ pub const PROP_KINDS: u8 = 11;
 impl PlayerProfile {
     // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
     // + starter flag + active habitat + food + Vec length prefix.
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 1 + 32 + 8 + 4;
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 1 + 32 + FOOD_SLOTS * 2 + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
@@ -2133,6 +2224,34 @@ pub struct InteractRebyter<'info> {
 }
 
 #[derive(Accounts)]
+pub struct TrainRebyter<'info> {
+    pub owner: Signer<'info>,
+    /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    #[account(
+        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+    )]
+    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: PDA signs TokenMetadata updates and stores no account state.
+    #[account(
+        seeds = [b"rebyter_authority", mint.key().as_ref()],
+        bump
+    )]
+    pub rebyter_authority: UncheckedAccount<'info>,
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
+    /// Optional: the type of the specialised machine the wallet holds (only the program creates these).
+    pub item_type: Option<Box<Account<'info, ItemType>>>,
+    /// Optional: the wallet's token account of that machine.
+    #[account(token::authority = owner, token::token_program = token_program)]
+    pub machine_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    pub token_program: Program<'info, Token2022>,
+}
+
+#[derive(Accounts)]
 pub struct EvolveRebyter<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -2164,6 +2283,13 @@ pub struct EvolveRebyter<'info> {
     /// CHECK: current DNA requires this to be the same address as `tree`; the
     /// unified active atlas root verifies both forms and gameplay rules.
     pub rule_set: UncheckedAccount<'info>,
+    /// Optional evolution item: type, mint and the wallet's token account. When given, one unit is
+    /// burnt and the item replaces the rule requirements (the path itself must still be in the atlas).
+    pub item_type: Option<Box<Account<'info, ItemType>>>,
+    #[account(mut)]
+    pub item_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
+    #[account(mut, token::authority = owner, token::token_program = token_program)]
+    pub owner_item_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
@@ -2288,6 +2414,10 @@ pub enum RegistryError {
     WrongCurrency,
     #[msg("The starter habitat was already claimed")]
     StarterClaimed,
+    #[msg("That machine does not fit this training")]
+    InvalidMachine,
+    #[msg("That item does not evolve this Rebyter into that form")]
+    InvalidEvolutionItem,
 }
 
 fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
@@ -2344,10 +2474,8 @@ pub struct Economy {
     pub treasury: Pubkey,
     pub gem_mint: Pubkey,
     pub gem_packs: [GemPack; MAX_GEM_PACKS],
-    /// Gem price of one pack of each food: meat, plant, fish, fruit.
-    pub food_prices: [u64; 4],
-    /// Meals in a purchased pack.
-    pub food_pack_meals: u8,
+    /// Gem price of one meal, index food type * 4 + tier.
+    pub food_prices: [u64; FOOD_SLOTS],
     /// Meals of each food in the free daily ration; 0 = off.
     pub ration_units: u8,
     pub bump: u8,
@@ -2361,6 +2489,12 @@ pub struct ItemType {
     pub price_gems: u64,
     pub units_per_purchase: u16,
     pub active: bool,
+    /// Training this item improves (0..6), or NO_MACHINE.
+    pub machine_training: u8,
+    /// Percent added to the gains of that training.
+    pub machine_bonus: u8,
+    /// Evolution id this item turns a Rebyter into (0 = not an evolution item).
+    pub evo_target: u16,
     pub bump: u8,
 }
 
@@ -2509,6 +2643,7 @@ pub struct QuestClaimed {
 pub struct FoodPurchased {
     pub owner: Pubkey,
     pub food_type: u8,
+    pub tier: u8,
     pub meals: u16,
     pub gems_spent: u64,
 }
