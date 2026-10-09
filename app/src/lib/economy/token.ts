@@ -24,7 +24,9 @@ export const SPARKS = { symbol: "Sparks", mint: parseMint(DEPLOYMENT.sparkMint ?
 
 export const BALANCE_EVENT = "rebyters:balances-changed";
 /** Ask every balance hook to re-read the wallet (after a purchase or a claim). */
-export const refreshBalances = () => window.dispatchEvent(new Event(BALANCE_EVENT));
+export const refreshBalances = () => {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(BALANCE_EVENT));
+};
 
 /** "1.2K", "12,500", "0". Whole numbers below 10k, short above. */
 export function formatGems(amount: number) {
