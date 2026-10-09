@@ -11,14 +11,16 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap,
+  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
 import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
-import { useGemBalance } from "../../lib/economy/token";
+import { SPARKS, useGemBalance, useTokenBalance } from "../../lib/economy/token";
+import { DailySheet } from "../../components/daily/DailySheet";
+import { useDaily } from "../../hooks/useDaily";
 import { EMOTES, needEmote, type Emote } from "../../components/player/emotes";
 import type { WorldCreature } from "../../components/world/PlayerWorld";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
@@ -164,7 +166,7 @@ function useSolBalanceLabel() {
  * Side menu of the logged-in Home, shared by the mobile and web layouts.
  * The edge tab summons it; the balance chip and Account both open the account panel.
  */
-function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void}) {
+function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,dailyReady}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void;onDaily:()=>void;dailyReady:number}) {
   const navigate=useNavigate();
   const balanceLabel=useSolBalanceLabel();
   const panel=useRef<HTMLElement>(null);
@@ -196,6 +198,7 @@ function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore}:{open:boolean
           <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
           <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
           <button onClick={()=>{onClose();onStore()}}><ShoppingBag/><span>Store</span></button>
+          <button onClick={()=>{onClose();onDaily()}}><Gift/><span>Daily</span>{dailyReady>0&&<small className="daily-dot">{dailyReady}</small>}</button>
           <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
           <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
         </nav>
@@ -573,6 +576,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [storeOpen,setStoreOpen]=useState(false);
+  const [dailyOpen,setDailyOpen]=useState(false);
+  const daily=useDaily();
+  const sparks=useTokenBalance(SPARKS.mint);
+  const dailyReady=daily.claimable+(daily.rationReady?1:0);
   const rbtyr=useGemBalance();
   const inventory=useInventory();
   const [drawerOpen,setDrawerOpen]=useState(false);
@@ -746,7 +753,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>
   );
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)}/>
+    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} dailyReady={dailyReady}/>
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
         <Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
@@ -817,6 +824,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </section>
     </div>}
 
+    {dailyOpen&&<DailySheet daily={daily} sparks={sparks} onClose={()=>setDailyOpen(false)}/>}
     {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
     {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>

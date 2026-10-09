@@ -2,8 +2,13 @@ import {
   Activity, Beef, Check, Cherry, Coins, Dna, Dumbbell, Fish, Flame, Flower2, Heart, Lamp, Leaf, Lock, Mountain,
   Shield, Snowflake, Sparkles, Sun, TreeDeciduous, TreePine, Trees, Droplets, X, Zap,
 } from "lucide-react";
+import { useConnection } from "@solana/wallet-adapter-react";
 import { useState, type ComponentType } from "react";
-import { CLIMATES, STORE_CATEGORIES, itemsIn, type Climate, type StoreCategory, type StoreItem } from "../../lib/economy/catalog";
+import { buyGems, buyItem } from "../../lib/economy/actions";
+import { DEPLOYMENT } from "../../lib/economy/deployment";
+import { useRebytersAuth } from "../../lib/rebyters/auth";
+import { FoodArt } from "./FoodArt";
+import { CLIMATES, STORE_CATEGORIES, itemIdOf, itemsIn, type Climate, type StoreCategory, type StoreItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { GEMS, formatGems, type GemBalance } from "../../lib/economy/token";
 
@@ -53,6 +58,28 @@ type Props = {
 export function StoreSheet({ balance, inventory, onClose }: Props) {
   const [tab, setTab] = useState<StoreCategory>("habitat");
   const items = itemsIn(tab);
+  const { connection } = useConnection();
+  const anchorWallet = useRebytersAuth().anchorWallet;
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const run = async (key: string, okText: string, job: () => Promise<unknown>) => {
+    if (!anchorWallet) {
+      setMessage({ ok: false, text: "Connect your wallet first" });
+      return;
+    }
+    setBusy(key);
+    setMessage(null);
+    try {
+      await job();
+      setMessage({ ok: true, text: okText });
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "Something went wrong";
+      setMessage({ ok: false, text: /insufficient|0x1\b|custom program error/i.test(text) ? "Not enough SOL or Gems" : text.slice(0, 140) });
+    } finally {
+      setBusy("");
+    }
+  };
 
   return (
     <div className="game-sheet-backdrop" onClick={onClose}>
@@ -80,6 +107,28 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
           {!balance.launched && <span className="store-soon">Gem purchases are not open yet</span>}
         </div>
 
+        {balance.launched && DEPLOYMENT.packs.length > 0 && (
+          <div className="gem-packs" aria-label="Get Gems with SOL">
+            {DEPLOYMENT.packs.map((pack) => (
+              <button
+                key={pack.id}
+                className="gem-pack"
+                disabled={!!busy}
+                onClick={() => run(`pack${pack.id}`, `+${formatGems(pack.gems)} Gems added`, () => buyGems(connection, anchorWallet!, pack.id))}
+              >
+                <Coins aria-hidden="true" />
+                <strong>{formatGems(pack.gems)}</strong>
+                <small>{busy === `pack${pack.id}` ? "Buying…" : `${pack.priceLamports / 1e9} SOL`}</small>
+              </button>
+            ))}
+          </div>
+        )}
+        {message && (
+          <p className={`store-message ${message.ok ? "ok" : "bad"}`} role="status">
+            {message.text}
+          </p>
+        )}
+
         <div className="store-tabs" role="tablist" aria-label="Store sections">
           {STORE_CATEGORIES.map((c) => (
             <button key={c.id} role="tab" aria-selected={tab === c.id} className={tab === c.id ? "active" : ""} onClick={() => setTab(c.id)}>
@@ -98,7 +147,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
             return (
               <article key={item.id} className={`store-card cat-${item.category}${item.category === "habitat" ? ` climate-${item.climate}` : ""}`}>
                 <div className="store-card-art" aria-hidden="true">
-                  <Glyph />
+                  {item.category === "food" ? <FoodArt food={item.food} /> : <Glyph />}
                   {owned > 0 && !starter && <b className="store-owned">×{owned}</b>}
                 </div>
                 <div className="store-card-copy">
@@ -117,8 +166,15 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                     </span>
                   )}
                   {state !== "starter" && (
-                    <button className="ui-btn ui-btn-primary store-buy" disabled title={state === "soon" ? "Coming soon" : undefined}>
-                      {state === "soon" ? (
+                    <button
+                      className="ui-btn ui-btn-primary store-buy"
+                      disabled={state !== "buy" || !!busy}
+                      title={state === "soon" ? "Coming soon" : undefined}
+                      onClick={() => run(item.id, `${item.name} added to your wallet`, () => buyItem(connection, anchorWallet!, itemIdOf(item)!, item.mint!))}
+                    >
+                      {busy === item.id ? (
+                        "Buying…"
+                      ) : state === "soon" ? (
                         <>
                           <Lock aria-hidden="true" /> Soon
                         </>

@@ -3,6 +3,7 @@ import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useEffect, useMemo, useState } from "react";
 import { useRebytersAuth } from "../rebyters/auth";
 import { CATALOG, type StoreItem } from "./catalog";
+import { BALANCE_EVENT } from "./token";
 
 /**
  * What the player owns, read from the wallet: every catalog item whose mint is in one of the
@@ -21,6 +22,12 @@ export function useInventory(): Inventory {
   const owner = useRebytersAuth().publicKey;
   const [balances, setBalances] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick((n) => n + 1);
+    window.addEventListener(BALANCE_EVENT, bump);
+    return () => window.removeEventListener(BALANCE_EVENT, bump);
+  }, []);
   const mints = useMemo(() => new Set(CATALOG.map((item) => item.mint).filter((m): m is string => !!m)), []);
 
   useEffect(() => {
@@ -50,7 +57,7 @@ export function useInventory(): Inventory {
     return () => {
       dead = true;
     };
-  }, [connection, owner, mints]);
+  }, [connection, owner, mints, tick]);
 
   return useMemo(
     () => ({

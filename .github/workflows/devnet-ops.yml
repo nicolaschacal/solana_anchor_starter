@@ -154,8 +154,11 @@ jobs:
             echo "Nothing to commit"
           else
             git commit -m "devnet-ops: update generated files after ${{ inputs.action }}"
-            git pull --rebase origin main
-            git push origin HEAD:main
+            out=$( { git pull --rebase origin main && git push origin HEAD:main; } 2>&1 ) || {
+              m=$(printf '%s' "$out" | tail -n 15 | python3 -c 'import sys; t=sys.stdin.read(); print(t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))')
+              echo "::error title=git-push-failed::${m}"
+              exit 1
+            }
           fi
 
       - name: Surface log tail as annotation

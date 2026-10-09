@@ -18,8 +18,11 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  type TransactionInstruction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
+import { dailyPda, initializeDailyIx } from "../economy/actions";
+import { refreshBalances } from "../economy/token";
 import {
   PROGRAM_ID,
   playerProfilePda,
@@ -514,18 +517,25 @@ export async function interactWithRebyter(
   else if (action === "rest") builder = program.methods.rest();
   else builder = program.methods.train(option);
 
+  // The daily account counts today's actions for the quests. It is created with the first action.
+  const daily = dailyPda(wallet.publicKey);
+  const preInstructions: TransactionInstruction[] = [];
+  if (!(await connection.getAccountInfo(daily, "confirmed")))
+    preInstructions.push(await initializeDailyIx(connection, anchorWallet));
+
   const ix = await builder
     .accountsStrict({
       owner: wallet.publicKey,
       mint,
       ownerTokenAccount,
       rebyterAuthority,
+      daily,
       tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...preInstructions, ix);
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,
@@ -540,6 +550,7 @@ export async function interactWithRebyter(
       `${action} failed: ${JSON.stringify(result.value.err)}`,
     );
 
+  refreshBalances();
   return signature;
 }
 
