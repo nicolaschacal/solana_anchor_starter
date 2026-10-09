@@ -134,8 +134,25 @@ for that single target; the route must still exist in the active atlas. Ids are 
 **Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
 (ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.
 
+## Habitats: capacity by island size (deployed)
+
+The layout inside a habitat NFT now grows with use and the owner pays the rent of the extra bytes when saving
+(a blank habitat is 1 byte, so the starter pack locks 0.0064 SOL instead of 0.0087). Capacity is about one Rebyter per 8 tiles
+and the program accepts at most 12 Rebyters and 50 objects per habitat; the app limits each island by its size:
+
+| Island | Rebyters | Objects |
+|---|---|---|
+| 5x5 (starter) | 3 | 14 |
+| 10x10 | 12 | 30 |
+| 15x15 | 12 | 50 |
+
+## Game HUD (open world)
+
+With no Rebyter selected the main screen shows a bottom HUD: a daily nudge (ration/quests ready, one tap to the Daily sheet),
+a strip with every companion and what it needs (tap to open it), and a dock with Daily (quests done), Store, Storage and My Rebyters.
+
 ## Roadmap status
 
-- Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with on-chain layout, Storage menu.
-- Next: dynamic habitats with traits and flexible capacity (~8 free tiles per Rebyter; 5x5 holds 3), vending-machine sales,
-  "overview" GUI improvements, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
+- Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with growing on-chain layout and
+  capacity by island size, open-world HUD, Storage menu.
+- Next: vending-machine sales, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
