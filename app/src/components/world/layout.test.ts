@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { BOARD, MAX_PLACED, defaultLayout, freeTile, limitProps, onBoard, reconcile } from "./layout";
+import { DEFAULT_SPEC, defaultLayout, freeTile, limitProps, onBoard, reconcile, specFor } from "./layout";
+
+const BOARD = DEFAULT_SPEC.board;
+const MAX_PLACED = DEFAULT_SPEC.maxPlaced;
 
 describe("world layout", () => {
   it("is a 5x5 board", () => {
@@ -7,6 +10,17 @@ describe("world layout", () => {
     expect(BOARD.j1 - BOARD.j0).toBe(4);
     expect(onBoard(BOARD.i0, BOARD.j0)).toBe(true);
     expect(onBoard(BOARD.i1 + 1, BOARD.j0)).toBe(false);
+  });
+
+  it("gives bigger habitats room for about one rebyter per 8 tiles", () => {
+    expect([5, 10, 15].map((n) => specFor(n as 5).maxPlaced)).toEqual([3, 12, 12]);
+    expect([5, 10, 15].map((n) => specFor(n as 5).maxProps)).toEqual([14, 30, 50]);
+    const big = specFor(10);
+    expect(big.board.i1 - big.board.i0).toBe(9);
+    const layout = defaultLayout(Array.from({ length: 20 }, (_, n) => `m${n}`), big);
+    expect(layout.placed).toHaveLength(12);
+    expect(new Set(layout.placed.map((p) => `${p.i},${p.j}`)).size).toBe(12);
+    layout.placed.forEach((p) => expect(onBoard(p.i, p.j, big)).toBe(true));
   });
 
   it("puts at most three rebyters in the world, each on its own tile", () => {

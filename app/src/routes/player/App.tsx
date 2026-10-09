@@ -1,7 +1,7 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
-import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
+import { CATALOG, evolutionItemFor, habitatSizeOf, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
@@ -792,6 +792,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}
             propAllowance={key=>propAllowance(inventory,key)}
+            size={inventory.activeHabitat?habitatSizeOf(inventory.activeHabitat.itemId):5}
           />
         </Suspense>}
         {clockHud}

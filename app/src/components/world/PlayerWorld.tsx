@@ -16,10 +16,8 @@ import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
 import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
 import {
-  BOARD,
-  MAX_PLACED,
-  MAX_PROPS,
-  TREE_TILE,
+  specFor,
+  type HabitatSize,
   defaultLayout,
   freeTile,
   limitProps,
@@ -61,6 +59,8 @@ type Props = {
   onActionComplete?: () => void;
   /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
   propAllowance?: (key: AssetKey) => number;
+  /** The habitat's size in tiles per side (default 5). It fixes the board, the camera and the limits. */
+  size?: HabitatSize;
 };
 
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
@@ -92,7 +92,9 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance, size = 5 }: Props) {
+  const spec = useMemo(() => specFor(size), [size]);
+  const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -125,7 +127,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const ownedKey = creatures.map((c) => c.mint).join("|");
   const owned = useMemo(() => (ownedKey ? ownedKey.split("|") : []), [ownedKey]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
-    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint)), creatures.map((c) => c.mint)),
+    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint), spec), creatures.map((c) => c.mint)),
   );
   const layoutRef = useRef(layout);
   const setLayout = useCallback((next: WorldLayout) => {
@@ -290,10 +292,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     (async () => {
       const layoutNow = layoutRef.current;
       try {
-        await world.init({ kind: "diorama", size: 5, data: { ...HabitatWorld.blank(5, period), props: [] } });
+        await world.init({ kind: "diorama", size, data: { ...HabitatWorld.blank(size, period), props: [] } });
         world.setCarpetVisible(false);
         world.setGrid(false);
-        islandRef.current = createIsland(world.scene, world.centre);
+        islandRef.current = createIsland(world.scene, world.centre, size / 5);
         world.clockMs = clockRef.current ?? Date.now();
         skyRef.current = createSky(world.scene, world.centre, period);
       } catch {
@@ -302,7 +304,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       if (dead) return;
       // The editor's own creature is not part of this world: park it off the board.
       world.creature = { x: OX + 60, z: OZ + 60 };
-      rig = new WorldRig(world.centre, 2.9, spots);
+      rig = new WorldRig(world.centre, 2.9 * (size / 5), spots);
       rigRef.current = rig;
       rig.intro();
       if (layoutNow.props) {
@@ -632,12 +634,12 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     for (const mint of fresh) {
       const world = worldRef.current;
       const taken = next.placed.map((p) => ({ i: p.i, j: p.j }));
-      const tile = freeTile(taken, (i, j) => !world || !world.canStand(i, j));
+      const tile = freeTile(taken, (i, j) => !world || !world.canStand(i, j), spec);
       const dropFirst = next.placed.length >= MAX_PLACED;
       const base = dropFirst ? next.placed.slice(1) : next.placed;
       if (tile) next = { ...next, placed: [...base, { mint, ...tile }] };
     }
-    if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned).placed };
+    if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned, spec).placed };
     if (next !== current && JSON.stringify(next) !== JSON.stringify(current)) setLayout(next);
   }, [owned, setLayout]);
 
@@ -700,6 +702,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         const tile = freeTile(
           current.placed.map((p) => ({ i: p.i, j: p.j })),
           (i, j) => !world || !world.canStand(i, j),
+          spec,
         );
         const base = current.placed.length >= MAX_PLACED ? current.placed.slice(1) : current.placed;
         if (tile) setLayout({ ...current, placed: [...base, { mint: focusMint, ...tile }] });
@@ -754,6 +757,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     const tile = freeTile(
       walkers.current.map((k) => ({ i: k.ti, j: k.tj })),
       (i, j) => !world || !world.canStand(i, j),
+      spec,
     );
     if (!tile) {
       say("There is no free tile.");

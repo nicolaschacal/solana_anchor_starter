@@ -74,9 +74,10 @@ pub const FOOD_TIER_DIET: [u16; FOOD_TIERS] = [1, 2, 3, 4];
 pub const NO_MACHINE: u8 = 255;
 /// Highest bonus (percent) a machine can give.
 pub const MAX_MACHINE_BONUS: u8 = 200;
-/// A habitat NFT keeps its layout in one fixed-size metadata field (hex), so saving never reallocates:
-/// set flag + placed Rebyters + prop count + props.
-pub const HABITAT_LAYOUT_BYTES: usize = 1 + MAX_PLACED_SLOTS * 34 + 1 + MAX_PROP_SLOTS * 9;
+/// A habitat NFT keeps its layout in one metadata field (hex) that grows with what is placed, and the
+/// owner pays the rent of the extra bytes when saving: set flag, placed count, placed Rebyters (34
+/// bytes each), prop count, props (9 bytes each). A blank habitat is the single byte 0.
+pub const BLANK_LAYOUT: [u8; 1] = [0];
 
 /// Game day number (UTC). Day 0 means "never", so the first real day is 1.
 pub fn game_day(unix_timestamp: i64) -> u32 {
@@ -105,16 +106,17 @@ fn to_hex(bytes: &[u8]) -> String {
     out
 }
 
-/// Serializes a habitat layout into its fixed-size byte form (see HABITAT_LAYOUT_BYTES).
-fn encode_layout(set: bool, placed: &[PlacedSlot; MAX_PLACED_SLOTS], props: &[PropSlot; MAX_PROP_SLOTS], prop_count: u8) -> Vec<u8> {
-    let mut out = Vec::with_capacity(HABITAT_LAYOUT_BYTES);
-    out.push(u8::from(set));
+/// Serializes a habitat layout (see BLANK_LAYOUT for the format).
+fn encode_layout(placed: &[PlacedSlot], props: &[PropSlot]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(3 + placed.len() * 34 + props.len() * 9);
+    out.push(1);
+    out.push(placed.len() as u8);
     for slot in placed {
         out.extend_from_slice(slot.mint.as_ref());
         out.push(slot.i);
         out.push(slot.j);
     }
-    out.push(prop_count);
+    out.push(props.len() as u8);
     for p in props {
         out.push(p.kind);
         out.extend_from_slice(&p.x.to_le_bytes());
@@ -122,7 +124,6 @@ fn encode_layout(set: bool, placed: &[PlacedSlot; MAX_PLACED_SLOTS], props: &[Pr
         out.extend_from_slice(&p.h.to_le_bytes());
         out.extend_from_slice(&p.r.to_le_bytes());
     }
-    debug_assert_eq!(out.len(), HABITAT_LAYOUT_BYTES);
     out
 }
 
@@ -645,7 +646,7 @@ pub mod solana_anchor_starter {
         }
         ctx.accounts.player_profile.active_habitat = mint_key;
 
-        let blank = to_hex(&[0u8; HABITAT_LAYOUT_BYTES]);
+        let blank = to_hex(&BLANK_LAYOUT);
         let additional_metadata = vec![
             ("HABITAT".to_string(), item_id.to_string()),
             ("LAYOUT".to_string(), blank),
@@ -741,23 +742,53 @@ pub mod solana_anchor_starter {
     /// when the habitat is shown.
     pub fn set_habitat_layout(
         ctx: Context<HabitatLayout>,
-        placed: [PlacedSlot; MAX_PLACED_SLOTS],
-        props: [PropSlot; MAX_PROP_SLOTS],
-        prop_count: u8,
+        placed: Vec<PlacedSlot>,
+        props: Vec<PropSlot>,
     ) -> Result<()> {
-        require!(usize::from(prop_count) <= MAX_PROP_SLOTS, RegistryError::InvalidLayout);
-        for prop in props.iter().take(usize::from(prop_count)) {
+        require!(
+            placed.len() <= MAX_PLACED_SLOTS && props.len() <= MAX_PROP_SLOTS,
+            RegistryError::InvalidLayout
+        );
+        for prop in props.iter() {
             require!(prop.kind < PROP_KINDS && prop.h > 0, RegistryError::InvalidLayout);
         }
         for (n, slot) in placed.iter().enumerate() {
-            if slot.mint != Pubkey::default() {
-                require!(
-                    !placed[..n].iter().any(|other| other.mint == slot.mint),
-                    RegistryError::InvalidLayout
-                );
-            }
+            require!(slot.mint != Pubkey::default(), RegistryError::InvalidLayout);
+            require!(
+                !placed[..n].iter().any(|other| other.mint == slot.mint),
+                RegistryError::InvalidLayout
+            );
         }
-        let value = to_hex(&encode_layout(true, &placed, &props, prop_count));
+        let value = to_hex(&encode_layout(&placed, &props));
+
+        // The field grows (or shrinks): pre-fund the mint for the new metadata size, paid by the owner.
+        let required_lamports = {
+            let mint_info = ctx.accounts.mint.to_account_info();
+            let data = mint_info.try_borrow_data()?;
+            let state = PodStateWithExtensions::<PodMint>::unpack(&data)
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            let mut metadata = state
+                .get_variable_len_extension::<TokenMetadata>()
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            metadata.update(Field::Key("LAYOUT".to_string()), value.clone());
+            let new_len = state
+                .try_get_new_account_len_for_variable_len_extension(&metadata)
+                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            Rent::get()?.minimum_balance(new_len)
+        };
+        let current_lamports = ctx.accounts.mint.to_account_info().lamports();
+        if required_lamports > current_lamports {
+            transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.key(),
+                    Transfer {
+                        from: ctx.accounts.owner.to_account_info(),
+                        to: ctx.accounts.mint.to_account_info(),
+                    },
+                ),
+                required_lamports - current_lamports,
+            )?;
+        }
         let mint_key = ctx.accounts.mint.key();
         let bump = ctx.bumps.habitat_authority;
         let signer_seeds: &[&[&[u8]]] = &[&[b"habitat_authority", mint_key.as_ref(), &[bump]]];
@@ -1914,8 +1945,9 @@ pub struct PropSlot {
     pub r: u16,
 }
 
-pub const MAX_PLACED_SLOTS: usize = 3;
-pub const MAX_PROP_SLOTS: usize = 14;
+/// Largest layout any habitat can hold (the app limits each habitat by its size).
+pub const MAX_PLACED_SLOTS: usize = 12;
+pub const MAX_PROP_SLOTS: usize = 50;
 /// How many object kinds the client knows (the palette order is part of the format).
 pub const PROP_KINDS: u8 = 11;
 
@@ -2146,6 +2178,7 @@ pub struct CreateHabitat<'info> {
 
 #[derive(Accounts)]
 pub struct HabitatLayout<'info> {
+    #[account(mut)]
     pub owner: Signer<'info>,
     /// CHECK: Token-2022 mint holding the habitat; only our PDA can write its layout.
     #[account(mut, owner = token_program.key())]
@@ -2160,6 +2193,7 @@ pub struct HabitatLayout<'info> {
     #[account(seeds = [b"habitat_authority", mint.key().as_ref()], bump)]
     pub habitat_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

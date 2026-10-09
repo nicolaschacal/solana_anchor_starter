@@ -37,7 +37,7 @@ export function iconFor(item: StoreItem): Icon {
 export function detailFor(item: StoreItem) {
   switch (item.category) {
     case "habitat":
-      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${item.slots} rebyters`;
+      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${item.slots} rebyters · ${({ 5: 14, 10: 30, 15: 50 } as const)[item.size]} objects`;
     case "food":
       return "Used up when fed";
     case "machine":

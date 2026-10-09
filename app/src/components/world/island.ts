@@ -37,11 +37,12 @@ function seeded(seed: number) {
 
 export type Island = { update(seconds: number): void; dispose(): void };
 
-export function createIsland(scene: THREE.Scene, centre: { x: number; z: number }): Island {
+export function createIsland(scene: THREE.Scene, centre: { x: number; z: number }, scale = 1): Island {
   const rand = seeded(2718);
   const group = new THREE.Group();
   group.name = "island";
   group.position.set(centre.x, 0, centre.z);
+  group.scale.setScalar(scale);
 
   // Ring vertices, with the underside's rings jittered so it reads as rock.
   const ring = (r: (typeof RINGS)[number], index: number) =>

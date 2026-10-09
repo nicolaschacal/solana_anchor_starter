@@ -96,17 +96,18 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
 
 /** Saves the layout inside the habitat NFT the wallet holds. */
 export async function saveHabitatLayout(connection: Connection, wallet: Wallet, habitatMint: string, layout: WorldLayout) {
-  const { placed, props, propCount } = encodeLayout(layout);
+  const { placed, props } = encodeLayout(layout);
   const mint = new PublicKey(habitatMint);
   const ix = await getProgram(connection, wallet)
-    .methods.setHabitatLayout(placed as never, props as never, propCount)
+    .methods.setHabitatLayout(placed as never, props as never)
     .accountsStrict({
       owner: wallet.publicKey,
       mint,
       ownerTokenAccount: ata(mint, wallet.publicKey),
       habitatAuthority: habitatAuthorityPda(mint),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-    })
+      systemProgram: SystemProgram.programId,
+    } as never)
     .instruction();
   return send(connection, wallet, [ix]);
 }

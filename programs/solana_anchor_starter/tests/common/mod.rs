@@ -490,18 +490,18 @@ pub fn buy_habitat(svm: &mut LiteSVM, owner: &Keypair, item_id: u16, gem_mint: &
 pub fn habitat_layout_ix(
     owner: &Pubkey,
     mint: &Pubkey,
-    placed: [solana_anchor_starter::PlacedSlot; 3],
-    props: [solana_anchor_starter::PropSlot; 14],
-    prop_count: u8,
+    placed: Vec<solana_anchor_starter::PlacedSlot>,
+    props: Vec<solana_anchor_starter::PropSlot>,
 ) -> Instruction {
     ix(
-        instruction::SetHabitatLayout { placed, props, prop_count },
+        instruction::SetHabitatLayout { placed, props },
         accounts::HabitatLayout {
             owner: *owner,
             mint: *mint,
             owner_token_account: ata(owner, mint),
             habitat_authority: habitat_authority(mint),
             token_program: token_2022::ID,
+            system_program: system_program::ID,
         },
     )
 }

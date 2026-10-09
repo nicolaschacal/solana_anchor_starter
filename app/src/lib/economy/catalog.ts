@@ -100,10 +100,10 @@ export const STORE_CATEGORIES: { id: StoreTab; label: string }[] = [
 const BASE_CATALOG: StoreItem[] = [
   // Habitats
   { id: "habitat-meadow-5", category: "habitat", name: "Verdant Meadow", description: "Your first island, free in the starter pack.", price: 0, mint: null, size: 5, climate: "temperate", slots: 3 },
-  { id: "habitat-oasis-10", category: "habitat", name: "Dune Oasis", description: "A wide desert island with palms and warm sand.", price: 2500, mint: null, size: 10, climate: "arid", slots: 6 },
-  { id: "habitat-frost-10", category: "habitat", name: "Frostpeak", description: "Snowy ridges and frozen ponds.", price: 2500, mint: null, size: 10, climate: "cold", slots: 6 },
-  { id: "habitat-jungle-15", category: "habitat", name: "Rainforest Canopy", description: "A huge, lush island with rivers.", price: 6000, mint: null, size: 15, climate: "humid", slots: 10 },
-  { id: "habitat-ember-15", category: "habitat", name: "Ember Crater", description: "A huge island around a sleeping volcano.", price: 6000, mint: null, size: 15, climate: "volcanic", slots: 10 },
+  { id: "habitat-oasis-10", category: "habitat", name: "Dune Oasis", description: "A wide desert island with palms and warm sand.", price: 2500, mint: null, size: 10, climate: "arid", slots: 12 },
+  { id: "habitat-frost-10", category: "habitat", name: "Frostpeak", description: "Snowy ridges and frozen ponds.", price: 2500, mint: null, size: 10, climate: "cold", slots: 12 },
+  { id: "habitat-jungle-15", category: "habitat", name: "Rainforest Canopy", description: "A huge, lush island with rivers.", price: 6000, mint: null, size: 15, climate: "humid", slots: 12 },
+  { id: "habitat-ember-15", category: "habitat", name: "Ember Crater", description: "A huge island around a sleeping volcano.", price: 6000, mint: null, size: 15, climate: "volcanic", slots: 12 },
   // Food: 4 foods x 4 tiers, bought one meal at a time.
   ...FOOD_ITEMS,
   // Machines (one per training the program already knows)
@@ -162,4 +162,10 @@ export const evolutionItemFor = (evolutionId: number): StoreItem | undefined =>
   CATALOG.find((item) => item.category === "evolution" && DEPLOYMENT.items[item.id]?.evoTarget === evolutionId);
 
 /** The catalog id of the habitat given by the starter pack. */
+/** Tiles per side of the habitat with this on-chain item id (the starter island if unknown). */
+export const habitatSizeOf = (itemId: number): 5 | 10 | 15 => {
+  const found = CATALOG.find((i): i is HabitatItem => i.category === "habitat" && DEPLOYMENT.items[i.id]?.itemId === itemId);
+  return found?.size ?? 5;
+};
+
 export const STARTER_HABITAT_ID = "habitat-meadow-5";

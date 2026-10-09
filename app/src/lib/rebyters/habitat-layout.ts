@@ -7,39 +7,36 @@ import type { WorldLayout } from "../../components/world/layout";
  * The order of PROP_KEYS is part of the format: append only, never reorder.
  */
 export const PROP_KEYS: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop"];
-export const MAX_PLACED_SLOTS = 3;
-export const MAX_PROP_SLOTS = 14;
+/** Largest layout any habitat can hold: MAX_PLACED_SLOTS and MAX_PROP_SLOTS in the program. */
+export const MAX_PLACED_SLOTS = 12;
+export const MAX_PROP_SLOTS = 50;
 
 const TURN = Math.PI * 2;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-const EMPTY = PublicKey.default;
-
-/** Size in bytes of the layout stored in a habitat NFT: HABITAT_LAYOUT_BYTES in the program. */
-export const LAYOUT_BYTES = 1 + MAX_PLACED_SLOTS * 34 + 1 + MAX_PROP_SLOTS * 9;
-
 /**
- * Reads the LAYOUT field of a habitat NFT (hex of the fixed-size bytes the program writes).
- * Returns null while the habitat has never been laid out, or when the field is malformed.
+ * Reads the LAYOUT field of a habitat NFT (hex of the bytes the program writes): set flag, placed
+ * count, placed Rebyters (mint 32, i, j), prop count, props (kind, x, z, h, r). A blank habitat is
+ * the single byte 0. Returns null while the habitat has never been laid out, or when malformed.
  */
 export function layoutFromHex(hex: string | null | undefined): WorldLayout | null {
-  if (!hex || hex.length !== LAYOUT_BYTES * 2 || /[^0-9a-f]/i.test(hex)) return null;
-  const bytes = new Uint8Array(LAYOUT_BYTES);
-  for (let n = 0; n < LAYOUT_BYTES; n++) bytes[n] = parseInt(hex.slice(n * 2, n * 2 + 2), 16);
-  if (bytes[0] !== 1) return null;
+  if (!hex || hex.length < 2 || hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex)) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let n = 0; n < bytes.length; n++) bytes[n] = parseInt(hex.slice(n * 2, n * 2 + 2), 16);
+  if (bytes[0] !== 1 || bytes.length < 3) return null;
   const view = new DataView(bytes.buffer);
-  let at = 1;
+  const placedCount = bytes[1];
+  if (placedCount > MAX_PLACED_SLOTS || bytes.length < 2 + placedCount * 34 + 1) return null;
+  let at = 2;
   const placed: WorldLayout["placed"] = [];
-  for (let n = 0; n < MAX_PLACED_SLOTS; n++) {
-    const mint = new PublicKey(bytes.slice(at, at + 32));
-    if (!mint.equals(EMPTY)) placed.push({ mint: mint.toBase58(), i: bytes[at + 32], j: bytes[at + 33] });
-    at += 34;
+  for (let n = 0; n < placedCount; n++, at += 34) {
+    placed.push({ mint: new PublicKey(bytes.slice(at, at + 32)).toBase58(), i: bytes[at + 32], j: bytes[at + 33] });
   }
-  const propCount = Math.min(bytes[at], MAX_PROP_SLOTS);
+  const propCount = bytes[at];
   at += 1;
+  if (propCount > MAX_PROP_SLOTS || bytes.length < at + propCount * 9) return null;
   const props: NonNullable<WorldLayout["props"]> = [];
-  for (let n = 0; n < MAX_PROP_SLOTS; n++, at += 9) {
-    if (n >= propCount) continue;
+  for (let n = 0; n < propCount; n++, at += 9) {
     const kind = bytes[at];
     const h = view.getUint16(at + 5, true);
     if (kind >= PROP_KEYS.length || h === 0) continue;
@@ -54,13 +51,14 @@ export function layoutFromHex(hex: string | null | undefined): WorldLayout | nul
   return { v: 1, placed, props };
 }
 
-/** The instruction arguments for a layout (extra rebyters, objects of unknown kind or past 14 are dropped). */
+/** The instruction arguments for a layout (objects of unknown kind, or past the limits, are dropped). */
 export function encodeLayout(layout: WorldLayout) {
-  const placed = Array.from({ length: MAX_PLACED_SLOTS }, (_, n) => {
-    const p = layout.placed[n];
-    return p ? { mint: new PublicKey(p.mint), i: p.i, j: p.j } : { mint: EMPTY, i: 0, j: 0 };
-  });
-  const entries = (layout.props ?? [])
+  const seen = new Set<string>();
+  const placed = layout.placed
+    .filter((p) => (seen.has(p.mint) ? false : (seen.add(p.mint), true)))
+    .slice(0, MAX_PLACED_SLOTS)
+    .map((p) => ({ mint: new PublicKey(p.mint), i: p.i, j: p.j }));
+  const props = (layout.props ?? [])
     .filter((p) => PROP_KEYS.includes(p.key))
     .slice(0, MAX_PROP_SLOTS)
     .map((p) => ({
@@ -70,6 +68,5 @@ export function encodeLayout(layout: WorldLayout) {
       h: clamp(Math.round(p.h * 1000), 1, 65535),
       r: Math.round((((p.r % TURN) + TURN) % TURN) / TURN * 65535),
     }));
-  const props = Array.from({ length: MAX_PROP_SLOTS }, (_, n) => entries[n] ?? { kind: 0, x: 0, z: 0, h: 0, r: 0 });
-  return { placed, props, propCount: entries.length };
+  return { placed, props };
 }
