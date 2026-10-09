@@ -409,7 +409,10 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
         },
         {
           "name": "mint",
@@ -452,22 +455,23 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "docs": [
-            "Optional: the player's daily-quest counters. When present the action is counted."
+            "The player's profile: counts the action for today's quests."
           ],
           "writable": true,
-          "optional": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -505,7 +509,7 @@
           "writable": true,
           "signer": true,
           "relations": [
-            "daily"
+            "player_profile"
           ]
         },
         {
@@ -528,18 +532,20 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -830,7 +836,7 @@
           "writable": true,
           "signer": true,
           "relations": [
-            "daily"
+            "player_profile"
           ]
         },
         {
@@ -853,18 +859,20 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -1159,11 +1167,12 @@
                 "kind": "const",
                 "value": [
                   112,
+                  114,
+                  111,
+                  102,
+                  105,
                   108,
-                  97,
-                  121,
-                  101,
-                  114
+                  101
                 ]
               },
               {
@@ -1482,11 +1491,12 @@
                 "kind": "const",
                 "value": [
                   112,
+                  114,
+                  111,
+                  102,
+                  105,
                   108,
-                  97,
-                  121,
-                  101,
-                  114
+                  101
                 ]
               },
               {
@@ -1626,7 +1636,10 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
         },
         {
           "name": "mint",
@@ -1669,22 +1682,23 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "docs": [
-            "Optional: the player's daily-quest counters. When present the action is counted."
+            "The player's profile: counts the action for today's quests."
           ],
           "writable": true,
-          "optional": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -1705,56 +1719,6 @@
           "type": "u8"
         }
       ]
-    },
-    {
-      "name": "initialize_daily",
-      "docs": [
-        "Creates the player's daily-state account (fixed size, never reallocated)."
-      ],
-      "discriminator": [
-        122,
-        8,
-        141,
-        162,
-        101,
-        189,
-        135,
-        83
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "daily",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  97,
-                  105,
-                  108,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
     },
     {
       "name": "initialize_economy",
@@ -1868,11 +1832,12 @@
                 "kind": "const",
                 "value": [
                   112,
+                  114,
+                  111,
+                  102,
+                  105,
                   108,
-                  97,
-                  121,
-                  101,
-                  114
+                  101
                 ]
               },
               {
@@ -1956,7 +1921,10 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
         },
         {
           "name": "mint",
@@ -1999,22 +1967,23 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "docs": [
-            "Optional: the player's daily-quest counters. When present the action is counted."
+            "The player's profile: counts the action for today's quests."
           ],
           "writable": true,
-          "optional": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -2103,7 +2072,10 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
         },
         {
           "name": "mint",
@@ -2146,22 +2118,23 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "docs": [
-            "Optional: the player's daily-quest counters. When present the action is counted."
+            "The player's profile: counts the action for today's quests."
           ],
           "writable": true,
-          "optional": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -2548,7 +2521,10 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
         },
         {
           "name": "mint",
@@ -2591,22 +2567,23 @@
           }
         },
         {
-          "name": "daily",
+          "name": "player_profile",
           "docs": [
-            "Optional: the player's daily-quest counters. When present the action is counted."
+            "The player's profile: counts the action for today's quests."
           ],
           "writable": true,
-          "optional": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  97,
+                  112,
+                  114,
+                  111,
+                  102,
                   105,
                   108,
-                  121
+                  101
                 ]
               },
               {
@@ -2741,19 +2718,6 @@
         117,
         191,
         44
-      ]
-    },
-    {
-      "name": "PlayerDaily",
-      "discriminator": [
-        153,
-        114,
-        127,
-        224,
-        7,
-        6,
-        120,
-        67
       ]
     },
     {
@@ -3320,13 +3284,41 @@
       }
     },
     {
-      "name": "PlayerDaily",
+      "name": "PlayerDiscovery",
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "evolution_id",
+            "type": "u16"
+          },
+          {
+            "name": "discoveries",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerProfile",
+      "docs": [
+        "The one per-wallet account: pokedex discoveries plus the small fixed-size daily state",
+        "(ration day, quest counters). Fixed fields come first; only `discoveries` ever grows."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
           },
           {
             "name": "ration_day",
@@ -3364,42 +3356,6 @@
           {
             "name": "bump",
             "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PlayerDiscovery",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "evolution_id",
-            "type": "u16"
-          },
-          {
-            "name": "discoveries",
-            "type": "u32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PlayerProfile",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "created_at",
-            "type": "i64"
           },
           {
             "name": "discoveries",
