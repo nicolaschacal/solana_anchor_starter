@@ -10,6 +10,7 @@ on:
         options:
           - status
           - test
+          - test-app
           - build
           - deploy
           - publish-sample
@@ -55,7 +56,7 @@ jobs:
         run: |
           mkdir -p artifacts/private
           if [ -z "$ADMIN_KEYPAIR" ]; then
-            if [ "${{ inputs.action }}" = "test" ] || [ "${{ inputs.action }}" = "build" ]; then
+            if [ "${{ inputs.action }}" = "test" ] || [ "${{ inputs.action }}" = "build" ] || [ "${{ inputs.action }}" = "test-app" ]; then
               echo "No ADMIN_KEYPAIR secret: using a throwaway wallet for this action."
               solana-keygen new --no-bip39-passphrase --silent --force -o artifacts/private/admin-keypair.json
               exit 0
@@ -82,6 +83,12 @@ jobs:
           trap 'exec >&- 2>&-; sleep 2' EXIT
           anchor build
           cargo test
+
+      - name: test-app
+        if: inputs.action == 'test-app'
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
+          trap 'exec >&- 2>&-; sleep 2' EXIT
           cd app && npm ci && npm test
 
       - name: build
