@@ -2120,13 +2120,13 @@ pub struct ClaimDailyRation<'info> {
     #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump = daily.bump, has_one = owner)]
     pub daily: Account<'info, PlayerDaily>,
     #[account(mut, address = economy.ration_mints[0])]
-    pub meat_mint: InterfaceAccount<'info, Mint>,
+    pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, address = economy.ration_mints[1])]
-    pub plant_mint: InterfaceAccount<'info, Mint>,
+    pub plant_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, address = economy.ration_mints[2])]
-    pub fish_mint: InterfaceAccount<'info, Mint>,
+    pub fish_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, address = economy.ration_mints[3])]
-    pub fruit_mint: InterfaceAccount<'info, Mint>,
+    pub fruit_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(
         init_if_needed,
         payer = owner,
@@ -2134,7 +2134,7 @@ pub struct ClaimDailyRation<'info> {
         associated_token::authority = owner,
         associated_token::token_program = token_program
     )]
-    pub owner_meat: InterfaceAccount<'info, TokenAccount>,
+    pub owner_meat: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = owner,
@@ -2142,7 +2142,7 @@ pub struct ClaimDailyRation<'info> {
         associated_token::authority = owner,
         associated_token::token_program = token_program
     )]
-    pub owner_plant: InterfaceAccount<'info, TokenAccount>,
+    pub owner_plant: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = owner,
@@ -2150,7 +2150,7 @@ pub struct ClaimDailyRation<'info> {
         associated_token::authority = owner,
         associated_token::token_program = token_program
     )]
-    pub owner_fish: InterfaceAccount<'info, TokenAccount>,
+    pub owner_fish: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = owner,
@@ -2158,7 +2158,7 @@ pub struct ClaimDailyRation<'info> {
         associated_token::authority = owner,
         associated_token::token_program = token_program
     )]
-    pub owner_fruit: InterfaceAccount<'info, TokenAccount>,
+    pub owner_fruit: Box<InterfaceAccount<'info, TokenAccount>>,
     pub token_program: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
