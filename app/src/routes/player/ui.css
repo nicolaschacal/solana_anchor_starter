@@ -691,7 +691,7 @@
 .rb-ui .world-chip-art{width:46px!important;height:46px!important;border-radius:var(--ui-r-sm)!important;overflow:hidden!important;display:block!important;background:rgba(115,205,255,.10)!important}
 .rb-ui .world-chip-art .creature-sprite{width:100%!important;height:100%!important;object-fit:contain!important}
 .rb-ui .world-chip-object{min-width:84px!important;padding:12px 10px!important}
-.rb-ui .world-saving{position:absolute!important;left:50%!important;bottom:84px!important;transform:translateX(-50%)!important;padding:8px 14px!important;border-radius:var(--ui-r-md)!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text)!important;z-index:5!important}
+.rb-ui .world-saving{position:absolute!important;left:50%!important;bottom:176px!important;transform:translateX(-50%)!important;padding:8px 14px!important;border-radius:var(--ui-r-md)!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text)!important;z-index:5!important}
 .rb-ui .storage-currencies{display:flex!important;gap:14px!important;flex-wrap:wrap!important;margin-bottom:12px!important;font-weight:700!important;color:var(--ui-text)!important}
 .rb-ui .storage-currencies span{display:inline-flex!important;align-items:center!important;gap:6px!important}
 .rb-ui .storage-currencies svg{width:16px!important;height:16px!important;color:#ffd27a!important}
@@ -809,3 +809,31 @@
   background:radial-gradient(ellipse at 50% 70%,rgba(47,134,240,.38),rgba(8,20,42,.9))!important;
 }
 .rb-ui .status-portrait .creature-sprite{width:100%!important;height:100%!important;object-fit:contain!important}
+
+/* ---- Open-world HUD: nudge, team strip and shortcut dock ------------------------- */
+.rb-ui .world-hud{position:absolute!important;left:12px!important;right:12px!important;bottom:12px!important;z-index:8!important;max-width:560px!important;margin:0 auto!important;display:grid!important;gap:8px!important;pointer-events:none!important}
+.rb-ui .world-hud>*{pointer-events:auto!important}
+.rb-ui .world-nudge{display:flex!important;align-items:center!important;gap:10px!important;min-height:42px!important;padding:0 8px 0 14px!important;border-radius:var(--ui-r-lg)!important;border-color:var(--ui-line-accent)!important;color:var(--ui-text)!important;font:600 var(--ui-fs-caption) var(--ui-font)!important;cursor:pointer!important;text-align:left!important}
+.rb-ui .world-nudge svg{width:18px!important;height:18px!important;flex:none!important;color:var(--ui-accent)!important}
+.rb-ui .world-nudge span{flex:1!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.rb-ui .world-nudge b{flex:none!important;padding:6px 12px!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-accent)!important;color:#06182c!important;font-size:var(--ui-fs-caption)!important}
+.rb-ui .world-team{border-radius:var(--ui-r-lg)!important;padding:6px!important}
+.rb-ui .world-team-list{display:flex!important;gap:6px!important;overflow-x:auto!important;scrollbar-width:none!important}
+.rb-ui .world-team-card{position:relative!important;flex:0 0 auto!important;width:64px!important;display:grid!important;justify-items:center!important;gap:2px!important;padding:5px 4px!important;border-radius:var(--ui-r-md)!important;border:1px solid transparent!important;background:var(--ui-card)!important;color:var(--ui-text)!important;cursor:pointer!important}
+.rb-ui .world-team-card[data-active="true"]{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important}
+.rb-ui .world-team-card[data-need="true"]{border-color:rgba(255,184,107,.55)!important}
+.rb-ui .world-team-art{width:40px!important;height:40px!important;border-radius:var(--ui-r-sm)!important;overflow:hidden!important;display:block!important;background:rgba(115,205,255,.10)!important}
+.rb-ui .world-team-art .creature-sprite{width:100%!important;height:100%!important;object-fit:contain!important}
+.rb-ui .world-team-card small{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:var(--ui-fs-micro)!important;color:var(--ui-text-2)!important}
+.rb-ui .world-team-need{position:absolute!important;right:2px!important;top:2px!important;width:18px!important;height:18px!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:var(--ui-warn)!important;color:#2a1a00!important;font-style:normal!important}
+.rb-ui .world-team-need svg{width:11px!important;height:11px!important;stroke-width:2.4!important;color:#2a1a00!important}
+.rb-ui .world-team-need b{font-size:7px!important;line-height:1!important}
+.rb-ui .world-dock{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;padding:5px!important;border-radius:var(--ui-r-xl)!important}
+.rb-ui .world-dock button{position:relative!important;min-height:58px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:6px 2px!important;border-radius:var(--ui-r-lg)!important;border:1px solid transparent!important;background:transparent!important;color:var(--ui-text)!important;font:600 var(--ui-fs-micro) var(--ui-font)!important;cursor:pointer!important;transition:background .15s,border-color .15s!important}
+.rb-ui .world-dock button:hover{background:var(--ui-card)!important;border-color:var(--ui-line)!important}
+.rb-ui .world-dock button[data-hot="true"]{border-color:var(--ui-line-accent)!important;background:var(--ui-selected)!important}
+.rb-ui .world-dock button>svg{width:21px!important;height:21px!important;stroke-width:1.8!important;color:var(--ui-accent)!important}
+.rb-ui .world-dock small{font-size:var(--ui-fs-micro)!important;font-weight:500!important;color:var(--ui-text-3)!important;line-height:1!important}
+.rb-ui .world-dock-dot{position:absolute!important;right:18%!important;top:5px!important;min-width:17px!important;padding:1px 5px!important;border-radius:10px!important;background:#7a5cff!important;color:#fff!important;font-size:var(--ui-fs-micro)!important;text-align:center!important}
+@media(max-width:420px){.rb-ui .world-team-card{width:58px!important}}
+.rb-ui .world-view[data-editing="true"] ~ .world-hud{display:none!important}
