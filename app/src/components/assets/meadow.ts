@@ -171,36 +171,6 @@ transformed.z += cos(uTime * 0.7 + windPhase) * windH * uAmp * 0.5 * uGain;`,
   });
 }
 
-// ---- Neon -------------------------------------------------------------------
-// The vending machine glows: an emissive boost on its own texture, a halo behind
-// it, a pool of light on the ground and (for the first few) a real point light.
-// Everything is a child of the prop node, so it follows moves, turns and resizes.
-const NEON_COLOR = 0x4ff0ff;
-const NEON_LIGHTS_MAX = 2;
-const NEON_LIGHT_INTENSITY = 22;
-type Neon = {
-  node: THREE.Object3D;
-  mats: THREE.MeshStandardMaterial[];
-  halo: THREE.Sprite;
-  pool: THREE.Mesh;
-  light: THREE.PointLight | null;
-  phase: number;
-};
-function radialGlowTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 128;
-  const ctx = canvas.getContext("2d")!;
-  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.35, "rgba(255,255,255,0.35)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
 // ---- Helpers ----------------------------------------------------------------
 // Normalize inside a separate pivot. Rotating an imported Meshy root after
 // recentering it otherwise rotates its original offset back out of the frame.
@@ -672,68 +642,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
   // only repeated vegetation and ground-detail density differ.
   const props: PlacedProp[] = [];
   const assets: Partial<Record<AssetKey, THREE.Group | null>> = {};
-  const neons: Neon[] = [];
-  let glowTexture: THREE.CanvasTexture | null = null;
-  const poolGeometry = track(new THREE.PlaneGeometry(1, 1));
-  const addNeon = (node: THREE.Object3D, h: number) => {
-    glowTexture ??= track(radialGlowTexture());
-    const mats: THREE.MeshStandardMaterial[] = [];
-    node.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-      // Own copy, so the shared cached asset stays untouched.
-      const material = track((mesh.material as THREE.MeshStandardMaterial).clone());
-      material.emissive.setHex(0xb8f6ff);
-      material.emissiveMap = material.map;
-      material.emissiveIntensity = 0;
-      mesh.material = material;
-      mats.push(material);
-    });
-    const halo = new THREE.Sprite(
-      track(
-        new THREE.SpriteMaterial({
-          map: glowTexture,
-          color: NEON_COLOR,
-          blending: THREE.AdditiveBlending,
-          transparent: true,
-          depthWrite: false,
-          fog: false,
-          opacity: 0,
-        }),
-      ),
-    );
-    halo.position.set(0, h * 0.5, 0);
-    halo.scale.set(h * 2.3, h * 2.3, 1);
-    halo.renderOrder = 2;
-    const pool = new THREE.Mesh(
-      poolGeometry,
-      track(
-        new THREE.MeshBasicMaterial({
-          map: glowTexture,
-          color: NEON_COLOR,
-          blending: THREE.AdditiveBlending,
-          transparent: true,
-          depthWrite: false,
-          fog: false,
-          opacity: 0,
-          polygonOffset: true,
-          polygonOffsetFactor: -2,
-        }),
-      ),
-    );
-    pool.rotation.x = -Math.PI / 2;
-    pool.position.set(0, 0.05, h * 0.42);
-    pool.scale.set(h * 1.5, h * 1.1, 1);
-    pool.renderOrder = 2;
-    let light: THREE.PointLight | null = null;
-    if (neons.filter((n) => n.light).length < NEON_LIGHTS_MAX) {
-      light = new THREE.PointLight(NEON_COLOR, 0, h * 2.8, 2);
-      light.position.set(0, h * 0.5, h * 0.35);
-      node.add(light);
-    }
-    node.add(halo, pool);
-    neons.push({ node, mats, halo, pool, light, phase: Math.random() * 6.28 });
-  };
   const plant = (key: AssetKey, x: number, z: number, h: number, r = 0) => {
     const prop = put(assets[key] ?? null, group, x, z, h, r);
     if (prop && key !== "mountains") {
@@ -743,7 +651,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
       contact.scale.set(h * 0.36, h * 0.3, 1);
       group.add(contact);
       props.push({ key, node: prop, contact, x, z, h, r });
-      if (key === "vending") addNeon(prop, h);
     }
     if (prop && key !== "mountains" && z > -15) {
       prop.traverse((node) => {
@@ -875,8 +782,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
   const removeProp = (prop: PlacedProp) => {
     prop.node.removeFromParent();
     prop.contact?.removeFromParent();
-    const neon = neons.findIndex((n) => n.node === prop.node);
-    if (neon >= 0) neons.splice(neon, 1);
     const index = props.indexOf(prop);
     if (index >= 0) props.splice(index, 1);
     shadowsDirty = true;
@@ -973,26 +878,6 @@ diffuseColor.rgb *= 1.0 + macro;`,
     const dt = lastTime ? Math.min(time - lastTime, 0.1) : 0;
     lastTime = time;
     wind.time.value = time;
-    if (neons.length) {
-      // Full glow at night, building through twilight, a faint hint by day.
-      const level =
-        period === "Night"
-          ? 1
-          : period === "Evening"
-            ? 0.3 + 0.7 * nightBlend(period, unixMs)
-            : 0.12;
-      for (const n of neons) {
-        const flicker =
-          0.95 +
-          0.05 * Math.sin(time * 2.3 + n.phase) -
-          (Math.sin(time * 11.3 + n.phase * 3) > 0.985 ? 0.3 : 0);
-        const v = level * flicker;
-        for (const m of n.mats) m.emissiveIntensity = 0.04 + 0.5 * v;
-        (n.halo.material as THREE.SpriteMaterial).opacity = 0.95 * v;
-        (n.pool.material as THREE.MeshBasicMaterial).opacity = 0.75 * v;
-        if (n.light) n.light.intensity = NEON_LIGHT_INTENSITY * v;
-      }
-    }
     for (const cloud of clouds) {
       cloud.sprite.position.x =
         cloud.baseX +
