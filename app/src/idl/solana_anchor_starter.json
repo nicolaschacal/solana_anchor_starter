@@ -2551,6 +2551,7 @@
       "accounts": [
         {
           "name": "owner",
+          "writable": true,
           "signer": true
         },
         {
@@ -2596,38 +2597,32 @@
         {
           "name": "token_program",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
         {
           "name": "placed",
           "type": {
-            "array": [
-              {
-                "defined": {
-                  "name": "PlacedSlot"
-                }
-              },
-              3
-            ]
+            "vec": {
+              "defined": {
+                "name": "PlacedSlot"
+              }
+            }
           }
         },
         {
           "name": "props",
           "type": {
-            "array": [
-              {
-                "defined": {
-                  "name": "PropSlot"
-                }
-              },
-              14
-            ]
+            "vec": {
+              "defined": {
+                "name": "PropSlot"
+              }
+            }
           }
-        },
-        {
-          "name": "prop_count",
-          "type": "u8"
         }
       ]
     },
