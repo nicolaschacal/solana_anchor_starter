@@ -18,7 +18,7 @@ import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
 import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
-import { useRbtyrBalance } from "../../lib/economy/token";
+import { useGemBalance } from "../../lib/economy/token";
 import { EMOTES, needEmote, type Emote } from "../../components/player/emotes";
 import type { WorldCreature } from "../../components/world/PlayerWorld";
 import { fullEvolutionLineage } from "../../lib/rebyters/graph";
@@ -573,7 +573,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [storeOpen,setStoreOpen]=useState(false);
-  const rbtyr=useRbtyrBalance();
+  const rbtyr=useGemBalance();
   const inventory=useInventory();
   const [drawerOpen,setDrawerOpen]=useState(false);
   const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);

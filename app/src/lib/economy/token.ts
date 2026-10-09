@@ -3,10 +3,10 @@ import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react";
 import { useRebytersAuth } from "../rebyters/auth";
 
-/** The game currency. Its mint is configured once the token exists (VITE_RBTYR_MINT). */
-export const RBTYR = {
-  symbol: "RBTYR",
-  mint: parseMint(import.meta.env.VITE_RBTYR_MINT as string | undefined),
+/** The game currency. Its mint is configured once the token exists (VITE_GEM_MINT). */
+export const GEMS = {
+  symbol: "Gems",
+  mint: parseMint(import.meta.env.VITE_GEM_MINT as string | undefined),
 };
 
 function parseMint(value: string | undefined) {
@@ -19,29 +19,29 @@ function parseMint(value: string | undefined) {
 }
 
 /** "1.2K", "12,500", "0". Whole numbers below 10k, short above. */
-export function formatRbtyr(amount: number) {
+export function formatGems(amount: number) {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1)}M`;
   if (amount >= 10_000) return `${(amount / 1000).toFixed(amount >= 100_000 ? 0 : 1)}K`;
   return Math.floor(amount).toLocaleString("en-US");
 }
 
-export type RbtyrBalance = {
+export type GemBalance = {
   /** The token exists and is configured. Until then purchases stay closed. */
   launched: boolean;
-  /** Whole $RBTYR in the connected wallet (0 when not connected or not launched). */
+  /** Whole Gems in the connected wallet (0 when not connected or not launched). */
   amount: number;
   loading: boolean;
 };
 
-/** The connected wallet's $RBTYR, refreshed every 30 s and whenever the window regains focus. */
-export function useRbtyrBalance(): RbtyrBalance {
+/** The connected wallet's Gems, refreshed every 30 s and whenever the window regains focus. */
+export function useGemBalance(): GemBalance {
   const { connection } = useConnection();
   const auth = useRebytersAuth();
   const owner = auth.publicKey;
-  const [state, setState] = useState<RbtyrBalance>({ launched: !!RBTYR.mint, amount: 0, loading: !!RBTYR.mint && !!owner });
+  const [state, setState] = useState<GemBalance>({ launched: !!GEMS.mint, amount: 0, loading: !!GEMS.mint && !!owner });
 
   useEffect(() => {
-    const mint = RBTYR.mint;
+    const mint = GEMS.mint;
     if (!mint || !owner) {
       setState({ launched: !!mint, amount: 0, loading: false });
       return;

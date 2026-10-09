@@ -5,7 +5,7 @@ import {
 import { useState, type ComponentType } from "react";
 import { CLIMATES, STORE_CATEGORIES, itemsIn, type Climate, type StoreCategory, type StoreItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
-import { RBTYR, formatRbtyr, type RbtyrBalance } from "../../lib/economy/token";
+import { GEMS, formatGems, type GemBalance } from "../../lib/economy/token";
 
 type Icon = ComponentType<{ "aria-hidden"?: boolean }>;
 
@@ -41,13 +41,13 @@ function detailFor(item: StoreItem) {
 }
 
 type Props = {
-  balance: RbtyrBalance;
+  balance: GemBalance;
   inventory: Inventory;
   onClose: () => void;
 };
 
 /**
- * The store. Prices are in $RBTYR; until the token exists every purchase stays closed and the
+ * The store. Prices are in Gems; until the gem mint is configured every purchase stays closed and the
  * sheet says so. Ownership comes from the wallet (see useInventory), never from the game.
  */
 export function StoreSheet({ balance, inventory, onClose }: Props) {
@@ -74,10 +74,10 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
           <span className="store-balance-copy">
             <small>Your balance</small>
             <strong>
-              {balance.loading ? "…" : formatRbtyr(balance.amount)} <em>${RBTYR.symbol}</em>
+              {balance.loading ? "…" : formatGems(balance.amount)} <em>{GEMS.symbol}</em>
             </strong>
           </span>
-          {!balance.launched && <span className="store-soon">Purchases open when ${RBTYR.symbol} launches</span>}
+          {!balance.launched && <span className="store-soon">Gem purchases are not open yet</span>}
         </div>
 
         <div className="store-tabs" role="tablist" aria-label="Store sections">
@@ -113,7 +113,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                     </span>
                   ) : (
                     <span className="store-price">
-                      <Coins aria-hidden="true" /> {formatRbtyr(item.price)}
+                      <Coins aria-hidden="true" /> {formatGems(item.price)}
                     </span>
                   )}
                   {state !== "starter" && (
@@ -139,11 +139,11 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
   );
 }
 
-/** The $RBTYR chip on the world HUD: tap it to open the store. */
-export function BalanceChip({ balance, onOpen }: { balance: RbtyrBalance; onOpen: () => void }) {
-  const label = balance.loading ? "…" : formatRbtyr(balance.amount);
+/** The Gems chip on the world HUD: tap it to open the store. */
+export function BalanceChip({ balance, onOpen }: { balance: GemBalance; onOpen: () => void }) {
+  const label = balance.loading ? "…" : formatGems(balance.amount);
   return (
-    <button className="rbtyr-chip gl-panel" onClick={onOpen} aria-label={`${label} ${RBTYR.symbol}. Open the store`}>
+    <button className="rbtyr-chip gl-panel" onClick={onOpen} aria-label={`${label} ${GEMS.symbol}. Open the store`}>
       <span className="store-coin" aria-hidden="true">
         <Coins />
       </span>

@@ -16,7 +16,7 @@ type Base = {
   id: string;
   name: string;
   description: string;
-  /** Price in whole $RBTYR. */
+  /** Price in whole Gems. */
   price: number;
   /** Token-2022 mint, once the program has created it. */
   mint: string | null;

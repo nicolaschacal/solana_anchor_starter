@@ -1,9 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::{
+    associated_token::AssociatedToken,
     token_2022::{
         spl_token_2022::{
-            extension::{BaseStateWithExtensions, PodStateWithExtensions},
+            extension::{
+                non_transferable::NonTransferable, permanent_delegate::PermanentDelegate,
+                BaseStateWithExtensions, PodStateWithExtensions,
+            },
             instruction::AuthorityType,
             pod::PodMint,
         },
@@ -14,7 +18,7 @@ use anchor_spl::{
         token_metadata::{token_metadata_update_field, TokenMetadataUpdateField},
     },
     token_interface::{
-        mint_to, token_metadata_initialize, MintTo, Token2022, TokenAccount,
+        burn, mint_to, token_metadata_initialize, Burn, Mint, MintTo, Token2022, TokenAccount,
         TokenMetadataInitialize,
     },
 };
@@ -35,6 +39,8 @@ pub const MAX_RULE_BYTES: usize = 1024;
 pub const CREATE_REBYTER_PRICE_LAMPORTS: u64 = 0;
 pub const PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY: usize = 8;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
+pub const MAX_GEM_PACKS: usize = 8;
+pub const MAX_PURCHASE_QUANTITY: u16 = 99;
 
 #[program]
 pub mod solana_anchor_starter {
@@ -176,6 +182,188 @@ pub mod solana_anchor_starter {
     pub fn set_authority(ctx: Context<Admin>, new_authority: Pubkey) -> Result<()> {
         require!(new_authority != Pubkey::default(), RegistryError::Authority);
         ctx.accounts.registry.authority = new_authority;
+        Ok(())
+    }
+
+    // ---------------------------------------------------------------------
+    // Economy: Gems (bought with SOL, burned on spend) and item catalog.
+    // ---------------------------------------------------------------------
+
+    /// Creates the economy singleton. The gem mint is created client-side
+    /// (Token-2022, 0 decimals, NonTransferable, PermanentDelegate = economy
+    /// PDA, mint authority = economy PDA, no freeze authority) and validated here.
+    pub fn initialize_economy(ctx: Context<InitializeEconomy>, treasury: Pubkey) -> Result<()> {
+        require!(treasury != Pubkey::default(), RegistryError::Authority);
+        let economy_key = ctx.accounts.economy.key();
+        validate_economy_mint(
+            &ctx.accounts.gem_mint,
+            &economy_key,
+            Some(true),
+            ctx.accounts.token_program.key(),
+        )?;
+        let economy = &mut ctx.accounts.economy;
+        economy.treasury = treasury;
+        economy.gem_mint = ctx.accounts.gem_mint.key();
+        economy.gem_packs = [GemPack::default(); MAX_GEM_PACKS];
+        economy.bump = ctx.bumps.economy;
+        Ok(())
+    }
+
+    pub fn set_treasury(ctx: Context<AdminEconomy>, treasury: Pubkey) -> Result<()> {
+        require!(treasury != Pubkey::default(), RegistryError::Authority);
+        ctx.accounts.economy.treasury = treasury;
+        Ok(())
+    }
+
+    /// Sets (or disables with zeros) a gem pack. Prices are in lamports.
+    pub fn set_gem_pack(
+        ctx: Context<AdminEconomy>,
+        pack_id: u8,
+        gems: u64,
+        price_lamports: u64,
+    ) -> Result<()> {
+        require!(usize::from(pack_id) < MAX_GEM_PACKS, RegistryError::InvalidQuantity);
+        require!(
+            (gems == 0) == (price_lamports == 0),
+            RegistryError::PackInactive
+        );
+        ctx.accounts.economy.gem_packs[usize::from(pack_id)] = GemPack { gems, price_lamports };
+        Ok(())
+    }
+
+    /// Registers an item mint (created client-side, 0 decimals, mint authority =
+    /// economy PDA). A NonTransferable mint makes the item account-bound
+    /// (the Sparks-purchasable version).
+    pub fn create_item_type(
+        ctx: Context<CreateItemType>,
+        item_id: u16,
+        price_gems: u64,
+        units_per_purchase: u16,
+    ) -> Result<()> {
+        require!(price_gems > 0 && units_per_purchase > 0, RegistryError::InvalidQuantity);
+        let economy_key = ctx.accounts.economy.key();
+        validate_economy_mint(
+            &ctx.accounts.item_mint,
+            &economy_key,
+            None,
+            ctx.accounts.token_program.key(),
+        )?;
+        let bound = mint_is_non_transferable(&ctx.accounts.item_mint)?;
+        let item = &mut ctx.accounts.item_type;
+        item.item_id = item_id;
+        item.mint = ctx.accounts.item_mint.key();
+        item.price_gems = price_gems;
+        item.units_per_purchase = units_per_purchase;
+        item.active = true;
+        item.bound = bound;
+        item.bump = ctx.bumps.item_type;
+        Ok(())
+    }
+
+    pub fn update_item_type(
+        ctx: Context<UpdateItemType>,
+        price_gems: u64,
+        active: bool,
+    ) -> Result<()> {
+        require!(price_gems > 0, RegistryError::InvalidQuantity);
+        ctx.accounts.item_type.price_gems = price_gems;
+        ctx.accounts.item_type.active = active;
+        Ok(())
+    }
+
+    /// Player pays SOL to the treasury and receives gems.
+    pub fn buy_gems(ctx: Context<BuyGems>, pack_id: u8) -> Result<()> {
+        require!(usize::from(pack_id) < MAX_GEM_PACKS, RegistryError::InvalidQuantity);
+        let pack = ctx.accounts.economy.gem_packs[usize::from(pack_id)];
+        require!(pack.gems > 0 && pack.price_lamports > 0, RegistryError::PackInactive);
+
+        transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.key(),
+                Transfer {
+                    from: ctx.accounts.owner.to_account_info(),
+                    to: ctx.accounts.treasury.to_account_info(),
+                },
+            ),
+            pack.price_lamports,
+        )?;
+
+        let bump = [ctx.accounts.economy.bump];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.gem_mint.to_account_info(),
+                    to: ctx.accounts.owner_gem_account.to_account_info(),
+                    authority: ctx.accounts.economy.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            pack.gems,
+        )?;
+        emit!(GemsPurchased {
+            owner: ctx.accounts.owner.key(),
+            pack_id,
+            gems: pack.gems,
+            price_lamports: pack.price_lamports,
+        });
+        Ok(())
+    }
+
+    /// Player burns gems (fixed catalog price) and receives item units.
+    pub fn buy_item(ctx: Context<BuyItem>, quantity: u16) -> Result<()> {
+        require!(
+            quantity >= 1 && quantity <= MAX_PURCHASE_QUANTITY,
+            RegistryError::InvalidQuantity
+        );
+        let item = &ctx.accounts.item_type;
+        require!(item.active, RegistryError::ItemInactive);
+        let cost = item
+            .price_gems
+            .checked_mul(u64::from(quantity))
+            .ok_or(RegistryError::MathOverflow)?;
+        let units = u64::from(item.units_per_purchase)
+            .checked_mul(u64::from(quantity))
+            .ok_or(RegistryError::MathOverflow)?;
+        require!(
+            ctx.accounts.owner_gem_account.amount >= cost,
+            RegistryError::InsufficientGems
+        );
+
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                Burn {
+                    mint: ctx.accounts.gem_mint.to_account_info(),
+                    from: ctx.accounts.owner_gem_account.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            cost,
+        )?;
+
+        let bump = [ctx.accounts.economy.bump];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.item_mint.to_account_info(),
+                    to: ctx.accounts.owner_item_account.to_account_info(),
+                    authority: ctx.accounts.economy.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            units,
+        )?;
+        emit!(ItemPurchased {
+            owner: ctx.accounts.owner.key(),
+            item_id: item.item_id,
+            quantity,
+            gems_spent: cost,
+            units,
+        });
         Ok(())
     }
 
@@ -1486,4 +1674,212 @@ pub enum RegistryError {
     EvolutionRequirements,
     #[msg("Training type must be power, endurance, defense, speed, combat, or balanced")]
     InvalidTraining,
+    #[msg("Mint does not meet the economy requirements")]
+    InvalidMint,
+    #[msg("This gem pack is not for sale")]
+    PackInactive,
+    #[msg("This item is not for sale")]
+    ItemInactive,
+    #[msg("Not enough Gems")]
+    InsufficientGems,
+    #[msg("Invalid quantity or id")]
+    InvalidQuantity,
+    #[msg("Math overflow")]
+    MathOverflow,
+}
+
+fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
+    let info = mint.to_account_info();
+    let data = info.try_borrow_data()?;
+    let state = PodStateWithExtensions::<PodMint>::unpack(&data)
+        .map_err(|_| error!(RegistryError::InvalidMint))?;
+    Ok(state.get_extension::<NonTransferable>().is_ok())
+}
+
+/// Checks a client-created economy mint: Token-2022, 0 decimals, mint authority
+/// is the economy PDA and no freeze authority. With `gem == Some(true)` it also
+/// requires NonTransferable and the economy PDA as PermanentDelegate.
+fn validate_economy_mint(
+    mint: &InterfaceAccount<Mint>,
+    economy: &Pubkey,
+    gem: Option<bool>,
+    token_program: Pubkey,
+) -> Result<()> {
+    require!(*mint.to_account_info().owner == token_program, RegistryError::InvalidMint);
+    require!(mint.decimals == 0, RegistryError::InvalidMint);
+    require!(
+        Option::<Pubkey>::from(mint.mint_authority) == Some(*economy),
+        RegistryError::InvalidMint
+    );
+    require!(mint.freeze_authority.is_none(), RegistryError::InvalidMint);
+    if gem == Some(true) {
+        let info = mint.to_account_info();
+        let data = info.try_borrow_data()?;
+        let state = PodStateWithExtensions::<PodMint>::unpack(&data)
+            .map_err(|_| error!(RegistryError::InvalidMint))?;
+        require!(
+            state.get_extension::<NonTransferable>().is_ok(),
+            RegistryError::InvalidMint
+        );
+        let delegate = state
+            .get_extension::<PermanentDelegate>()
+            .map_err(|_| error!(RegistryError::InvalidMint))?;
+        let delegate: Option<Pubkey> = Option::<Pubkey>::from(delegate.delegate);
+        require!(delegate == Some(*economy), RegistryError::InvalidMint);
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy, Default, AnchorSerialize, AnchorDeserialize, InitSpace)]
+pub struct GemPack {
+    pub gems: u64,
+    pub price_lamports: u64,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Economy {
+    pub treasury: Pubkey,
+    pub gem_mint: Pubkey,
+    pub gem_packs: [GemPack; MAX_GEM_PACKS],
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct ItemType {
+    pub item_id: u16,
+    pub mint: Pubkey,
+    pub price_gems: u64,
+    pub units_per_purchase: u16,
+    pub active: bool,
+    /// True when the item mint is NonTransferable (account-bound version).
+    pub bound: bool,
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+pub struct InitializeEconomy<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(init, payer = authority, space = 8 + Economy::INIT_SPACE, seeds = [b"economy"], bump)]
+    pub economy: Account<'info, Economy>,
+    pub gem_mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AdminEconomy<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(mut, seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+}
+
+#[derive(Accounts)]
+#[instruction(item_id: u16)]
+pub struct CreateItemType<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + ItemType::INIT_SPACE,
+        seeds = [b"item", item_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub item_type: Account<'info, ItemType>,
+    pub item_mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateItemType<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(mut, seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    pub item_type: Account<'info, ItemType>,
+}
+
+#[derive(Accounts)]
+pub struct BuyGems<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    /// CHECK: must equal the treasury stored in the economy account.
+    #[account(mut, address = economy.treasury)]
+    pub treasury: UncheckedAccount<'info>,
+    #[account(mut, address = economy.gem_mint)]
+    pub gem_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = gem_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_gem_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct BuyItem<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    pub item_type: Account<'info, ItemType>,
+    #[account(mut, address = economy.gem_mint)]
+    pub gem_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        associated_token::mint = gem_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_gem_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut, address = item_type.mint)]
+    pub item_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = item_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_item_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[event]
+pub struct GemsPurchased {
+    pub owner: Pubkey,
+    pub pack_id: u8,
+    pub gems: u64,
+    pub price_lamports: u64,
+}
+
+#[event]
+pub struct ItemPurchased {
+    pub owner: Pubkey,
+    pub item_id: u16,
+    pub quantity: u16,
+    pub gems_spent: u64,
+    pub units: u64,
 }
