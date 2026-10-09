@@ -141,7 +141,7 @@ jobs:
           npm run "publish:${PUBLISH_SCRIPT#publish-}"
 
       - name: Commit generated files (IDL, economy addresses)
-        if: inputs.action == 'deploy' || inputs.action == 'setup-economy'
+        if: always() && (inputs.action == 'deploy' || inputs.action == 'setup-economy')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

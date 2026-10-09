@@ -79,7 +79,15 @@ async function loadKeypair(path: string) {
 async function main() {
   const signer = await loadKeypair(walletPath);
   const wallet = new Wallet(signer);
-  const connection = new Connection(rpc, "confirmed");
+  // The public devnet endpoint rate-limits hard: retry 429s with a growing pause.
+  const retryingFetch = async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    for (let n = 0; ; n++) {
+      const res = await fetch(input, init);
+      if (res.status !== 429 || n >= 10) return res;
+      await new Promise((r) => setTimeout(r, 2000 * (n + 1)));
+    }
+  };
+  const connection = new Connection(rpc, { commitment: "confirmed", disableRetryOnRateLimit: true, fetch: retryingFetch });
   if ((await connection.getGenesisHash()) !== DEVNET_GENESIS) throw new Error("This script only runs on Solana devnet");
   const deployed = await connection.getAccountInfo(PROGRAM_ID);
   if (!deployed?.executable) throw new Error("Program is not deployed; run the deploy action first");
@@ -107,7 +115,10 @@ async function main() {
   }
   state.programId = PROGRAM_ID.toBase58();
   state.economy = economyPda.toBase58();
-  const save = () => writeFile(deploymentFile, JSON.stringify(state, null, 2) + "\n");
+  const save = async () => {
+    await writeFile(deploymentFile, JSON.stringify(state, null, 2) + "\n");
+    await new Promise((r) => setTimeout(r, 1200));
+  };
 
   const registry = await connection.getAccountInfo(registryPda());
   if (!registry) throw new Error("The registry is not initialized; run publish-sample first");
