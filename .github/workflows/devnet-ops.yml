@@ -1,0 +1,110 @@
+name: devnet-ops
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "What to run"
+        required: true
+        type: choice
+        options:
+          - status
+          - test
+          - build
+          - deploy
+          - publish-sample
+          - publish-current
+          - publish-rebalance
+          - publish-workbook
+
+env:
+  PROGRAM_ID: 7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp
+  SOLANA_RPC_URL: https://api.devnet.solana.com
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Solana CLI 4.1.2
+        run: |
+          curl -sSfL -o solana.tar.bz2 https://github.com/anza-xyz/agave/releases/download/v4.1.2/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          tar xjf solana.tar.bz2
+          echo "$PWD/solana-release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor 1.2.0
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL -o "$HOME/.local/bin/anchor" https://github.com/coral-xyz/anchor/releases/download/v1.2.0/anchor-1.2.0-x86_64-unknown-linux-gnu
+          chmod +x "$HOME/.local/bin/anchor"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Admin wallet (devnet) from secret
+        env:
+          ADMIN_KEYPAIR: ${{ secrets.ADMIN_KEYPAIR }}
+        run: |
+          mkdir -p artifacts/private
+          if [ -z "$ADMIN_KEYPAIR" ]; then
+            echo "Secret ADMIN_KEYPAIR is not set. Add it in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          printf '%s' "$ADMIN_KEYPAIR" > artifacts/private/admin-keypair.json
+          chmod 600 artifacts/private/admin-keypair.json
+          echo "Wallet: $(solana-keygen pubkey artifacts/private/admin-keypair.json)"
+
+      - name: status
+        if: inputs.action == 'status'
+        run: |
+          solana balance --url devnet --keypair artifacts/private/admin-keypair.json
+          solana program show "$PROGRAM_ID" --url devnet || echo "Program not found on devnet"
+
+      - name: test
+        if: inputs.action == 'test'
+        run: |
+          cargo test
+          cd app && npm ci && npm test
+
+      - name: build
+        if: inputs.action == 'build' || inputs.action == 'deploy'
+        run: |
+          anchor build
+          ls -la target/deploy target/idl
+
+      - name: deploy (upgrade existing program)
+        if: inputs.action == 'deploy'
+        run: |
+          solana balance --url devnet --keypair artifacts/private/admin-keypair.json
+          solana program deploy target/deploy/solana_anchor_starter.so \
+            --program-id "$PROGRAM_ID" \
+            --url devnet \
+            --keypair artifacts/private/admin-keypair.json \
+            --upgrade-authority artifacts/private/admin-keypair.json
+          solana program show "$PROGRAM_ID" --url devnet
+
+      - name: publish to Irys devnet
+        if: startsWith(inputs.action, 'publish-')
+        env:
+          SOLANA_WALLET_PATH: ../artifacts/private/admin-keypair.json
+          IRYS_WALLET_PATH: ../artifacts/private/admin-keypair.json
+          PUBLISH_SCRIPT: ${{ inputs.action }}
+        run: |
+          cd app
+          npm ci
+          npm run "publish:${PUBLISH_SCRIPT#publish-}"
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devnet-ops-${{ inputs.action }}
+          if-no-files-found: ignore
+          path: |
+            target/deploy/solana_anchor_starter.so
+            target/idl/solana_anchor_starter.json
+            artifacts/publication/**
