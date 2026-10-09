@@ -18,7 +18,6 @@ import {
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
-import { WorldHud } from "../../components/player/WorldHud";
 import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
@@ -798,7 +797,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           />
         </Suspense>}
         {clockHud}
-        {!focusMint&&<WorldHud creatures={worldCreatures} activeMint={active?.mint} onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}} rationReady={daily.rationReady} claimable={daily.claimable} questsDone={daily.quests.filter(q=>q.done).length} questsTotal={daily.quests.length} onDaily={()=>setDailyOpen(true)} onStore={()=>setStoreOpen(true)} onStorage={()=>setStorageOpen(true)} onDen={()=>void openDen()}/>}
         {focusMint&&active?.mint===focusMint&&<>
           {restOverlay}
           {idChip}

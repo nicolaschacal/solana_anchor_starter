@@ -151,13 +151,8 @@ so the capacity cannot be changed. The layout inside the NFT grows with use and 
 
 Camera limits scale with the island so the whole board fits a phone screen.
 
-## Game HUD (open world)
-
-With no Rebyter selected the main screen shows a bottom HUD: a daily nudge (ration/quests ready, one tap to the Daily sheet),
-a strip with every companion and what it needs (tap to open it), and a dock with Daily (quests done), Store, Storage and My Rebyters.
-
 ## Roadmap status
 
 - Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with growing on-chain layout and
-  island land and capacity (3/5/8 ceiling), open-world HUD, Storage menu.
+  island land and capacity (3/5/8 ceiling), Storage menu.
 - Next: vending-machine sales, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
