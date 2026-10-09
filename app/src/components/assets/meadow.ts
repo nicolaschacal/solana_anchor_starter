@@ -46,6 +46,10 @@ const moteColors = {
   Evening: 0xffd9b0,
 };
 
+// Global brightness lift for ambient and fill light. 1 = the previous look; raise
+// it to brighten every prop and the ground, lower it for a moodier scene.
+const LIGHT_LIFT = 1.45;
+
 const ENV = "/assets/environment/";
 const files = {
   mountains: "distant-mountains.glb",
@@ -228,10 +232,10 @@ export function meadow(
     // Lower ambient/fill levels preserve facet shading and give the scene
     // cinematic depth instead of washing every surface with equal light.
     ambientIntensity:
-      period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
+      (period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94) * LIGHT_LIFT,
     fillIntensity:
-      period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
-    moonIntensity: period === "Night" ? 0.52 : 0,
+      (period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26) * LIGHT_LIFT,
+    moonIntensity: period === "Night" ? 0.52 * LIGHT_LIFT : 0,
     rimIntensity: period === "Night" ? 0.42 : period === "Evening" ? 0.18 : 0.08,
   };
   const group = new THREE.Group();
@@ -813,22 +817,24 @@ diffuseColor.rgb *= 1.0 + macro;`,
         palettes.Night.intensity,
         twilight,
       );
-      colors.ambientIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
-        0.72,
-        twilight,
-      );
-      colors.fillIntensity = THREE.MathUtils.lerp(
-        period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
-        0.38,
-        twilight,
-      );
+      colors.ambientIntensity =
+        THREE.MathUtils.lerp(
+          period === "Night" ? 0.72 : period === "Evening" ? 0.82 : 0.94,
+          0.72,
+          twilight,
+        ) * LIGHT_LIFT;
+      colors.fillIntensity =
+        THREE.MathUtils.lerp(
+          period === "Night" ? 0.38 : period === "Evening" ? 0.30 : 0.26,
+          0.38,
+          twilight,
+        ) * LIGHT_LIFT;
       colors.moonIntensity =
-        period === "Night"
+        (period === "Night"
           ? 0.52
           : period === "Evening"
             ? THREE.MathUtils.smoothstep(blend, 0.42, 0.92) * 0.52
-            : 0;
+            : 0) * LIGHT_LIFT;
       colors.rimIntensity =
         period === "Night"
           ? 0.42
