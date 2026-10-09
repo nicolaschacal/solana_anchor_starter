@@ -10,7 +10,7 @@ pub use anchor_spl::{
     token_2022::{self, spl_token_2022},
 };
 pub use litesvm::LiteSVM;
-pub use solana_anchor_starter::{accounts, instruction, PlayerDaily, LOADER};
+pub use solana_anchor_starter::{accounts, instruction, PlayerProfile, LOADER};
 pub use solana_keypair::Keypair;
 pub use solana_message::{Message, VersionedMessage};
 pub use solana_signer::Signer;
@@ -328,7 +328,7 @@ pub const DAY: i64 = 86_400;
 pub const RATION_UNITS: u8 = 5;
 
 pub fn daily_pda(owner: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"daily", owner.as_ref()], &program_id()).0
+    Pubkey::find_program_address(&[b"profile", owner.as_ref()], &program_id()).0
 }
 
 pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {
@@ -338,10 +338,10 @@ pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {
 }
 
 /// Edits a player's daily account directly (to simulate counted actions).
-pub fn edit_daily(svm: &mut LiteSVM, owner: &Pubkey, edit: impl FnOnce(&mut PlayerDaily)) {
+pub fn edit_daily(svm: &mut LiteSVM, owner: &Pubkey, edit: impl FnOnce(&mut PlayerProfile)) {
     let key = daily_pda(owner);
     let mut account = svm.get_account(&key).expect("daily account exists");
-    let mut daily = PlayerDaily::try_deserialize(&mut &account.data[..]).unwrap();
+    let mut daily = PlayerProfile::try_deserialize(&mut &account.data[..]).unwrap();
     edit(&mut daily);
     let mut data = Vec::new();
     daily.try_serialize(&mut data).unwrap();
@@ -349,9 +349,9 @@ pub fn edit_daily(svm: &mut LiteSVM, owner: &Pubkey, edit: impl FnOnce(&mut Play
     svm.set_account(key, account).unwrap();
 }
 
-pub fn read_daily(svm: &LiteSVM, owner: &Pubkey) -> PlayerDaily {
+pub fn read_daily(svm: &LiteSVM, owner: &Pubkey) -> PlayerProfile {
     let account = svm.get_account(&daily_pda(owner)).expect("daily account exists");
-    PlayerDaily::try_deserialize(&mut &account.data[..]).unwrap()
+    PlayerProfile::try_deserialize(&mut &account.data[..]).unwrap()
 }
 
 pub fn set_sparks_ix(authority: &Pubkey, spark_mint: &Pubkey) -> Instruction {
@@ -378,10 +378,10 @@ pub fn set_ration_ix(authority: &Pubkey, units: u8, mints: [Pubkey; 4]) -> Instr
 }
 pub fn init_daily_ix(owner: &Pubkey) -> Instruction {
     ix(
-        instruction::InitializeDaily {},
-        accounts::InitializeDaily {
+        instruction::InitializePlayer {},
+        accounts::InitializePlayer {
             owner: *owner,
-            daily: daily_pda(owner),
+            player_profile: daily_pda(owner),
             system_program: system_program::ID,
         },
     )
@@ -392,7 +392,7 @@ pub fn claim_ration_ix(owner: &Pubkey, mints: &[Pubkey; 4]) -> Instruction {
         accounts::ClaimDailyRation {
             owner: *owner,
             economy: economy(),
-            daily: daily_pda(owner),
+            player_profile: daily_pda(owner),
             meat_mint: mints[0],
             plant_mint: mints[1],
             fish_mint: mints[2],
@@ -413,7 +413,7 @@ pub fn claim_quest_ix(owner: &Pubkey, spark_mint: &Pubkey, slot: u8) -> Instruct
         accounts::ClaimQuest {
             owner: *owner,
             economy: economy(),
-            daily: daily_pda(owner),
+            player_profile: daily_pda(owner),
             spark_mint: *spark_mint,
             owner_spark_account: ata(owner, spark_mint),
             token_program: token_2022::ID,

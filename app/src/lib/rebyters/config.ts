@@ -31,7 +31,7 @@ export function ruleSetPda(family: number, version: number) {
 
 export function playerProfilePda(owner: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode("player"), owner.toBytes()],
+    [new TextEncoder().encode("profile"), owner.toBytes()],
     PROGRAM_ID,
   )[0];
 }

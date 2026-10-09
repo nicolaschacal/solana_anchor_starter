@@ -8,14 +8,13 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
-import { PROGRAM_ID } from "../rebyters/config";
+import { PROGRAM_ID, playerProfilePda } from "../rebyters/config";
 import { getProgram } from "../rebyters/registry";
 import { DEPLOYMENT } from "./deployment";
 import { refreshBalances } from "./token";
 
 const enc = new TextEncoder();
 export const economyPda = () => PublicKey.findProgramAddressSync([enc.encode("economy")], PROGRAM_ID)[0];
-export const dailyPda = (owner: PublicKey) => PublicKey.findProgramAddressSync([enc.encode("daily"), owner.toBytes()], PROGRAM_ID)[0];
 export const itemTypePda = (itemId: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, itemId, true);
@@ -84,12 +83,18 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
   return send(connection, wallet, [ix]);
 }
 
-/** The per-wallet daily account (rations + quest counters). Created once, a few bytes. */
-export async function initializeDailyIx(connection: Connection, wallet: Wallet) {
-  return getProgram(connection, wallet)
-    .methods.initializeDaily()
-    .accountsStrict({ owner: wallet.publicKey, daily: dailyPda(wallet.publicKey), systemProgram: SystemProgram.programId })
-    .instruction();
+/**
+ * The wallet's single profile account (pokedex + daily ration/quest state). Creates it when it does not
+ * exist yet, which also covers wallets that only had a legacy profile; returns [] otherwise.
+ */
+export async function ensureProfileIx(connection: Connection, wallet: Wallet): Promise<TransactionInstruction[]> {
+  if (await connection.getAccountInfo(playerProfilePda(wallet.publicKey), "confirmed")) return [];
+  return [
+    await getProgram(connection, wallet)
+      .methods.initializePlayer()
+      .accountsStrict({ owner: wallet.publicKey, playerProfile: playerProfilePda(wallet.publicKey), systemProgram: SystemProgram.programId })
+      .instruction(),
+  ];
 }
 
 export async function claimDailyRation(connection: Connection, wallet: Wallet, hasDaily: boolean) {
@@ -101,7 +106,7 @@ export async function claimDailyRation(connection: Connection, wallet: Wallet, h
     .accountsStrict({
       owner,
       economy: economyPda(),
-      daily: dailyPda(owner),
+      playerProfile: playerProfilePda(owner),
       meatMint: mints[0],
       plantMint: mints[1],
       fishMint: mints[2],
@@ -116,7 +121,7 @@ export async function claimDailyRation(connection: Connection, wallet: Wallet, h
     })
     .instruction();
   const ixs = [ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })];
-  if (!hasDaily) ixs.push(await initializeDailyIx(connection, wallet));
+  if (!hasDaily) ixs.push(...(await ensureProfileIx(connection, wallet)));
   ixs.push(claim);
   return send(connection, wallet, ixs);
 }
@@ -128,7 +133,7 @@ export async function claimQuest(connection: Connection, wallet: Wallet, slot: n
     .accountsStrict({
       owner: wallet.publicKey,
       economy: economyPda(),
-      daily: dailyPda(wallet.publicKey),
+      playerProfile: playerProfilePda(wallet.publicKey),
       sparkMint: spark,
       ownerSparkAccount: ata(spark, wallet.publicKey),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
@@ -136,7 +141,7 @@ export async function claimQuest(connection: Connection, wallet: Wallet, slot: n
       systemProgram: SystemProgram.programId,
     })
     .instruction();
-  const ixs = hasDaily ? [claim] : [await initializeDailyIx(connection, wallet), claim];
+  const ixs = hasDaily ? [claim] : [...(await ensureProfileIx(connection, wallet)), claim];
   return send(connection, wallet, ixs);
 }
 

@@ -43,7 +43,7 @@ pub const MAX_GEM_PACKS: usize = 8;
 pub const MAX_PURCHASE_QUANTITY: u16 = 99;
 pub const SECONDS_PER_DAY: i64 = 86_400;
 pub const QUESTS_PER_DAY: usize = 3;
-/// Action kinds counted in `PlayerDaily::counts`.
+/// Action kinds counted in `PlayerProfile::counts`.
 pub const ACTION_FEED: usize = 0;
 pub const ACTION_PLAY: usize = 1;
 pub const ACTION_CARE: usize = 2;
@@ -99,6 +99,7 @@ pub mod solana_anchor_starter {
         let profile = &mut ctx.accounts.player_profile;
         profile.owner = ctx.accounts.owner.key();
         profile.created_at = Clock::get()?.unix_timestamp;
+        profile.bump = ctx.bumps.player_profile;
         profile.discoveries = Vec::new();
 
         emit!(PlayerProfileInitialized {
@@ -436,24 +437,16 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Creates the player's daily-state account (fixed size, never reallocated).
-    pub fn initialize_daily(ctx: Context<InitializeDaily>) -> Result<()> {
-        let daily = &mut ctx.accounts.daily;
-        daily.owner = ctx.accounts.owner.key();
-        daily.bump = ctx.bumps.daily;
-        Ok(())
-    }
-
     /// Once per UTC day: mints the free ration (all four foods) to the player.
     pub fn claim_daily_ration(ctx: Context<ClaimDailyRation>) -> Result<()> {
         let units = ctx.accounts.economy.ration_units;
         require!(units > 0, RegistryError::RationNotConfigured);
         let day = game_day(Clock::get()?.unix_timestamp);
         require!(
-            ctx.accounts.daily.ration_day < day,
+            ctx.accounts.player_profile.ration_day < day,
             RegistryError::RationAlreadyClaimed
         );
-        ctx.accounts.daily.ration_day = day;
+        ctx.accounts.player_profile.ration_day = day;
 
         let bump = [ctx.accounts.economy.bump];
         let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
@@ -492,7 +485,7 @@ pub mod solana_anchor_starter {
         let day = game_day(Clock::get()?.unix_timestamp);
         let (kind, target, reward) = quest_for(day, usize::from(slot));
         {
-            let daily = &mut ctx.accounts.daily;
+            let daily = &mut ctx.accounts.player_profile;
             require!(daily.quest_day == day, RegistryError::QuestNotComplete);
             require!(
                 daily.counts[usize::from(kind)] >= target,
@@ -546,6 +539,7 @@ pub mod solana_anchor_starter {
         if ctx.accounts.player_profile.owner == Pubkey::default() {
             ctx.accounts.player_profile.owner = ctx.accounts.owner.key();
             ctx.accounts.player_profile.created_at = Clock::get()?.unix_timestamp;
+            ctx.accounts.player_profile.bump = ctx.bumps.player_profile;
             ctx.accounts.player_profile.discoveries = Vec::new();
             emit!(PlayerProfileInitialized {
                 owner: ctx.accounts.owner.key(),
@@ -730,26 +724,26 @@ pub mod solana_anchor_starter {
     pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
         apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))?;
-        record_action(&mut ctx.accounts.daily, ACTION_FEED)
+        record_action(&mut ctx.accounts.player_profile, ACTION_FEED)
     }
 
     /// Play builds bond and a little speed while consuming energy/fullness.
     pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
         apply_interaction(&ctx.accounts, InteractionKind::Play)?;
-        record_action(&mut ctx.accounts.daily, ACTION_PLAY)
+        record_action(&mut ctx.accounts.player_profile, ACTION_PLAY)
     }
 
     /// Care strengthens bond and helps a well-rested Rebyter recover from bad conditions.
     pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
         apply_interaction(&ctx.accounts, InteractionKind::Care)?;
-        record_action(&mut ctx.accounts.daily, ACTION_CARE)
+        record_action(&mut ctx.accounts.player_profile, ACTION_CARE)
     }
 
     /// Rest restores energy. It is not a cooldown: it is a player action and can
     /// be used whenever desired, but it gives no stat farming advantage.
     pub fn rest(ctx: Context<InteractRebyter>) -> Result<()> {
         apply_interaction(&ctx.accounts, InteractionKind::Rest)?;
-        record_action(&mut ctx.accounts.daily, ACTION_REST)
+        record_action(&mut ctx.accounts.player_profile, ACTION_REST)
     }
 
     /// Train with one of six machines:
@@ -757,7 +751,7 @@ pub mod solana_anchor_starter {
     pub fn train(ctx: Context<InteractRebyter>, training_type: u8) -> Result<()> {
         require!(training_type < 6, RegistryError::InvalidTraining);
         apply_interaction(&ctx.accounts, InteractionKind::Train(training_type))?;
-        record_action(&mut ctx.accounts.daily, ACTION_TRAIN)
+        record_action(&mut ctx.accounts.player_profile, ACTION_TRAIN)
     }
 
     pub fn evolve(
@@ -1108,13 +1102,10 @@ fn maybe_unlock_training_skill(dna: &mut RebyterDna, training_type: u8, full_eff
     if let Some(index) = bit { dna.learned_skills |= 1u64 << index; }
 }
 
-/// Counts a finished action for today's quests when the client supplied the daily account.
-/// Omitting the account never blocks an action; it only means the action is not counted.
-fn record_action(daily: &mut Option<Account<'_, PlayerDaily>>, kind: usize) -> Result<()> {
-    if let Some(daily) = daily.as_mut() {
-        let day = game_day(Clock::get()?.unix_timestamp);
-        daily.record(kind, day);
-    }
+/// Counts a finished action for today's quests in the player's profile.
+fn record_action(profile: &mut Account<'_, PlayerProfile>, kind: usize) -> Result<()> {
+    let day = game_day(Clock::get()?.unix_timestamp);
+    profile.record(kind, day);
     Ok(())
 }
 
@@ -1528,19 +1519,40 @@ fn family_index(id: u8) -> Result<usize> {
     Ok(usize::from(id))
 }
 
+/// The one per-wallet account: pokedex discoveries plus the small fixed-size daily state
+/// (ration day, quest counters). Fixed fields come first; only `discoveries` ever grows.
 #[account]
 pub struct PlayerProfile {
     pub owner: Pubkey,
     pub created_at: i64,
+    /// Game day of the last claimed ration (0 = never).
+    pub ration_day: u32,
+    /// Game day the counters below belong to.
+    pub quest_day: u32,
+    /// Actions done on `quest_day`: feed, play, care, rest, train (saturating).
+    pub counts: [u8; 5],
+    /// Bit i set = quest slot i already claimed on `quest_day`.
+    pub claimed: u8,
+    pub bump: u8,
     pub discoveries: Vec<u16>,
 }
 
 impl PlayerProfile {
-    // Anchor discriminator + owner + created_at + Vec length prefix.
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4;
+    // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
+    // + Vec length prefix.
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
+    }
+
+    pub fn record(&mut self, kind: usize, day: u32) {
+        if self.quest_day != day {
+            self.quest_day = day;
+            self.counts = [0; 5];
+            self.claimed = 0;
+        }
+        self.counts[kind] = self.counts[kind].saturating_add(1);
     }
 }
 
@@ -1583,7 +1595,7 @@ pub struct InitializePlayer<'info> {
         init,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"player", owner.key().as_ref()],
+        seeds = [b"profile", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Account<'info, PlayerProfile>,
@@ -1674,7 +1686,7 @@ pub struct CreateRebyter<'info> {
         init_if_needed,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"player", owner.key().as_ref()],
+        seeds = [b"profile", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Account<'info, PlayerProfile>,
@@ -1720,9 +1732,9 @@ pub struct InteractRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    /// Optional: the player's daily-quest counters. When present the action is counted.
-    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump)]
-    pub daily: Option<Account<'info, PlayerDaily>>,
+    /// The player's profile: counts the action for today's quests.
+    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Account<'info, PlayerProfile>,
     pub token_program: Program<'info, Token2022>,
 }
 
@@ -1732,7 +1744,7 @@ pub struct EvolveRebyter<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"player", owner.key().as_ref()],
+        seeds = [b"profile", owner.key().as_ref()],
         bump,
         has_one = owner
     )]
@@ -1939,32 +1951,6 @@ pub struct Economy {
 
 #[account]
 #[derive(InitSpace)]
-pub struct PlayerDaily {
-    pub owner: Pubkey,
-    /// Game day of the last claimed ration (0 = never).
-    pub ration_day: u32,
-    /// Game day the counters below belong to.
-    pub quest_day: u32,
-    /// Actions done on `quest_day`: feed, play, care, rest, train (saturating).
-    pub counts: [u8; 5],
-    /// Bit i set = quest slot i already claimed on `quest_day`.
-    pub claimed: u8,
-    pub bump: u8,
-}
-
-impl PlayerDaily {
-    pub fn record(&mut self, kind: usize, day: u32) {
-        if self.quest_day != day {
-            self.quest_day = day;
-            self.counts = [0; 5];
-            self.claimed = 0;
-        }
-        self.counts[kind] = self.counts[kind].saturating_add(1);
-    }
-}
-
-#[account]
-#[derive(InitSpace)]
 pub struct ItemType {
     pub item_id: u16,
     pub mint: Pubkey,
@@ -2097,28 +2083,13 @@ pub struct SetSparksMint<'info> {
 }
 
 #[derive(Accounts)]
-pub struct InitializeDaily<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    #[account(
-        init,
-        payer = owner,
-        space = 8 + PlayerDaily::INIT_SPACE,
-        seeds = [b"daily", owner.key().as_ref()],
-        bump
-    )]
-    pub daily: Account<'info, PlayerDaily>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
 pub struct ClaimDailyRation<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump = daily.bump, has_one = owner)]
-    pub daily: Account<'info, PlayerDaily>,
+    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.ration_mints[0])]
     pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
     #[account(mut, address = economy.ration_mints[1])]
@@ -2170,8 +2141,8 @@ pub struct ClaimQuest<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump = daily.bump, has_one = owner)]
-    pub daily: Account<'info, PlayerDaily>,
+    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.spark_mint)]
     pub spark_mint: InterfaceAccount<'info, Mint>,
     #[account(

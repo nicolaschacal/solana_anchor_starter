@@ -184,8 +184,10 @@ fn quests_are_the_same_for_everyone_and_three_distinct_ones_each_day() {
 
 #[test]
 fn counters_reset_when_a_new_day_starts() {
-    let mut daily = PlayerDaily {
+    let mut daily = PlayerProfile {
         owner: Pubkey::new_unique(),
+        created_at: 0,
+        discoveries: vec![],
         ration_day: 0,
         quest_day: 0,
         counts: [0; 5],

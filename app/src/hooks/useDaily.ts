@@ -1,10 +1,10 @@
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useEffect, useMemo, useState } from "react";
-import { dailyPda } from "../lib/economy/actions";
 import { DEPLOYMENT } from "../lib/economy/deployment";
 import { gameDay, questsFor, type Quest } from "../lib/economy/quests";
 import { BALANCE_EVENT } from "../lib/economy/token";
 import { useRebytersAuth } from "../lib/rebyters/auth";
+import { playerProfilePda } from "../lib/rebyters/config";
 import { getProgram } from "../lib/rebyters/registry";
 
 type Raw = { rationDay: number; questDay: number; counts: number[]; claimed: number };
@@ -47,7 +47,7 @@ export function useDaily(): Daily {
     const read = async () => {
       setLoading(true);
       try {
-        const account = await (getProgram(connection).account as any).playerDaily.fetchNullable(dailyPda(owner), "confirmed");
+        const account = await (getProgram(connection).account as any).playerProfile.fetchNullable(playerProfilePda(owner), "confirmed");
         if (dead) return;
         setRaw(
           account

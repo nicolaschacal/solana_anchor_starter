@@ -21,7 +21,7 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import { dailyPda, initializeDailyIx } from "../economy/actions";
+import { ensureProfileIx } from "../economy/actions";
 import { refreshBalances } from "../economy/token";
 import {
   PROGRAM_ID,
@@ -517,11 +517,9 @@ export async function interactWithRebyter(
   else if (action === "rest") builder = program.methods.rest();
   else builder = program.methods.train(option);
 
-  // The daily account counts today's actions for the quests. It is created with the first action.
-  const daily = dailyPda(wallet.publicKey);
-  const preInstructions: TransactionInstruction[] = [];
-  if (!(await connection.getAccountInfo(daily, "confirmed")))
-    preInstructions.push(await initializeDailyIx(connection, anchorWallet));
+  // The profile counts today's actions for the quests; wallets without one (or with a legacy one)
+  // get it created in the same transaction.
+  const preInstructions: TransactionInstruction[] = await ensureProfileIx(connection, anchorWallet);
 
   const ix = await builder
     .accountsStrict({
@@ -529,7 +527,7 @@ export async function interactWithRebyter(
       mint,
       ownerTokenAccount,
       rebyterAuthority,
-      daily,
+      playerProfile: playerProfilePda(wallet.publicKey),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
     })
     .instruction();
@@ -613,7 +611,10 @@ export async function evolveRebyter(
     .instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(ix);
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
+    ...(await ensureProfileIx(connection, anchorWallet)),
+    ix,
+  );
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,
