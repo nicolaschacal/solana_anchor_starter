@@ -34,7 +34,7 @@ import { getProgram } from "../src/lib/rebyters/registry";
 const DEVNET_GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const rpc = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const walletPath = process.env.SOLANA_WALLET_PATH || "../artifacts/private/admin-keypair.json";
-const deploymentFile = "../src/lib/economy/deployment.json";
+const deploymentFile = "src/lib/economy/deployment.json";
 
 /** Gem packs sold for SOL (devnet prices; change later with set_gem_pack). */
 const GEM_PACKS = [
