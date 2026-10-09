@@ -354,6 +354,8 @@ pub mod solana_anchor_starter {
         );
         let item = &ctx.accounts.item_type;
         require!(item.active, RegistryError::ItemInactive);
+        // Account-bound items are priced in Sparks and sold by buy_item_sparks.
+        require!(!item.bound, RegistryError::WrongCurrency);
         let cost = item
             .price_gems
             .checked_mul(u64::from(quantity))
@@ -372,6 +374,63 @@ pub mod solana_anchor_starter {
                 Burn {
                     mint: ctx.accounts.gem_mint.to_account_info(),
                     from: ctx.accounts.owner_gem_account.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            cost,
+        )?;
+
+        let bump = [ctx.accounts.economy.bump];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.item_mint.to_account_info(),
+                    to: ctx.accounts.owner_item_account.to_account_info(),
+                    authority: ctx.accounts.economy.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            units,
+        )?;
+        emit!(ItemPurchased {
+            owner: ctx.accounts.owner.key(),
+            item_id: item.item_id,
+            quantity,
+            gems_spent: cost,
+            units,
+        });
+        Ok(())
+    }
+
+    /// Player burns Sparks (the price of an account-bound item) and receives item units.
+    pub fn buy_item_sparks(ctx: Context<BuyItemSparks>, quantity: u16) -> Result<()> {
+        require!(
+            quantity >= 1 && quantity <= MAX_PURCHASE_QUANTITY,
+            RegistryError::InvalidQuantity
+        );
+        let item = &ctx.accounts.item_type;
+        require!(item.active, RegistryError::ItemInactive);
+        require!(item.bound, RegistryError::WrongCurrency);
+        let cost = item
+            .price_gems
+            .checked_mul(u64::from(quantity))
+            .ok_or(RegistryError::MathOverflow)?;
+        let units = u64::from(item.units_per_purchase)
+            .checked_mul(u64::from(quantity))
+            .ok_or(RegistryError::MathOverflow)?;
+        require!(
+            ctx.accounts.owner_spark_account.amount >= cost,
+            RegistryError::InsufficientSparks
+        );
+
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                Burn {
+                    mint: ctx.accounts.spark_mint.to_account_info(),
+                    from: ctx.accounts.owner_spark_account.to_account_info(),
                     authority: ctx.accounts.owner.to_account_info(),
                 },
             ),
@@ -1884,6 +1943,10 @@ pub enum RegistryError {
     QuestNotComplete,
     #[msg("This quest was already claimed today")]
     QuestAlreadyClaimed,
+    #[msg("Not enough Sparks")]
+    InsufficientSparks,
+    #[msg("This item is bought with a different currency")]
+    WrongCurrency,
 }
 
 fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
@@ -2034,6 +2097,38 @@ pub struct BuyGems<'info> {
         associated_token::token_program = token_program
     )]
     pub owner_gem_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct BuyItemSparks<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    pub item_type: Account<'info, ItemType>,
+    #[account(mut, address = economy.spark_mint)]
+    pub spark_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(
+        mut,
+        associated_token::mint = spark_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_spark_account: Box<InterfaceAccount<'info, TokenAccount>>,
+    #[account(mut, address = item_type.mint)]
+    pub item_mint: Box<InterfaceAccount<'info, Mint>>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = item_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_item_account: Box<InterfaceAccount<'info, TokenAccount>>,
     pub token_program: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,

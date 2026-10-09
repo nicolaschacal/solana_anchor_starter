@@ -422,3 +422,21 @@ pub fn claim_quest_ix(owner: &Pubkey, spark_mint: &Pubkey, slot: u8) -> Instruct
         },
     )
 }
+
+pub fn buy_item_sparks_ix(owner: &Pubkey, spark_mint: &Pubkey, item_mint: &Pubkey, id: u16, quantity: u16) -> Instruction {
+    ix(
+        instruction::BuyItemSparks { quantity },
+        accounts::BuyItemSparks {
+            owner: *owner,
+            economy: economy(),
+            item_type: item_pda(id),
+            spark_mint: *spark_mint,
+            owner_spark_account: ata(owner, spark_mint),
+            item_mint: *item_mint,
+            owner_item_account: ata(owner, item_mint),
+            token_program: token_2022::ID,
+            associated_token_program: associated_token::ID,
+            system_program: system_program::ID,
+        },
+    )
+}

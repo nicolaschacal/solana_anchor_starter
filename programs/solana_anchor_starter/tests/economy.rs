@@ -174,3 +174,50 @@ fn the_economy_rejects_badly_shaped_gem_mints() {
     let ixs = vec![init_economy_ix(&admin.pubkey(), &good.pubkey(), &treasury)];
     send(&mut svm, &admin, &[], ixs).expect("well-shaped gem mint is accepted");
 }
+
+/// Sparks buy account-bound items: they are burned, the item is minted non-transferable, and the
+/// two currencies cannot be mixed up.
+#[test]
+fn sparks_buy_bound_items_and_gems_cannot() {
+    let mut w = world();
+    let (admin, player) = (w.admin.pubkey(), w.player.pubkey());
+    const BOUND_ID: u16 = 7;
+    let bound = Keypair::new();
+    create_mint(&mut w.svm, &w.admin, &bound, &economy(), true, None).unwrap();
+    send(&mut w.svm, &w.admin, &[], vec![create_item_ix(&admin, BOUND_ID, &bound.pubkey(), 20, 5)]).unwrap();
+
+    // Earn 20+ Sparks the real way: count actions, claim every quest of the day.
+    let now = 500 * DAY;
+    set_time(&mut w.svm, now);
+    let day = solana_anchor_starter::game_day(now);
+    send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
+    edit_daily(&mut w.svm, &player, |d| {
+        d.quest_day = day;
+        d.counts = [200; 5];
+    });
+    for slot in 0..3u8 {
+        send(&mut w.svm, &w.player, &[], vec![claim_quest_ix(&player, &w.spark_mint, slot)]).unwrap();
+    }
+    let sparks = |w: &World| token_amount(&w.svm, &ata(&player, &w.spark_mint));
+    let start = sparks(&w);
+    assert!(start >= 20, "quests paid {start}");
+
+    // Not enough for 10 purchases (200 Sparks).
+    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &bound.pubkey(), BOUND_ID, 10)];
+    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert_eq!(sparks(&w), start);
+
+    // One purchase: 20 Sparks burned, 5 units minted.
+    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &bound.pubkey(), BOUND_ID, 1)];
+    send(&mut w.svm, &w.player, &[], ixs).expect("buy with sparks");
+    assert_eq!(sparks(&w), start - 20);
+    assert_eq!(token_amount(&w.svm, &ata(&player, &bound.pubkey())), 5);
+
+    // The bound item cannot be paid with Gems, and a Gem item cannot be paid with Sparks.
+    let ixs = vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)];
+    send(&mut w.svm, &w.player, &[], ixs).unwrap();
+    let ixs = vec![buy_item_ix(&player, &w.gem_mint, &bound.pubkey(), BOUND_ID, 1)];
+    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &w.food_mint, FOOD_ID, 1)];
+    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+}
