@@ -391,7 +391,7 @@
                   116,
                   101,
                   109,
-                  51
+                  52
                 ]
               },
               {
@@ -910,7 +910,7 @@
                   116,
                   101,
                   109,
-                  51
+                  52
                 ]
               },
               {
@@ -1057,7 +1057,7 @@
                   116,
                   101,
                   109,
-                  51
+                  52
                 ]
               },
               {
@@ -1080,6 +1080,14 @@
         {
           "name": "price_gems",
           "type": "u64"
+        },
+        {
+          "name": "max_placed",
+          "type": "u8"
+        },
+        {
+          "name": "max_props",
+          "type": "u8"
         }
       ]
     },
@@ -1162,7 +1170,7 @@
                   116,
                   101,
                   109,
-                  51
+                  52
                 ]
               },
               {
@@ -2555,6 +2563,31 @@
           "signer": true
         },
         {
+          "name": "item_type",
+          "docs": [
+            "The kind of island this habitat is: it holds the limits."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_type.item_id",
+                "account": "ItemType"
+              }
+            ]
+          }
+        },
+        {
           "name": "mint",
           "writable": true
         },
@@ -2864,7 +2897,7 @@
                   116,
                   101,
                   109,
-                  51
+                  52
                 ]
               },
               {
@@ -3599,6 +3632,17 @@
               "Evolution id this item turns a Rebyter into (0 = not an evolution item)."
             ],
             "type": "u16"
+          },
+          {
+            "name": "max_placed",
+            "docs": [
+              "Habitats only: the most Rebyters and objects this kind of island can hold (0 for other items)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "max_props",
+            "type": "u8"
           },
           {
             "name": "bump",
