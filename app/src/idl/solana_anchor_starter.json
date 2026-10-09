@@ -392,6 +392,209 @@
       ]
     },
     {
+      "name": "buy_item_sparks",
+      "docs": [
+        "Player burns Sparks (the price of an account-bound item) and receives item units."
+      ],
+      "discriminator": [
+        2,
+        180,
+        72,
+        103,
+        248,
+        37,
+        247,
+        199
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_type.item_id",
+                "account": "ItemType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "spark_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_spark_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "spark_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "item_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_item_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "item_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "quantity",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "care",
       "docs": [
         "Care strengthens bond and helps a well-rested Rebyter recover from bad conditions."
@@ -3047,6 +3250,16 @@
       "code": 6030,
       "name": "QuestAlreadyClaimed",
       "msg": "This quest was already claimed today"
+    },
+    {
+      "code": 6031,
+      "name": "InsufficientSparks",
+      "msg": "Not enough Sparks"
+    },
+    {
+      "code": 6032,
+      "name": "WrongCurrency",
+      "msg": "This item is bought with a different currency"
     }
   ],
   "types": [
