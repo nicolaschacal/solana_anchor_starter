@@ -59,6 +59,6 @@ describe("habitat layout format", () => {
 
   it("matches the program's object kind count and limits", () => {
     expect(PROP_KEYS).toHaveLength(11);
-    expect([MAX_PLACED_SLOTS, MAX_PROP_SLOTS]).toEqual([12, 50]);
+    expect([MAX_PLACED_SLOTS, MAX_PROP_SLOTS]).toEqual([8, 40]);
   });
 });

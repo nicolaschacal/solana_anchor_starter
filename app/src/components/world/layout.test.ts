@@ -12,15 +12,32 @@ describe("world layout", () => {
     expect(onBoard(BOARD.i1 + 1, BOARD.j0)).toBe(false);
   });
 
-  it("gives bigger habitats room for about one rebyter per 8 tiles", () => {
-    expect([5, 10, 15].map((n) => specFor(n as 5).maxPlaced)).toEqual([3, 12, 12]);
-    expect([5, 10, 15].map((n) => specFor(n as 5).maxProps)).toEqual([14, 30, 50]);
-    const big = specFor(10);
-    expect(big.board.i1 - big.board.i0).toBe(9);
+  it("sets a ceiling by size and lowers it with the land", () => {
+    expect(([5, 7, 9] as const).map((n) => specFor(n).maxPlaced)).toEqual([3, 5, 8]);
+    expect(([5, 7, 9] as const).map((n) => specFor(n).maxProps)).toEqual([14, 24, 40]);
+    // Water and cliffs take space away: frozen ridges and craters hold less than open land.
+    const caps = {
+      oasis: specFor(7, "arid"),
+      frost: specFor(7, "cold"),
+      rain: specFor(9, "humid"),
+      ember: specFor(9, "volcanic"),
+    };
+    expect(Object.values(caps).map((c) => c.maxPlaced)).toEqual([5, 4, 8, 6]);
+    expect(caps.frost.maxProps).toBeLessThan(24);
+    expect(caps.ember.freeTiles).toBeLessThan(specFor(9).freeTiles);
+  });
+
+  it("only starts rebyters on standable tiles of a bigger island", () => {
+    const big = specFor(9, "volcanic");
     const layout = defaultLayout(Array.from({ length: 20 }, (_, n) => `m${n}`), big);
-    expect(layout.placed).toHaveLength(12);
-    expect(new Set(layout.placed.map((p) => `${p.i},${p.j}`)).size).toBe(12);
-    layout.placed.forEach((p) => expect(onBoard(p.i, p.j, big)).toBe(true));
+    expect(layout.placed).toHaveLength(big.maxPlaced);
+    expect(new Set(layout.placed.map((p) => `${p.i},${p.j}`)).size).toBe(big.maxPlaced);
+    layout.placed.forEach((p) => expect(big.free(p.i, p.j)).toBe(true));
+    // The tree's corner is open land on every island.
+    for (const [n, c] of [[7, "arid"], [7, "cold"], [9, "humid"], [9, "volcanic"]] as const) {
+      const s = specFor(n, c);
+      expect(s.free(s.tree.i, s.tree.j)).toBe(true);
+    }
   });
 
   it("puts at most three rebyters in the world, each on its own tile", () => {

@@ -8,10 +8,8 @@ import * as THREE from "three";
  * tiles left at their defaults draw nothing, so an untouched grid shows the
  * meadow exactly as the game renders it.
  */
-export const GX = 33;
-export const GZ = 37;
-export const OX = -16;
-export const OZ = -28;
+import { GX, GZ, OX, OZ } from "./grid";
+export { GX, GZ, OX, OZ };
 export const SUB = 4; // overlay lattice cells per tile
 export const LEVEL_H = 0.45; // metres per level
 export const MAX_LEVEL = 4;

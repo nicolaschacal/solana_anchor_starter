@@ -64,18 +64,26 @@ export class WorldRig {
 
   // ---- Limits that depend on the screen --------------------------------------
 
+  /** Bigger islands need the camera further out: every distance limit grows with the island. */
+  private get scale() {
+    return Math.max(1, this.half / 2.9);
+  }
   get maxDist() {
-    return clamp(fitDistance(this.half + 0.6, this.aspect), 8, 17);
+    return clamp(fitDistance(this.half + 0.6, this.aspect), 8, 17 * this.scale);
   }
   private get homeDist() {
     // Shows a bit less than the whole board: close enough to see the rebyters, far enough to see where they live.
-    return clamp(fitDistance(this.half - 0.9, this.aspect), LIMITS.minDist + 1.5, this.maxDist);
+    // Bigger islands show nearly all of the board so the land can be read at a glance.
+    const trim = this.half > 3.5 ? 0.2 : this.half > 3 ? 0.5 : 0.9;
+    // The view is turned 35 degrees, so the board's diagonal is what has to fit.
+    const reach = this.half > 3 ? (this.half - trim) * 1.22 : this.half - trim;
+    return clamp(fitDistance(reach, this.aspect), LIMITS.minDist + 1.5, this.maxDist);
   }
   private home(): Pose {
     return { yaw: 0.62, pitch: 0.62, dist: this.homeDist, x: this.centre.x, y: 0.35, z: this.centre.z };
   }
   private topDist() {
-    return clamp(fitDistance(this.half + 0.1, this.aspect), 6, 24);
+    return clamp(fitDistance(this.half + 0.1, this.aspect), 6, 24 * this.scale);
   }
   /** On a tall screen the edit panel covers the bottom, so the board sits a little higher. */
   private topShift() {

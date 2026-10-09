@@ -27,6 +27,7 @@ import {
   type PlacedProp,
   type WorldLayout,
 } from "./layout";
+import type { Climate } from "../../lib/economy/catalog";
 import { PROP_KEYS } from "../../lib/rebyters/habitat-layout";
 
 export type WorldCreature = {
@@ -61,6 +62,8 @@ type Props = {
   propAllowance?: (key: AssetKey) => number;
   /** The habitat's size in tiles per side (default 5). It fixes the board, the camera and the limits. */
   size?: HabitatSize;
+  /** The island's climate: it gives the habitat its land (water, cliffs) and so its capacity. */
+  climate?: Climate;
 };
 
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
@@ -92,8 +95,8 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance, size = 5 }: Props) {
-  const spec = useMemo(() => specFor(size), [size]);
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance, size = 5, climate = "temperate" }: Props) {
+  const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -292,10 +295,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     (async () => {
       const layoutNow = layoutRef.current;
       try {
-        await world.init({ kind: "diorama", size, data: { ...HabitatWorld.blank(size, period), props: [] } });
+        await world.init({ kind: "diorama", size, data: { ...HabitatWorld.blank(size, period), ...(spec.tiles ? { tiles: spec.tiles } : {}), props: [] } });
         world.setCarpetVisible(false);
         world.setGrid(false);
-        islandRef.current = createIsland(world.scene, world.centre, size / 5);
+        islandRef.current = createIsland(world.scene, world.centre, (size + 0.8) / 5.8);
         world.clockMs = clockRef.current ?? Date.now();
         skyRef.current = createSky(world.scene, world.centre, period);
       } catch {
@@ -304,7 +307,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       if (dead) return;
       // The editor's own creature is not part of this world: park it off the board.
       world.creature = { x: OX + 60, z: OZ + 60 };
-      rig = new WorldRig(world.centre, 2.9 * (size / 5), spots);
+      rig = new WorldRig(world.centre, size / 2 + 0.4, spots);
       rigRef.current = rig;
       rig.intro();
       if (layoutNow.props) {

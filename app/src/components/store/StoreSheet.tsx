@@ -7,6 +7,7 @@ import { useState, type ComponentType } from "react";
 import { buyFood, buyGems, buyHabitat, buyItem } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { useRebytersAuth } from "../../lib/rebyters/auth";
+import { islandCapacity } from "../world/terrain";
 import { FoodArt } from "./FoodArt";
 import { CLIMATES, STORE_CATEGORIES, itemIdOf, itemsIn, type Climate, type StoreItem, type StoreTab } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
@@ -36,8 +37,10 @@ export function iconFor(item: StoreItem): Icon {
 
 export function detailFor(item: StoreItem) {
   switch (item.category) {
-    case "habitat":
-      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${item.slots} rebyters · ${({ 5: 14, 10: 30, 15: 50 } as const)[item.size]} objects`;
+    case "habitat": {
+      const spec = islandCapacity(item.size, item.climate);
+      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${spec.maxPlaced} rebyters · ${spec.maxProps} objects`;
+    }
     case "food":
       return "Used up when fed";
     case "machine":

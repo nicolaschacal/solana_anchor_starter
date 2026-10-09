@@ -1946,8 +1946,8 @@ pub struct PropSlot {
 }
 
 /// Largest layout any habitat can hold (the app limits each habitat by its size).
-pub const MAX_PLACED_SLOTS: usize = 12;
-pub const MAX_PROP_SLOTS: usize = 50;
+pub const MAX_PLACED_SLOTS: usize = 8;
+pub const MAX_PROP_SLOTS: usize = 40;
 /// How many object kinds the client knows (the palette order is part of the format).
 pub const PROP_KINDS: u8 = 11;
 

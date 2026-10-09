@@ -9,6 +9,7 @@ import {
   configureHabitatRenderer,
   configureHabitatShadow,
 } from "../../assets/habitat-lighting";
+import { CLIFF_LEVEL } from "./grid";
 import { meadowTexture } from "../../assets/habitat-materials";
 import type { WorldPeriod } from "../../../hooks/useWorldClock";
 import type { AssetModel } from "../../../lib/assets/rig";
@@ -40,7 +41,7 @@ export type PropEntry = PropData & {
   baseH: number;
   prop: PlacedProp | null;
 };
-export type DioramaSize = 5 | 10 | 15;
+export type DioramaSize = 5 | 7 | 9 | 10 | 15;
 export const DIORAMA_SIZES: DioramaSize[] = [5, 10, 15];
 export type Kind = "diorama" | "preview";
 export type Target = { kind: "preview" } | { kind: "diorama"; size: DioramaSize; data?: SceneData | null };
@@ -1016,7 +1017,7 @@ diffuseColor.rgb = painted;`,
   }
   /** Whether something walking can stand on this tile: inside, dry and without a solid prop. */
   canStand(i: number, j: number) {
-    return this.map.inside(i, j) && !this.wet(i, j) && !this.solidOn(i, j);
+    return this.map.inside(i, j) && !this.wet(i, j) && !this.solidOn(i, j) && this.map.level[TileMap.index(i, j)] < CLIFF_LEVEL;
   }
   /** Whether a prop of this kind could be put on this tile. */
   propBlockReason(key: AssetKey, i: number, j: number, ignore?: PropEntry) {

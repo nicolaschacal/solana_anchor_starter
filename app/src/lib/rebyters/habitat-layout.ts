@@ -8,8 +8,8 @@ import type { WorldLayout } from "../../components/world/layout";
  */
 export const PROP_KEYS: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop"];
 /** Largest layout any habitat can hold: MAX_PLACED_SLOTS and MAX_PROP_SLOTS in the program. */
-export const MAX_PLACED_SLOTS = 12;
-export const MAX_PROP_SLOTS = 50;
+export const MAX_PLACED_SLOTS = 8;
+export const MAX_PROP_SLOTS = 40;
 
 const TURN = Math.PI * 2;
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
