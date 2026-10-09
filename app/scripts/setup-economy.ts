@@ -43,8 +43,12 @@ const GEM_PACKS = [
   { gems: 3000, sol: 0.22 },
   { gems: 7000, sol: 0.5 },
 ];
-/** Free ration: units of each of the four foods, once per UTC day. */
-const RATION_UNITS = 5;
+/**
+ * Free ration: units of each of the four foods, once per UTC day. Balance note: a Rebyter loses ~2
+ * fullness per hour and a meal restores 14-22, so one needs ~2.7 meals a day. 2 of each food = 8 meals,
+ * enough to keep the three Rebyters of a 5x5 habitat fed but not to steer their diet or to grow.
+ */
+const RATION_UNITS = 2;
 
 type Deployment = {
   cluster: "devnet";
@@ -253,6 +257,54 @@ async function main() {
     state.items[item.id] = { itemId, mint: mint.toBase58() };
     await save();
     console.log(`Item ${item.id} -> #${itemId}`);
+  }
+
+  // 6. Account-bound foods: feeding burns these before the free-to-trade ones.
+  const foodConfig = PublicKey.findProgramAddressSync([enc.encode("food")], PROGRAM_ID)[0];
+  const boundIds = ["spark-food-meat", "spark-food-plants", "spark-food-fish", "spark-food-fruit"];
+  if (!(await connection.getAccountInfo(foodConfig)) && boundIds.every((id) => state.items[id])) {
+    const m = boundIds.map((id) => new PublicKey(state.items[id].mint));
+    await program.methods
+      .setBoundFood()
+      .accountsStrict({
+        authority,
+        registry: registryPda(),
+        economy: economyPda,
+        foodConfig,
+        meatMint: m[0],
+        plantMint: m[1],
+        fishMint: m[2],
+        fruitMint: m[3],
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+    await save();
+    console.log("Bound food registered");
+  }
+
+  // 7. Tuning: bring prices and the ration in line with the catalog and constants above.
+  for (const item of sellable) {
+    const entry = state.items[item.id];
+    if (!entry) continue;
+    const onChain = await (program.account as any).itemType.fetch(itemPda(entry.itemId));
+    if (Number(onChain.priceGems) !== item.price || !onChain.active) {
+      await program.methods
+        .updateItemType(new BN(item.price), true)
+        .accountsStrict({ authority, registry: registryPda(), itemType: itemPda(entry.itemId) })
+        .rpc();
+      console.log(`Price of ${item.id}: ${Number(onChain.priceGems)} -> ${item.price}`);
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  }
+  if (state.rationUnits !== RATION_UNITS) {
+    await program.methods
+      .setRation(RATION_UNITS, state.foodMints.map((m) => new PublicKey(m)) as never)
+      .accountsStrict({ authority, registry: registryPda(), economy: economyPda })
+      .rpc();
+    state.rationUnits = RATION_UNITS;
+    await save();
+    console.log(`Daily ration is now ${RATION_UNITS} of each food`);
   }
 
   console.log("Economy ready.");

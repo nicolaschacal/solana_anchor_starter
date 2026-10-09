@@ -18,6 +18,8 @@ import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
 import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
+import { propAllowance } from "../../lib/economy/props";
+import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { SPARKS, useGemBalance, useTokenBalance } from "../../lib/economy/token";
 import { DailySheet } from "../../components/daily/DailySheet";
 import { useDaily } from "../../hooks/useDaily";
@@ -767,6 +769,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}
+            propAllowance={key=>propAllowance(inventory,key)}
           />
         </Suspense>
         {clockHud}
@@ -900,8 +903,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             ["Plants","Builds herbivore history",1],
             ["Fish","Builds piscivore history",2],
             ["Fruit","Builds frugivore history",3],
-          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
+          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint||(inventory.food(Number(id))<1&&DEPLOYMENT.foodMints.length===4)} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
             <Apple/><span><strong>{String(name)}</strong><small className={mealWarning(active,Number(id))?"meal-warning":""}>{mealWarning(active,Number(id))||String(desc)}</small></span>
+            {DEPLOYMENT.foodMints.length===4&&<b className="food-count" aria-label={`${inventory.food(Number(id))} in your wallet`}>×{inventory.food(Number(id))}</b>}
           </button>)}
         </div>
         {player.status&&<div className="create-status">{player.status}</div>}

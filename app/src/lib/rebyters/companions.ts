@@ -21,7 +21,9 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import { ensureProfileIx } from "../economy/actions";
+import { economyPda, ensureProfileIx } from "../economy/actions";
+import { DEPLOYMENT } from "../economy/deployment";
+import { BOUND_FOOD_IDS } from "../economy/inventory";
 import { refreshBalances } from "../economy/token";
 import {
   PROGRAM_ID,
@@ -521,16 +523,39 @@ export async function interactWithRebyter(
   // get it created in the same transaction.
   const preInstructions: TransactionInstruction[] = await ensureProfileIx(connection, anchorWallet);
 
-  const ix = await builder
-    .accountsStrict({
-      owner: wallet.publicKey,
-      mint,
-      ownerTokenAccount,
-      rebyterAuthority,
-      playerProfile: playerProfilePda(wallet.publicKey),
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
-    })
-    .instruction();
+  const base = {
+    owner: wallet.publicKey,
+    mint,
+    ownerTokenAccount,
+    rebyterAuthority,
+    playerProfile: playerProfilePda(wallet.publicKey),
+    tokenProgram: TOKEN_2022_PROGRAM_ID,
+  };
+  let accounts: Record<string, PublicKey | null> = base;
+  if (action === "feed") {
+    // Feeding burns one meal: say so before signing if there is none, and pass only the stacks that exist.
+    const plainMint = DEPLOYMENT.foodMints[option];
+    const boundMint = DEPLOYMENT.items[BOUND_FOOD_IDS[option]]?.mint;
+    if (!plainMint || !boundMint) throw new Error("Food is not set up on this network yet");
+    const plainAta = getAssociatedTokenAddressSync(new PublicKey(plainMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID);
+    const boundAta = getAssociatedTokenAddressSync(new PublicKey(boundMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID);
+    const amount = async (account: PublicKey) => {
+      const balance = await connection.getTokenAccountBalance(account, "confirmed").catch(() => null);
+      return balance ? Number(balance.value.amount) : null;
+    };
+    const [plain, bound] = await Promise.all([amount(plainAta), amount(boundAta)]);
+    if (!plain && !bound) throw new Error("You are out of that food. Claim your daily ration or visit the store.");
+    accounts = {
+      ...base,
+      economy: economyPda(),
+      foodConfig: PublicKey.findProgramAddressSync([new TextEncoder().encode("food")], PROGRAM_ID)[0],
+      foodMint: new PublicKey(plainMint),
+      boundFoodMint: new PublicKey(boundMint),
+      ownerFood: plain !== null ? plainAta : null,
+      ownerBoundFood: bound !== null ? boundAta : null,
+    };
+  }
+  const ix = await builder.accountsStrict(accounts as never).instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...preInstructions, ix);

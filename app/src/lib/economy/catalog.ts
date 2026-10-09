@@ -84,10 +84,10 @@ const BASE_CATALOG: StoreItem[] = [
   { id: "decor-flowers", category: "decor", name: "Wildflowers", description: "A patch of colour.", price: 40, mint: null, prop: "wildflowers" },
   // The Sparks shelf: bought with the free currency, account-bound. Keep these LAST: on-chain item
   // ids come from the position in this list, so appending never renumbers anything already sold.
-  { id: "spark-food-meat", currency: "sparks", category: "food", name: "Meat ×5", description: "Bound to your account.", price: 20, mint: null, food: 0, pack: 5 },
-  { id: "spark-food-plants", currency: "sparks", category: "food", name: "Plants ×5", description: "Bound to your account.", price: 20, mint: null, food: 1, pack: 5 },
-  { id: "spark-food-fish", currency: "sparks", category: "food", name: "Fish ×5", description: "Bound to your account.", price: 20, mint: null, food: 2, pack: 5 },
-  { id: "spark-food-fruit", currency: "sparks", category: "food", name: "Fruit ×5", description: "Bound to your account.", price: 20, mint: null, food: 3, pack: 5 },
+  { id: "spark-food-meat", currency: "sparks", category: "food", name: "Meat ×5", description: "Bound to your account.", price: 40, mint: null, food: 0, pack: 5 },
+  { id: "spark-food-plants", currency: "sparks", category: "food", name: "Plants ×5", description: "Bound to your account.", price: 40, mint: null, food: 1, pack: 5 },
+  { id: "spark-food-fish", currency: "sparks", category: "food", name: "Fish ×5", description: "Bound to your account.", price: 40, mint: null, food: 2, pack: 5 },
+  { id: "spark-food-fruit", currency: "sparks", category: "food", name: "Fruit ×5", description: "Bound to your account.", price: 40, mint: null, food: 3, pack: 5 },
   { id: "spark-decor-flowers", currency: "sparks", category: "decor", name: "Wildflowers", description: "A patch of colour. Bound to your account.", price: 60, mint: null, prop: "wildflowers" },
   { id: "spark-decor-log", currency: "sparks", category: "decor", name: "Hollow Log", description: "A hideout for small rebyters. Bound.", price: 120, mint: null, prop: "log" },
   { id: "spark-decor-pine", currency: "sparks", category: "decor", name: "Pine Tree", description: "Tall and evergreen. Bound to your account.", price: 180, mint: null, prop: "pine" },

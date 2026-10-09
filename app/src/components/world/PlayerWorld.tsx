@@ -56,6 +56,8 @@ type Props = {
   action?: string;
   /** A one-shot action finished. */
   onActionComplete?: () => void;
+  /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
+  propAllowance?: (key: AssetKey) => number;
 };
 
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
@@ -87,7 +89,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit }: Props) {
+export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -111,6 +113,8 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const islandRef = useRef<Island | null>(null);
   const exitRef = useRef(onExit);
   exitRef.current = onExit;
+  const allowanceRef = useRef(propAllowance);
+  allowanceRef.current = propAllowance;
   const doneRef = useRef(onActionComplete);
   doneRef.current = onActionComplete;
 
@@ -424,6 +428,11 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
         }
         if (tileTaken(walkers.current, tile.i, tile.j)) {
           say("A rebyter is standing there.");
+          return;
+        }
+        const allowed = allowanceRef.current?.(key) ?? Number.POSITIVE_INFINITY;
+        if (world.entries.filter((e) => e.key === key).length >= allowed) {
+          say(allowed === 0 ? `You don't own a ${labelOf(key).toLowerCase()} yet. Get one in the store.` : `You've placed every ${labelOf(key).toLowerCase()} you own.`);
           return;
         }
         const facing = FRONT_FACING.includes(key)
@@ -829,10 +838,15 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
             </div>
           ) : (
             <div className="world-chips">
-              {PALETTE_ITEMS.map((item) => (
+              {PALETTE_ITEMS.map((item) => {
+                const allowed = propAllowance?.(item.key) ?? Number.POSITIVE_INFINITY;
+                const used = worldRef.current?.entries.filter((e) => e.key === item.key).length ?? 0;
+                const spent = allowed !== Number.POSITIVE_INFINITY && used >= allowed;
+                return (
                 <button
                   key={item.key}
                   className="world-chip world-chip-object"
+                  data-spent={spent}
                   data-on={armed === item.key}
                   onClick={() => {
                     setArmed(armed === item.key ? null : item.key);
@@ -841,8 +855,10 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
                   aria-pressed={armed === item.key}
                 >
                   <span>{item.label}</span>
+                  {allowed !== Number.POSITIVE_INFINITY && <small>{used}/{allowed}</small>}
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
           <div className="world-edit-foot" role="status">

@@ -3,6 +3,7 @@ import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { useEffect, useMemo, useState } from "react";
 import { useRebytersAuth } from "../rebyters/auth";
 import { CATALOG, type StoreItem } from "./catalog";
+import { DEPLOYMENT } from "./deployment";
 import { BALANCE_EVENT } from "./token";
 
 /**
@@ -12,10 +13,14 @@ import { BALANCE_EVENT } from "./token";
 export type Inventory = {
   /** Units of the item in the wallet; starter items report Infinity. */
   count(item: StoreItem): number;
+  /** Meals of one kind (0 meat, 1 plants, 2 fish, 3 fruit): free-to-trade plus account-bound units. */
+  food(kind: number): number;
   loading: boolean;
 };
 
 const STARTER = Number.POSITIVE_INFINITY;
+/** Catalog ids of the account-bound foods: meat, plants, fish, fruit. */
+export const BOUND_FOOD_IDS = ["spark-food-meat", "spark-food-plants", "spark-food-fish", "spark-food-fruit"];
 
 export function useInventory(): Inventory {
   const { connection } = useConnection();
@@ -62,6 +67,11 @@ export function useInventory(): Inventory {
   return useMemo(
     () => ({
       count: (item) => (item.starter ? STARTER : item.mint ? (balances.get(item.mint) ?? 0) : 0),
+      food: (kind) => {
+        const plain = DEPLOYMENT.foodMints[kind];
+        const bound = DEPLOYMENT.items[BOUND_FOOD_IDS[kind]]?.mint;
+        return (plain ? (balances.get(plain) ?? 0) : 0) + (bound ? (balances.get(bound) ?? 0) : 0);
+      },
       loading,
     }),
     [balances, loading],

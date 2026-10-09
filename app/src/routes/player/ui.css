@@ -691,6 +691,10 @@
 .rb-ui .world-chip-art{width:46px!important;height:46px!important;border-radius:var(--ui-r-sm)!important;overflow:hidden!important;display:block!important;background:rgba(115,205,255,.10)!important}
 .rb-ui .world-chip-art .creature-sprite{width:100%!important;height:100%!important;object-fit:contain!important}
 .rb-ui .world-chip-object{min-width:84px!important;padding:12px 10px!important}
+.rb-ui .world-chip-object[data-spent="true"]{opacity:.55!important}
+.rb-ui .world-chip-object small{display:block!important;font-size:var(--ui-fs-micro)!important;color:var(--ui-text-2)!important;margin-top:2px!important}
+.rb-ui .food-count{margin-left:auto!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;color:var(--ui-text)!important}
+.rb-ui .food-grid button:disabled .food-count{color:#ff9a9a!important}
 .rb-ui .world-edit-foot{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-height:36px!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
 .rb-ui .world-notice{color:var(--ui-warn)!important}
 .rb-ui .world-remove{min-height:36px!important;padding:0 12px!important;display:inline-flex!important;align-items:center!important;gap:6px!important;flex:0 0 auto!important}
