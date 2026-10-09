@@ -41,6 +41,37 @@ pub const PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY: usize = 8;
 pub const LOADER: Pubkey = pubkey!("BPFLoaderUpgradeab1e11111111111111111111111");
 pub const MAX_GEM_PACKS: usize = 8;
 pub const MAX_PURCHASE_QUANTITY: u16 = 99;
+pub const SECONDS_PER_DAY: i64 = 86_400;
+pub const QUESTS_PER_DAY: usize = 3;
+/// Action kinds counted in `PlayerDaily::counts`.
+pub const ACTION_FEED: usize = 0;
+pub const ACTION_PLAY: usize = 1;
+pub const ACTION_CARE: usize = 2;
+pub const ACTION_REST: usize = 3;
+pub const ACTION_TRAIN: usize = 4;
+/// Daily quest templates: (action kind, how many times, Sparks reward).
+pub const QUEST_TEMPLATES: [(u8, u8, u64); 8] = [
+    (0, 3, 10),
+    (1, 3, 10),
+    (2, 2, 10),
+    (4, 1, 10),
+    (0, 5, 15),
+    (1, 5, 15),
+    (3, 1, 5),
+    (4, 3, 20),
+];
+
+/// Game day number (UTC). Day 0 means "never", so the first real day is 1.
+pub fn game_day(unix_timestamp: i64) -> u32 {
+    (unix_timestamp.max(0) / SECONDS_PER_DAY) as u32 + 1
+}
+
+/// The quest in `slot` (0..3) for a game day: (action kind, target, Sparks). Everyone gets the
+/// same three quests on a given day, derived from the day number alone (no server, no oracle).
+pub fn quest_for(day: u32, slot: usize) -> (u8, u8, u64) {
+    const OFFSETS: [usize; QUESTS_PER_DAY] = [0, 3, 5];
+    QUEST_TEMPLATES[(day as usize + OFFSETS[slot]) % QUEST_TEMPLATES.len()]
+}
 
 #[program]
 pub mod solana_anchor_starter {
@@ -205,6 +236,9 @@ pub mod solana_anchor_starter {
         economy.treasury = treasury;
         economy.gem_mint = ctx.accounts.gem_mint.key();
         economy.gem_packs = [GemPack::default(); MAX_GEM_PACKS];
+        economy.spark_mint = Pubkey::default();
+        economy.ration_mints = [Pubkey::default(); 4];
+        economy.ration_units = 0;
         economy.bump = ctx.bumps.economy;
         Ok(())
     }
@@ -363,6 +397,130 @@ pub mod solana_anchor_starter {
             quantity,
             gems_spent: cost,
             units,
+        });
+        Ok(())
+    }
+
+    // ---------------------------------------------------------------------
+    // Free daily ration and daily quests (Sparks). All state is a small
+    // fixed-size account derived from the player's wallet.
+    // ---------------------------------------------------------------------
+
+    /// Registers the Sparks mint: Token-2022, 0 decimals, NonTransferable,
+    /// mint authority = economy PDA, no freeze authority.
+    pub fn set_sparks_mint(ctx: Context<SetSparksMint>) -> Result<()> {
+        let economy_key = ctx.accounts.economy.key();
+        validate_economy_mint(
+            &ctx.accounts.spark_mint,
+            &economy_key,
+            None,
+            ctx.accounts.token_program.key(),
+        )?;
+        require!(
+            mint_is_non_transferable(&ctx.accounts.spark_mint)?,
+            RegistryError::InvalidMint
+        );
+        ctx.accounts.economy.spark_mint = ctx.accounts.spark_mint.key();
+        Ok(())
+    }
+
+    /// Sets the four food mints given by the daily ration (meat, plant, fish, fruit)
+    /// and how many units of each. Zero units turns the ration off.
+    pub fn set_ration(ctx: Context<AdminEconomy>, units: u8, mints: [Pubkey; 4]) -> Result<()> {
+        for (i, mint) in mints.iter().enumerate() {
+            require!(*mint != Pubkey::default(), RegistryError::InvalidMint);
+            require!(!mints[..i].contains(mint), RegistryError::InvalidMint);
+        }
+        ctx.accounts.economy.ration_mints = mints;
+        ctx.accounts.economy.ration_units = units;
+        Ok(())
+    }
+
+    /// Creates the player's daily-state account (fixed size, never reallocated).
+    pub fn initialize_daily(ctx: Context<InitializeDaily>) -> Result<()> {
+        let daily = &mut ctx.accounts.daily;
+        daily.owner = ctx.accounts.owner.key();
+        daily.bump = ctx.bumps.daily;
+        Ok(())
+    }
+
+    /// Once per UTC day: mints the free ration (all four foods) to the player.
+    pub fn claim_daily_ration(ctx: Context<ClaimDailyRation>) -> Result<()> {
+        let units = ctx.accounts.economy.ration_units;
+        require!(units > 0, RegistryError::RationNotConfigured);
+        let day = game_day(Clock::get()?.unix_timestamp);
+        require!(
+            ctx.accounts.daily.ration_day < day,
+            RegistryError::RationAlreadyClaimed
+        );
+        ctx.accounts.daily.ration_day = day;
+
+        let bump = [ctx.accounts.economy.bump];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        let targets = [
+            (ctx.accounts.meat_mint.to_account_info(), ctx.accounts.owner_meat.to_account_info()),
+            (ctx.accounts.plant_mint.to_account_info(), ctx.accounts.owner_plant.to_account_info()),
+            (ctx.accounts.fish_mint.to_account_info(), ctx.accounts.owner_fish.to_account_info()),
+            (ctx.accounts.fruit_mint.to_account_info(), ctx.accounts.owner_fruit.to_account_info()),
+        ];
+        for (mint, to) in targets {
+            mint_to(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    MintTo {
+                        mint,
+                        to,
+                        authority: ctx.accounts.economy.to_account_info(),
+                    },
+                )
+                .with_signer(signer_seeds),
+                u64::from(units),
+            )?;
+        }
+        emit!(RationClaimed {
+            owner: ctx.accounts.owner.key(),
+            day,
+            units,
+        });
+        Ok(())
+    }
+
+    /// Claims the Sparks of one of today's quests once the program has counted
+    /// enough of the matching actions (feed, play, care, rest, train) today.
+    pub fn claim_quest(ctx: Context<ClaimQuest>, slot: u8) -> Result<()> {
+        require!(usize::from(slot) < QUESTS_PER_DAY, RegistryError::InvalidQuest);
+        let day = game_day(Clock::get()?.unix_timestamp);
+        let (kind, target, reward) = quest_for(day, usize::from(slot));
+        {
+            let daily = &mut ctx.accounts.daily;
+            require!(daily.quest_day == day, RegistryError::QuestNotComplete);
+            require!(
+                daily.counts[usize::from(kind)] >= target,
+                RegistryError::QuestNotComplete
+            );
+            let bit = 1u8 << slot;
+            require!(daily.claimed & bit == 0, RegistryError::QuestAlreadyClaimed);
+            daily.claimed |= bit;
+        }
+        let bump = [ctx.accounts.economy.bump];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.spark_mint.to_account_info(),
+                    to: ctx.accounts.owner_spark_account.to_account_info(),
+                    authority: ctx.accounts.economy.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            reward,
+        )?;
+        emit!(QuestClaimed {
+            owner: ctx.accounts.owner.key(),
+            day,
+            slot,
+            sparks: reward,
         });
         Ok(())
     }
@@ -571,30 +729,35 @@ pub mod solana_anchor_starter {
     /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
     pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
-        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))
+        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))?;
+        record_action(&mut ctx.accounts.daily, ACTION_FEED)
     }
 
     /// Play builds bond and a little speed while consuming energy/fullness.
     pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Play)
+        apply_interaction(&ctx.accounts, InteractionKind::Play)?;
+        record_action(&mut ctx.accounts.daily, ACTION_PLAY)
     }
 
     /// Care strengthens bond and helps a well-rested Rebyter recover from bad conditions.
     pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Care)
+        apply_interaction(&ctx.accounts, InteractionKind::Care)?;
+        record_action(&mut ctx.accounts.daily, ACTION_CARE)
     }
 
     /// Rest restores energy. It is not a cooldown: it is a player action and can
     /// be used whenever desired, but it gives no stat farming advantage.
     pub fn rest(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Rest)
+        apply_interaction(&ctx.accounts, InteractionKind::Rest)?;
+        record_action(&mut ctx.accounts.daily, ACTION_REST)
     }
 
     /// Train with one of six machines:
     /// 0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced.
     pub fn train(ctx: Context<InteractRebyter>, training_type: u8) -> Result<()> {
         require!(training_type < 6, RegistryError::InvalidTraining);
-        apply_interaction(&ctx.accounts, InteractionKind::Train(training_type))
+        apply_interaction(&ctx.accounts, InteractionKind::Train(training_type))?;
+        record_action(&mut ctx.accounts.daily, ACTION_TRAIN)
     }
 
     pub fn evolve(
@@ -943,6 +1106,16 @@ fn maybe_unlock_training_skill(dna: &mut RebyterDna, training_type: u8, full_eff
         _ => None,
     };
     if let Some(index) = bit { dna.learned_skills |= 1u64 << index; }
+}
+
+/// Counts a finished action for today's quests when the client supplied the daily account.
+/// Omitting the account never blocks an action; it only means the action is not counted.
+fn record_action(daily: &mut Option<Account<'_, PlayerDaily>>, kind: usize) -> Result<()> {
+    if let Some(daily) = daily.as_mut() {
+        let day = game_day(Clock::get()?.unix_timestamp);
+        daily.record(kind, day);
+    }
+    Ok(())
 }
 
 fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
@@ -1547,6 +1720,9 @@ pub struct InteractRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
+    /// Optional: the player's daily-quest counters. When present the action is counted.
+    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump)]
+    pub daily: Option<Account<'info, PlayerDaily>>,
     pub token_program: Program<'info, Token2022>,
 }
 
@@ -1686,6 +1862,16 @@ pub enum RegistryError {
     InvalidQuantity,
     #[msg("Math overflow")]
     MathOverflow,
+    #[msg("The daily ration is not configured")]
+    RationNotConfigured,
+    #[msg("Today's ration was already claimed")]
+    RationAlreadyClaimed,
+    #[msg("Invalid quest slot")]
+    InvalidQuest,
+    #[msg("The quest is not complete today")]
+    QuestNotComplete,
+    #[msg("This quest was already claimed today")]
+    QuestAlreadyClaimed,
 }
 
 fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
@@ -1742,7 +1928,39 @@ pub struct Economy {
     pub treasury: Pubkey,
     pub gem_mint: Pubkey,
     pub gem_packs: [GemPack; MAX_GEM_PACKS],
+    /// Non-transferable quest currency (default key until `set_sparks_mint`).
+    pub spark_mint: Pubkey,
+    /// Foods of the free daily ration: meat, plant, fish, fruit.
+    pub ration_mints: [Pubkey; 4],
+    /// Units of each food in the ration; 0 = off.
+    pub ration_units: u8,
     pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PlayerDaily {
+    pub owner: Pubkey,
+    /// Game day of the last claimed ration (0 = never).
+    pub ration_day: u32,
+    /// Game day the counters below belong to.
+    pub quest_day: u32,
+    /// Actions done on `quest_day`: feed, play, care, rest, train (saturating).
+    pub counts: [u8; 5],
+    /// Bit i set = quest slot i already claimed on `quest_day`.
+    pub claimed: u8,
+    pub bump: u8,
+}
+
+impl PlayerDaily {
+    pub fn record(&mut self, kind: usize, day: u32) {
+        if self.quest_day != day {
+            self.quest_day = day;
+            self.counts = [0; 5];
+            self.claimed = 0;
+        }
+        self.counts[kind] = self.counts[kind].saturating_add(1);
+    }
 }
 
 #[account]
@@ -1865,6 +2083,123 @@ pub struct BuyItem<'info> {
     pub token_program: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetSparksMint<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(mut, seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    pub spark_mint: InterfaceAccount<'info, Mint>,
+    pub token_program: Program<'info, Token2022>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeDaily<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(
+        init,
+        payer = owner,
+        space = 8 + PlayerDaily::INIT_SPACE,
+        seeds = [b"daily", owner.key().as_ref()],
+        bump
+    )]
+    pub daily: Account<'info, PlayerDaily>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimDailyRation<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump = daily.bump, has_one = owner)]
+    pub daily: Account<'info, PlayerDaily>,
+    #[account(mut, address = economy.ration_mints[0])]
+    pub meat_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, address = economy.ration_mints[1])]
+    pub plant_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, address = economy.ration_mints[2])]
+    pub fish_mint: InterfaceAccount<'info, Mint>,
+    #[account(mut, address = economy.ration_mints[3])]
+    pub fruit_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = meat_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_meat: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = plant_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_plant: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = fish_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_fish: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = fruit_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_fruit: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimQuest<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(mut, seeds = [b"daily", owner.key().as_ref()], bump = daily.bump, has_one = owner)]
+    pub daily: Account<'info, PlayerDaily>,
+    #[account(mut, address = economy.spark_mint)]
+    pub spark_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = spark_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_spark_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[event]
+pub struct RationClaimed {
+    pub owner: Pubkey,
+    pub day: u32,
+    pub units: u8,
+}
+
+#[event]
+pub struct QuestClaimed {
+    pub owner: Pubkey,
+    pub day: u32,
+    pub slot: u8,
+    pub sparks: u64,
 }
 
 #[event]
