@@ -104,6 +104,8 @@ async function main() {
       items: {},
     };
   }
+  state.programId = PROGRAM_ID.toBase58();
+  state.economy = economyPda.toBase58();
   const save = () => writeFile(deploymentFile, JSON.stringify(state, null, 2) + "\n");
 
   const registry = await connection.getAccountInfo(registryPda());

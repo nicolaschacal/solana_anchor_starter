@@ -1,0 +1,12 @@
+{
+  "cluster": "devnet",
+  "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
+  "economy": "",
+  "treasury": "AQfKYtAVyZARgKxSt6ZpqwLAtDNeE1LF8Jk5FYWteqbv",
+  "gemMint": null,
+  "sparkMint": null,
+  "foodMints": [],
+  "rationUnits": 5,
+  "packs": [],
+  "items": {}
+}

@@ -148,7 +148,8 @@ jobs:
           if [ "${{ inputs.action }}" = "deploy" ]; then
             cp target/idl/solana_anchor_starter.json app/src/idl/solana_anchor_starter.json
           fi
-          git add app/src/idl/solana_anchor_starter.json app/src/lib/economy/deployment.json 2>/dev/null || true
+          git add app/src/idl/solana_anchor_starter.json || true
+          git add app/src/lib/economy/deployment.json || true
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else

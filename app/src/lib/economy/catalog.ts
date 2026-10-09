@@ -9,6 +9,8 @@
  * The 5x5 meadow and the starter decor are part of the engine: every player has them, free.
  */
 
+import { DEPLOYMENT } from "./deployment";
+
 export type Climate = "temperate" | "arid" | "cold" | "humid" | "volcanic";
 export type StoreCategory = "habitat" | "food" | "machine" | "decor";
 
@@ -45,7 +47,7 @@ export const STORE_CATEGORIES: { id: StoreCategory; label: string }[] = [
   { id: "decor", label: "Decor" },
 ];
 
-export const CATALOG: StoreItem[] = [
+const BASE_CATALOG: StoreItem[] = [
   // Habitats
   { id: "habitat-meadow-5", category: "habitat", name: "Verdant Meadow", description: "Your first island. Every player has one.", price: 0, mint: null, starter: true, size: 5, climate: "temperate", slots: 3 },
   { id: "habitat-oasis-10", category: "habitat", name: "Dune Oasis", description: "A wide desert island with palms and warm sand.", price: 2500, mint: null, size: 10, climate: "arid", slots: 6 },
@@ -75,5 +77,11 @@ export const CATALOG: StoreItem[] = [
   { id: "decor-lantern", category: "decor", name: "Enchanted Lantern", description: "A soft glow at night.", price: 250, mint: null, prop: "lantern" },
   { id: "decor-flowers", category: "decor", name: "Wildflowers", description: "A patch of colour.", price: 40, mint: null, prop: "wildflowers" },
 ];
+
+/** The catalog with the mints the economy setup created (see deployment.json). */
+export const CATALOG: StoreItem[] = BASE_CATALOG.map((item) => ({ ...item, mint: DEPLOYMENT.items[item.id]?.mint ?? item.mint }));
+
+/** The on-chain item id of a catalog item, or null while it is not registered. */
+export const itemIdOf = (item: StoreItem): number | null => DEPLOYMENT.items[item.id]?.itemId ?? null;
 
 export const itemsIn = (category: StoreCategory) => CATALOG.filter((item) => item.category === category);
