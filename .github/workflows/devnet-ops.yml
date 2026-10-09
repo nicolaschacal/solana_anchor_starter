@@ -17,6 +17,10 @@ on:
           - publish-current
           - publish-rebalance
           - publish-workbook
+          - setup-economy
+
+permissions:
+  contents: write
 
 env:
   PROGRAM_ID: 7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp
@@ -112,6 +116,17 @@ jobs:
             --upgrade-authority artifacts/private/admin-keypair.json
           solana program show "$PROGRAM_ID" --url devnet --keypair artifacts/private/admin-keypair.json
 
+      - name: setup economy on devnet
+        if: inputs.action == 'setup-economy'
+        env:
+          SOLANA_WALLET_PATH: ../artifacts/private/admin-keypair.json
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
+          trap 'exec >&- 2>&-; sleep 2' EXIT
+          cd app
+          npm ci
+          npm run setup:economy
+
       - name: publish to Irys devnet
         if: startsWith(inputs.action, 'publish-')
         env:
@@ -124,6 +139,23 @@ jobs:
           cd app
           npm ci
           npm run "publish:${PUBLISH_SCRIPT#publish-}"
+
+      - name: Commit generated files (IDL, economy addresses)
+        if: inputs.action == 'deploy' || inputs.action == 'setup-economy'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ inputs.action }}" = "deploy" ]; then
+            cp target/idl/solana_anchor_starter.json app/src/idl/solana_anchor_starter.json
+          fi
+          git add app/src/idl/solana_anchor_starter.json app/src/lib/economy/deployment.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "devnet-ops: update generated files after ${{ inputs.action }}"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
 
       - name: Surface log tail as annotation
         if: always()
