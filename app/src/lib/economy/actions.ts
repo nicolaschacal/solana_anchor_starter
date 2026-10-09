@@ -8,6 +8,8 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
+import type { WorldLayout } from "../../components/world/layout";
+import { encodeLayout } from "../rebyters/habitat-layout";
 import { PROGRAM_ID, playerProfilePda } from "../rebyters/config";
 import { getProgram } from "../rebyters/registry";
 import { DEPLOYMENT } from "./deployment";
@@ -81,6 +83,16 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
     })
     .instruction();
   return send(connection, wallet, [ix]);
+}
+
+/** Saves the habitat layout in the wallet's own profile (created in the same transaction if missing). */
+export async function saveHabitatLayout(connection: Connection, wallet: Wallet, layout: WorldLayout) {
+  const { placed, props, propCount } = encodeLayout(layout);
+  const ix = await getProgram(connection, wallet)
+    .methods.setLayout(placed as never, props as never, propCount)
+    .accountsStrict({ owner: wallet.publicKey, playerProfile: playerProfilePda(wallet.publicKey) })
+    .instruction();
+  return send(connection, wallet, [...(await ensureProfileIx(connection, wallet)), ix]);
 }
 
 /** Burn Sparks, receive an account-bound item. */

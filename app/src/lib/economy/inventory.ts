@@ -16,6 +16,8 @@ export type Inventory = {
   /** Meals of one kind (0 meat, 1 plants, 2 fish, 3 fruit): free-to-trade plus account-bound units. */
   food(kind: number): number;
   loading: boolean;
+  /** The first read of the wallet finished (or there is nothing to read). */
+  ready: boolean;
 };
 
 const STARTER = Number.POSITIVE_INFINITY;
@@ -27,6 +29,7 @@ export function useInventory(): Inventory {
   const owner = useRebytersAuth().publicKey;
   const [balances, setBalances] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const bump = () => setTick((n) => n + 1);
@@ -39,6 +42,7 @@ export function useInventory(): Inventory {
     // No item exists on-chain yet: nothing to read.
     if (!owner || !mints.size) {
       setBalances(new Map());
+      setReady(true);
       return;
     }
     let dead = false;
@@ -56,6 +60,7 @@ export function useInventory(): Inventory {
       if (!dead) {
         setBalances(next);
         setLoading(false);
+        setReady(true);
       }
     };
     void read();
@@ -73,7 +78,8 @@ export function useInventory(): Inventory {
         return (plain ? (balances.get(plain) ?? 0) : 0) + (bound ? (balances.get(bound) ?? 0) : 0);
       },
       loading,
+      ready,
     }),
-    [balances, loading],
+    [balances, loading, ready],
   );
 }

@@ -117,6 +117,7 @@ export function usePlayerRebyters() {
   const [owned, setOwned] = useState<OnchainRebyter[]>([]);
   const [ownedLoadedAll, setOwnedLoadedAll] = useState(false);
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [mammalTree, setMammalTree] = useState<TreeJson | null>(null);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -142,6 +143,7 @@ export function usePlayerRebyters() {
       setOwned([]);
       setOwnedLoadedAll(false);
       setPlayerProfile(null);
+      setProfileLoaded(false);
       return;
     }
     setLoading(true);
@@ -170,6 +172,7 @@ export function usePlayerRebyters() {
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
+      setProfileLoaded(true);
       if (snapshot.mammalTree) setMammalTree(snapshot.mammalTree);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -347,6 +350,7 @@ export function usePlayerRebyters() {
     owned,
     ownedLoadedAll,
     playerProfile,
+    profileLoaded,
     mammalTree,
     loading,
     creating,

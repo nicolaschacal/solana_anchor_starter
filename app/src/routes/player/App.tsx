@@ -19,6 +19,7 @@ import { useEvolutionAnimation } from "../../components/player/EvolutionAnimatio
 import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
+import { saveHabitatLayout } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { SPARKS, useGemBalance, useTokenBalance } from "../../lib/economy/token";
 import { DailySheet } from "../../components/daily/DailySheet";
@@ -561,7 +562,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   },[focusMint]);
   const authForWorld=useRebytersAuth();
   const { connection:worldConnection }=useConnection();
-  const worldKey=`rebyters:world:${worldConnection.rpcEndpoint}:${authForWorld.publicKey?.toBase58()??"guest"}`;
   // Minting plays the same animation as evolving, born from a seed instead of a previous form.
   const mintCompanion=(familyId:number)=>{
     const origin=tree.evolutions.find(e=>e.stage===0&&e.enabled);
@@ -758,10 +758,13 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} dailyReady={dailyReady}/>
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
-        <Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
+        {(authForWorld.publicKey&&(!player.profileLoaded||!inventory.ready))
+          ?<div className="world-loading" role="status">Loading your world…</div>
+          :<Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
           <PlayerWorld
             creatures={worldCreatures}
-            storageKey={worldKey}
+            initialLayout={player.playerProfile?.layout??null}
+            onCommitLayout={layout=>saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,layout)}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
@@ -771,7 +774,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             onActionComplete={()=>setVisualAction("idle")}
             propAllowance={key=>propAllowance(inventory,key)}
           />
-        </Suspense>
+        </Suspense>}
         {clockHud}
         {focusMint&&active?.mint===focusMint&&<>
           {restOverlay}

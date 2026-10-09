@@ -8,6 +8,7 @@ export const MAX_PROPS = 14;
 
 export type PlacedRebyter = { mint: string; i: number; j: number };
 export type PlacedProp = { key: AssetKey; x: number; z: number; h: number; r: number };
+/** `props: null` means the player never saved a layout: the world shows its default scene. */
 export type WorldLayout = { v: 1; placed: PlacedRebyter[]; props: PlacedProp[] | null };
 
 const region = HabitatWorld.regionFor(5);
@@ -46,32 +47,6 @@ export function defaultLayout(mints: string[]): WorldLayout {
   return { v: 1, placed, props: null };
 }
 
-export function loadLayout(key: string): WorldLayout | null {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const data = JSON.parse(raw) as WorldLayout;
-    if (data?.v !== 1 || !Array.isArray(data.placed)) return null;
-    const placed = data.placed.filter(
-      (p) => typeof p?.mint === "string" && Number.isInteger(p.i) && Number.isInteger(p.j) && onBoard(p.i, p.j),
-    );
-    const props = Array.isArray(data.props)
-      ? data.props.filter((p) => typeof p?.key === "string" && [p.x, p.z, p.h, p.r].every(Number.isFinite) && p.h > 0)
-      : null;
-    return { v: 1, placed: placed.slice(0, MAX_PLACED), props };
-  } catch {
-    return null;
-  }
-}
-
-export function saveLayout(key: string, layout: WorldLayout) {
-  try {
-    localStorage.setItem(key, JSON.stringify(layout));
-  } catch {
-    /* Without storage the layout lasts for this visit. */
-  }
-}
-
 /** Keeps a saved layout honest: drops rebyters that are no longer owned, fills free places. */
 export function reconcile(layout: WorldLayout, owned: string[]): WorldLayout {
   const have = new Set(owned);
@@ -79,4 +54,22 @@ export function reconcile(layout: WorldLayout, owned: string[]): WorldLayout {
   const seen = new Set<string>();
   const unique = placed.filter((p) => (seen.has(p.mint) ? false : (seen.add(p.mint), true)));
   return { ...layout, placed: unique };
+}
+
+/**
+ * Keeps the first `allowance(key)` objects of each kind and sets the rest aside. What the wallet holds
+ * decides what stands in the habitat; objects it no longer holds are hidden, not deleted.
+ */
+export function limitProps(props: PlacedProp[], allowance: (key: AssetKey) => number) {
+  const used = new Map<AssetKey, number>();
+  const shown: PlacedProp[] = [];
+  const hidden: PlacedProp[] = [];
+  for (const prop of props) {
+    const n = used.get(prop.key) ?? 0;
+    if (n < allowance(prop.key)) {
+      used.set(prop.key, n + 1);
+      shown.push(prop);
+    } else hidden.push(prop);
+  }
+  return { shown, hidden };
 }

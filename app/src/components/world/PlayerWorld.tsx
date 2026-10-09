@@ -22,13 +22,14 @@ import {
   TREE_TILE,
   defaultLayout,
   freeTile,
-  loadLayout,
+  limitProps,
   reconcile,
-  saveLayout,
   tileX,
   tileZ,
+  type PlacedProp,
   type WorldLayout,
 } from "./layout";
+import { PROP_KEYS } from "../../lib/rebyters/habitat-layout";
 
 export type WorldCreature = {
   mint: string;
@@ -41,8 +42,10 @@ export type WorldCreature = {
 
 type Props = {
   creatures: WorldCreature[];
-  /** Where this player's layout is kept (one per wallet). */
-  storageKey: string;
+  /** The layout saved in the wallet's profile, or null if none was ever saved (default scene). */
+  initialLayout: WorldLayout | null;
+  /** Saves the layout in the wallet's profile; rejects if the player cancels or it fails. */
+  onCommitLayout: (layout: WorldLayout) => Promise<unknown>;
   period: WorldPeriod;
   /** The world clock, in ms: twilight follows the real hour. */
   worldTime?: number;
@@ -63,7 +66,7 @@ type Props = {
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
 
 /** The objects a player can add. The game's own props, in the editor's order. */
-const PALETTE: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop"];
+const PALETTE: AssetKey[] = PROP_KEYS;
 const LABELS: Partial<Record<AssetKey, string>> = {
   tree: "Tree",
   pine: "Pine",
@@ -89,7 +92,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
@@ -122,17 +125,37 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const ownedKey = creatures.map((c) => c.mint).join("|");
   const owned = useMemo(() => (ownedKey ? ownedKey.split("|") : []), [ownedKey]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
-    reconcile(loadLayout(storageKey) ?? defaultLayout(creatures.map((c) => c.mint)), creatures.map((c) => c.mint)),
+    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint)), creatures.map((c) => c.mint)),
   );
   const layoutRef = useRef(layout);
-  const setLayout = useCallback(
-    (next: WorldLayout) => {
-      layoutRef.current = next;
-      setLayoutState(next);
-      saveLayout(storageKey, next);
-    },
-    [storageKey],
-  );
+  const setLayout = useCallback((next: WorldLayout) => {
+    layoutRef.current = next;
+    setLayoutState(next);
+  }, []);
+
+  // The layout lives in the wallet's profile: it is written when editing ends, not on every tap.
+  const commitRef = useRef(onCommitLayout);
+  commitRef.current = onCommitLayout;
+  const baselineRef = useRef("");
+  /** Objects saved in the wallet that the wallet no longer backs: hidden, but kept when saving. */
+  const hiddenRef = useRef<PlacedProp[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const commit = useCallback(async () => {
+    const current = layoutRef.current;
+    if (JSON.stringify(current) === baselineRef.current) return;
+    const toSave: WorldLayout = { ...current, props: [...(current.props ?? []), ...hiddenRef.current].slice(0, MAX_PROPS) };
+    setSaving(true);
+    setSaveError("");
+    try {
+      await commitRef.current(toSave);
+      baselineRef.current = JSON.stringify(current);
+    } catch (e) {
+      setSaveError(e instanceof Error && /reject|cancel|denied/i.test(e.message) ? "Not saved: signature cancelled" : "Couldn't save your habitat. Try Edit → Done again.");
+    } finally {
+      setSaving(false);
+    }
+  }, []);
 
   const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -283,12 +306,16 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       rigRef.current = rig;
       rig.intro();
       if (layoutNow.props) {
-        await world.restore({ ...world.snapshot(), props: layoutNow.props.map((p, n) => ({ id: n + 1, ...p })) });
+        // Only what the wallet holds is shown; the rest stays saved but hidden.
+        const { shown, hidden } = limitProps(layoutNow.props, (key) => allowanceRef.current?.(key) ?? Number.POSITIVE_INFINITY);
+        hiddenRef.current = hidden;
+        await world.restore({ ...world.snapshot(), props: shown.map((p, n) => ({ id: n + 1, ...p })) });
       } else {
         await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
       }
       if (dead) return;
       setPropCount(world.entries.length);
+      baselineRef.current = JSON.stringify(layoutRef.current);
       setReady(true);
     })();
 
@@ -665,6 +692,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       if (editingRef.current) {
         persistRef.current();
         setEditing(false);
+        void commit();
       }
       const current = layoutRef.current;
       if (!current.placed.some((p) => p.mint === focusMint) && owned.includes(focusMint)) {
@@ -684,7 +712,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       rig.setFocus(false);
     }
     focusedBefore.current = focusMint;
-  }, [focusMint, ready, owned, setLayout]);
+  }, [focusMint, ready, owned, setLayout, commit]);
 
   // What the protagonist is doing: care animations play on the rebyter in the world.
   useEffect(() => {
@@ -705,6 +733,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const finishEditing = () => {
     persistRef.current();
     setEditing(false);
+    void commit();
   };
   const togglePlaced = (mint: string) => {
     const current = layoutRef.current;
@@ -791,6 +820,12 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
             </button>
           ))}
       </div>
+
+      {(saving || saveError) && (
+        <div className="world-saving gl-panel" role="status">
+          {saving ? "Saving to your wallet…" : saveError}
+        </div>
+      )}
 
       {ready && !editing && !focusMint && (
         <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Edit habitat">

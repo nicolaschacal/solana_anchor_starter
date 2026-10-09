@@ -7,10 +7,10 @@
 import { readFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { claimDailyRation } from "../src/lib/economy/actions";
+import { claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
 import { DEPLOYMENT } from "../src/lib/economy/deployment";
 import { playerProfilePda } from "../src/lib/rebyters/config";
-import { createRebyter, interactWithRebyter } from "../src/lib/rebyters/companions";
+import { createRebyter, fetchPlayerProfile, interactWithRebyter } from "../src/lib/rebyters/companions";
 import { getProgram } from "../src/lib/rebyters/registry";
 import { gameDay } from "../src/lib/economy/quests";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -66,6 +66,22 @@ async function main() {
   if (after !== before - 1) throw new Error("Feeding did not burn exactly one meat");
   if (feedsAfter !== feedsBefore + 1) throw new Error("The feed was not counted for the quests");
 
+  console.log("4. save the habitat layout in the profile and read it back");
+  const layout = {
+    v: 1 as const,
+    placed: [{ mint: created.mint, i: 18, j: 30 }],
+    props: [
+      { key: "pine" as const, x: -13.25, z: -25.5, h: 1.8, r: 1.0 },
+      { key: "lantern" as const, x: -12, z: -24.75, h: 0.9, r: 2.5 },
+    ],
+  };
+  await saveHabitatLayout(connection, wallet as never, layout);
+  await pause(1500);
+  const read = (await fetchPlayerProfile(connection, signer.publicKey))?.layout;
+  if (!read) throw new Error("The saved layout was not found in the profile");
+  if (read.placed[0]?.mint !== created.mint || read.props?.length !== 2 || read.props[0].key !== "pine" || read.props[1].key !== "lantern")
+    throw new Error("The layout read back does not match what was saved: " + JSON.stringify(read));
+  console.log("   layout round-trips through the chain");
   console.log("SMOKE OK");
 }
 

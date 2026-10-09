@@ -21,6 +21,8 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
+import type { WorldLayout } from "../../components/world/layout";
+import { decodeLayout } from "./habitat-layout";
 import { economyPda, ensureProfileIx } from "../economy/actions";
 import { DEPLOYMENT } from "../economy/deployment";
 import { BOUND_FOOD_IDS } from "../economy/inventory";
@@ -40,6 +42,8 @@ export interface PlayerProfile {
   owner: string;
   createdAt: number;
   discoveries: number[];
+  /** The saved habitat layout, or null when the player never saved one. */
+  layout: WorldLayout | null;
 }
 
 export interface OnchainRebyter {
@@ -178,6 +182,12 @@ export async function fetchPlayerProfile(
     owner: account.owner.toBase58(),
     createdAt: Number(account.createdAt),
     discoveries: Array.from(account.discoveries as number[]),
+    layout: decodeLayout({
+      layoutSet: !!account.layoutSet,
+      placed: account.placed,
+      propCount: Number(account.propCount),
+      props: account.props,
+    }),
   };
 }
 
