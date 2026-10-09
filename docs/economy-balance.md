@@ -134,25 +134,24 @@ for that single target; the route must still exist in the active atlas. Ids are 
 **Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
 (ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.
 
-## Habitats: fixed size and land (deployed)
+## Habitats: fixed size and limits on chain (deployed)
 
-Three island sizes with a fixed ceiling, lowered by the island's own land. Water and cliffs (level 3+) are not standable;
-a Rebyter needs about 8 free tiles and an object about 2 (0.6 objects per free tile). The land is part of the habitat kind,
-so the capacity cannot be changed. The layout inside the NFT grows with use and the owner pays the rent of the extra bytes
-(starter pack locks 0.0064 SOL). The program accepts at most 8 Rebyters and 40 objects; the app applies each island's own limit.
+Three island sizes. Each habitat kind registers its limits when it is created (`create_habitat_type`: max Rebyters, max objects)
+and the program rejects any layout above them; it also checks that the NFT really is of that kind (its `HABITAT` field, which only
+the program can write). The layout inside the NFT grows with use and the owner pays the rent of the extra bytes (starter pack
+locks 0.0064 SOL). Seeds are now `economy3` / `item4` / `profile4`.
 
-| Island | Size | Land | Free tiles | Rebyters | Objects |
-|---|---|---|---|---|---|
-| Verdant Meadow (starter) | 5x5 | flat | 25 | 3 | 14 |
-| Dune Oasis | 7x7 | pond + dunes | 40 | 5 | 24 |
-| Frostpeak | 7x7 | ridge + frozen pond | 38 | 4 | 22 |
-| Rainforest Canopy | 9x9 | river | 67 | 8 | 40 |
-| Ember Crater | 9x9 | cone + peak | 51 | 6 | 30 |
+| Island | Size | Rebyters | Objects |
+|---|---|---|---|
+| Verdant Meadow (starter) | 5x5 | 3 | 14 |
+| Dune Oasis, Frostpeak | 7x7 | 5 | 24 |
+| Rainforest Canopy, Ember Crater | 9x9 | 8 | 40 |
 
-Camera limits scale with the island so the whole board fits a phone screen.
+Each island has its own land (water, ridges, a river, a cone). Water and cliffs keep Rebyters off those tiles, but for now they do
+**not** lower the limits: topology-based capacity is postponed. Camera limits scale with the island so the board fits a phone screen.
 
 ## Roadmap status
 
 - Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with growing on-chain layout and
-  island land and capacity (3/5/8 ceiling), Storage menu.
+  islands with on-chain limits (3/5/8), Storage menu.
 - Next: vending-machine sales, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
