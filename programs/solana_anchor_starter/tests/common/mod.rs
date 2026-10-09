@@ -440,3 +440,24 @@ pub fn buy_item_sparks_ix(owner: &Pubkey, spark_mint: &Pubkey, item_mint: &Pubke
         },
     )
 }
+
+pub fn food_config() -> Pubkey {
+    Pubkey::find_program_address(&[b"food"], &program_id()).0
+}
+pub fn set_bound_food_ix(authority: &Pubkey, mints: &[Pubkey; 4]) -> Instruction {
+    ix(
+        instruction::SetBoundFood {},
+        accounts::SetBoundFood {
+            authority: *authority,
+            registry: registry(),
+            economy: economy(),
+            food_config: food_config(),
+            meat_mint: mints[0],
+            plant_mint: mints[1],
+            fish_mint: mints[2],
+            fruit_mint: mints[3],
+            token_program: token_2022::ID,
+            system_program: system_program::ID,
+        },
+    )
+}

@@ -221,3 +221,29 @@ fn sparks_buy_bound_items_and_gems_cannot() {
     let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &w.food_mint, FOOD_ID, 1)];
     assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
 }
+
+#[test]
+fn bound_food_mints_must_be_distinct_non_transferable_economy_mints() {
+    let mut w = world();
+    let admin = w.admin.pubkey();
+    let mut bound = [Pubkey::default(); 4];
+    for slot in bound.iter_mut() {
+        let mint = Keypair::new();
+        create_mint(&mut w.svm, &w.admin, &mint, &economy(), true, None).unwrap();
+        *slot = mint.pubkey();
+    }
+    // Only the registry authority configures it.
+    let ixs = vec![set_bound_food_ix(&w.other.pubkey(), &bound)];
+    assert!(send(&mut w.svm, &w.other, &[], ixs).is_err());
+    // A transferable mint is rejected.
+    let loose = [bound[0], bound[1], bound[2], w.food_mint];
+    assert!(send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &loose)]).is_err());
+    // Duplicates are rejected.
+    let dup = [bound[0], bound[0], bound[2], bound[3]];
+    assert!(send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &dup)]).is_err());
+    // The right shape is accepted and recorded.
+    send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &bound)]).expect("set bound food");
+    let data = w.svm.get_account(&food_config()).unwrap().data;
+    assert_eq!(&data[8..40], bound[0].as_ref());
+    assert_eq!(&data[8 + 96..8 + 128], bound[3].as_ref());
+}

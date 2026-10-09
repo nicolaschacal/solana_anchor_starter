@@ -496,6 +496,32 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
+    /// Registers the four account-bound food mints (meat, plant, fish, fruit) that feeding burns
+    /// before the free-to-trade ones. Each must be a NonTransferable economy mint.
+    pub fn set_bound_food(ctx: Context<SetBoundFood>) -> Result<()> {
+        let economy_key = ctx.accounts.economy.key();
+        let token_program = ctx.accounts.token_program.key();
+        let mints = [
+            &ctx.accounts.meat_mint,
+            &ctx.accounts.plant_mint,
+            &ctx.accounts.fish_mint,
+            &ctx.accounts.fruit_mint,
+        ];
+        for (i, mint) in mints.iter().enumerate() {
+            validate_economy_mint(mint, &economy_key, None, token_program)?;
+            require!(mint_is_non_transferable(mint)?, RegistryError::InvalidMint);
+            require!(
+                !mints[..i].iter().any(|m| m.key() == mint.key()),
+                RegistryError::InvalidMint
+            );
+        }
+        let keys = mints.map(|m| m.key());
+        let config = &mut ctx.accounts.food_config;
+        config.bound_mints = keys;
+        config.bump = ctx.bumps.food_config;
+        Ok(())
+    }
+
     /// Once per UTC day: mints the free ration (all four foods) to the player.
     pub fn claim_daily_ration(ctx: Context<ClaimDailyRation>) -> Result<()> {
         let units = ctx.accounts.economy.ration_units;
@@ -780,28 +806,65 @@ pub mod solana_anchor_starter {
     }
 
     /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
-    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
+    pub fn feed(ctx: Context<FeedRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
-        apply_interaction(&ctx.accounts, InteractionKind::Feed(food_type))?;
+        // One unit of the chosen food is burnt: account-bound units first, then free-to-trade ones.
+        let accounts = &ctx.accounts;
+        let bound = accounts.owner_bound_food.as_ref().map_or(0, |a| a.amount);
+        let plain = accounts.owner_food.as_ref().map_or(0, |a| a.amount);
+        match food_source(bound, plain) {
+            Some(FoodSource::Bound) => burn(
+                CpiContext::new(
+                    accounts.token_program.key(),
+                    Burn {
+                        mint: accounts.bound_food_mint.to_account_info(),
+                        from: accounts.owner_bound_food.as_ref().unwrap().to_account_info(),
+                        authority: accounts.owner.to_account_info(),
+                    },
+                ),
+                1,
+            )?,
+            Some(FoodSource::Plain) => burn(
+                CpiContext::new(
+                    accounts.token_program.key(),
+                    Burn {
+                        mint: accounts.food_mint.to_account_info(),
+                        from: accounts.owner_food.as_ref().unwrap().to_account_info(),
+                        authority: accounts.owner.to_account_info(),
+                    },
+                ),
+                1,
+            )?,
+            None => return err!(RegistryError::NoFood),
+        }
+        let (mint, authority, token_program) = (
+            accounts.mint.to_account_info(),
+            accounts.rebyter_authority.to_account_info(),
+            accounts.token_program.to_account_info(),
+        );
+        apply_interaction(
+            &Target { owner: accounts.owner.key(), mint: &mint, rebyter_authority: &authority, token_program: &token_program },
+            InteractionKind::Feed(food_type),
+        )?;
         record_action(&mut ctx.accounts.player_profile, ACTION_FEED)
     }
 
     /// Play builds bond and a little speed while consuming energy/fullness.
     pub fn play(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Play)?;
+        interact_with(&ctx.accounts, InteractionKind::Play)?;
         record_action(&mut ctx.accounts.player_profile, ACTION_PLAY)
     }
 
     /// Care strengthens bond and helps a well-rested Rebyter recover from bad conditions.
     pub fn care(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Care)?;
+        interact_with(&ctx.accounts, InteractionKind::Care)?;
         record_action(&mut ctx.accounts.player_profile, ACTION_CARE)
     }
 
     /// Rest restores energy. It is not a cooldown: it is a player action and can
     /// be used whenever desired, but it gives no stat farming advantage.
     pub fn rest(ctx: Context<InteractRebyter>) -> Result<()> {
-        apply_interaction(&ctx.accounts, InteractionKind::Rest)?;
+        interact_with(&ctx.accounts, InteractionKind::Rest)?;
         record_action(&mut ctx.accounts.player_profile, ACTION_REST)
     }
 
@@ -809,7 +872,7 @@ pub mod solana_anchor_starter {
     /// 0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced.
     pub fn train(ctx: Context<InteractRebyter>, training_type: u8) -> Result<()> {
         require!(training_type < 6, RegistryError::InvalidTraining);
-        apply_interaction(&ctx.accounts, InteractionKind::Train(training_type))?;
+        interact_with(&ctx.accounts, InteractionKind::Train(training_type))?;
         record_action(&mut ctx.accounts.player_profile, ACTION_TRAIN)
     }
 
@@ -1168,8 +1231,46 @@ fn record_action(profile: &mut Account<'_, PlayerProfile>, kind: usize) -> Resul
     Ok(())
 }
 
-fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
-    let mut dna = read_rebyter_dna(&accounts.mint.to_account_info())?;
+#[derive(Debug, PartialEq, Eq)]
+enum FoodSource {
+    Bound,
+    Plain,
+}
+
+/// Which stack of food a meal comes from: account-bound units are used first so they are never
+/// stranded behind free-to-trade ones.
+fn food_source(bound: u64, plain: u64) -> Option<FoodSource> {
+    if bound > 0 {
+        Some(FoodSource::Bound)
+    } else if plain > 0 {
+        Some(FoodSource::Plain)
+    } else {
+        None
+    }
+}
+
+fn interact_with(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
+    let (mint, authority, token_program) = (
+        accounts.mint.to_account_info(),
+        accounts.rebyter_authority.to_account_info(),
+        accounts.token_program.to_account_info(),
+    );
+    apply_interaction(
+        &Target { owner: accounts.owner.key(), mint: &mint, rebyter_authority: &authority, token_program: &token_program },
+        kind,
+    )
+}
+
+/// The accounts every interaction needs to rewrite a Rebyter's DNA.
+struct Target<'a, 'info> {
+    owner: Pubkey,
+    mint: &'a AccountInfo<'info>,
+    rebyter_authority: &'a AccountInfo<'info>,
+    token_program: &'a AccountInfo<'info>,
+}
+
+fn apply_interaction(accounts: &Target<'_, '_>, kind: InteractionKind) -> Result<()> {
+    let mut dna = read_rebyter_dna(accounts.mint)?;
     let clock = Clock::get()?;
     let now = clock.unix_timestamp.max(0) as u32;
     materialize_lazy_state(&mut dna, now);
@@ -1315,9 +1416,9 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
         CpiContext::new(
             accounts.token_program.key(),
             TokenMetadataUpdateField {
-                program_id: accounts.token_program.to_account_info(),
-                metadata: accounts.mint.to_account_info(),
-                update_authority: accounts.rebyter_authority.to_account_info(),
+                program_id: accounts.token_program.clone(),
+                metadata: accounts.mint.clone(),
+                update_authority: accounts.rebyter_authority.clone(),
             },
         ).with_signer(signer_seeds),
         Field::Key("DNA".to_string()),
@@ -1325,7 +1426,7 @@ fn apply_interaction(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> R
     )?;
 
     emit!(RebyterInteraction {
-        owner: accounts.owner.key(),
+        owner: accounts.owner,
         mint: mint_key,
         action: match kind {
             InteractionKind::Feed(_) => 0,
@@ -1773,6 +1874,78 @@ pub struct CreateRebyter<'info> {
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
+#[account]
+#[derive(InitSpace)]
+pub struct FoodConfig {
+    /// Account-bound (Sparks-bought) mints of meat, plant, fish, fruit.
+    pub bound_mints: [Pubkey; 4],
+    pub bump: u8,
+}
+
+#[derive(Accounts)]
+pub struct SetBoundFood<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [b"registry"], bump, has_one = authority)]
+    pub registry: Account<'info, RegistryRoot>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = 8 + FoodConfig::INIT_SPACE,
+        seeds = [b"food"],
+        bump
+    )]
+    pub food_config: Account<'info, FoodConfig>,
+    pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub plant_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub fish_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub fruit_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub token_program: Program<'info, Token2022>,
+    pub system_program: Program<'info, System>,
+}
+
+/// Feeding: the usual interaction accounts plus the food that gets burnt.
+#[derive(Accounts)]
+#[instruction(food_type: u8)]
+pub struct FeedRebyter<'info> {
+    pub owner: Signer<'info>,
+    /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    #[account(
+        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+    )]
+    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: PDA signs TokenMetadata updates and stores no account state.
+    #[account(
+        seeds = [b"rebyter_authority", mint.key().as_ref()],
+        bump
+    )]
+    pub rebyter_authority: UncheckedAccount<'info>,
+    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Account<'info, PlayerProfile>,
+    #[account(seeds = [b"economy"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(seeds = [b"food"], bump = food_config.bump)]
+    pub food_config: Account<'info, FoodConfig>,
+    /// The free-to-trade mint of this food (the ration mint).
+    #[account(mut, address = economy.ration_mints[usize::from(food_type.min(3))])]
+    pub food_mint: Box<InterfaceAccount<'info, Mint>>,
+    /// The account-bound mint of this food.
+    #[account(mut, address = food_config.bound_mints[usize::from(food_type.min(3))])]
+    pub bound_food_mint: Box<InterfaceAccount<'info, Mint>>,
+    /// Omit (null) when the wallet holds none of that food.
+    #[account(mut, token::mint = food_mint, token::authority = owner, token::token_program = token_program)]
+    pub owner_food: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    #[account(mut, token::mint = bound_food_mint, token::authority = owner, token::token_program = token_program)]
+    pub owner_bound_food: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    pub token_program: Program<'info, Token2022>,
+}
+
 #[derive(Accounts)]
 pub struct InteractRebyter<'info> {
     pub owner: Signer<'info>,
@@ -1945,6 +2118,8 @@ pub enum RegistryError {
     QuestAlreadyClaimed,
     #[msg("Not enough Sparks")]
     InsufficientSparks,
+    #[msg("You have no food of that kind")]
+    NoFood,
     #[msg("This item is bought with a different currency")]
     WrongCurrency,
 }
@@ -2283,4 +2458,17 @@ pub struct ItemPurchased {
     pub quantity: u16,
     pub gems_spent: u64,
     pub units: u64,
+}
+
+#[cfg(test)]
+mod food_tests {
+    use super::*;
+
+    #[test]
+    fn bound_food_is_used_before_plain_food() {
+        assert_eq!(food_source(3, 9), Some(FoodSource::Bound));
+        assert_eq!(food_source(0, 9), Some(FoodSource::Plain));
+        assert_eq!(food_source(1, 0), Some(FoodSource::Bound));
+        assert_eq!(food_source(0, 0), None);
+    }
 }
