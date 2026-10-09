@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Pencil, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Pencil, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
@@ -92,7 +92,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
   const persistRef = useRef<() => void>(() => undefined);
-  const editRef = useRef<{ rotate: (delta: number) => void; nudge: (right: number, forward: number) => void } | null>(null);
+  const editRef = useRef<{ resize: (factor: number) => void; rotate: (delta: number) => void; nudge: (right: number, forward: number) => void } | null>(null);
   const worldRef = useRef<HabitatWorld | null>(null);
   const rigRef = useRef<WorldRig | null>(null);
   const entities = useRef(new Map<string, Entity>());
@@ -352,6 +352,12 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
     // Fine adjustments for the selected object: turn it, or slide it inside its tile.
     const dir = new THREE.Vector3();
     editRef.current = {
+      resize: (factor) => {
+        const sel = selectionRef.current;
+        if (sel?.kind !== "prop") return;
+        world.updateProp(sel.entry, { h: Math.min(14, Math.max(0.15, sel.entry.h * factor)) });
+        persistNow();
+      },
       rotate: (delta) => {
         const sel = selectionRef.current;
         if (sel?.kind !== "prop") return;
@@ -854,6 +860,8 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
                 </span>
                 {selection.kind === "prop" && (
                   <span className="world-adjust" role="group" aria-label="Adjust object">
+                    <button onClick={() => editRef.current?.resize(1 / 1.12)} aria-label="Smaller"><Minus /></button>
+                    <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
                     <button onClick={() => editRef.current?.rotate(-Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
                     <button onClick={() => editRef.current?.rotate(Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
                     <button onClick={() => editRef.current?.nudge(-1, 0)} aria-label="Move left"><ArrowLeft /></button>

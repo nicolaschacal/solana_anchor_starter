@@ -92,7 +92,7 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
-  { key: "vending", label: "Máquina expendedora", h: 3.2 },
+  { key: "vending", label: "Máquina expendedora", h: 4.6 },
 ];
 
 /** Props with a clear front (the model faces +z at rotation 0): placed facing the middle, not at random. */
