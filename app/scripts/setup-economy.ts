@@ -8,7 +8,8 @@
  * Habitats are not created here: they are 1/1 NFTs and have their own instruction later.
  */
 import { readFile, writeFile } from "node:fs/promises";
-import { BN, Wallet } from "@anchor-lang/core";
+import { Wallet } from "@anchor-lang/core";
+import BN from "bn.js";
 import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
