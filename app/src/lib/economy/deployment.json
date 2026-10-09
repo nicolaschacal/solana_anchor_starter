@@ -98,6 +98,34 @@
     "decor-flowers": {
       "itemId": 115,
       "mint": "HZ6SRDgUQAjWS7GbuqqGwDpBiTJqe6SihgsvyNJ7Q49H"
+    },
+    "spark-food-meat": {
+      "itemId": 116,
+      "mint": "4s73JZTetdzNfNYkM9supAvSknnTqKUoWj5ft6Y1gWvz"
+    },
+    "spark-food-plants": {
+      "itemId": 117,
+      "mint": "D4HGnGUGB23crXzyEF3J8ftD3t2zkMUiFyK8z36KFJKR"
+    },
+    "spark-food-fish": {
+      "itemId": 118,
+      "mint": "FyGgZ9aVeVzPE8eS8LK9vgiSQ9sjZxJJRxmSiFcJuoN9"
+    },
+    "spark-food-fruit": {
+      "itemId": 119,
+      "mint": "8qfDu5aRgwN4M9zafMCFTwG5XudvFa8XmSDdZdVMicEB"
+    },
+    "spark-decor-flowers": {
+      "itemId": 120,
+      "mint": "3FSREqKBHFKKjyDQ84gJuoCgqNFtyTwqKFdieX1GD5B2"
+    },
+    "spark-decor-log": {
+      "itemId": 121,
+      "mint": "CRRi4LGJ5YukcsZX2bjvXRsKmVnpHfh2Jyjt8MhyfuKp"
+    },
+    "spark-decor-pine": {
+      "itemId": 122,
+      "mint": "CRVoWcpvksTK4399NoBmfHaTNjdFST7o6u4dKG4GsEPq"
     }
   }
 }
