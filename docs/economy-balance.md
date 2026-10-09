@@ -106,3 +106,36 @@ Measured on devnet (new wallet, real client code, `cost-report`):
 
 Before this redesign, claiming the first ration locked 0.0061 SOL and the Rebyter 0.0075 SOL; now the daily loop
 locks nothing. The one-time total for a new player is ~0.016 SOL (~$1.8) before any purchase.
+
+## Food tiers, training machines and evolution items (deployed)
+
+**Food: 4 foods × 4 tiers = 16 meals**, all counters in the profile (no token accounts). A higher tier gives more fullness
+and counts more in the diet history that drives evolution; price per point of fullness stays about equal, so a big meal
+saves transactions and fees rather than Gems.
+
+| Tier | Fullness | Diet weight | Meat / Fish price | Plants / Fruit price |
+|---|---|---|---|---|
+| 0 plain (Meat Bite, Leaves, Sardine, Berries) | ×1.0 | ×1 | 4 | 3 |
+| 1 (Steak, Salad, Salmon, Apple) | ×1.5 | ×2 | 6 | 4 |
+| 2 (Big Steak, Garden Bowl, Tuna Steak, Fruit Basket) | ×2.2 | ×3 | 9 | 6 |
+| 3 (Feast Roast, Harvest Feast, Sushi Platter, Golden Fruit) | ×3.0 | ×4 | 12 | 8 |
+
+The free daily ration and the quests give plain (tier 0) meals only. Tiers 1–3 are bought with Gems.
+
+**Training.** Everyone trains at the normal rate with no item. In the store, specialised machines (transferable tokens held in the
+wallet) boost the gains of one training: standard +50% (700–1200 Gems) and pro +100% (1900–3200 Gems). The app passes the best machine
+owned for that training automatically. Machines are not consumed.
+
+**Evolution items.** 10 items (rare 1800 Gems, ultra 4500 Gems) for the mammal line. Using one burns 1 and skips the rule's requirements
+for that single target; the route must still exist in the active atlas. Ids are resolved by evolution key at setup time.
+
+**Seeds** are `economy3` / `item3` / `profile4`: old devnet accounts are never read (no backward compatibility).
+
+**Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
+(ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.
+
+## Roadmap status
+
+- Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with on-chain layout, Storage menu.
+- Next: dynamic habitats with traits and flexible capacity (~8 free tiles per Rebyter; 5x5 holds 3), vending-machine sales,
+  "overview" GUI improvements, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
