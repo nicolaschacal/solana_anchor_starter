@@ -21,6 +21,10 @@ env:
   PROGRAM_ID: 7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp
   SOLANA_RPC_URL: https://api.devnet.solana.com
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -66,24 +70,28 @@ jobs:
       - name: status
         if: inputs.action == 'status'
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           solana balance --url devnet --keypair artifacts/private/admin-keypair.json
           solana program show "$PROGRAM_ID" --url devnet || echo "Program not found on devnet"
 
       - name: test
         if: inputs.action == 'test'
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           cargo test
           cd app && npm ci && npm test
 
       - name: build
         if: inputs.action == 'build' || inputs.action == 'deploy'
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           anchor build
           ls -la target/deploy target/idl
 
       - name: deploy (upgrade existing program)
         if: inputs.action == 'deploy'
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           solana balance --url devnet --keypair artifacts/private/admin-keypair.json
           solana program deploy target/deploy/solana_anchor_starter.so \
             --program-id "$PROGRAM_ID" \
@@ -99,9 +107,19 @@ jobs:
           IRYS_WALLET_PATH: ../artifacts/private/admin-keypair.json
           PUBLISH_SCRIPT: ${{ inputs.action }}
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           cd app
           npm ci
           npm run "publish:${PUBLISH_SCRIPT#publish-}"
+
+      - name: Surface log tail as annotation
+        if: always()
+        run: |
+          sleep 2
+          f="$RUNNER_TEMP/ops.log"
+          [ -f "$f" ] || exit 0
+          msg=$(tail -n 150 "$f" | python3 -c 'import sys; t=sys.stdin.read(); print(t.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))')
+          echo "::notice title=ops-log-tail::${msg}"
 
       - name: Upload outputs
         if: always()
