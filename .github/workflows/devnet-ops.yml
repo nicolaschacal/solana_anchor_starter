@@ -19,6 +19,7 @@ on:
           - publish-workbook
           - setup-economy
           - smoke-feed
+          - cost-report
 
 permissions:
   contents: write
@@ -138,6 +139,17 @@ jobs:
           cd app
           npm ci
           npm run smoke:feed
+
+      - name: measure real action costs on devnet
+        if: inputs.action == 'cost-report'
+        env:
+          SOLANA_WALLET_PATH: ../artifacts/private/admin-keypair.json
+        run: |
+          exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
+          trap 'exec >&- 2>&-; sleep 2' EXIT
+          cd app
+          npm ci
+          npm run cost:report
 
       - name: publish to Irys devnet
         if: startsWith(inputs.action, 'publish-')

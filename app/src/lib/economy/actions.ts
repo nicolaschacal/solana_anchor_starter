@@ -1,7 +1,6 @@
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import {
-  ComputeBudgetProgram,
   Connection,
   PublicKey,
   SystemProgram,
@@ -13,6 +12,7 @@ import { encodeLayout } from "../rebyters/habitat-layout";
 import { PROGRAM_ID, playerProfilePda } from "../rebyters/config";
 import { getProgram } from "../rebyters/registry";
 import { DEPLOYMENT } from "./deployment";
+import { budgetIxs } from "./budget";
 import { refreshBalances } from "./token";
 
 const enc = new TextEncoder();
@@ -27,7 +27,7 @@ type Wallet = AnchorWallet;
 
 async function send(connection: Connection, wallet: Wallet, instructions: TransactionInstruction[]) {
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...instructions);
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...budgetIxs(), ...instructions);
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
   const result = await connection.confirmTransaction({ ...block, signature }, "confirmed");
@@ -154,7 +154,7 @@ export async function claimDailyRation(connection: Connection, wallet: Wallet, h
       systemProgram: SystemProgram.programId,
     })
     .instruction();
-  const ixs = [ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 })];
+  const ixs: TransactionInstruction[] = [];
   if (!hasDaily) ixs.push(...(await ensureProfileIx(connection, wallet)));
   ixs.push(claim);
   return send(connection, wallet, ixs);

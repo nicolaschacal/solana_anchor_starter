@@ -23,6 +23,7 @@ import {
 import { hexToBytes } from "@noble/hashes/utils";
 import type { WorldLayout } from "../../components/world/layout";
 import { decodeLayout } from "./habitat-layout";
+import { budgetIxs } from "../economy/budget";
 import { economyPda, ensureProfileIx } from "../economy/actions";
 import { DEPLOYMENT } from "../economy/deployment";
 import { BOUND_FOOD_IDS } from "../economy/inventory";
@@ -468,6 +469,7 @@ export async function createRebyter(
 
   const block = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
+    ...budgetIxs(600_000),
     createMintIx,
     metadataPointerIx,
     initializeMintIx,
@@ -568,7 +570,7 @@ export async function interactWithRebyter(
   const ix = await builder.accountsStrict(accounts as never).instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...preInstructions, ix);
+  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...budgetIxs(), ...preInstructions, ix);
   const signed = await wallet.signTransaction(tx);
   const signature = await connection.sendRawTransaction(signed.serialize(), {
     skipPreflight: false,
@@ -647,6 +649,7 @@ export async function evolveRebyter(
 
   const block = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
+    ...budgetIxs(600_000),
     ...(await ensureProfileIx(connection, anchorWallet)),
     ix,
   );
