@@ -1,4 +1,4 @@
-import { Check, Pencil, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Pencil, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
@@ -7,7 +7,7 @@ import type { FxAsset } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import { OX, OZ, TileMap } from "../admin/habitat/tiles";
-import { HabitatWorld, type PropEntry } from "../admin/habitat/world";
+import { FRONT_FACING, HabitatWorld, facingInward, type PropEntry } from "../admin/habitat/world";
 import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
@@ -92,6 +92,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const emoteRefs = useRef(new Map<string, HTMLDivElement>());
   const persistRef = useRef<() => void>(() => undefined);
+  const editRef = useRef<{ rotate: (delta: number) => void; nudge: (right: number, forward: number) => void } | null>(null);
   const worldRef = useRef<HabitatWorld | null>(null);
   const rigRef = useRef<WorldRig | null>(null);
   const entities = useRef(new Map<string, Entity>());
@@ -348,6 +349,32 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       setPropCount(world.entries.length);
     };
     persistRef.current = persistNow;
+    // Fine adjustments for the selected object: turn it, or slide it inside its tile.
+    const dir = new THREE.Vector3();
+    editRef.current = {
+      rotate: (delta) => {
+        const sel = selectionRef.current;
+        if (sel?.kind !== "prop") return;
+        world.updateProp(sel.entry, { r: sel.entry.r + delta });
+        persistNow();
+      },
+      nudge: (right, forward) => {
+        const sel = selectionRef.current;
+        if (sel?.kind !== "prop") return;
+        // "Up" and "right" follow the screen, whichever way the camera is turned.
+        camera.getWorldDirection(dir);
+        dir.y = 0;
+        if (dir.lengthSq() < 1e-6) return;
+        dir.normalize();
+        const step = 0.2;
+        world.nudgeProp(
+          sel.entry,
+          (-dir.z * right + dir.x * forward) * step,
+          (dir.x * right + dir.z * forward) * step,
+        );
+        persistNow();
+      },
+    };
 
     const tapEdit = async (x: number, y: number, w: number, h: number) => {
       const tile = tileUnder(x, y, w, h);
@@ -395,7 +422,15 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
           say("A rebyter is standing there.");
           return;
         }
-        const added = await world.addProp(key, tileX(tile.i), tileZ(tile.j));
+        const facing = FRONT_FACING.includes(key)
+          ? facingInward(
+              tileX(tile.i),
+              tileZ(tile.j),
+              tileX((BOARD.i0 + BOARD.i1) / 2),
+              tileZ((BOARD.j0 + BOARD.j1) / 2),
+            )
+          : undefined;
+        const added = await world.addProp(key, tileX(tile.i), tileZ(tile.j), facing);
         if (added) persistNow();
         return;
       }
@@ -817,6 +852,16 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
                     : labelOf(selection.entry.key)}{" "}
                   · tap a tile to move it
                 </span>
+                {selection.kind === "prop" && (
+                  <span className="world-adjust" role="group" aria-label="Adjust object">
+                    <button onClick={() => editRef.current?.rotate(-Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
+                    <button onClick={() => editRef.current?.rotate(Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
+                    <button onClick={() => editRef.current?.nudge(-1, 0)} aria-label="Move left"><ArrowLeft /></button>
+                    <button onClick={() => editRef.current?.nudge(0, 1)} aria-label="Move up"><ArrowUp /></button>
+                    <button onClick={() => editRef.current?.nudge(0, -1)} aria-label="Move down"><ArrowDown /></button>
+                    <button onClick={() => editRef.current?.nudge(1, 0)} aria-label="Move right"><ArrowRight /></button>
+                  </span>
+                )}
                 <button className="ui-btn ui-btn-secondary world-remove" onClick={removeSelection}>
                   {selection.kind === "creature" ? <X /> : <Trash2 />}
                   {selection.kind === "creature" ? "Send to vault" : "Remove"}

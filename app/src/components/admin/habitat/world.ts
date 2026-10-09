@@ -92,8 +92,16 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
-  { key: "vending", label: "Máquina expendedora", h: 1.8 },
+  { key: "vending", label: "Máquina expendedora", h: 3.2 },
 ];
+
+/** Props with a clear front (the model faces +z at rotation 0): placed facing the middle, not at random. */
+export const FRONT_FACING: AssetKey[] = ["vending"];
+/** Rotation (snapped to quarter turns) that makes a front-facing prop look at (cx, cz) from (x, z). */
+export function facingInward(x: number, z: number, cx: number, cz: number) {
+  const angle = Math.atan2(cx - x, cz - z);
+  return Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+}
 
 export const CREATURE_Z = -2.97; // same depth the game uses for the companion
 const CREATURE_SCALE = 0.9;
@@ -685,7 +693,7 @@ diffuseColor.rgb = painted;`,
   get propScale() {
     return this.kind === "diorama" ? 0.5 : 1;
   }
-  async addProp(key: AssetKey, x: number, z: number) {
+  async addProp(key: AssetKey, x: number, z: number, rotation?: number) {
     const item = PROP_CATALOG.find((p) => p.key === key);
     const tile = TileMap.tileOf(x, z);
     const why = this.propBlock(key, tile.i, tile.j);
@@ -693,7 +701,14 @@ diffuseColor.rgb = painted;`,
       this.notice(why);
       return null;
     }
-    return this.spawnEntry({ key, x: OX + tile.i, z: OZ + tile.j, h: (item?.h ?? 1) * this.propScale, r: Math.random() * Math.PI * 2 });
+    const px = OX + tile.i,
+      pz = OZ + tile.j;
+    const r =
+      rotation ??
+      (FRONT_FACING.includes(key)
+        ? facingInward(px, pz, OX + (this.map.region.i0 + this.map.region.i1) / 2, OZ + (this.map.region.j0 + this.map.region.j1) / 2)
+        : Math.random() * Math.PI * 2);
+    return this.spawnEntry({ key, x: px, z: pz, h: (item?.h ?? 1) * this.propScale, r });
   }
   /** Tufts of tall grass scattered inside the given tiles (one visit per tile). */
   async addCover(key: AssetKey, tiles: [number, number][], visited: Set<number>) {
@@ -761,6 +776,18 @@ diffuseColor.rgb = painted;`,
     this.updateRing();
     this.env.markShadowsDirty();
     return true;
+  }
+  /** Slides a prop inside its own tile (to the edge at most), so rows of props need not line up. */
+  nudgeProp(entry: PropEntry, dx: number, dz: number) {
+    const tile = TileMap.tileOf(entry.x, entry.z);
+    const limit = 0.45;
+    const cx = OX + tile.i,
+      cz = OZ + tile.j;
+    entry.x = clamp(entry.x + dx, cx - limit, cx + limit);
+    entry.z = clamp(entry.z + dz, cz - limit, cz + limit);
+    this.applyEntry(entry);
+    this.updateRing();
+    this.env.markShadowsDirty();
   }
   updateProp(entry: PropEntry, change: Partial<Pick<PropData, "h" | "r">>) {
     Object.assign(entry, change);
