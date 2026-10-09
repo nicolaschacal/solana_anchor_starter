@@ -64,6 +64,898 @@
       ]
     },
     {
+      "name": "buy_gems",
+      "docs": [
+        "Player pays SOL to the treasury and receives gems."
+      ],
+      "discriminator": [
+        18,
+        160,
+        228,
+        153,
+        125,
+        21,
+        116,
+        100
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "gem_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_gem_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "gem_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pack_id",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "buy_item",
+      "docs": [
+        "Player burns gems (fixed catalog price) and receives item units."
+      ],
+      "discriminator": [
+        80,
+        82,
+        193,
+        201,
+        216,
+        27,
+        70,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_type.item_id",
+                "account": "ItemType"
+              }
+            ]
+          }
+        },
+        {
+          "name": "gem_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_gem_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "gem_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "item_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_item_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "item_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "quantity",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "care",
+      "docs": [
+        "Care strengthens bond and helps a well-rested Rebyter recover from bad conditions."
+      ],
+      "discriminator": [
+        110,
+        222,
+        254,
+        89,
+        135,
+        196,
+        90,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "docs": [
+            "Optional: the player's daily-quest counters. When present the action is counted."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_daily_ration",
+      "docs": [
+        "Once per UTC day: mints the free ration (all four foods) to the player."
+      ],
+      "discriminator": [
+        102,
+        210,
+        22,
+        14,
+        250,
+        49,
+        114,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "daily"
+          ]
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "meat_mint",
+          "writable": true
+        },
+        {
+          "name": "plant_mint",
+          "writable": true
+        },
+        {
+          "name": "fish_mint",
+          "writable": true
+        },
+        {
+          "name": "fruit_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_meat",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "meat_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "owner_plant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "plant_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "owner_fish",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "fish_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "owner_fruit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "fruit_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_quest",
+      "docs": [
+        "Claims the Sparks of one of today's quests once the program has counted",
+        "enough of the matching actions (feed, play, care, rest, train) today."
+      ],
+      "discriminator": [
+        38,
+        197,
+        33,
+        123,
+        0,
+        108,
+        206,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "daily"
+          ]
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "spark_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_spark_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "spark_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "slot",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "close_tree",
       "discriminator": [
         9,
@@ -117,6 +1009,362 @@
         {
           "name": "version",
           "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_item_type",
+      "docs": [
+        "Registers an item mint (created client-side, 0 decimals, mint authority =",
+        "economy PDA). A NonTransferable mint makes the item account-bound",
+        "(the Sparks-purchasable version)."
+      ],
+      "discriminator": [
+        62,
+        86,
+        26,
+        185,
+        222,
+        101,
+        143,
+        142
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "item_id",
+          "type": "u16"
+        },
+        {
+          "name": "price_gems",
+          "type": "u64"
+        },
+        {
+          "name": "units_per_purchase",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "create_rebyter",
+      "docs": [
+        "Creates a 1/1 Token-2022 Rebyter whose complete persistent game",
+        "state lives inside the mint account's TokenMetadata extension.",
+        "",
+        "No per-Rebyter PDA account is created. The only asset/state account is",
+        "the mint itself, matching Rebyters' single-account design."
+      ],
+      "discriminator": [
+        240,
+        89,
+        222,
+        140,
+        201,
+        45,
+        130,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree"
+        },
+        {
+          "name": "rebyter_authority",
+          "docs": [
+            "second Rebyter account. It exists solely to sign Token-2022 metadata CPIs."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "transaction and is the single account that stores Rebyter state."
+          ],
+          "writable": true
+        },
+        {
+          "name": "owner_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "tree_version",
+          "type": "u32"
+        },
+        {
+          "name": "evolution_id",
+          "type": "u32"
+        },
+        {
+          "name": "evolution_leaf_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "proof",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_rule_set",
+      "discriminator": [
+        104,
+        122,
+        13,
+        57,
+        180,
+        210,
+        121,
+        248
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree"
+        },
+        {
+          "name": "rule_set",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "family_id",
+          "type": "u8"
+        },
+        {
+          "name": "tree_version",
+          "type": "u32"
+        },
+        {
+          "name": "rules_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         }
       ]
     },
@@ -205,6 +1453,443 @@
       ]
     },
     {
+      "name": "evolve",
+      "discriminator": [
+        139,
+        139,
+        160,
+        98,
+        252,
+        226,
+        106,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tree"
+        },
+        {
+          "name": "rule_set",
+          "docs": [
+            "unified active atlas root verifies both forms and gameplay rules."
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "target_id",
+          "type": "u16"
+        },
+        {
+          "name": "target_stage",
+          "type": "u8"
+        },
+        {
+          "name": "target_name",
+          "type": "string"
+        },
+        {
+          "name": "target_uri",
+          "type": "string"
+        },
+        {
+          "name": "rule_bytes",
+          "type": "bytes"
+        },
+        {
+          "name": "proof",
+          "type": {
+            "vec": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "feed",
+      "docs": [
+        "Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit."
+      ],
+      "discriminator": [
+        46,
+        213,
+        237,
+        176,
+        190,
+        113,
+        182,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "docs": [
+            "Optional: the player's daily-quest counters. When present the action is counted."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "food_type",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "initialize_daily",
+      "docs": [
+        "Creates the player's daily-state account (fixed size, never reallocated)."
+      ],
+      "discriminator": [
+        122,
+        8,
+        141,
+        162,
+        101,
+        189,
+        135,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "daily",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_economy",
+      "docs": [
+        "Creates the economy singleton. The gem mint is created client-side",
+        "(Token-2022, 0 decimals, NonTransferable, PermanentDelegate = economy",
+        "PDA, mint authority = economy PDA, no freeze authority) and validated here."
+      ],
+      "discriminator": [
+        180,
+        172,
+        91,
+        234,
+        105,
+        180,
+        23,
+        236
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "gem_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "treasury",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "initialize_player",
+      "discriminator": [
+        79,
+        249,
+        88,
+        177,
+        220,
+        62,
+        56,
+        128
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize_registry",
       "discriminator": [
         189,
@@ -249,6 +1934,99 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "play",
+      "docs": [
+        "Play builds bond and a little speed while consuming energy/fullness."
+      ],
+      "discriminator": [
+        213,
+        157,
+        193,
+        142,
+        228,
+        56,
+        248,
+        150
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "docs": [
+            "Optional: the player's daily-quest counters. When present the action is counted."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": []
@@ -307,6 +2085,100 @@
       ]
     },
     {
+      "name": "rest",
+      "docs": [
+        "Rest restores energy. It is not a cooldown: it is a player action and can",
+        "be used whenever desired, but it gives no stat farming advantage."
+      ],
+      "discriminator": [
+        19,
+        104,
+        92,
+        246,
+        64,
+        32,
+        203,
+        74
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "daily",
+          "docs": [
+            "Optional: the player's daily-quest counters. When present the action is counted."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "set_authority",
       "discriminator": [
         133,
@@ -356,287 +2228,23 @@
       ]
     },
     {
-      "name": "create_rebyter",
+      "name": "set_gem_pack",
+      "docs": [
+        "Sets (or disables with zeros) a gem pack. Prices are in lamports."
+      ],
       "discriminator": [
-        240,
-        89,
-        222,
-        140,
-        201,
-        45,
-        130,
-        96
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "player_profile",
-          "writable": true
-        },
-        {
-          "name": "registry"
-        },
-        {
-          "name": "tree"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "mint",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "owner_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "family_id",
-          "type": "u8"
-        },
-        {
-          "name": "tree_version",
-          "type": "u32"
-        },
-        {
-          "name": "evolution_id",
-          "type": "u32"
-        },
-        {
-          "name": "evolution_leaf_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "proof",
-          "type": {
-            "vec": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          }
-        },
-        {
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "name": "metadata_uri",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "feed",
-      "discriminator": [
-        46,
-        213,
-        237,
-        176,
-        190,
-        113,
-        182,
-        94
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "food_type",
-          "type": "u8"
-        }
-      ]
-    },
-    {
-      "name": "play",
-      "discriminator": [
-        213,
-        157,
-        193,
-        142,
-        228,
-        56,
-        248,
-        150
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "care",
-      "discriminator": [
-        110,
-        222,
-        254,
-        89,
-        135,
-        196,
-        90,
-        106
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "rest",
-      "discriminator": [
-        19,
-        104,
-        92,
-        246,
-        64,
-        32,
-        203,
-        74
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "train",
-      "discriminator": [
-        27,
-        158,
-        209,
-        155,
-        170,
-        217,
-        179,
-        11
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account"
-        },
-        {
-          "name": "rebyter_authority"
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "training_type",
-          "type": "u8"
-        }
-      ]
-    },
-    {
-      "name": "create_rule_set",
-      "discriminator": [
-        104,
-        122,
-        13,
-        57,
         180,
+        85,
+        103,
         210,
-        121,
-        248
+        11,
+        67,
+        112,
+        112
       ],
       "accounts": [
         {
           "name": "authority",
-          "writable": true,
           "signer": true,
           "relations": [
             "registry"
@@ -663,58 +2271,284 @@
           }
         },
         {
-          "name": "tree"
-        },
-        {
-          "name": "rule_set",
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "economy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
-          "name": "family_id",
+          "name": "pack_id",
           "type": "u8"
         },
         {
-          "name": "tree_version",
-          "type": "u32"
+          "name": "gems",
+          "type": "u64"
         },
         {
-          "name": "rules_root",
+          "name": "price_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_ration",
+      "docs": [
+        "Sets the four food mints given by the daily ration (meat, plant, fish, fruit)",
+        "and how many units of each. Zero units turns the ration off."
+      ],
+      "discriminator": [
+        63,
+        249,
+        43,
+        83,
+        128,
+        164,
+        252,
+        168
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "units",
+          "type": "u8"
+        },
+        {
+          "name": "mints",
           "type": {
             "array": [
-              "u8",
-              32
+              "pubkey",
+              4
             ]
           }
         }
       ]
     },
     {
-      "name": "evolve",
+      "name": "set_sparks_mint",
+      "docs": [
+        "Registers the Sparks mint: Token-2022, 0 decimals, NonTransferable,",
+        "mint authority = economy PDA, no freeze authority."
+      ],
       "discriminator": [
-        139,
-        139,
-        160,
-        98,
-        252,
-        226,
+        182,
+        155,
+        147,
+        197,
+        86,
+        140,
+        105,
+        63
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "spark_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_treasury",
+      "discriminator": [
+        57,
+        97,
+        196,
+        95,
+        195,
+        206,
         106,
-        81
+        136
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "treasury",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "train",
+      "docs": [
+        "Train with one of six machines:",
+        "0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced."
+      ],
+      "discriminator": [
+        27,
+        158,
+        209,
+        155,
+        170,
+        217,
+        179,
+        11
       ],
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
           "signer": true
-        },
-        {
-          "name": "player_profile",
-          "writable": true
         },
         {
           "name": "mint",
@@ -724,92 +2558,165 @@
           "name": "owner_token_account"
         },
         {
-          "name": "rebyter_authority"
+          "name": "rebyter_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  121,
+                  116,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
         },
         {
-          "name": "registry"
+          "name": "daily",
+          "docs": [
+            "Optional: the player's daily-quest counters. When present the action is counted."
+          ],
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  97,
+                  105,
+                  108,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
         },
         {
-          "name": "tree"
-        },
-        {
-          "name": "rule_set"
-        },
-        {
-          "name": "token_program"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": [
         {
-          "name": "target_id",
-          "type": "u16"
-        },
-        {
-          "name": "target_stage",
+          "name": "training_type",
           "type": "u8"
-        },
-        {
-          "name": "target_name",
-          "type": "string"
-        },
-        {
-          "name": "target_uri",
-          "type": "string"
-        },
-        {
-          "name": "rule_bytes",
-          "type": {
-            "vec": "u8"
-          }
-        },
-        {
-          "name": "proof",
-          "type": {
-            "vec": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          }
         }
       ]
     },
     {
-      "name": "initialize_player",
+      "name": "update_item_type",
       "discriminator": [
-        79,
-        249,
-        88,
-        177,
-        220,
-        62,
-        56,
-        128
+        108,
+        31,
+        151,
+        127,
+        68,
+        156,
+        183,
+        52
       ],
       "accounts": [
         {
-          "name": "owner",
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
           "writable": true,
-          "signer": true
-        },
-        {
-          "name": "player_profile",
-          "writable": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_type.item_id",
+                "account": "ItemType"
+              }
+            ]
+          }
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "price_gems",
+          "type": "u64"
+        },
+        {
+          "name": "active",
+          "type": "bool"
+        }
+      ]
     }
   ],
   "accounts": [
+    {
+      "name": "Economy",
+      "discriminator": [
+        9,
+        71,
+        93,
+        255,
+        152,
+        187,
+        170,
+        154
+      ]
+    },
     {
       "name": "EvolutionTree",
       "discriminator": [
@@ -821,6 +2728,45 @@
         221,
         105,
         238
+      ]
+    },
+    {
+      "name": "ItemType",
+      "discriminator": [
+        237,
+        251,
+        151,
+        69,
+        132,
+        117,
+        191,
+        44
+      ]
+    },
+    {
+      "name": "PlayerDaily",
+      "discriminator": [
+        153,
+        114,
+        127,
+        224,
+        7,
+        6,
+        120,
+        67
+      ]
+    },
+    {
+      "name": "PlayerProfile",
+      "discriminator": [
+        82,
+        226,
+        99,
+        87,
+        164,
+        130,
+        181,
+        80
       ]
     },
     {
@@ -848,22 +2794,22 @@
         170,
         243
       ]
-    },
-    {
-      "name": "PlayerProfile",
-      "discriminator": [
-        82,
-        226,
-        99,
-        87,
-        164,
-        130,
-        181,
-        80
-      ]
     }
   ],
   "events": [
+    {
+      "name": "GemsPurchased",
+      "discriminator": [
+        26,
+        20,
+        84,
+        246,
+        99,
+        112,
+        128,
+        143
+      ]
+    },
     {
       "name": "IdsReserved",
       "discriminator": [
@@ -878,42 +2824,29 @@
       ]
     },
     {
-      "name": "RebyterCreated",
+      "name": "ItemPurchased",
       "discriminator": [
-        209,
-        144,
-        56,
-        82,
-        105,
-        245,
-        50,
-        14
+        33,
+        219,
+        12,
+        58,
+        205,
+        48,
+        63,
+        143
       ]
     },
     {
-      "name": "RebyterInteraction",
+      "name": "PlayerDiscovery",
       "discriminator": [
-        13,
-        100,
-        40,
-        41,
+        234,
         164,
-        57,
-        136,
-        49
-      ]
-    },
-    {
-      "name": "RebyterEvolved",
-      "discriminator": [
-        137,
-        108,
-        11,
-        78,
-        250,
-        162,
-        106,
-        240
+        47,
+        176,
+        49,
+        207,
+        95,
+        4
       ]
     },
     {
@@ -930,16 +2863,68 @@
       ]
     },
     {
-      "name": "PlayerDiscovery",
+      "name": "QuestClaimed",
       "discriminator": [
-        234,
-        164,
-        47,
-        176,
         49,
-        207,
-        95,
-        4
+        134,
+        11,
+        29,
+        35,
+        182,
+        38,
+        197
+      ]
+    },
+    {
+      "name": "RationClaimed",
+      "discriminator": [
+        12,
+        178,
+        20,
+        210,
+        201,
+        10,
+        178,
+        62
+      ]
+    },
+    {
+      "name": "RebyterCreated",
+      "discriminator": [
+        209,
+        144,
+        56,
+        82,
+        105,
+        245,
+        50,
+        14
+      ]
+    },
+    {
+      "name": "RebyterEvolved",
+      "discriminator": [
+        137,
+        108,
+        11,
+        78,
+        250,
+        162,
+        106,
+        240
+      ]
+    },
+    {
+      "name": "RebyterInteraction",
+      "discriminator": [
+        13,
+        100,
+        40,
+        41,
+        164,
+        57,
+        136,
+        49
       ]
     }
   ],
@@ -1012,7 +2997,7 @@
     {
       "code": 6013,
       "name": "UnsupportedDna",
-      "msg": "This interaction requires Rebyter DNA v3"
+      "msg": "This interaction requires Rebyter current DNA"
     },
     {
       "code": 6014,
@@ -1043,9 +3028,123 @@
       "code": 6019,
       "name": "InvalidTraining",
       "msg": "Training type must be power, endurance, defense, speed, combat, or balanced"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidMint",
+      "msg": "Mint does not meet the economy requirements"
+    },
+    {
+      "code": 6021,
+      "name": "PackInactive",
+      "msg": "This gem pack is not for sale"
+    },
+    {
+      "code": 6022,
+      "name": "ItemInactive",
+      "msg": "This item is not for sale"
+    },
+    {
+      "code": 6023,
+      "name": "InsufficientGems",
+      "msg": "Not enough Gems"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidQuantity",
+      "msg": "Invalid quantity or id"
+    },
+    {
+      "code": 6025,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6026,
+      "name": "RationNotConfigured",
+      "msg": "The daily ration is not configured"
+    },
+    {
+      "code": 6027,
+      "name": "RationAlreadyClaimed",
+      "msg": "Today's ration was already claimed"
+    },
+    {
+      "code": 6028,
+      "name": "InvalidQuest",
+      "msg": "Invalid quest slot"
+    },
+    {
+      "code": 6029,
+      "name": "QuestNotComplete",
+      "msg": "The quest is not complete today"
+    },
+    {
+      "code": 6030,
+      "name": "QuestAlreadyClaimed",
+      "msg": "This quest was already claimed today"
     }
   ],
   "types": [
+    {
+      "name": "Economy",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "gem_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "gem_packs",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "GemPack"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "spark_mint",
+            "docs": [
+              "Non-transferable quest currency (default key until `set_sparks_mint`)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "ration_mints",
+            "docs": [
+              "Foods of the free daily ration: meat, plant, fish, fruit."
+            ],
+            "type": {
+              "array": [
+                "pubkey",
+                4
+              ]
+            }
+          },
+          {
+            "name": "ration_units",
+            "docs": [
+              "Units of each food in the ration; 0 = off."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "EvolutionTree",
       "type": {
@@ -1098,6 +3197,46 @@
       }
     },
     {
+      "name": "GemPack",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "gems",
+            "type": "u64"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GemsPurchased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pack_id",
+            "type": "u8"
+          },
+          {
+            "name": "gems",
+            "type": "u64"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "IdsReserved",
       "type": {
         "kind": "struct",
@@ -1114,41 +3253,7 @@
       }
     },
     {
-      "name": "RegistryRoot",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "next_evolution_id",
-            "type": "u32"
-          },
-          {
-            "name": "active_versions",
-            "type": {
-              "array": [
-                "u32",
-                16
-              ]
-            }
-          },
-          {
-            "name": "next_versions",
-            "type": {
-              "array": [
-                "u32",
-                16
-              ]
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "RebyterCreated",
+      "name": "ItemPurchased",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1157,79 +3262,114 @@
             "type": "pubkey"
           },
           {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "family_id",
-            "type": "u8"
-          },
-          {
-            "name": "evolution_id",
-            "type": "u32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RebyterInteraction",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "action",
-            "type": "u8"
-          },
-          {
-            "name": "time_bucket",
-            "type": "u8"
-          },
-          {
-            "name": "total_interactions",
+            "name": "item_id",
             "type": "u16"
+          },
+          {
+            "name": "quantity",
+            "type": "u16"
+          },
+          {
+            "name": "gems_spent",
+            "type": "u64"
+          },
+          {
+            "name": "units",
+            "type": "u64"
           }
         ]
       }
     },
     {
-      "name": "RuleSet",
+      "name": "ItemType",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "family_id",
-            "type": "u8"
+            "name": "item_id",
+            "type": "u16"
           },
           {
-            "name": "tree_version",
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_gems",
+            "type": "u64"
+          },
+          {
+            "name": "units_per_purchase",
+            "type": "u16"
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "bound",
+            "docs": [
+              "True when the item mint is NonTransferable (account-bound version)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerDaily",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "ration_day",
+            "docs": [
+              "Game day of the last claimed ration (0 = never)."
+            ],
             "type": "u32"
           },
           {
-            "name": "rules_root",
+            "name": "quest_day",
+            "docs": [
+              "Game day the counters below belong to."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "counts",
+            "docs": [
+              "Actions done on `quest_day`: feed, play, care, rest, train (saturating)."
+            ],
             "type": {
               "array": [
                 "u8",
-                32
+                5
               ]
             }
           },
           {
-            "name": "created_at",
-            "type": "i64"
+            "name": "claimed",
+            "docs": [
+              "Bit i set = quest slot i already claimed on `quest_day`."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
     },
     {
-      "name": "RebyterEvolved",
+      "name": "PlayerDiscovery",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1238,20 +3378,12 @@
             "type": "pubkey"
           },
           {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "source_id",
+            "name": "evolution_id",
             "type": "u16"
           },
           {
-            "name": "target_id",
-            "type": "u16"
-          },
-          {
-            "name": "stage",
-            "type": "u8"
+            "name": "discoveries",
+            "type": "u32"
           }
         ]
       }
@@ -1295,7 +3427,7 @@
       }
     },
     {
-      "name": "PlayerDiscovery",
+      "name": "QuestClaimed",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1304,12 +3436,181 @@
             "type": "pubkey"
           },
           {
+            "name": "day",
+            "type": "u32"
+          },
+          {
+            "name": "slot",
+            "type": "u8"
+          },
+          {
+            "name": "sparks",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RationClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "day",
+            "type": "u32"
+          },
+          {
+            "name": "units",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebyterCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
             "name": "evolution_id",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebyterEvolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "source_id",
             "type": "u16"
           },
           {
-            "name": "discoveries",
+            "name": "target_id",
+            "type": "u16"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RebyterInteraction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "action",
+            "docs": [
+              "0 feed, 1 play, 2 care, 3 rest, 4 train."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "time_bucket",
+            "docs": [
+              "0 night, 1 morning, 2 day, 3 evening (UTC)."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryRoot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_evolution_id",
             "type": "u32"
+          },
+          {
+            "name": "active_versions",
+            "type": {
+              "array": [
+                "u32",
+                16
+              ]
+            }
+          },
+          {
+            "name": "next_versions",
+            "type": {
+              "array": [
+                "u32",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RuleSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "family_id",
+            "type": "u8"
+          },
+          {
+            "name": "tree_version",
+            "type": "u32"
+          },
+          {
+            "name": "rules_root",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
           }
         ]
       }
