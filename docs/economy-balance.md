@@ -53,3 +53,20 @@ A free player can keep roughly 4–5 Rebyters alive. More than that is a choice 
 2. Sparks food price (8/meal): lowering it makes quests more rewarding.
 3. Quest rewards (`QUEST_TEMPLATES` in the program, needs a redeploy).
 4. Gem food prices and Gem pack sizes (revenue side).
+
+## What actions really cost on Solana (measured on devnet, new wallet, real client code)
+
+SOL ≈ $113 (rate implied by the wallet screenshot). Run `cost-report` in the devnet-ops workflow to repeat.
+
+| Action | Network fee | Deposit locked in new accounts |
+|---|---|---|
+| feed / play / care / rest / save habitat layout | 0.000005 SOL (~$0.0006) | none |
+| claim daily ration, first time (4 food accounts) | 0.000005 SOL | 0.0061 SOL |
+| buy Gems / first purchase of an item type | 0.000005 SOL | 0.0015 SOL per new token account |
+| create first Rebyter (mint, metadata, profile) | 0.00001 SOL | 0.0075 SOL |
+
+- The fee is the 5,000-lamport base fee. Before every transaction carried an explicit compute budget, the wallet added
+  its own priority fee: 0.000045 SOL, 9x more (this is what the Solflare screenshot showed).
+- Rent is a refundable deposit, not a fee: closing an empty token account returns 0.0015 SOL (Storage → "Take it back").
+- A typical day (~25 actions) costs ~0.000125 SOL (~$0.014), about $0.42 a month.
+- The one-time deposits for a new player are ~0.02 SOL (~$2.3), mostly token accounts.

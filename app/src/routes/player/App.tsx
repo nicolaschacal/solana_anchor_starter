@@ -11,7 +11,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift,
+  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -22,6 +22,7 @@ import { propAllowance } from "../../lib/economy/props";
 import { saveHabitatLayout } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { SPARKS, useGemBalance, useTokenBalance } from "../../lib/economy/token";
+import { StorageSheet } from "../../components/store/StorageSheet";
 import { DailySheet } from "../../components/daily/DailySheet";
 import { useDaily } from "../../hooks/useDaily";
 import { EMOTES, needEmote, type Emote } from "../../components/player/emotes";
@@ -169,7 +170,7 @@ function useSolBalanceLabel() {
  * Side menu of the logged-in Home, shared by the mobile and web layouts.
  * The edge tab summons it; the balance chip and Account both open the account panel.
  */
-function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,dailyReady}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void;onDaily:()=>void;dailyReady:number}) {
+function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,onStorage,dailyReady}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void;onDaily:()=>void;onStorage:()=>void;dailyReady:number}) {
   const navigate=useNavigate();
   const balanceLabel=useSolBalanceLabel();
   const panel=useRef<HTMLElement>(null);
@@ -201,6 +202,7 @@ function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,dailyR
           <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
           <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
           <button onClick={()=>{onClose();onStore()}}><ShoppingBag/><span>Store</span></button>
+          <button onClick={()=>{onClose();onStorage()}}><Package/><span>Storage</span></button>
           <button onClick={()=>{onClose();onDaily()}}><Gift/><span>Daily</span>{dailyReady>0&&<small className="daily-dot">{dailyReady}</small>}</button>
           <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
           <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
@@ -579,6 +581,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [storeOpen,setStoreOpen]=useState(false);
   const [dailyOpen,setDailyOpen]=useState(false);
+  const [storageOpen,setStorageOpen]=useState(false);
   const daily=useDaily();
   const sparks=useTokenBalance(SPARKS.mint);
   const dailyReady=daily.claimable+(daily.rationReady?1:0);
@@ -755,7 +758,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>
   );
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} dailyReady={dailyReady}/>
+    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} onStorage={()=>setStorageOpen(true)} dailyReady={dailyReady}/>
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
         {(authForWorld.publicKey&&(!player.profileLoaded||!inventory.ready))
@@ -830,6 +833,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </section>
     </div>}
 
+    {storageOpen&&<StorageSheet balance={rbtyr} sparks={sparks} inventory={inventory} onClose={()=>setStorageOpen(false)}/>}
     {dailyOpen&&<DailySheet daily={daily} sparks={sparks} onClose={()=>setDailyOpen(false)}/>}
     {storeOpen&&<StoreSheet balance={rbtyr} sparks={sparks} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 

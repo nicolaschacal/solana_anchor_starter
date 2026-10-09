@@ -19,7 +19,7 @@ const FOOD_ICON: Icon[] = [Beef, Leaf, Fish, Cherry];
 const MACHINE_ICON: Icon[] = [Zap, Heart, Shield, Sparkles, Dna, Activity];
 const DECOR_ICON: Record<string, Icon> = { tree: TreeDeciduous, hero: TreeDeciduous, pine: TreePine, lantern: Lamp, wildflowers: Flower2 };
 
-function iconFor(item: StoreItem): Icon {
+export function iconFor(item: StoreItem): Icon {
   switch (item.category) {
     case "habitat":
       return CLIMATE_ICON[item.climate];
@@ -32,7 +32,7 @@ function iconFor(item: StoreItem): Icon {
   }
 }
 
-function detailFor(item: StoreItem) {
+export function detailFor(item: StoreItem) {
   switch (item.category) {
     case "habitat":
       return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${item.slots} rebyters`;

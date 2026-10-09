@@ -1,5 +1,5 @@
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, createCloseAccountInstruction } from "@solana/spl-token";
 import {
   Connection,
   PublicKey,
@@ -93,6 +93,17 @@ export async function saveHabitatLayout(connection: Connection, wallet: Wallet, 
     .accountsStrict({ owner: wallet.publicKey, playerProfile: playerProfilePda(wallet.publicKey) })
     .instruction();
   return send(connection, wallet, [...(await ensureProfileIx(connection, wallet)), ix]);
+}
+
+/** What closing one empty Token-2022 account gives back (about; the exact deposit is 0.00207408 SOL). */
+export const ACCOUNT_RENT_LAMPORTS = 2_074_080;
+
+/** Closes empty token accounts and returns their rent deposit to the wallet. */
+export async function reclaimRent(connection: Connection, wallet: Wallet, accounts: PublicKey[]) {
+  for (let n = 0; n < accounts.length; n += 12) {
+    const batch = accounts.slice(n, n + 12).map((a) => createCloseAccountInstruction(a, wallet.publicKey, wallet.publicKey, [], TOKEN_2022_PROGRAM_ID));
+    await send(connection, wallet, batch);
+  }
 }
 
 /** Burn Sparks, receive an account-bound item. */
