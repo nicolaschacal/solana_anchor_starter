@@ -825,7 +825,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     </div>}
 
     {dailyOpen&&<DailySheet daily={daily} sparks={sparks} onClose={()=>setDailyOpen(false)}/>}
-    {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
+    {storeOpen&&<StoreSheet balance={rbtyr} sparks={sparks} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
     {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
       <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>

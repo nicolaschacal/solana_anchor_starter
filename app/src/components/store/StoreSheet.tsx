@@ -4,11 +4,11 @@ import {
 } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useState, type ComponentType } from "react";
-import { buyGems, buyItem } from "../../lib/economy/actions";
+import { buyGems, buyItem, buyItemWithSparks } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { useRebytersAuth } from "../../lib/rebyters/auth";
 import { FoodArt } from "./FoodArt";
-import { CLIMATES, STORE_CATEGORIES, itemIdOf, itemsIn, type Climate, type StoreCategory, type StoreItem } from "../../lib/economy/catalog";
+import { CLIMATES, STORE_CATEGORIES, SPARK_ITEMS, itemIdOf, itemsIn, type Climate, type StoreItem, type StoreTab } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { GEMS, formatGems, type GemBalance } from "../../lib/economy/token";
 
@@ -47,6 +47,7 @@ function detailFor(item: StoreItem) {
 
 type Props = {
   balance: GemBalance;
+  sparks: GemBalance;
   inventory: Inventory;
   onClose: () => void;
 };
@@ -55,9 +56,9 @@ type Props = {
  * The store. Prices are in Gems; until the gem mint is configured every purchase stays closed and the
  * sheet says so. Ownership comes from the wallet (see useInventory), never from the game.
  */
-export function StoreSheet({ balance, inventory, onClose }: Props) {
-  const [tab, setTab] = useState<StoreCategory>("habitat");
-  const items = itemsIn(tab);
+export function StoreSheet({ balance, sparks, inventory, onClose }: Props) {
+  const [tab, setTab] = useState<StoreTab>("habitat");
+  const items = tab === "sparks" ? SPARK_ITEMS : itemsIn(tab);
   const { connection } = useConnection();
   const anchorWallet = useRebytersAuth().anchorWallet;
   const [busy, setBusy] = useState("");
@@ -137,13 +138,19 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
           ))}
         </div>
 
+        {tab === "sparks" && (
+          <p className="store-message ok" role="status">
+            Earn Sparks from the daily quests. Items here are bound to your account. You have {sparks.loading ? "…" : formatGems(sparks.amount)} Sparks.
+          </p>
+        )}
         <div className="store-grid" role="tabpanel">
           {items.map((item) => {
             const Glyph = iconFor(item);
             const owned = inventory.count(item);
             const starter = owned === Number.POSITIVE_INFINITY;
-            const affordable = balance.amount >= item.price;
-            const state = starter ? "starter" : !balance.launched || !item.mint ? "soon" : affordable ? "buy" : "short";
+            const wallet = item.currency ? sparks : balance;
+            const affordable = wallet.amount >= item.price;
+            const state = starter ? "starter" : !wallet.launched || !item.mint ? "soon" : affordable ? "buy" : "short";
             return (
               <article key={item.id} className={`store-card cat-${item.category}${item.category === "habitat" ? ` climate-${item.climate}` : ""}`}>
                 <div className="store-card-art" aria-hidden="true">
@@ -162,7 +169,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                     </span>
                   ) : (
                     <span className="store-price">
-                      <Coins aria-hidden="true" /> {formatGems(item.price)}
+                      {item.currency ? <Sparkles aria-hidden="true" /> : <Coins aria-hidden="true" />} {formatGems(item.price)}
                     </span>
                   )}
                   {state !== "starter" && (
@@ -170,7 +177,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                       className="ui-btn ui-btn-primary store-buy"
                       disabled={state !== "buy" || !!busy}
                       title={state === "soon" ? "Coming soon" : undefined}
-                      onClick={() => run(item.id, `${item.name} added to your wallet`, () => buyItem(connection, anchorWallet!, itemIdOf(item)!, item.mint!))}
+                      onClick={() => run(item.id, `${item.name} added to your wallet`, () => (item.currency ? buyItemWithSparks : buyItem)(connection, anchorWallet!, itemIdOf(item)!, item.mint!))}
                     >
                       {busy === item.id ? (
                         "Buying…"

@@ -18,8 +18,10 @@ type Base = {
   id: string;
   name: string;
   description: string;
-  /** Price in whole Gems. */
+  /** Price in whole Gems, or in Sparks when `currency` is "sparks". */
   price: number;
+  /** "sparks": earned for free, bought with Sparks, and account-bound (cannot be transferred). */
+  currency?: "sparks";
   /** Token-2022 mint, once the program has created it. */
   mint: string | null;
   /** Part of the engine: owned by everyone, never sold. */
@@ -40,11 +42,15 @@ export const CLIMATES: Record<Climate, { label: string; hint: string }> = {
   volcanic: { label: "Volcanic", hint: "Tough, fiery rebyters thrive" },
 };
 
-export const STORE_CATEGORIES: { id: StoreCategory; label: string }[] = [
+/** The store tabs: the four Gem sections plus the Sparks shelf. */
+export type StoreTab = StoreCategory | "sparks";
+
+export const STORE_CATEGORIES: { id: StoreTab; label: string }[] = [
   { id: "habitat", label: "Habitats" },
   { id: "food", label: "Food" },
   { id: "machine", label: "Machines" },
   { id: "decor", label: "Decor" },
+  { id: "sparks", label: "Sparks" },
 ];
 
 const BASE_CATALOG: StoreItem[] = [
@@ -76,6 +82,15 @@ const BASE_CATALOG: StoreItem[] = [
   { id: "decor-log", category: "decor", name: "Hollow Log", description: "A hideout for small rebyters.", price: 80, mint: null, prop: "log" },
   { id: "decor-lantern", category: "decor", name: "Enchanted Lantern", description: "A soft glow at night.", price: 250, mint: null, prop: "lantern" },
   { id: "decor-flowers", category: "decor", name: "Wildflowers", description: "A patch of colour.", price: 40, mint: null, prop: "wildflowers" },
+  // The Sparks shelf: bought with the free currency, account-bound. Keep these LAST: on-chain item
+  // ids come from the position in this list, so appending never renumbers anything already sold.
+  { id: "spark-food-meat", currency: "sparks", category: "food", name: "Meat ×5", description: "Bound to your account.", price: 20, mint: null, food: 0, pack: 5 },
+  { id: "spark-food-plants", currency: "sparks", category: "food", name: "Plants ×5", description: "Bound to your account.", price: 20, mint: null, food: 1, pack: 5 },
+  { id: "spark-food-fish", currency: "sparks", category: "food", name: "Fish ×5", description: "Bound to your account.", price: 20, mint: null, food: 2, pack: 5 },
+  { id: "spark-food-fruit", currency: "sparks", category: "food", name: "Fruit ×5", description: "Bound to your account.", price: 20, mint: null, food: 3, pack: 5 },
+  { id: "spark-decor-flowers", currency: "sparks", category: "decor", name: "Wildflowers", description: "A patch of colour. Bound to your account.", price: 60, mint: null, prop: "wildflowers" },
+  { id: "spark-decor-log", currency: "sparks", category: "decor", name: "Hollow Log", description: "A hideout for small rebyters. Bound.", price: 120, mint: null, prop: "log" },
+  { id: "spark-decor-pine", currency: "sparks", category: "decor", name: "Pine Tree", description: "Tall and evergreen. Bound to your account.", price: 180, mint: null, prop: "pine" },
 ];
 
 /** The catalog with the mints the economy setup created (see deployment.json). */
@@ -84,4 +99,7 @@ export const CATALOG: StoreItem[] = BASE_CATALOG.map((item) => ({ ...item, mint:
 /** The on-chain item id of a catalog item, or null while it is not registered. */
 export const itemIdOf = (item: StoreItem): number | null => DEPLOYMENT.items[item.id]?.itemId ?? null;
 
-export const itemsIn = (category: StoreCategory) => CATALOG.filter((item) => item.category === category);
+/** Gem items of a section (the Sparks shelf is separate). */
+export const itemsIn = (category: StoreCategory) => CATALOG.filter((item) => item.category === category && !item.currency);
+
+export const SPARK_ITEMS = CATALOG.filter((item) => item.currency === "sparks");

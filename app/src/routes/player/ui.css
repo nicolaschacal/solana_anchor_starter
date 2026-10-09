@@ -721,7 +721,7 @@
 .rb-ui .store-balance-copy strong{font-size:var(--ui-fs-title)!important;font-weight:700!important;color:var(--ui-text)!important;font-variant-numeric:tabular-nums!important}
 .rb-ui .store-balance-copy em{font-style:normal!important;font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-text-2)!important}
 .rb-ui .store-soon{margin-left:auto!important;font-size:var(--ui-fs-caption)!important;color:var(--ui-warn)!important}
-.rb-ui .store-tabs{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:4px!important;padding:4px!important;margin-bottom:14px!important;border-radius:var(--ui-r-md)!important;background:var(--ui-well)!important;border:1px solid var(--ui-line)!important}
+.rb-ui .store-tabs{display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:4px!important;padding:4px!important;margin-bottom:14px!important;border-radius:var(--ui-r-md)!important;background:var(--ui-well)!important;border:1px solid var(--ui-line)!important}
 .rb-ui .store-tabs button{height:36px!important;border:0!important;border-radius:var(--ui-r-sm)!important;background:transparent!important;color:var(--ui-text-2)!important;font:600 var(--ui-fs-label)/1 var(--ui-font)!important;cursor:pointer!important}
 .rb-ui .store-tabs button.active{background:var(--ui-selected)!important;color:var(--ui-text)!important;box-shadow:inset 0 0 0 1px var(--ui-line-accent)!important}
 .rb-ui .store-tabs button:focus-visible{box-shadow:var(--ui-focus)!important;outline:none!important}

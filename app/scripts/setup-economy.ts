@@ -231,8 +231,12 @@ async function main() {
       console.log(`Item ${item.id} -> #${itemId} (already on chain)`);
       continue;
     }
-    const mint =
-      item.category === "food" ? new PublicKey(state.foodMints[item.food]) : await createMint({});
+    // Sparks items are account-bound, so each gets its own NonTransferable mint.
+    const mint = item.currency
+      ? await createMint({ bound: true })
+      : item.category === "food"
+        ? new PublicKey(state.foodMints[item.food])
+        : await createMint({});
     const unitsPerPurchase = item.category === "food" ? item.pack : 1;
     await program.methods
       .createItemType(itemId, new BN(item.price), unitsPerPurchase)

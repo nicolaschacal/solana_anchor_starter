@@ -83,6 +83,28 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
   return send(connection, wallet, [ix]);
 }
 
+/** Burn Sparks, receive an account-bound item. */
+export async function buyItemWithSparks(connection: Connection, wallet: Wallet, itemId: number, itemMint: string, quantity = 1) {
+  const spark = need(DEPLOYMENT.sparkMint, "Sparks");
+  const mint = new PublicKey(itemMint);
+  const ix = await getProgram(connection, wallet)
+    .methods.buyItemSparks(quantity)
+    .accountsStrict({
+      owner: wallet.publicKey,
+      economy: economyPda(),
+      itemType: itemTypePda(itemId),
+      sparkMint: spark,
+      ownerSparkAccount: ata(spark, wallet.publicKey),
+      itemMint: mint,
+      ownerItemAccount: ata(mint, wallet.publicKey),
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  return send(connection, wallet, [ix]);
+}
+
 /**
  * The wallet's single profile account (pokedex + daily ration/quest state). Creates it when it does not
  * exist yet, which also covers wallets that only had a legacy profile; returns [] otherwise.
