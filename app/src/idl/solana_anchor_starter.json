@@ -1886,9 +1886,6 @@
         },
         {
           "name": "player_profile",
-          "docs": [
-            "The player's profile: counts the action for today's quests."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1910,6 +1907,68 @@
               }
             ]
           }
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "food_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  111,
+                  111,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "food_mint",
+          "docs": [
+            "The free-to-trade mint of this food (the ration mint)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "bound_food_mint",
+          "docs": [
+            "The account-bound mint of this food."
+          ],
+          "writable": true
+        },
+        {
+          "name": "owner_food",
+          "docs": [
+            "Omit (null) when the wallet holds none of that food."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "owner_bound_food",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "token_program",
@@ -2402,6 +2461,110 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "set_bound_food",
+      "docs": [
+        "Registers the four account-bound food mints (meat, plant, fish, fruit) that feeding burns",
+        "before the free-to-trade ones. Each must be a NonTransferable economy mint."
+      ],
+      "discriminator": [
+        226,
+        5,
+        29,
+        169,
+        152,
+        122,
+        147,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "food_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  111,
+                  111,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "meat_mint"
+        },
+        {
+          "name": "plant_mint"
+        },
+        {
+          "name": "fish_mint"
+        },
+        {
+          "name": "fruit_mint"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "set_gem_pack",
@@ -2911,6 +3074,19 @@
       ]
     },
     {
+      "name": "FoodConfig",
+      "discriminator": [
+        147,
+        119,
+        79,
+        147,
+        133,
+        141,
+        149,
+        165
+      ]
+    },
+    {
       "name": "ItemType",
       "discriminator": [
         237,
@@ -3258,6 +3434,11 @@
     },
     {
       "code": 6032,
+      "name": "NoFood",
+      "msg": "You have no food of that kind"
+    },
+    {
+      "code": 6033,
       "name": "WrongCurrency",
       "msg": "This item is bought with a different currency"
     }
@@ -3369,6 +3550,30 @@
           {
             "name": "created_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FoodConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bound_mints",
+            "docs": [
+              "Account-bound (Sparks-bought) mints of meat, plant, fish, fruit."
+            ],
+            "type": {
+              "array": [
+                "pubkey",
+                4
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
