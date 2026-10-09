@@ -12,11 +12,7 @@ export type WorldLayout = { v: 1; placed: PlacedRebyter[]; props: PlacedProp[] |
 
 export type HabitatSize = IslandSize;
 
-/**
- * What an island holds. Its size fixes a ceiling (3, 5 or 8 rebyters; 14, 24 or 40 objects) and its land
- * can lower it: water and cliffs are not standable, and every rebyter needs about 8 free tiles and every
- * object about 2.
- */
+/** What an island holds: its size fixes it (3, 5 or 8 rebyters; 14, 24 or 40 objects), as registered on chain. */
 export type HabitatSpec = {
   size: HabitatSize;
   climate: Climate;

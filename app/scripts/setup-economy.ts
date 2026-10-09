@@ -29,6 +29,7 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { CATALOG, FOOD_PRICES, registrable } from "../src/lib/economy/catalog";
+import { PROPS_BY_SIZE, REBYTERS_BY_SIZE } from "../src/components/world/terrain";
 import { fetchActiveFamilyTree } from "../src/lib/rebyters/companions";
 import { PROGRAM_ID, registryPda } from "../src/lib/rebyters/config";
 import { getProgram } from "../src/lib/rebyters/registry";
@@ -69,7 +70,7 @@ const economyPda = PublicKey.findProgramAddressSync([enc.encode("economy3")], PR
 const itemPda = (id: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, id, true);
-  return PublicKey.findProgramAddressSync([enc.encode("item3"), bytes], PROGRAM_ID)[0];
+  return PublicKey.findProgramAddressSync([enc.encode("item4"), bytes], PROGRAM_ID)[0];
 };
 
 async function loadKeypair(path: string) {
@@ -234,7 +235,7 @@ async function main() {
     }
     if (item.category === "habitat") {
       await program.methods
-        .createHabitatType(itemId, new BN(item.price))
+        .createHabitatType(itemId, new BN(item.price), REBYTERS_BY_SIZE[item.size], PROPS_BY_SIZE[item.size])
         .accountsStrict({
           authority,
           registry: registryPda(),

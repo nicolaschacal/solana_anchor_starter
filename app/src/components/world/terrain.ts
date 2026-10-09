@@ -94,8 +94,6 @@ export function tileIsFree(tiles: TileData | null, i: number, j: number): boolea
 /** How many rebyters and objects an island holds: a ceiling by size, lowered by its land. */
 export const REBYTERS_BY_SIZE: Record<IslandSize, number> = { 5: 3, 7: 5, 9: 8 };
 export const PROPS_BY_SIZE: Record<IslandSize, number> = { 5: 14, 7: 24, 9: 40 };
-export const TILES_PER_REBYTER = 8;
-const PROPS_PER_TILE = 0.6;
 
 export function freeTileCount(tiles: TileData | null, size: IslandSize) {
   const r = islandRegion(size);
@@ -104,11 +102,14 @@ export function freeTileCount(tiles: TileData | null, size: IslandSize) {
   return n;
 }
 
+/**
+ * What an island holds: fixed by its size (and registered on chain with the habitat kind). The land
+ * (water, cliffs) does not lower it yet; `freeTiles` is only informative.
+ */
 export function islandCapacity(size: IslandSize, climate: Climate) {
-  const freeTiles = freeTileCount(terrainFor(climate, size), size);
   return {
-    freeTiles,
-    maxPlaced: Math.min(REBYTERS_BY_SIZE[size], Math.floor(freeTiles / TILES_PER_REBYTER)),
-    maxProps: Math.min(PROPS_BY_SIZE[size], Math.floor(freeTiles * PROPS_PER_TILE)),
+    freeTiles: freeTileCount(terrainFor(climate, size), size),
+    maxPlaced: REBYTERS_BY_SIZE[size],
+    maxProps: PROPS_BY_SIZE[size],
   };
 }

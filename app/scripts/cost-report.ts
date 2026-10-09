@@ -70,7 +70,7 @@ async function main() {
   await measure("train (normal rate, no machine)", () => interactWithRebyter(connection, wallet as never, wallet, mint, "train", 5));
   await measure("rest", () => interactWithRebyter(connection, wallet as never, wallet, mint, "rest", 0));
   await measure("save habitat layout", () =>
-    saveHabitatLayout(connection, wallet as never, habitat, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
+    saveHabitatLayout(connection, wallet as never, habitat, DEPLOYMENT.items[STARTER_HABITAT_ID].itemId, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
   );
   await measure(`buy Gems (pack 0, price ${sol(pack.priceLamports)} SOL excluded)`, async () => {
     const sig = await buyGems(connection, wallet as never, pack.id);

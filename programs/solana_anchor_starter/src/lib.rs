@@ -353,6 +353,8 @@ pub mod solana_anchor_starter {
         item.machine_training = machine_training;
         item.machine_bonus = machine_bonus;
         item.evo_target = evo_target;
+        item.max_placed = 0;
+        item.max_props = 0;
         item.bump = ctx.bumps.item_type;
         Ok(())
     }
@@ -363,7 +365,16 @@ pub mod solana_anchor_starter {
         ctx: Context<CreateHabitatType>,
         item_id: u16,
         price_gems: u64,
+        max_placed: u8,
+        max_props: u8,
     ) -> Result<()> {
+        require!(
+            max_placed > 0
+                && usize::from(max_placed) <= MAX_PLACED_SLOTS
+                && max_props > 0
+                && usize::from(max_props) <= MAX_PROP_SLOTS,
+            RegistryError::InvalidLayout
+        );
         let item = &mut ctx.accounts.item_type;
         item.item_id = item_id;
         item.mint = Pubkey::default();
@@ -373,6 +384,8 @@ pub mod solana_anchor_starter {
         item.machine_training = NO_MACHINE;
         item.machine_bonus = 0;
         item.evo_target = 0;
+        item.max_placed = max_placed;
+        item.max_props = max_props;
         item.bump = ctx.bumps.item_type;
         Ok(())
     }
@@ -745,8 +758,10 @@ pub mod solana_anchor_starter {
         placed: Vec<PlacedSlot>,
         props: Vec<PropSlot>,
     ) -> Result<()> {
+        // The island's own limits come from its kind, fixed when the kind was registered.
+        let item = &ctx.accounts.item_type;
         require!(
-            placed.len() <= MAX_PLACED_SLOTS && props.len() <= MAX_PROP_SLOTS,
+            placed.len() <= usize::from(item.max_placed) && props.len() <= usize::from(item.max_props),
             RegistryError::InvalidLayout
         );
         for prop in props.iter() {
@@ -770,6 +785,17 @@ pub mod solana_anchor_starter {
             let mut metadata = state
                 .get_variable_len_extension::<TokenMetadata>()
                 .map_err(|_| error!(RegistryError::InvalidMetadata))?;
+            // The HABITAT field (only this program can write it) says which kind of island this is.
+            let kind = metadata
+                .additional_metadata
+                .iter()
+                .find(|(key, _)| key == "HABITAT")
+                .map(|(_, value)| value.as_str())
+                .ok_or_else(|| error!(RegistryError::InvalidMetadata))?;
+            require!(
+                kind == ctx.accounts.item_type.item_id.to_string(),
+                RegistryError::InvalidLayout
+            );
             metadata.update(Field::Key("LAYOUT".to_string()), value.clone());
             let new_len = state
                 .try_get_new_account_len_for_variable_len_extension(&metadata)
@@ -2139,7 +2165,7 @@ pub struct CreateHabitatType<'info> {
         init,
         payer = authority,
         space = 8 + ItemType::INIT_SPACE,
-        seeds = [b"item3", item_id.to_le_bytes().as_ref()],
+        seeds = [b"item4", item_id.to_le_bytes().as_ref()],
         bump
     )]
     pub item_type: Account<'info, ItemType>,
@@ -2155,7 +2181,7 @@ pub struct CreateHabitat<'info> {
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Box<Account<'info, Economy>>,
-    #[account(seeds = [b"item3", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(seeds = [b"item4", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Box<Account<'info, ItemType>>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -2180,6 +2206,9 @@ pub struct CreateHabitat<'info> {
 pub struct HabitatLayout<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
+    /// The kind of island this habitat is: it holds the limits.
+    #[account(seeds = [b"item4", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    pub item_type: Box<Account<'info, ItemType>>,
     /// CHECK: Token-2022 mint holding the habitat; only our PDA can write its layout.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
@@ -2529,6 +2558,9 @@ pub struct ItemType {
     pub machine_bonus: u8,
     /// Evolution id this item turns a Rebyter into (0 = not an evolution item).
     pub evo_target: u16,
+    /// Habitats only: the most Rebyters and objects this kind of island can hold (0 for other items).
+    pub max_placed: u8,
+    pub max_props: u8,
     pub bump: u8,
 }
 
@@ -2567,7 +2599,7 @@ pub struct CreateItemType<'info> {
         init,
         payer = authority,
         space = 8 + ItemType::INIT_SPACE,
-        seeds = [b"item3", item_id.to_le_bytes().as_ref()],
+        seeds = [b"item4", item_id.to_le_bytes().as_ref()],
         bump
     )]
     pub item_type: Account<'info, ItemType>,
@@ -2581,7 +2613,7 @@ pub struct UpdateItemType<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"item3", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(mut, seeds = [b"item4", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
 }
 
@@ -2615,7 +2647,7 @@ pub struct BuyItem<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(seeds = [b"item3", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(seeds = [b"item4", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: InterfaceAccount<'info, Mint>,

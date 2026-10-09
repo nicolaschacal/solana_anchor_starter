@@ -129,7 +129,7 @@ owned for that training automatically. Machines are not consumed.
 **Evolution items.** 10 items (rare 1800 Gems, ultra 4500 Gems) for the mammal line. Using one burns 1 and skips the rule's requirements
 for that single target; the route must still exist in the active atlas. Ids are resolved by evolution key at setup time.
 
-**Seeds** are `economy3` / `item3` / `profile4`: old devnet accounts are never read (no backward compatibility).
+**Seeds** are `economy3` / `item4` / `profile4`: old devnet accounts are never read (no backward compatibility).
 
 **Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
 (ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.

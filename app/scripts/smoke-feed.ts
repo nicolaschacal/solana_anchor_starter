@@ -8,6 +8,8 @@ import { readFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
+import { STARTER_HABITAT_ID } from "../src/lib/economy/catalog";
+import { DEPLOYMENT } from "../src/lib/economy/deployment";
 import { layoutFromHex } from "../src/lib/rebyters/habitat-layout";
 import { playerProfilePda } from "../src/lib/rebyters/config";
 import { createRebyter, interactWithRebyter } from "../src/lib/rebyters/companions";
@@ -77,7 +79,7 @@ async function main() {
       { key: "lantern" as const, x: -12, z: -24.75, h: 0.9, r: 2.5 },
     ],
   };
-  await saveHabitatLayout(connection, wallet as never, habitat, layout);
+  await saveHabitatLayout(connection, wallet as never, habitat, DEPLOYMENT.items[STARTER_HABITAT_ID].itemId, layout);
   await pause(1500);
   const meta = await getTokenMetadata(connection, new PublicKey(habitat), "confirmed", TOKEN_2022_PROGRAM_ID);
   const read = layoutFromHex(new Map(meta?.additionalMetadata ?? []).get("LAYOUT"));

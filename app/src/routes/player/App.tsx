@@ -783,7 +783,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             creatures={worldCreatures}
             key={inventory.activeHabitat?.mint??"no-habitat"}
             initialLayout={inventory.activeHabitat?.layout??null}
-            onCommitLayout={layout=>inventory.activeHabitat?saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,inventory.activeHabitat.mint,layout):Promise.resolve()}
+            onCommitLayout={layout=>inventory.activeHabitat?saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,inventory.activeHabitat.mint,inventory.activeHabitat.itemId,layout):Promise.resolve()}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}

@@ -29,7 +29,7 @@ export const economyPda = () => PublicKey.findProgramAddressSync([enc.encode("ec
 export const itemTypePda = (itemId: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, itemId, true);
-  return PublicKey.findProgramAddressSync([enc.encode("item3"), bytes], PROGRAM_ID)[0];
+  return PublicKey.findProgramAddressSync([enc.encode("item4"), bytes], PROGRAM_ID)[0];
 };
 
 type Wallet = AnchorWallet;
@@ -95,13 +95,14 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
 }
 
 /** Saves the layout inside the habitat NFT the wallet holds. */
-export async function saveHabitatLayout(connection: Connection, wallet: Wallet, habitatMint: string, layout: WorldLayout) {
+export async function saveHabitatLayout(connection: Connection, wallet: Wallet, habitatMint: string, kindItemId: number, layout: WorldLayout) {
   const { placed, props } = encodeLayout(layout);
   const mint = new PublicKey(habitatMint);
   const ix = await getProgram(connection, wallet)
     .methods.setHabitatLayout(placed as never, props as never)
     .accountsStrict({
       owner: wallet.publicKey,
+      itemType: itemTypePda(kindItemId),
       mint,
       ownerTokenAccount: ata(mint, wallet.publicKey),
       habitatAuthority: habitatAuthorityPda(mint),

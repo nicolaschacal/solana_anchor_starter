@@ -33,7 +33,7 @@ pub fn economy() -> Pubkey {
     Pubkey::find_program_address(&[b"economy3"], &program_id()).0
 }
 pub fn item_pda(id: u16) -> Pubkey {
-    Pubkey::find_program_address(&[b"item3", &id.to_le_bytes()], &program_id()).0
+    Pubkey::find_program_address(&[b"item4", &id.to_le_bytes()], &program_id()).0
 }
 pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     get_associated_token_address_with_program_id(owner, mint, &token_2022::ID)
@@ -309,7 +309,7 @@ pub fn world() -> World {
         vec![
             set_food_ix(&admin.pubkey(), RATION_UNITS, FOOD_PRICES),
             create_habitat_type_ix(&admin.pubkey(), STARTER_HABITAT, 0),
-            create_habitat_type_ix(&admin.pubkey(), PAID_HABITAT, PAID_HABITAT_PRICE),
+            create_habitat_type_with_limits_ix(&admin.pubkey(), PAID_HABITAT, PAID_HABITAT_PRICE, 5, 24),
         ],
     )
     .expect("food and habitats configure");
@@ -413,8 +413,11 @@ pub fn buy_food_ix(owner: &Pubkey, gem_mint: &Pubkey, food_type: u8, tier: u8, a
     )
 }
 pub fn create_habitat_type_ix(authority: &Pubkey, id: u16, price: u64) -> Instruction {
+    create_habitat_type_with_limits_ix(authority, id, price, 3, 14)
+}
+pub fn create_habitat_type_with_limits_ix(authority: &Pubkey, id: u16, price: u64, max_placed: u8, max_props: u8) -> Instruction {
     ix(
-        instruction::CreateHabitatType { item_id: id, price_gems: price },
+        instruction::CreateHabitatType { item_id: id, price_gems: price, max_placed, max_props },
         accounts::CreateHabitatType {
             authority: *authority,
             registry: registry(),
@@ -492,11 +495,13 @@ pub fn habitat_layout_ix(
     mint: &Pubkey,
     placed: Vec<solana_anchor_starter::PlacedSlot>,
     props: Vec<solana_anchor_starter::PropSlot>,
+    kind: u16,
 ) -> Instruction {
     ix(
         instruction::SetHabitatLayout { placed, props },
         accounts::HabitatLayout {
             owner: *owner,
+            item_type: item_pda(kind),
             mint: *mint,
             owner_token_account: ata(owner, mint),
             habitat_authority: habitat_authority(mint),

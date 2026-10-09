@@ -12,19 +12,13 @@ describe("world layout", () => {
     expect(onBoard(BOARD.i1 + 1, BOARD.j0)).toBe(false);
   });
 
-  it("sets a ceiling by size and lowers it with the land", () => {
+  it("fixes the limits by island size, whatever the land", () => {
     expect(([5, 7, 9] as const).map((n) => specFor(n).maxPlaced)).toEqual([3, 5, 8]);
     expect(([5, 7, 9] as const).map((n) => specFor(n).maxProps)).toEqual([14, 24, 40]);
-    // Water and cliffs take space away: frozen ridges and craters hold less than open land.
-    const caps = {
-      oasis: specFor(7, "arid"),
-      frost: specFor(7, "cold"),
-      rain: specFor(9, "humid"),
-      ember: specFor(9, "volcanic"),
-    };
-    expect(Object.values(caps).map((c) => c.maxPlaced)).toEqual([5, 4, 8, 6]);
-    expect(caps.frost.maxProps).toBeLessThan(24);
-    expect(caps.ember.freeTiles).toBeLessThan(specFor(9).freeTiles);
+    expect(specFor(7, "cold").maxPlaced).toBe(5);
+    expect(specFor(9, "volcanic").maxPlaced).toBe(8);
+    // Water and cliffs still keep rebyters off those tiles.
+    expect(specFor(9, "volcanic").freeTiles).toBeLessThan(specFor(9).freeTiles);
   });
 
   it("only starts rebyters on standable tiles of a bigger island", () => {
