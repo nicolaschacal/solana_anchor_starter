@@ -47,5 +47,144 @@
       "priceLamports": 500000000
     }
   ],
-  "items": {}
+  "items": {
+    "habitat-meadow-5": {
+      "itemId": 100,
+      "mint": null
+    },
+    "habitat-oasis-10": {
+      "itemId": 101,
+      "mint": null
+    },
+    "habitat-frost-10": {
+      "itemId": 102,
+      "mint": null
+    },
+    "habitat-jungle-15": {
+      "itemId": 103,
+      "mint": null
+    },
+    "habitat-ember-15": {
+      "itemId": 104,
+      "mint": null
+    },
+    "machine-power": {
+      "itemId": 105,
+      "mint": "2VH4WzqMRVC9uQxFzGnU1NRZwCwfcYM1916DNMrNhFD1"
+    },
+    "machine-endurance": {
+      "itemId": 106,
+      "mint": "HqmdEzQe88PHxcpeRo9SSDiioRaiE8EEFLZHdaVRhFVE"
+    },
+    "machine-defense": {
+      "itemId": 107,
+      "mint": "AYECxbihazCkq9iicqMyiNSQrAXg8AVZLT1Shqg8nvtD"
+    },
+    "machine-speed": {
+      "itemId": 108,
+      "mint": "BxFuwEEeAV6ssVgi4p6QzhkGHWtdouCPWbAYDN1P9jMB"
+    },
+    "machine-combat": {
+      "itemId": 109,
+      "mint": "GcH2yvt4Pshv5ASaVLBBaAP4JuqqFVSXvSAW4En7NyiT"
+    },
+    "machine-balance": {
+      "itemId": 110,
+      "mint": "2iZD3v7ZGbgo6EqRSTuYW1FWDLXB71KeuTax2eiqoHWa"
+    },
+    "decor-pine": {
+      "itemId": 111,
+      "mint": "7iRMX2X3nrU53mTvngJ2DB3tnBaaQmDzARqyZXEPYxaT"
+    },
+    "decor-hero": {
+      "itemId": 112,
+      "mint": "DhdSs38uU6Xi4mM6w9h4U4bX6LD96n9D6g1YyZp81iLC"
+    },
+    "decor-log": {
+      "itemId": 113,
+      "mint": "E6W8fNtqR3dqSiQeJaMreujdrP5p8YdSxGa3KYJKSXEo"
+    },
+    "decor-lantern": {
+      "itemId": 114,
+      "mint": "HeGJvPaQ3Wr8JgPGu9b5XTDetxkXXUZL7mNgRKYKoA4Z"
+    },
+    "decor-flowers": {
+      "itemId": 115,
+      "mint": "5z3LQ5FsRemacmeRhegiNsSmbVh9yyJn5YsvzagNq5dy"
+    },
+    "machine-power-pro": {
+      "itemId": 116,
+      "mint": "EniWtzcaY9hAsUbmo7nvY85BzajsMvL2Xvr6pQCtLmBk"
+    },
+    "machine-endurance-pro": {
+      "itemId": 117,
+      "mint": "H76Lta3sLjtK6KJyLLGaECTrfa9Z5PZ45MkKvKTJHRR4"
+    },
+    "machine-defense-pro": {
+      "itemId": 118,
+      "mint": "8787uMEZp1W9Yk2M1aQs3QZR6SKUgR2qeLgWB7rJ3qJ6"
+    },
+    "machine-speed-pro": {
+      "itemId": 119,
+      "mint": "EuYgSaoVU2sn1ZKtgbK4ZiWLUiPtyjiG1tXaWasqtVnn"
+    },
+    "machine-combat-pro": {
+      "itemId": 120,
+      "mint": "ERwATXzR9BRC13hGEZLd3XiB5x2cxd8UMm2HCc7xULrJ"
+    },
+    "machine-balance-pro": {
+      "itemId": 121,
+      "mint": "36Y5nswSaF6xrEarRpcYeZVSx6YCaeVNBApCpn8TqJk5"
+    },
+    "evo-spirit_fox": {
+      "itemId": 122,
+      "mint": "4qefdAddJbvD2BGpbzERR1dYAcv4BuzeEKuUNdU4WDaM",
+      "evoTarget": 657
+    },
+    "evo-dire_wolf": {
+      "itemId": 123,
+      "mint": "7cemnz21AXEJjLLcGgvQUedLHEZihaHcA8qZgSymFh92",
+      "evoTarget": 658
+    },
+    "evo-iron_bear": {
+      "itemId": 124,
+      "mint": "EKPCEBG4DXv3zdBtwqTCcZEtUC3YGKiod2dVqAXEYrvF",
+      "evoTarget": 661
+    },
+    "evo-titan_ape": {
+      "itemId": 125,
+      "mint": "DYw2RZSQr9tfN9XQyj6QYijRFZR9NuD9v3KZBZZwEYtQ",
+      "evoTarget": 664
+    },
+    "evo-sky_courser": {
+      "itemId": 126,
+      "mint": "A2Pk9ykxdQgNEyDHeLKn6iwbAZhDtRe73PLBkuvjW8az",
+      "evoTarget": 665
+    },
+    "evo-mammoth": {
+      "itemId": 127,
+      "mint": "5njxuVkufhcfRNrkZxsJSXyCU2vFJZGC8iK7hxHdEN2T",
+      "evoTarget": 669
+    },
+    "evo-kitsune": {
+      "itemId": 128,
+      "mint": "FsxXzdHLARUMCSkJU2R2GtCTfZzQp36Q22ncuQEisFMW",
+      "evoTarget": 670
+    },
+    "evo-fenrir": {
+      "itemId": 129,
+      "mint": "87UxNFG5SWNr95tvfjuesmwpqpyxYfbRrynMyT7UkZ9Y",
+      "evoTarget": 671
+    },
+    "evo-behemoth": {
+      "itemId": 130,
+      "mint": "9uFWM5uGrxqabDLngemcYE3XQUiRgwqRJfpCXBR5Zgs4",
+      "evoTarget": 673
+    },
+    "evo-leviathan": {
+      "itemId": 131,
+      "mint": "BFuDmBTroecE2VXGg7MSUYpvkX8qFBEcvWryBif9X3ZL",
+      "evoTarget": 674
+    }
+  }
 }
