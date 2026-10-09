@@ -147,7 +147,14 @@ async function main() {
     return mint.publicKey;
   }
 
-  // 1. Economy + Gems.
+  // 1. Economy + Gems. If a previous run died after creating it, recover the Gems mint from chain.
+  if ((await connection.getAccountInfo(economyPda)) && !state.gemMint) {
+    const existing = await (program.account as any).economy.fetch(economyPda);
+    state.gemMint = existing.gemMint.toBase58();
+    state.treasury = existing.treasury.toBase58();
+    await save();
+    console.log("Recovered Gems mint", state.gemMint);
+  }
   if (!(await connection.getAccountInfo(economyPda))) {
     const gem = state.gemMint ? new PublicKey(state.gemMint) : await createMint({ gem: true });
     state.gemMint = gem.toBase58();
@@ -216,6 +223,14 @@ async function main() {
   for (const [index, item] of sellable.entries()) {
     if (state.items[item.id]) continue;
     const itemId = 100 + index;
+    // Created by an earlier run that did not get to save its progress: adopt it.
+    if (await connection.getAccountInfo(itemPda(itemId))) {
+      const existing = await (program.account as any).itemType.fetch(itemPda(itemId));
+      state.items[item.id] = { itemId, mint: existing.mint.toBase58() };
+      await save();
+      console.log(`Item ${item.id} -> #${itemId} (already on chain)`);
+      continue;
+    }
     const mint =
       item.category === "food" ? new PublicKey(state.foodMints[item.food]) : await createMint({});
     const unitsPerPurchase = item.category === "food" ? item.pack : 1;
