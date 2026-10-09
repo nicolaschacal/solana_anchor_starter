@@ -1,11 +1,10 @@
-import { Check, Gift, Sparkles, X } from "lucide-react";
+import { Check, Gift, X } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useState } from "react";
 import { FoodArt } from "../store/FoodArt";
 import { claimDailyRation, claimQuest } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { secondsToReset } from "../../lib/economy/quests";
-import { formatGems, SPARKS, type GemBalance } from "../../lib/economy/token";
 import { useRebytersAuth } from "../../lib/rebyters/auth";
 import type { Daily } from "../../hooks/useDaily";
 
@@ -18,7 +17,7 @@ function countdown(seconds: number) {
 }
 
 /** Daily ration and the three daily quests. Everything it shows is read from, and paid by, the chain. */
-export function DailySheet({ daily, sparks, onClose }: { daily: Daily; sparks: GemBalance; onClose: () => void }) {
+export function DailySheet({ daily, onClose }: { daily: Daily; onClose: () => void }) {
   const { connection } = useConnection();
   const anchorWallet = useRebytersAuth().anchorWallet;
   const [busy, setBusy] = useState("");
@@ -54,16 +53,13 @@ export function DailySheet({ daily, sparks, onClose }: { daily: Daily; sparks: G
         </div>
 
         <div className="store-balance" role="status">
-          <span className="store-coin spark" aria-hidden="true">
-            <Sparkles />
-          </span>
           <span className="store-balance-copy">
-            <small>Your Sparks</small>
-            <strong>
-              {sparks.loading ? "…" : formatGems(sparks.amount)} <em>{SPARKS.symbol}</em>
-            </strong>
+            <small>New rewards in</small>
+            <strong>{countdown(secondsToReset(daily.now))}</strong>
           </span>
-          <span className="store-soon">Resets in {countdown(secondsToReset(daily.now))}</span>
+          <span className="store-soon">
+            In stock: {daily.food.map((n, i) => `${FOODS[i]} ${n}`).join(" · ")}
+          </span>
         </div>
 
         {!daily.available ? (
@@ -78,7 +74,7 @@ export function DailySheet({ daily, sparks, onClose }: { daily: Daily; sparks: G
               </div>
               <div className="daily-copy">
                 <strong>Daily ration</strong>
-                <small>{DEPLOYMENT.rationUnits} of each food, free, once per day</small>
+                <small>{DEPLOYMENT.rationUnits} meals of each food, free, once per day</small>
               </div>
               <button
                 className="ui-btn ui-btn-primary store-buy"
@@ -98,7 +94,7 @@ export function DailySheet({ daily, sparks, onClose }: { daily: Daily; sparks: G
                       <i style={{ width: `${(q.progress / q.target) * 100}%` }} />
                     </div>
                     <small>
-                      {q.progress}/{q.target} · +{q.reward} {SPARKS.symbol}
+                      {q.progress}/{q.target} · +{q.reward} {FOODS[q.food].toLowerCase()}
                     </small>
                   </div>
                   <button

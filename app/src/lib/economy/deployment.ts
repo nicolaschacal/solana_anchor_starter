@@ -7,12 +7,13 @@ export type EconomyDeployment = {
   economy: string;
   treasury: string;
   gemMint: string | null;
-  sparkMint: string | null;
-  /** meat, plants, fish, fruit */
-  foodMints: string[];
+  /** Meals in a purchased pack, and the Gem price of one pack of meat, plants, fish, fruit. 0 = not set up. */
+  food: { packMeals: number; prices: number[] };
+  /** Meals of each food in the free daily ration; 0 = off. */
   rationUnits: number;
   packs: { id: number; gems: number; priceLamports: number }[];
-  items: Record<string, { itemId: number; mint: string }>;
+  /** Store items registered on-chain. Habitats have no shared mint: every habitat is its own NFT. */
+  items: Record<string, { itemId: number; mint: string | null }>;
 };
 
 export const DEPLOYMENT = raw as EconomyDeployment;

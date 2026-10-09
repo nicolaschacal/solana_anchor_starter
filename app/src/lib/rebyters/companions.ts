@@ -21,12 +21,11 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import { hexToBytes } from "@noble/hashes/utils";
-import type { WorldLayout } from "../../components/world/layout";
-import { decodeLayout } from "./habitat-layout";
 import { budgetIxs } from "../economy/budget";
-import { economyPda, ensureProfileIx } from "../economy/actions";
+import { claimStarterPack, ensureProfileIx } from "../economy/actions";
+import { STARTER_HABITAT_ID } from "../economy/catalog";
 import { DEPLOYMENT } from "../economy/deployment";
-import { BOUND_FOOD_IDS } from "../economy/inventory";
+import { fetchProfileState } from "../economy/profile";
 import { refreshBalances } from "../economy/token";
 import {
   PROGRAM_ID,
@@ -43,8 +42,6 @@ export interface PlayerProfile {
   owner: string;
   createdAt: number;
   discoveries: number[];
-  /** The saved habitat layout, or null when the player never saved one. */
-  layout: WorldLayout | null;
 }
 
 export interface OnchainRebyter {
@@ -183,12 +180,6 @@ export async function fetchPlayerProfile(
     owner: account.owner.toBase58(),
     createdAt: Number(account.createdAt),
     discoveries: Array.from(account.discoveries as number[]),
-    layout: decodeLayout({
-      layoutSet: !!account.layoutSet,
-      placed: account.placed,
-      propCount: Number(account.propCount),
-      props: account.props,
-    }),
   };
 }
 
@@ -387,6 +378,13 @@ export async function createRebyter(
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
 
+  // First Rebyter of this wallet: the starter pack (profile, habitat NFT, first meals) comes first.
+  // It is its own transaction because a second mint would not fit next to the evolution proof.
+  if (DEPLOYMENT.items[STARTER_HABITAT_ID]) {
+    const state = await fetchProfileState(connection, wallet.publicKey).catch(() => null);
+    if (!state?.starterClaimed) await claimStarterPack(connection, anchorWallet);
+  }
+
   const { tree, version } = await fetchActiveFamilyTree(connection, familyId);
   const origin = tree.evolutions.find((e) => e.stage === 0 && e.enabled);
   if (!origin) throw new Error("Active family has no enabled BIT origin");
@@ -543,31 +541,12 @@ export async function interactWithRebyter(
     playerProfile: playerProfilePda(wallet.publicKey),
     tokenProgram: TOKEN_2022_PROGRAM_ID,
   };
-  let accounts: Record<string, PublicKey | null> = base;
   if (action === "feed") {
-    // Feeding burns one meal: say so before signing if there is none, and pass only the stacks that exist.
-    const plainMint = DEPLOYMENT.foodMints[option];
-    const boundMint = DEPLOYMENT.items[BOUND_FOOD_IDS[option]]?.mint;
-    if (!plainMint || !boundMint) throw new Error("Food is not set up on this network yet");
-    const plainAta = getAssociatedTokenAddressSync(new PublicKey(plainMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID);
-    const boundAta = getAssociatedTokenAddressSync(new PublicKey(boundMint), wallet.publicKey, false, TOKEN_2022_PROGRAM_ID);
-    const amount = async (account: PublicKey) => {
-      const balance = await connection.getTokenAccountBalance(account, "confirmed").catch(() => null);
-      return balance ? Number(balance.value.amount) : null;
-    };
-    const [plain, bound] = await Promise.all([amount(plainAta), amount(boundAta)]);
-    if (!plain && !bound) throw new Error("You are out of that food. Claim your daily ration or visit the store.");
-    accounts = {
-      ...base,
-      economy: economyPda(),
-      foodConfig: PublicKey.findProgramAddressSync([new TextEncoder().encode("food")], PROGRAM_ID)[0],
-      foodMint: new PublicKey(plainMint),
-      boundFoodMint: new PublicKey(boundMint),
-      ownerFood: plain !== null ? plainAta : null,
-      ownerBoundFood: bound !== null ? boundAta : null,
-    };
+    // Feeding uses up one meal from the profile: say so before signing if there is none.
+    const state = await fetchProfileState(connection, wallet.publicKey).catch(() => null);
+    if (!state || (state.food[option] ?? 0) < 1) throw new Error("You are out of that food. Claim your daily ration or visit the store.");
   }
-  const ix = await builder.accountsStrict(accounts as never).instruction();
+  const ix = await builder.accountsStrict(base as never).instruction();
 
   const block = await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(...budgetIxs(), ...preInstructions, ix);

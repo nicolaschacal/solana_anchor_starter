@@ -175,75 +175,30 @@ fn the_economy_rejects_badly_shaped_gem_mints() {
     send(&mut svm, &admin, &[], ixs).expect("well-shaped gem mint is accepted");
 }
 
-/// Sparks buy account-bound items: they are burned, the item is minted non-transferable, and the
-/// two currencies cannot be mixed up.
+/// Food is bought with Gems and lands in the profile as meals; nothing is minted.
 #[test]
-fn sparks_buy_bound_items_and_gems_cannot() {
+fn food_is_bought_with_gems_into_the_profile() {
     let mut w = world();
-    let (admin, player) = (w.admin.pubkey(), w.player.pubkey());
-    const BOUND_ID: u16 = 7;
-    let bound = Keypair::new();
-    create_mint(&mut w.svm, &w.admin, &bound, &economy(), true, None).unwrap();
-    send(&mut w.svm, &w.admin, &[], vec![create_item_ix(&admin, BOUND_ID, &bound.pubkey(), 20, 5)]).unwrap();
-
-    // Earn 20+ Sparks the real way: count actions, claim every quest of the day.
-    let now = 500 * DAY;
-    set_time(&mut w.svm, now);
-    let day = solana_anchor_starter::game_day(now);
+    let player = w.player.pubkey();
     send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
-    edit_daily(&mut w.svm, &player, |d| {
-        d.quest_day = day;
-        d.counts = [200; 5];
-    });
-    for slot in 0..3u8 {
-        send(&mut w.svm, &w.player, &[], vec![claim_quest_ix(&player, &w.spark_mint, slot)]).unwrap();
+    send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
+
+    // Two packs of fish (type 2): 2 x 12 Gems, 2 x 5 meals.
+    send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 2, 2)]).expect("buy food");
+    assert_eq!(token_amount(&w.svm, &ata(&player, &w.gem_mint)), PACK_GEMS - 2 * FOOD_PRICES[2]);
+    assert_eq!(read_daily(&w.svm, &player).food, [0, 0, 2 * u16::from(PACK_MEALS), 0]);
+
+    // Unknown food, no packs, too many packs and too few Gems change nothing.
+    for (kind, packs) in [(4u8, 1u16), (0, 0), (0, 100), (0, 50)] {
+        assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, kind, packs)]).is_err());
     }
-    let sparks = |w: &World| token_amount(&w.svm, &ata(&player, &w.spark_mint));
-    let start = sparks(&w);
-    assert!(start >= 20, "quests paid {start}");
-
-    // Not enough for 10 purchases (200 Sparks).
-    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &bound.pubkey(), BOUND_ID, 10)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    assert_eq!(sparks(&w), start);
-
-    // One purchase: 20 Sparks burned, 5 units minted.
-    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &bound.pubkey(), BOUND_ID, 1)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("buy with sparks");
-    assert_eq!(sparks(&w), start - 20);
-    assert_eq!(token_amount(&w.svm, &ata(&player, &bound.pubkey())), 5);
-
-    // The bound item cannot be paid with Gems, and a Gem item cannot be paid with Sparks.
-    let ixs = vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)];
-    send(&mut w.svm, &w.player, &[], ixs).unwrap();
-    let ixs = vec![buy_item_ix(&player, &w.gem_mint, &bound.pubkey(), BOUND_ID, 1)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    let ixs = vec![buy_item_sparks_ix(&player, &w.spark_mint, &w.food_mint, FOOD_ID, 1)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert_eq!(read_daily(&w.svm, &player).food, [0, 0, 2 * u16::from(PACK_MEALS), 0]);
 }
 
 #[test]
-fn bound_food_mints_must_be_distinct_non_transferable_economy_mints() {
+fn food_needs_a_profile() {
     let mut w = world();
-    let admin = w.admin.pubkey();
-    let mut bound = [Pubkey::default(); 4];
-    for slot in bound.iter_mut() {
-        let mint = Keypair::new();
-        create_mint(&mut w.svm, &w.admin, &mint, &economy(), true, None).unwrap();
-        *slot = mint.pubkey();
-    }
-    // Only the registry authority configures it.
-    let ixs = vec![set_bound_food_ix(&w.other.pubkey(), &bound)];
-    assert!(send(&mut w.svm, &w.other, &[], ixs).is_err());
-    // A transferable mint is rejected.
-    let loose = [bound[0], bound[1], bound[2], w.food_mint];
-    assert!(send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &loose)]).is_err());
-    // Duplicates are rejected.
-    let dup = [bound[0], bound[0], bound[2], bound[3]];
-    assert!(send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &dup)]).is_err());
-    // The right shape is accepted and recorded.
-    send(&mut w.svm, &w.admin, &[], vec![set_bound_food_ix(&admin, &bound)]).expect("set bound food");
-    let data = w.svm.get_account(&food_config()).unwrap().data;
-    assert_eq!(&data[8..40], bound[0].as_ref());
-    assert_eq!(&data[8 + 96..8 + 128], bound[3].as_ref());
+    let player = w.player.pubkey();
+    send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
+    assert!(send(&mut w.svm, &w.player, &[], vec![buy_food_ix(&player, &w.gem_mint, 0, 1)]).is_err());
 }

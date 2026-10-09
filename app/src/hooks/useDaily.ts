@@ -4,10 +4,9 @@ import { DEPLOYMENT } from "../lib/economy/deployment";
 import { gameDay, questsFor, type Quest } from "../lib/economy/quests";
 import { BALANCE_EVENT } from "../lib/economy/token";
 import { useRebytersAuth } from "../lib/rebyters/auth";
-import { playerProfilePda } from "../lib/rebyters/config";
-import { getProgram } from "../lib/rebyters/registry";
+import { fetchProfileState, type ProfileState } from "../lib/economy/profile";
 
-type Raw = { rationDay: number; questDay: number; counts: number[]; claimed: number };
+type Raw = ProfileState;
 
 export type QuestState = Quest & { progress: number; done: boolean; claimed: boolean };
 
@@ -19,6 +18,8 @@ export type Daily = {
   day: number;
   rationReady: boolean;
   quests: QuestState[];
+  /** Meals in stock: meat, plants, fish, fruit. */
+  food: number[];
   /** Quests that can be claimed right now. */
   claimable: number;
   now: number;
@@ -31,7 +32,7 @@ export function useDaily(): Daily {
   const [raw, setRaw] = useState<Raw | null>(null);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-  const available = !!DEPLOYMENT.sparkMint && DEPLOYMENT.foodMints.length === 4;
+  const available = DEPLOYMENT.rationUnits > 0 && DEPLOYMENT.food.packMeals > 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000);
@@ -47,18 +48,9 @@ export function useDaily(): Daily {
     const read = async () => {
       setLoading(true);
       try {
-        const account = await (getProgram(connection).account as any).playerProfile.fetchNullable(playerProfilePda(owner), "confirmed");
+        const state = await fetchProfileState(connection, owner);
         if (dead) return;
-        setRaw(
-          account
-            ? {
-                rationDay: Number(account.rationDay),
-                questDay: Number(account.questDay),
-                counts: Array.from(account.counts as number[]),
-                claimed: Number(account.claimed),
-              }
-            : null,
-        );
+        setRaw(state);
       } catch {
         /* keep the last known state */
       } finally {
@@ -92,6 +84,7 @@ export function useDaily(): Daily {
       day,
       rationReady: available && (raw?.rationDay ?? 0) < day,
       quests,
+      food: raw?.food ?? [0, 0, 0, 0],
       claimable: quests.filter((q) => q.done && !q.claimed).length,
       now,
     };

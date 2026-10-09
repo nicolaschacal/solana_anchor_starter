@@ -9,7 +9,8 @@
 import { readFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { buyGems, buyItem, claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
+import { buyFood, buyGems, buyHabitat, buyItem, claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
+import { STARTER_HABITAT_ID } from "../src/lib/economy/catalog";
 import { DEPLOYMENT } from "../src/lib/economy/deployment";
 import { createRebyter, interactWithRebyter } from "../src/lib/rebyters/companions";
 
@@ -50,26 +51,33 @@ async function main() {
   // Buying gems moves real SOL to the treasury; report only what it costs on top of the price.
   const pack = DEPLOYMENT.packs[0];
   let mint = "";
-  await measure("create first Rebyter (mint + profile)", async () => {
+  let habitat = "";
+  await measure("starter pack (profile + habitat NFT + first meals)", async () => {
+    const pack = await buyHabitat(connection, wallet as never, STARTER_HABITAT_ID);
+    habitat = pack.mint;
+    return pack;
+  });
+  await measure("create first Rebyter (mint)", async () => {
     const created = await createRebyter(connection, wallet as never, wallet, 0);
     mint = created.mint;
     return created;
   });
-  await measure("claim daily ration (first, 4 food accounts)", () => claimDailyRation(connection, wallet as never, true));
+  await measure("claim daily ration", () => claimDailyRation(connection, wallet as never, true));
   await measure("feed", () => interactWithRebyter(connection, wallet as never, wallet, mint, "feed", 0));
   await measure("feed again", () => interactWithRebyter(connection, wallet as never, wallet, mint, "feed", 1));
   await measure("play", () => interactWithRebyter(connection, wallet as never, wallet, mint, "play", 0));
   await measure("care", () => interactWithRebyter(connection, wallet as never, wallet, mint, "care", 0));
   await measure("rest", () => interactWithRebyter(connection, wallet as never, wallet, mint, "rest", 0));
   await measure("save habitat layout", () =>
-    saveHabitatLayout(connection, wallet as never, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
+    saveHabitatLayout(connection, wallet as never, habitat, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
   );
   await measure(`buy Gems (pack 0, price ${sol(pack.priceLamports)} SOL excluded)`, async () => {
     const sig = await buyGems(connection, wallet as never, pack.id);
     return sig;
   });
+  await measure("buy a pack of food with Gems", () => buyFood(connection, wallet as never, 0, 1));
   const flowers = DEPLOYMENT.items["decor-flowers"];
-  await measure("buy a decor item (first time, new account)", () => buyItem(connection, wallet as never, flowers.itemId, flowers.mint, 1));
+  await measure("buy a decor item (first time, new account)", () => buyItem(connection, wallet as never, flowers.itemId, flowers.mint!, 1));
 
   // Send the leftover back.
   const left = await connection.getBalance(user.publicKey, "confirmed");

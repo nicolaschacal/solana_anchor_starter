@@ -1,10 +1,10 @@
-import { Coins, PackageOpen, Sparkles, X } from "lucide-react";
+import { Check, Coins, PackageOpen, X } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useState } from "react";
-import { ACCOUNT_RENT_LAMPORTS, reclaimRent } from "../../lib/economy/actions";
+import { ACCOUNT_RENT_LAMPORTS, reclaimRent, selectHabitat } from "../../lib/economy/actions";
 import { CATALOG, STORE_CATEGORIES, type StoreItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
-import { GEMS, SPARKS, formatGems, type GemBalance } from "../../lib/economy/token";
+import { GEMS, formatGems, type GemBalance } from "../../lib/economy/token";
 import { useRebytersAuth } from "../../lib/rebyters/auth";
 import { FoodArt } from "./FoodArt";
 import { detailFor, iconFor } from "./StoreSheet";
@@ -12,7 +12,7 @@ import { detailFor, iconFor } from "./StoreSheet";
 const SECTION_LABEL: Record<string, string> = { habitat: "Habitats", food: "Food", machine: "Machines", decor: "Decor" };
 
 /** Everything the wallet holds, grouped by type. Read from the wallet; nothing is stored by the game. */
-export function StorageSheet({ balance, sparks, inventory, onClose }: { balance: GemBalance; sparks: GemBalance; inventory: Inventory; onClose: () => void }) {
+export function StorageSheet({ balance, inventory, onClose }: { balance: GemBalance; inventory: Inventory; onClose: () => void }) {
   const { connection } = useConnection();
   const anchorWallet = useRebytersAuth().anchorWallet;
   const [busy, setBusy] = useState(false);
@@ -22,13 +22,27 @@ export function StorageSheet({ balance, sparks, inventory, onClose }: { balance:
     const n = inventory.count(item);
     return n === Number.POSITIVE_INFINITY ? 0 : n;
   };
-  const sections = STORE_CATEGORIES.filter((c) => c.id !== "sparks").map((c) => ({
+  const sections = STORE_CATEGORIES.filter((c) => c.id !== "habitat").map((c) => ({
     id: c.id,
     label: SECTION_LABEL[c.id] ?? c.label,
     items: CATALOG.filter((item) => item.category === c.id && owned(item) > 0).sort((a, b) => a.name.localeCompare(b.name)),
   }));
-  const total = sections.reduce((sum, s) => sum + s.items.length, 0);
+  const total = sections.reduce((sum, s) => sum + s.items.length, 0) + inventory.habitats.length;
   const reclaimable = inventory.empties.length;
+
+  const choose = async (mint: string) => {
+    if (!anchorWallet) return;
+    setBusy(true);
+    setNote("");
+    try {
+      await selectHabitat(connection, anchorWallet, mint);
+      setNote("This habitat will open with the game");
+    } catch {
+      setNote("Couldn't switch habitat. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const reclaim = async () => {
     if (!anchorWallet) return;
@@ -61,17 +75,42 @@ export function StorageSheet({ balance, sparks, inventory, onClose }: { balance:
           <span>
             <Coins aria-hidden="true" /> {balance.loading ? "…" : formatGems(balance.amount)} {GEMS.symbol}
           </span>
-          {sparks.launched && (
-            <span>
-              <Sparkles aria-hidden="true" /> {sparks.loading ? "…" : formatGems(sparks.amount)} {SPARKS.symbol}
-            </span>
-          )}
         </div>
 
         {total === 0 && (
           <p className="storage-empty">
             <PackageOpen aria-hidden="true" /> Nothing here yet. Claim your daily ration or visit the store.
           </p>
+        )}
+
+        {inventory.habitats.length > 0 && (
+          <div className="storage-section">
+            <h3>
+              Habitats <small>{inventory.habitats.length}</small>
+            </h3>
+            <div className="storage-list">
+              {inventory.habitats.map((habitat) => {
+                const active = inventory.activeHabitat?.mint === habitat.mint;
+                return (
+                  <article key={habitat.mint} className="storage-row">
+                    <span className="storage-copy">
+                      <strong>{habitat.name}</strong>
+                      <small>{habitat.mint.slice(0, 4)}…{habitat.mint.slice(-4)} · its layout is saved inside it</small>
+                    </span>
+                    {active ? (
+                      <b className="storage-count">
+                        <Check aria-hidden="true" /> In use
+                      </b>
+                    ) : (
+                      <button className="ui-btn ui-btn-secondary store-buy" disabled={busy || !anchorWallet} onClick={() => choose(habitat.mint)}>
+                        Use
+                      </button>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {sections
@@ -93,7 +132,7 @@ export function StorageSheet({ balance, sparks, inventory, onClose }: { balance:
                         <strong>{item.name}</strong>
                         <small>
                           {detailFor(item)}
-                          {item.currency ? " · bound to your account" : ""}
+                          
                         </small>
                       </span>
                       <b className="storage-count">×{owned(item)}</b>

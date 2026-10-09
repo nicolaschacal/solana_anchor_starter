@@ -5,7 +5,8 @@
  *
  *   SOLANA_WALLET_PATH=../artifacts/private/admin-keypair.json npm run setup:economy
  *
- * Habitats are not created here: they are 1/1 NFTs and have their own instruction later.
+ * Habitats are registered here as kinds (price and id); each habitat itself is a 1/1 NFT that a
+ * player creates with `create_habitat`. Food is not a token: it is counters in the player profile.
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
@@ -27,7 +28,7 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { CATALOG } from "../src/lib/economy/catalog";
+import { CATALOG, registrable } from "../src/lib/economy/catalog";
 import { PROGRAM_ID, registryPda } from "../src/lib/rebyters/config";
 import { getProgram } from "../src/lib/rebyters/registry";
 
@@ -49,6 +50,8 @@ const GEM_PACKS = [
  * enough to keep the three Rebyters of a 5x5 habitat fed but not to steer their diet or to grow.
  */
 const RATION_UNITS = 2;
+/** Meals in one purchased pack of food (the catalog sells "×5"). */
+const PACK_MEALS = 5;
 
 type Deployment = {
   cluster: "devnet";
@@ -56,20 +59,18 @@ type Deployment = {
   economy: string;
   treasury: string;
   gemMint: string | null;
-  sparkMint: string | null;
-  /** meat, plants, fish, fruit */
-  foodMints: string[];
+  food: { packMeals: number; prices: number[] };
   rationUnits: number;
   packs: { id: number; gems: number; priceLamports: number }[];
-  items: Record<string, { itemId: number; mint: string }>;
+  items: Record<string, { itemId: number; mint: string | null }>;
 };
 
 const enc = new TextEncoder();
-const economyPda = PublicKey.findProgramAddressSync([enc.encode("economy")], PROGRAM_ID)[0];
+const economyPda = PublicKey.findProgramAddressSync([enc.encode("economy2")], PROGRAM_ID)[0];
 const itemPda = (id: number) => {
   const bytes = new Uint8Array(2);
   new DataView(bytes.buffer).setUint16(0, id, true);
-  return PublicKey.findProgramAddressSync([enc.encode("item"), bytes], PROGRAM_ID)[0];
+  return PublicKey.findProgramAddressSync([enc.encode("item2"), bytes], PROGRAM_ID)[0];
 };
 
 async function loadKeypair(path: string) {
@@ -110,9 +111,8 @@ async function main() {
       economy: economyPda.toBase58(),
       treasury: authority.toBase58(),
       gemMint: null,
-      sparkMint: null,
-      foodMints: [],
-      rationUnits: RATION_UNITS,
+      food: { packMeals: 0, prices: [] },
+      rationUnits: 0,
       packs: [],
       items: {},
     };
@@ -128,10 +128,10 @@ async function main() {
   if (!registry) throw new Error("The registry is not initialized; run publish-sample first");
 
   /** A Token-2022 mint, 0 decimals, controlled by the economy PDA. */
-  async function createMint(opts: { gem?: boolean; bound?: boolean }) {
+  async function createMint(opts: { gem?: boolean }) {
     const mint = Keypair.generate();
     const extensions: ExtensionType[] = [];
-    if (opts.bound || opts.gem) extensions.push(ExtensionType.NonTransferable);
+    if (opts.gem) extensions.push(ExtensionType.NonTransferable);
     if (opts.gem) extensions.push(ExtensionType.PermanentDelegate);
     const space = getMintLen(extensions);
     const lamports = await connection.getMinimumBalanceForRentExemption(space);
@@ -144,7 +144,7 @@ async function main() {
         programId: TOKEN_2022_PROGRAM_ID,
       }),
     );
-    if (opts.bound || opts.gem) tx.add(createInitializeNonTransferableMintInstruction(mint.publicKey, TOKEN_2022_PROGRAM_ID));
+    if (opts.gem) tx.add(createInitializeNonTransferableMintInstruction(mint.publicKey, TOKEN_2022_PROGRAM_ID));
     if (opts.gem) tx.add(createInitializePermanentDelegateInstruction(mint.publicKey, economyPda, TOKEN_2022_PROGRAM_ID));
     tx.add(createInitializeMintInstruction(mint.publicKey, 0, economyPda, null, TOKEN_2022_PROGRAM_ID));
     await sendAndConfirmTransaction(connection, tx, [signer, mint]);
@@ -190,101 +190,70 @@ async function main() {
     console.log(`Pack ${id}: ${pack.gems} Gems for ${pack.sol} SOL`);
   }
 
-  // 3. Sparks (free quest currency, account-bound).
-  if (!state.sparkMint) {
-    const spark = await createMint({ bound: true });
+  // 3. Food: the free ration, the pack size and the price of a pack (meat, plants, fish, fruit).
+  const foodPrices = [0, 1, 2, 3].map((kind) => CATALOG.find((i) => i.category === "food" && i.food === kind)!.price);
+  const economyNow = await (program.account as any).economy.fetch(economyPda);
+  const sameFood =
+    Number(economyNow.rationUnits) === RATION_UNITS &&
+    Number(economyNow.foodPackMeals) === PACK_MEALS &&
+    (economyNow.foodPrices as { toString(): string }[]).every((p, n) => Number(p.toString()) === foodPrices[n]);
+  if (!sameFood) {
     await program.methods
-      .setSparksMint()
-      .accountsStrict({
-        authority,
-        registry: registryPda(),
-        economy: economyPda,
-        sparkMint: spark,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
-      })
-      .rpc();
-    state.sparkMint = spark.toBase58();
-    await save();
-    console.log("Sparks mint", state.sparkMint);
-  }
-
-  // 4. The four foods and the free daily ration.
-  if (state.foodMints.length !== 4) {
-    const mints: string[] = [];
-    for (let i = 0; i < 4; i++) mints.push((await createMint({})).toBase58());
-    await program.methods
-      .setRation(RATION_UNITS, mints.map((m) => new PublicKey(m)) as never)
+      .setFood(RATION_UNITS, PACK_MEALS, foodPrices.map((p) => new BN(p)) as never)
       .accountsStrict({ authority, registry: registryPda(), economy: economyPda })
       .rpc();
-    state.foodMints = mints;
-    state.rationUnits = RATION_UNITS;
-    await save();
-    console.log("Foods and ration configured");
+    console.log(`Food: ration ${RATION_UNITS} of each, packs of ${PACK_MEALS} at ${foodPrices.join("/")} Gems`);
   }
+  state.food = { packMeals: PACK_MEALS, prices: foodPrices };
+  state.rationUnits = RATION_UNITS;
+  await save();
 
-  // 5. Store items (everything except habitats and the free starter items).
-  const sellable = CATALOG.filter((item) => item.category !== "habitat" && !item.starter);
-  for (const [index, item] of sellable.entries()) {
+  // 4. Store items: habitat kinds (no mint) and sellable decor and machines (one mint each).
+  for (const [index, item] of registrable.entries()) {
     if (state.items[item.id]) continue;
     const itemId = 100 + index;
     // Created by an earlier run that did not get to save its progress: adopt it.
     if (await connection.getAccountInfo(itemPda(itemId))) {
       const existing = await (program.account as any).itemType.fetch(itemPda(itemId));
-      state.items[item.id] = { itemId, mint: existing.mint.toBase58() };
+      const mint = existing.mint.equals(PublicKey.default) ? null : existing.mint.toBase58();
+      state.items[item.id] = { itemId, mint };
       await save();
       console.log(`Item ${item.id} -> #${itemId} (already on chain)`);
       continue;
     }
-    // Sparks items are account-bound, so each gets its own NonTransferable mint.
-    const mint = item.currency
-      ? await createMint({ bound: true })
-      : item.category === "food"
-        ? new PublicKey(state.foodMints[item.food])
-        : await createMint({});
-    const unitsPerPurchase = item.category === "food" ? item.pack : 1;
-    await program.methods
-      .createItemType(itemId, new BN(item.price), unitsPerPurchase)
-      .accountsStrict({
-        authority,
-        registry: registryPda(),
-        economy: economyPda,
-        itemType: itemPda(itemId),
-        itemMint: mint,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-    state.items[item.id] = { itemId, mint: mint.toBase58() };
+    if (item.category === "habitat") {
+      await program.methods
+        .createHabitatType(itemId, new BN(item.price))
+        .accountsStrict({
+          authority,
+          registry: registryPda(),
+          itemType: itemPda(itemId),
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      state.items[item.id] = { itemId, mint: null };
+    } else {
+      const mint = await createMint({});
+      await program.methods
+        .createItemType(itemId, new BN(item.price), 1)
+        .accountsStrict({
+          authority,
+          registry: registryPda(),
+          economy: economyPda,
+          itemType: itemPda(itemId),
+          itemMint: mint,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      state.items[item.id] = { itemId, mint: mint.toBase58() };
+    }
     await save();
     console.log(`Item ${item.id} -> #${itemId}`);
   }
 
-  // 6. Account-bound foods: feeding burns these before the free-to-trade ones.
-  const foodConfig = PublicKey.findProgramAddressSync([enc.encode("food")], PROGRAM_ID)[0];
-  const boundIds = ["spark-food-meat", "spark-food-plants", "spark-food-fish", "spark-food-fruit"];
-  if (!(await connection.getAccountInfo(foodConfig)) && boundIds.every((id) => state.items[id])) {
-    const m = boundIds.map((id) => new PublicKey(state.items[id].mint));
-    await program.methods
-      .setBoundFood()
-      .accountsStrict({
-        authority,
-        registry: registryPda(),
-        economy: economyPda,
-        foodConfig,
-        meatMint: m[0],
-        plantMint: m[1],
-        fishMint: m[2],
-        fruitMint: m[3],
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-    await save();
-    console.log("Bound food registered");
-  }
-
-  // 7. Tuning: bring prices and the ration in line with the catalog and constants above.
-  for (const item of sellable) {
+  // 5. Tuning: bring the prices of decor and machines in line with the catalog.
+  for (const item of registrable.filter((i) => i.category !== "habitat")) {
     const entry = state.items[item.id];
     if (!entry) continue;
     const onChain = await (program.account as any).itemType.fetch(itemPda(entry.itemId));
@@ -297,18 +266,9 @@ async function main() {
       await new Promise((r) => setTimeout(r, 800));
     }
   }
-  if (state.rationUnits !== RATION_UNITS) {
-    await program.methods
-      .setRation(RATION_UNITS, state.foodMints.map((m) => new PublicKey(m)) as never)
-      .accountsStrict({ authority, registry: registryPda(), economy: economyPda })
-      .rpc();
-    state.rationUnits = RATION_UNITS;
-    await save();
-    console.log(`Daily ration is now ${RATION_UNITS} of each food`);
-  }
 
   console.log("Economy ready.");
-  console.log(JSON.stringify({ gemMint: state.gemMint, sparkMint: state.sparkMint, items: Object.keys(state.items).length }));
+  console.log(JSON.stringify({ gemMint: state.gemMint, items: Object.keys(state.items).length }));
 }
 
 main().catch((error) => {

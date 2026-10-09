@@ -1,6 +1,6 @@
 /**
  * End-to-end check on devnet of the real client code: create a Rebyter, claim the ration, feed it,
- * and verify that exactly one meal was burnt and the action was counted for the quests.
+ * and verify that exactly one meal was used up and the action was counted for the quests.
  *
  *   SOLANA_WALLET_PATH=../artifacts/private/admin-keypair.json npm run smoke:feed
  */
@@ -8,12 +8,12 @@ import { readFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
-import { DEPLOYMENT } from "../src/lib/economy/deployment";
+import { layoutFromHex } from "../src/lib/rebyters/habitat-layout";
 import { playerProfilePda } from "../src/lib/rebyters/config";
-import { createRebyter, fetchPlayerProfile, interactWithRebyter } from "../src/lib/rebyters/companions";
+import { createRebyter, interactWithRebyter } from "../src/lib/rebyters/companions";
 import { getProgram } from "../src/lib/rebyters/registry";
 import { gameDay } from "../src/lib/economy/quests";
-import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_2022_PROGRAM_ID, getTokenMetadata } from "@solana/spl-token";
 
 const rpc = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const walletPath = process.env.SOLANA_WALLET_PATH || "../artifacts/private/admin-keypair.json";
@@ -31,21 +31,22 @@ async function main() {
   };
   const connection = new Connection(rpc, { commitment: "confirmed", disableRetryOnRateLimit: true, fetch: retryingFetch });
 
-  const meatMint = new PublicKey(DEPLOYMENT.foodMints[0]);
-  const meatAta = getAssociatedTokenAddressSync(meatMint, signer.publicKey, false, TOKEN_2022_PROGRAM_ID);
-  const meat = async () => {
-    const b = await connection.getTokenAccountBalance(meatAta, "confirmed").catch(() => null);
-    return b ? Number(b.value.amount) : 0;
-  };
-  const counts = async () => {
+  const profileState = async () => {
     const p = await (getProgram(connection).account as any).playerProfile.fetchNullable(playerProfilePda(signer.publicKey), "confirmed");
-    return p ? { day: Number(p.questDay), feeds: Number(p.counts[0]), rationDay: Number(p.rationDay) } : null;
+    return p
+      ? { feeds: Number(p.counts[0]), rationDay: Number(p.rationDay), questDay: Number(p.questDay), meat: Number(p.food[0]), starter: !!p.starterClaimed, active: p.activeHabitat.toBase58() as string }
+      : null;
   };
+  const counts = profileState;
+  const meat = async () => (await profileState())?.meat ?? 0;
 
   console.log("1. create a Rebyter");
   const created = await createRebyter(connection, wallet as never, wallet, 0);
   console.log("   mint", created.mint);
   await pause(1500);
+  const start = await profileState();
+  if (!start?.starter || start.active === "11111111111111111111111111111111") throw new Error("The starter pack (habitat NFT) was not claimed");
+  console.log("   starter habitat", start.active, "with", start.meat, "meat to start");
 
   console.log("2. claim the daily ration");
   const profile = await counts();
@@ -63,10 +64,11 @@ async function main() {
   const after = await meat();
   const feedsAfter = (await counts())?.feeds ?? 0;
   console.log(`   meat ${before} -> ${after}, feeds counted ${feedsBefore} -> ${feedsAfter}`);
-  if (after !== before - 1) throw new Error("Feeding did not burn exactly one meat");
+  if (after !== before - 1) throw new Error("Feeding did not use up exactly one meat");
   if (feedsAfter !== feedsBefore + 1) throw new Error("The feed was not counted for the quests");
 
-  console.log("4. save the habitat layout in the profile and read it back");
+  console.log("4. save the habitat layout inside the habitat NFT and read it back");
+  const habitat = (await profileState())!.active;
   const layout = {
     v: 1 as const,
     placed: [{ mint: created.mint, i: 18, j: 30 }],
@@ -75,13 +77,14 @@ async function main() {
       { key: "lantern" as const, x: -12, z: -24.75, h: 0.9, r: 2.5 },
     ],
   };
-  await saveHabitatLayout(connection, wallet as never, layout);
+  await saveHabitatLayout(connection, wallet as never, habitat, layout);
   await pause(1500);
-  const read = (await fetchPlayerProfile(connection, signer.publicKey))?.layout;
-  if (!read) throw new Error("The saved layout was not found in the profile");
+  const meta = await getTokenMetadata(connection, new PublicKey(habitat), "confirmed", TOKEN_2022_PROGRAM_ID);
+  const read = layoutFromHex(new Map(meta?.additionalMetadata ?? []).get("LAYOUT"));
+  if (!read) throw new Error("The saved layout was not found in the habitat");
   if (read.placed[0]?.mint !== created.mint || read.props?.length !== 2 || read.props[0].key !== "pine" || read.props[1].key !== "lantern")
     throw new Error("The layout read back does not match what was saved: " + JSON.stringify(read));
-  console.log("   layout round-trips through the chain");
+  console.log("   layout round-trips through the habitat NFT");
   console.log("SMOKE OK");
 }
 

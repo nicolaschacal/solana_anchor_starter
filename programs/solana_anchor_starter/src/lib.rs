@@ -49,28 +49,69 @@ pub const ACTION_PLAY: usize = 1;
 pub const ACTION_CARE: usize = 2;
 pub const ACTION_REST: usize = 3;
 pub const ACTION_TRAIN: usize = 4;
-/// Daily quest templates: (action kind, how many times, Sparks reward).
-pub const QUEST_TEMPLATES: [(u8, u8, u64); 8] = [
-    (0, 3, 10),
-    (1, 3, 10),
-    (2, 2, 10),
-    (4, 1, 10),
-    (0, 5, 15),
-    (1, 5, 15),
-    (3, 1, 5),
-    (4, 3, 20),
+/// Daily quest templates: (action kind, how many times, meals of food as the reward).
+pub const QUEST_TEMPLATES: [(u8, u8, u8); 8] = [
+    (0, 3, 1),
+    (1, 3, 1),
+    (2, 2, 1),
+    (4, 1, 1),
+    (0, 5, 2),
+    (1, 5, 2),
+    (3, 1, 1),
+    (4, 3, 2),
 ];
+/// Meals of each food a new player starts with (part of the starter pack).
+pub const STARTER_MEALS: u16 = 3;
+/// A habitat NFT keeps its layout in one fixed-size metadata field (hex), so saving never reallocates:
+/// set flag + placed Rebyters + prop count + props.
+pub const HABITAT_LAYOUT_BYTES: usize = 1 + MAX_PLACED_SLOTS * 34 + 1 + MAX_PROP_SLOTS * 9;
 
 /// Game day number (UTC). Day 0 means "never", so the first real day is 1.
 pub fn game_day(unix_timestamp: i64) -> u32 {
     (unix_timestamp.max(0) / SECONDS_PER_DAY) as u32 + 1
 }
 
-/// The quest in `slot` (0..3) for a game day: (action kind, target, Sparks). Everyone gets the
+/// The quest in `slot` (0..3) for a game day: (action kind, target, meals). Everyone gets the
 /// same three quests on a given day, derived from the day number alone (no server, no oracle).
-pub fn quest_for(day: u32, slot: usize) -> (u8, u8, u64) {
+pub fn quest_for(day: u32, slot: usize) -> (u8, u8, u8) {
     const OFFSETS: [usize; QUESTS_PER_DAY] = [0, 3, 5];
     QUEST_TEMPLATES[(day as usize + OFFSETS[slot]) % QUEST_TEMPLATES.len()]
+}
+
+/// Which food (0 meat, 1 plant, 2 fish, 3 fruit) a quest pays out.
+pub fn quest_food(day: u32, slot: usize) -> usize {
+    (day as usize + slot) % 4
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        out.push(DIGITS[usize::from(b >> 4)] as char);
+        out.push(DIGITS[usize::from(b & 15)] as char);
+    }
+    out
+}
+
+/// Serializes a habitat layout into its fixed-size byte form (see HABITAT_LAYOUT_BYTES).
+fn encode_layout(set: bool, placed: &[PlacedSlot; MAX_PLACED_SLOTS], props: &[PropSlot; MAX_PROP_SLOTS], prop_count: u8) -> Vec<u8> {
+    let mut out = Vec::with_capacity(HABITAT_LAYOUT_BYTES);
+    out.push(u8::from(set));
+    for slot in placed {
+        out.extend_from_slice(slot.mint.as_ref());
+        out.push(slot.i);
+        out.push(slot.j);
+    }
+    out.push(prop_count);
+    for p in props {
+        out.push(p.kind);
+        out.extend_from_slice(&p.x.to_le_bytes());
+        out.extend_from_slice(&p.z.to_le_bytes());
+        out.extend_from_slice(&p.h.to_le_bytes());
+        out.extend_from_slice(&p.r.to_le_bytes());
+    }
+    debug_assert_eq!(out.len(), HABITAT_LAYOUT_BYTES);
+    out
 }
 
 #[program]
@@ -237,8 +278,8 @@ pub mod solana_anchor_starter {
         economy.treasury = treasury;
         economy.gem_mint = ctx.accounts.gem_mint.key();
         economy.gem_packs = [GemPack::default(); MAX_GEM_PACKS];
-        economy.spark_mint = Pubkey::default();
-        economy.ration_mints = [Pubkey::default(); 4];
+        economy.food_prices = [0; 4];
+        economy.food_pack_meals = 0;
         economy.ration_units = 0;
         economy.bump = ctx.bumps.economy;
         Ok(())
@@ -267,8 +308,7 @@ pub mod solana_anchor_starter {
     }
 
     /// Registers an item mint (created client-side, 0 decimals, mint authority =
-    /// economy PDA). A NonTransferable mint makes the item account-bound
-    /// (the Sparks-purchasable version).
+    /// economy PDA). Items are plain transferable tokens bought with Gems.
     pub fn create_item_type(
         ctx: Context<CreateItemType>,
         item_id: u16,
@@ -283,14 +323,29 @@ pub mod solana_anchor_starter {
             None,
             ctx.accounts.token_program.key(),
         )?;
-        let bound = mint_is_non_transferable(&ctx.accounts.item_mint)?;
         let item = &mut ctx.accounts.item_type;
         item.item_id = item_id;
         item.mint = ctx.accounts.item_mint.key();
         item.price_gems = price_gems;
         item.units_per_purchase = units_per_purchase;
         item.active = true;
-        item.bound = bound;
+        item.bump = ctx.bumps.item_type;
+        Ok(())
+    }
+
+    /// Registers a habitat kind (no shared mint: every habitat is its own 1/1 NFT). A price of 0
+    /// is the starter habitat, which each wallet can claim once.
+    pub fn create_habitat_type(
+        ctx: Context<CreateHabitatType>,
+        item_id: u16,
+        price_gems: u64,
+    ) -> Result<()> {
+        let item = &mut ctx.accounts.item_type;
+        item.item_id = item_id;
+        item.mint = Pubkey::default();
+        item.price_gems = price_gems;
+        item.units_per_purchase = 1;
+        item.active = true;
         item.bump = ctx.bumps.item_type;
         Ok(())
     }
@@ -324,7 +379,7 @@ pub mod solana_anchor_starter {
         )?;
 
         let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy2", &bump]];
         mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
@@ -354,8 +409,7 @@ pub mod solana_anchor_starter {
         );
         let item = &ctx.accounts.item_type;
         require!(item.active, RegistryError::ItemInactive);
-        // Account-bound items are priced in Sparks and sold by buy_item_sparks.
-        require!(!item.bound, RegistryError::WrongCurrency);
+        require!(item.mint != Pubkey::default(), RegistryError::WrongCurrency);
         let cost = item
             .price_gems
             .checked_mul(u64::from(quantity))
@@ -381,7 +435,7 @@ pub mod solana_anchor_starter {
         )?;
 
         let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[b"economy2", &bump]];
         mint_to(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
@@ -404,103 +458,262 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Player burns Sparks (the price of an account-bound item) and receives item units.
-    pub fn buy_item_sparks(ctx: Context<BuyItemSparks>, quantity: u16) -> Result<()> {
+    // ---------------------------------------------------------------------
+    // Food, daily ration and quests. Food is a set of small counters inside the
+    // player's own profile: free to earn, paid for with Gems, never a token.
+    // ---------------------------------------------------------------------
+
+    /// Sets the food economy: meals of each food in the daily ration (0 = off), meals per
+    /// purchased pack, and the Gem price of one pack of each food (meat, plant, fish, fruit).
+    pub fn set_food(
+        ctx: Context<AdminEconomy>,
+        ration_units: u8,
+        pack_meals: u8,
+        prices: [u64; 4],
+    ) -> Result<()> {
+        require!(pack_meals > 0, RegistryError::InvalidQuantity);
+        require!(prices.iter().all(|p| *p > 0), RegistryError::InvalidQuantity);
+        let economy = &mut ctx.accounts.economy;
+        economy.ration_units = ration_units;
+        economy.food_pack_meals = pack_meals;
+        economy.food_prices = prices;
+        Ok(())
+    }
+
+    /// Player burns Gems and gets `packs` packs of one food added to their profile.
+    pub fn buy_food(ctx: Context<BuyFood>, food_type: u8, packs: u16) -> Result<()> {
+        require!(food_type < 4, RegistryError::InvalidFood);
         require!(
-            quantity >= 1 && quantity <= MAX_PURCHASE_QUANTITY,
+            packs >= 1 && packs <= MAX_PURCHASE_QUANTITY,
             RegistryError::InvalidQuantity
         );
-        let item = &ctx.accounts.item_type;
-        require!(item.active, RegistryError::ItemInactive);
-        require!(item.bound, RegistryError::WrongCurrency);
-        let cost = item
-            .price_gems
-            .checked_mul(u64::from(quantity))
+        let economy = &ctx.accounts.economy;
+        require!(economy.food_pack_meals > 0, RegistryError::ItemInactive);
+        let cost = economy.food_prices[usize::from(food_type)]
+            .checked_mul(u64::from(packs))
             .ok_or(RegistryError::MathOverflow)?;
-        let units = u64::from(item.units_per_purchase)
-            .checked_mul(u64::from(quantity))
+        let meals = u16::from(economy.food_pack_meals)
+            .checked_mul(packs)
             .ok_or(RegistryError::MathOverflow)?;
         require!(
-            ctx.accounts.owner_spark_account.amount >= cost,
-            RegistryError::InsufficientSparks
+            ctx.accounts.owner_gem_account.amount >= cost,
+            RegistryError::InsufficientGems
         );
-
         burn(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
                 Burn {
-                    mint: ctx.accounts.spark_mint.to_account_info(),
-                    from: ctx.accounts.owner_spark_account.to_account_info(),
+                    mint: ctx.accounts.gem_mint.to_account_info(),
+                    from: ctx.accounts.owner_gem_account.to_account_info(),
                     authority: ctx.accounts.owner.to_account_info(),
                 },
             ),
             cost,
         )?;
-
-        let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
-        mint_to(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                MintTo {
-                    mint: ctx.accounts.item_mint.to_account_info(),
-                    to: ctx.accounts.owner_item_account.to_account_info(),
-                    authority: ctx.accounts.economy.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            units,
-        )?;
-        emit!(ItemPurchased {
+        let food = &mut ctx.accounts.player_profile.food[usize::from(food_type)];
+        *food = food.checked_add(meals).ok_or(RegistryError::MathOverflow)?;
+        emit!(FoodPurchased {
             owner: ctx.accounts.owner.key(),
-            item_id: item.item_id,
-            quantity,
+            food_type,
+            meals,
             gems_spent: cost,
+        });
+        Ok(())
+    }
+
+    /// Once per UTC day: adds the free ration (all four foods) to the player's profile.
+    pub fn claim_daily_ration(ctx: Context<ClaimDailyRation>) -> Result<()> {
+        let units = ctx.accounts.economy.ration_units;
+        require!(units > 0, RegistryError::RationNotConfigured);
+        let day = game_day(Clock::get()?.unix_timestamp);
+        let profile = &mut ctx.accounts.player_profile;
+        require!(profile.ration_day < day, RegistryError::RationAlreadyClaimed);
+        profile.ration_day = day;
+        for food in profile.food.iter_mut() {
+            *food = food.saturating_add(u16::from(units));
+        }
+        emit!(RationClaimed {
+            owner: ctx.accounts.owner.key(),
+            day,
             units,
         });
         Ok(())
     }
 
-    // ---------------------------------------------------------------------
-    // Free daily ration and daily quests (Sparks). All state is a small
-    // fixed-size account derived from the player's wallet.
-    // ---------------------------------------------------------------------
-
-    /// Registers the Sparks mint: Token-2022, 0 decimals, NonTransferable,
-    /// mint authority = economy PDA, no freeze authority.
-    pub fn set_sparks_mint(ctx: Context<SetSparksMint>) -> Result<()> {
-        let economy_key = ctx.accounts.economy.key();
-        validate_economy_mint(
-            &ctx.accounts.spark_mint,
-            &economy_key,
-            None,
-            ctx.accounts.token_program.key(),
-        )?;
+    /// Claims the meals of one of today's quests once the program has counted
+    /// enough of the matching actions (feed, play, care, rest, train) today.
+    pub fn claim_quest(ctx: Context<ClaimQuest>, slot: u8) -> Result<()> {
+        require!(usize::from(slot) < QUESTS_PER_DAY, RegistryError::InvalidQuest);
+        let day = game_day(Clock::get()?.unix_timestamp);
+        let (kind, target, meals) = quest_for(day, usize::from(slot));
+        let food_type = quest_food(day, usize::from(slot));
+        let profile = &mut ctx.accounts.player_profile;
+        require!(profile.quest_day == day, RegistryError::QuestNotComplete);
         require!(
-            mint_is_non_transferable(&ctx.accounts.spark_mint)?,
-            RegistryError::InvalidMint
+            profile.counts[usize::from(kind)] >= target,
+            RegistryError::QuestNotComplete
         );
-        ctx.accounts.economy.spark_mint = ctx.accounts.spark_mint.key();
+        let bit = 1u8 << slot;
+        require!(profile.claimed & bit == 0, RegistryError::QuestAlreadyClaimed);
+        profile.claimed |= bit;
+        profile.food[food_type] = profile.food[food_type].saturating_add(u16::from(meals));
+        emit!(QuestClaimed {
+            owner: ctx.accounts.owner.key(),
+            day,
+            slot,
+            food_type: food_type as u8,
+            meals,
+        });
         Ok(())
     }
 
-    /// Sets the four food mints given by the daily ration (meat, plant, fish, fruit)
-    /// and how many units of each. Zero units turns the ration off.
-    pub fn set_ration(ctx: Context<AdminEconomy>, units: u8, mints: [Pubkey; 4]) -> Result<()> {
-        for (i, mint) in mints.iter().enumerate() {
-            require!(*mint != Pubkey::default(), RegistryError::InvalidMint);
-            require!(!mints[..i].contains(mint), RegistryError::InvalidMint);
+    /// Creates a habitat as its own 1/1 Token-2022 NFT. The layout (where the Rebyters and
+    /// objects stand) lives inside the NFT's metadata, so it travels with the habitat. A free
+    /// habitat type is the starter pack: claimable once per wallet, it also gives the first
+    /// meals. Other habitats cost Gems. The new habitat becomes the active one.
+    pub fn create_habitat(
+        ctx: Context<CreateHabitat>,
+        item_id: u16,
+        name: String,
+        metadata_uri: String,
+    ) -> Result<()> {
+        let item = &ctx.accounts.item_type;
+        require!(item.active && item.mint == Pubkey::default(), RegistryError::ItemInactive);
+        require!(
+            !name.is_empty() && name.len() <= 32 && !name.chars().any(char::is_control),
+            RegistryError::InvalidMetadata
+        );
+        require!(
+            !metadata_uri.is_empty()
+                && metadata_uri.len() <= MAX_URI_LENGTH
+                && metadata_uri.starts_with("https://")
+                && !metadata_uri.chars().any(char::is_control),
+            RegistryError::InvalidMetadata
+        );
+        let price = item.price_gems;
+        let mint_key = ctx.accounts.mint.key();
+        if price == 0 {
+            let profile = &mut ctx.accounts.player_profile;
+            require!(!profile.starter_claimed, RegistryError::StarterClaimed);
+            profile.starter_claimed = true;
+            profile.food = [STARTER_MEALS; 4];
+        } else {
+            let gems = ctx
+                .accounts
+                .owner_gem_account
+                .as_ref()
+                .ok_or(RegistryError::InsufficientGems)?;
+            require!(gems.amount >= price, RegistryError::InsufficientGems);
+            burn(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    Burn {
+                        mint: ctx.accounts.gem_mint.to_account_info(),
+                        from: gems.to_account_info(),
+                        authority: ctx.accounts.owner.to_account_info(),
+                    },
+                ),
+                price,
+            )?;
         }
-        ctx.accounts.economy.ration_mints = mints;
-        ctx.accounts.economy.ration_units = units;
+        ctx.accounts.player_profile.active_habitat = mint_key;
+
+        let blank = to_hex(&[0u8; HABITAT_LAYOUT_BYTES]);
+        let additional_metadata = vec![
+            ("HABITAT".to_string(), item_id.to_string()),
+            ("LAYOUT".to_string(), blank),
+        ];
+        let final_metadata = TokenMetadata {
+            name: name.clone(),
+            symbol: "HBTT".to_string(),
+            uri: metadata_uri.clone(),
+            additional_metadata: additional_metadata.clone(),
+            ..Default::default()
+        };
+        let metadata_lamports = Rent::get()?.minimum_balance(final_metadata.tlv_size_of()?);
+        if metadata_lamports > 0 {
+            transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.key(),
+                    Transfer {
+                        from: ctx.accounts.owner.to_account_info(),
+                        to: ctx.accounts.mint.to_account_info(),
+                    },
+                ),
+                metadata_lamports,
+            )?;
+        }
+
+        let bump = ctx.bumps.habitat_authority;
+        let signer_seeds: &[&[&[u8]]] = &[&[b"habitat_authority", mint_key.as_ref(), &[bump]]];
+        token_metadata_initialize(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                TokenMetadataInitialize {
+                    program_id: ctx.accounts.token_program.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                    metadata: ctx.accounts.mint.to_account_info(),
+                    mint_authority: ctx.accounts.habitat_authority.to_account_info(),
+                    update_authority: ctx.accounts.habitat_authority.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            name,
+            "HBTT".to_string(),
+            metadata_uri,
+        )?;
+        for (key, value) in additional_metadata {
+            token_metadata_update_field(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    TokenMetadataUpdateField {
+                        program_id: ctx.accounts.token_program.to_account_info(),
+                        metadata: ctx.accounts.mint.to_account_info(),
+                        update_authority: ctx.accounts.habitat_authority.to_account_info(),
+                    },
+                )
+                .with_signer(signer_seeds),
+                Field::Key(key),
+                value,
+            )?;
+        }
+        mint_to(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                MintTo {
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.owner_token_account.to_account_info(),
+                    authority: ctx.accounts.habitat_authority.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            1,
+        )?;
+        anchor_spl::token_2022::set_authority(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                SetAuthority {
+                    current_authority: ctx.accounts.habitat_authority.to_account_info(),
+                    account_or_mint: ctx.accounts.mint.to_account_info(),
+                },
+            )
+            .with_signer(signer_seeds),
+            AuthorityType::MintTokens,
+            None,
+        )?;
+        emit!(HabitatCreated {
+            owner: ctx.accounts.owner.key(),
+            mint: mint_key,
+            item_id,
+        });
         Ok(())
     }
 
-    /// Saves the habitat layout in the player's own profile: which Rebyters stand where and
-    /// where each object is. Nothing here has economic value; what is *owned* is read from the
-    /// wallet when the habitat is shown.
-    pub fn set_layout(
-        ctx: Context<SetLayout>,
+    /// Saves the layout inside the habitat NFT: which Rebyters stand where and where each
+    /// object is. Nothing here has economic value; what is *owned* is read from the wallet
+    /// when the habitat is shown.
+    pub fn set_habitat_layout(
+        ctx: Context<HabitatLayout>,
         placed: [PlacedSlot; MAX_PLACED_SLOTS],
         props: [PropSlot; MAX_PROP_SLOTS],
         prop_count: u8,
@@ -517,118 +730,28 @@ pub mod solana_anchor_starter {
                 );
             }
         }
-        let profile = &mut ctx.accounts.player_profile;
-        profile.layout_set = true;
-        profile.placed = placed;
-        profile.prop_count = prop_count;
-        profile.props = props;
-        Ok(())
-    }
-
-    /// Registers the four account-bound food mints (meat, plant, fish, fruit) that feeding burns
-    /// before the free-to-trade ones. Each must be a NonTransferable economy mint.
-    pub fn set_bound_food(ctx: Context<SetBoundFood>) -> Result<()> {
-        let economy_key = ctx.accounts.economy.key();
-        let token_program = ctx.accounts.token_program.key();
-        let mints = [
-            &ctx.accounts.meat_mint,
-            &ctx.accounts.plant_mint,
-            &ctx.accounts.fish_mint,
-            &ctx.accounts.fruit_mint,
-        ];
-        for (i, mint) in mints.iter().enumerate() {
-            validate_economy_mint(mint, &economy_key, None, token_program)?;
-            require!(mint_is_non_transferable(mint)?, RegistryError::InvalidMint);
-            require!(
-                !mints[..i].iter().any(|m| m.key() == mint.key()),
-                RegistryError::InvalidMint
-            );
-        }
-        let keys = mints.map(|m| m.key());
-        let config = &mut ctx.accounts.food_config;
-        config.bound_mints = keys;
-        config.bump = ctx.bumps.food_config;
-        Ok(())
-    }
-
-    /// Once per UTC day: mints the free ration (all four foods) to the player.
-    pub fn claim_daily_ration(ctx: Context<ClaimDailyRation>) -> Result<()> {
-        let units = ctx.accounts.economy.ration_units;
-        require!(units > 0, RegistryError::RationNotConfigured);
-        let day = game_day(Clock::get()?.unix_timestamp);
-        require!(
-            ctx.accounts.player_profile.ration_day < day,
-            RegistryError::RationAlreadyClaimed
-        );
-        ctx.accounts.player_profile.ration_day = day;
-
-        let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
-        let targets = [
-            (ctx.accounts.meat_mint.to_account_info(), ctx.accounts.owner_meat.to_account_info()),
-            (ctx.accounts.plant_mint.to_account_info(), ctx.accounts.owner_plant.to_account_info()),
-            (ctx.accounts.fish_mint.to_account_info(), ctx.accounts.owner_fish.to_account_info()),
-            (ctx.accounts.fruit_mint.to_account_info(), ctx.accounts.owner_fruit.to_account_info()),
-        ];
-        for (mint, to) in targets {
-            mint_to(
-                CpiContext::new(
-                    ctx.accounts.token_program.key(),
-                    MintTo {
-                        mint,
-                        to,
-                        authority: ctx.accounts.economy.to_account_info(),
-                    },
-                )
-                .with_signer(signer_seeds),
-                u64::from(units),
-            )?;
-        }
-        emit!(RationClaimed {
-            owner: ctx.accounts.owner.key(),
-            day,
-            units,
-        });
-        Ok(())
-    }
-
-    /// Claims the Sparks of one of today's quests once the program has counted
-    /// enough of the matching actions (feed, play, care, rest, train) today.
-    pub fn claim_quest(ctx: Context<ClaimQuest>, slot: u8) -> Result<()> {
-        require!(usize::from(slot) < QUESTS_PER_DAY, RegistryError::InvalidQuest);
-        let day = game_day(Clock::get()?.unix_timestamp);
-        let (kind, target, reward) = quest_for(day, usize::from(slot));
-        {
-            let daily = &mut ctx.accounts.player_profile;
-            require!(daily.quest_day == day, RegistryError::QuestNotComplete);
-            require!(
-                daily.counts[usize::from(kind)] >= target,
-                RegistryError::QuestNotComplete
-            );
-            let bit = 1u8 << slot;
-            require!(daily.claimed & bit == 0, RegistryError::QuestAlreadyClaimed);
-            daily.claimed |= bit;
-        }
-        let bump = [ctx.accounts.economy.bump];
-        let signer_seeds: &[&[&[u8]]] = &[&[b"economy", &bump]];
-        mint_to(
+        let value = to_hex(&encode_layout(true, &placed, &props, prop_count));
+        let mint_key = ctx.accounts.mint.key();
+        let bump = ctx.bumps.habitat_authority;
+        let signer_seeds: &[&[&[u8]]] = &[&[b"habitat_authority", mint_key.as_ref(), &[bump]]];
+        token_metadata_update_field(
             CpiContext::new(
                 ctx.accounts.token_program.key(),
-                MintTo {
-                    mint: ctx.accounts.spark_mint.to_account_info(),
-                    to: ctx.accounts.owner_spark_account.to_account_info(),
-                    authority: ctx.accounts.economy.to_account_info(),
+                TokenMetadataUpdateField {
+                    program_id: ctx.accounts.token_program.to_account_info(),
+                    metadata: ctx.accounts.mint.to_account_info(),
+                    update_authority: ctx.accounts.habitat_authority.to_account_info(),
                 },
             )
             .with_signer(signer_seeds),
-            reward,
-        )?;
-        emit!(QuestClaimed {
-            owner: ctx.accounts.owner.key(),
-            day,
-            slot,
-            sparks: reward,
-        });
+            Field::Key("LAYOUT".to_string()),
+            value,
+        )
+    }
+
+    /// Chooses which habitat in the wallet is the one shown when the game opens.
+    pub fn select_habitat(ctx: Context<SelectHabitat>) -> Result<()> {
+        ctx.accounts.player_profile.active_habitat = ctx.accounts.mint.key();
         Ok(())
     }
 
@@ -834,47 +957,14 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit.
-    pub fn feed(ctx: Context<FeedRebyter>, food_type: u8) -> Result<()> {
+    /// Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit. Uses up one meal of
+    /// that food from the profile.
+    pub fn feed(ctx: Context<InteractRebyter>, food_type: u8) -> Result<()> {
         require!(food_type < 4, RegistryError::InvalidFood);
-        // One unit of the chosen food is burnt: account-bound units first, then free-to-trade ones.
-        let accounts = &ctx.accounts;
-        let bound = accounts.owner_bound_food.as_ref().map_or(0, |a| a.amount);
-        let plain = accounts.owner_food.as_ref().map_or(0, |a| a.amount);
-        match food_source(bound, plain) {
-            Some(FoodSource::Bound) => burn(
-                CpiContext::new(
-                    accounts.token_program.key(),
-                    Burn {
-                        mint: accounts.bound_food_mint.to_account_info(),
-                        from: accounts.owner_bound_food.as_ref().unwrap().to_account_info(),
-                        authority: accounts.owner.to_account_info(),
-                    },
-                ),
-                1,
-            )?,
-            Some(FoodSource::Plain) => burn(
-                CpiContext::new(
-                    accounts.token_program.key(),
-                    Burn {
-                        mint: accounts.food_mint.to_account_info(),
-                        from: accounts.owner_food.as_ref().unwrap().to_account_info(),
-                        authority: accounts.owner.to_account_info(),
-                    },
-                ),
-                1,
-            )?,
-            None => return err!(RegistryError::NoFood),
-        }
-        let (mint, authority, token_program) = (
-            accounts.mint.to_account_info(),
-            accounts.rebyter_authority.to_account_info(),
-            accounts.token_program.to_account_info(),
-        );
-        apply_interaction(
-            &Target { owner: accounts.owner.key(), mint: &mint, rebyter_authority: &authority, token_program: &token_program },
-            InteractionKind::Feed(food_type),
-        )?;
+        let meals = &mut ctx.accounts.player_profile.food[usize::from(food_type)];
+        require!(*meals > 0, RegistryError::NoFood);
+        *meals -= 1;
+        interact_with(&ctx.accounts, InteractionKind::Feed(food_type))?;
         record_action(&mut ctx.accounts.player_profile, ACTION_FEED)
     }
 
@@ -1258,24 +1348,6 @@ fn record_action(profile: &mut Account<'_, PlayerProfile>, kind: usize) -> Resul
     let day = game_day(Clock::get()?.unix_timestamp);
     profile.record(kind, day);
     Ok(())
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum FoodSource {
-    Bound,
-    Plain,
-}
-
-/// Which stack of food a meal comes from: account-bound units are used first so they are never
-/// stranded behind free-to-trade ones.
-fn food_source(bound: u64, plain: u64) -> Option<FoodSource> {
-    if bound > 0 {
-        Some(FoodSource::Bound)
-    } else if plain > 0 {
-        Some(FoodSource::Plain)
-    } else {
-        None
-    }
 }
 
 fn interact_with(accounts: &InteractRebyter<'_>, kind: InteractionKind) -> Result<()> {
@@ -1708,8 +1780,8 @@ fn family_index(id: u8) -> Result<usize> {
     Ok(usize::from(id))
 }
 
-/// The one per-wallet account: pokedex discoveries plus the small fixed-size daily state
-/// (ration day, quest counters). Fixed fields come first; only `discoveries` ever grows.
+/// The one per-wallet account: pokedex discoveries, food counters and the small fixed-size daily
+/// state (ration day, quest counters). Fixed fields come first; only `discoveries` ever grows.
 #[account]
 pub struct PlayerProfile {
     pub owner: Pubkey,
@@ -1723,15 +1795,12 @@ pub struct PlayerProfile {
     /// Bit i set = quest slot i already claimed on `quest_day`.
     pub claimed: u8,
     pub bump: u8,
-    /// True once the player has saved a habitat layout (until then the client shows its default).
-    pub layout_set: bool,
-    /// Rebyters standing in the habitat (empty slots hold the default key).
-    pub placed: [PlacedSlot; MAX_PLACED_SLOTS],
-    /// How many of `props` are in use.
-    pub prop_count: u8,
-    /// Objects placed in the habitat. Ownership is checked by whoever renders the habitat
-    /// (the wallet decides what shows); the program only keeps the layout well-formed.
-    pub props: [PropSlot; MAX_PROP_SLOTS],
+    /// True once the starter habitat (and its first meals) was claimed.
+    pub starter_claimed: bool,
+    /// The habitat NFT shown when the game opens (default key = none yet).
+    pub active_habitat: Pubkey,
+    /// Meals in stock: meat, plant, fish, fruit.
+    pub food: [u16; 4],
     pub discoveries: Vec<u16>,
 }
 
@@ -1761,10 +1830,8 @@ pub const PROP_KINDS: u8 = 11;
 
 impl PlayerProfile {
     // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
-    // + layout (flag, placed slots, prop count, prop slots) + Vec length prefix.
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1
-        + 1 + MAX_PLACED_SLOTS * (32 + 2) + 1 + MAX_PROP_SLOTS * 9
-        + 4;
+    // + starter flag + active habitat + food + Vec length prefix.
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 1 + 32 + 8 + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
@@ -1819,7 +1886,7 @@ pub struct InitializePlayer<'info> {
         init,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile2", owner.key().as_ref()],
+        seeds = [b"profile3", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -1910,7 +1977,7 @@ pub struct CreateRebyter<'info> {
         init_if_needed,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile2", owner.key().as_ref()],
+        seeds = [b"profile3", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -1938,44 +2005,58 @@ pub struct CreateRebyter<'info> {
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
-#[account]
-#[derive(InitSpace)]
-pub struct FoodConfig {
-    /// Account-bound (Sparks-bought) mints of meat, plant, fish, fruit.
-    pub bound_mints: [Pubkey; 4],
-    pub bump: u8,
-}
-
 #[derive(Accounts)]
-pub struct SetBoundFood<'info> {
+#[instruction(item_id: u16)]
+pub struct CreateHabitatType<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
-    pub economy: Account<'info, Economy>,
     #[account(
-        init_if_needed,
+        init,
         payer = authority,
-        space = 8 + FoodConfig::INIT_SPACE,
-        seeds = [b"food"],
+        space = 8 + ItemType::INIT_SPACE,
+        seeds = [b"item2", item_id.to_le_bytes().as_ref()],
         bump
     )]
-    pub food_config: Account<'info, FoodConfig>,
-    pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
-    pub plant_mint: Box<InterfaceAccount<'info, Mint>>,
-    pub fish_mint: Box<InterfaceAccount<'info, Mint>>,
-    pub fruit_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub item_type: Account<'info, ItemType>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(item_id: u16)]
+pub struct CreateHabitat<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    pub economy: Box<Account<'info, Economy>>,
+    #[account(seeds = [b"item2", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    pub item_type: Box<Account<'info, ItemType>>,
+    #[account(mut, address = economy.gem_mint)]
+    pub gem_mint: Box<InterfaceAccount<'info, Mint>>,
+    /// Omit (null) for the free starter habitat.
+    #[account(mut, token::mint = gem_mint, token::authority = owner, token::token_program = token_program)]
+    pub owner_gem_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    /// CHECK: Program-derived authority; it stores no data and only signs Token-2022 CPIs.
+    #[account(seeds = [b"habitat_authority", mint.key().as_ref()], bump)]
+    pub habitat_authority: UncheckedAccount<'info>,
+    /// CHECK: Token-2022 mint initialized by the client in the same transaction; it is the
+    /// single account that stores the habitat.
+    #[account(mut, owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    /// CHECK: Owner ATA initialized by the client in the same transaction.
+    #[account(mut, owner = token_program.key())]
+    pub owner_token_account: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
 
-/// Feeding: the usual interaction accounts plus the food that gets burnt.
 #[derive(Accounts)]
-#[instruction(food_type: u8)]
-pub struct FeedRebyter<'info> {
+pub struct HabitatLayout<'info> {
     pub owner: Signer<'info>,
-    /// CHECK: Token-2022 mint; ownership and metadata are validated in the handler.
+    /// CHECK: Token-2022 mint holding the habitat; only our PDA can write its layout.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
     #[account(
@@ -1984,37 +2065,47 @@ pub struct FeedRebyter<'info> {
         constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
     )]
     pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
-    /// CHECK: PDA signs TokenMetadata updates and stores no account state.
-    #[account(
-        seeds = [b"rebyter_authority", mint.key().as_ref()],
-        bump
-    )]
-    pub rebyter_authority: UncheckedAccount<'info>,
-    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
-    pub player_profile: Box<Account<'info, PlayerProfile>>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
-    pub economy: Account<'info, Economy>,
-    #[account(seeds = [b"food"], bump = food_config.bump)]
-    pub food_config: Account<'info, FoodConfig>,
-    /// The free-to-trade mint of this food (the ration mint).
-    #[account(mut, address = economy.ration_mints[usize::from(food_type.min(3))])]
-    pub food_mint: Box<InterfaceAccount<'info, Mint>>,
-    /// The account-bound mint of this food.
-    #[account(mut, address = food_config.bound_mints[usize::from(food_type.min(3))])]
-    pub bound_food_mint: Box<InterfaceAccount<'info, Mint>>,
-    /// Omit (null) when the wallet holds none of that food.
-    #[account(mut, token::mint = food_mint, token::authority = owner, token::token_program = token_program)]
-    pub owner_food: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
-    #[account(mut, token::mint = bound_food_mint, token::authority = owner, token::token_program = token_program)]
-    pub owner_bound_food: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
+    /// CHECK: PDA signs the metadata update and stores no data.
+    #[account(seeds = [b"habitat_authority", mint.key().as_ref()], bump)]
+    pub habitat_authority: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token2022>,
 }
 
 #[derive(Accounts)]
-pub struct SetLayout<'info> {
+pub struct SelectHabitat<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    /// CHECK: any mint the owner holds one of; the client only shows genuine habitats.
+    #[account(owner = token_program.key())]
+    pub mint: UncheckedAccount<'info>,
+    #[account(
+        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
+        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+    )]
+    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
+    pub token_program: Program<'info, Token2022>,
+}
+
+#[derive(Accounts)]
+pub struct BuyFood<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
+    pub economy: Account<'info, Economy>,
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
+    #[account(mut, address = economy.gem_mint)]
+    pub gem_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        associated_token::mint = gem_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
+    )]
+    pub owner_gem_account: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 #[derive(Accounts)]
@@ -2036,7 +2127,7 @@ pub struct InteractRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     /// The player's profile: counts the action for today's quests.
-    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
@@ -2047,7 +2138,7 @@ pub struct EvolveRebyter<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"profile2", owner.key().as_ref()],
+        seeds = [b"profile3", owner.key().as_ref()],
         bump,
         has_one = owner
     )]
@@ -2195,6 +2286,8 @@ pub enum RegistryError {
     InvalidLayout,
     #[msg("This item is bought with a different currency")]
     WrongCurrency,
+    #[msg("The starter habitat was already claimed")]
+    StarterClaimed,
 }
 
 fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
@@ -2251,11 +2344,11 @@ pub struct Economy {
     pub treasury: Pubkey,
     pub gem_mint: Pubkey,
     pub gem_packs: [GemPack; MAX_GEM_PACKS],
-    /// Non-transferable quest currency (default key until `set_sparks_mint`).
-    pub spark_mint: Pubkey,
-    /// Foods of the free daily ration: meat, plant, fish, fruit.
-    pub ration_mints: [Pubkey; 4],
-    /// Units of each food in the ration; 0 = off.
+    /// Gem price of one pack of each food: meat, plant, fish, fruit.
+    pub food_prices: [u64; 4],
+    /// Meals in a purchased pack.
+    pub food_pack_meals: u8,
+    /// Meals of each food in the free daily ration; 0 = off.
     pub ration_units: u8,
     pub bump: u8,
 }
@@ -2268,8 +2361,6 @@ pub struct ItemType {
     pub price_gems: u64,
     pub units_per_purchase: u16,
     pub active: bool,
-    /// True when the item mint is NonTransferable (account-bound version).
-    pub bound: bool,
     pub bump: u8,
 }
 
@@ -2279,7 +2370,7 @@ pub struct InitializeEconomy<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(init, payer = authority, space = 8 + Economy::INIT_SPACE, seeds = [b"economy"], bump)]
+    #[account(init, payer = authority, space = 8 + Economy::INIT_SPACE, seeds = [b"economy2"], bump)]
     pub economy: Account<'info, Economy>,
     pub gem_mint: InterfaceAccount<'info, Mint>,
     pub token_program: Program<'info, Token2022>,
@@ -2291,7 +2382,7 @@ pub struct AdminEconomy<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"economy"], bump = economy.bump)]
+    #[account(mut, seeds = [b"economy2"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
 }
 
@@ -2302,13 +2393,13 @@ pub struct CreateItemType<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
     #[account(
         init,
         payer = authority,
         space = 8 + ItemType::INIT_SPACE,
-        seeds = [b"item", item_id.to_le_bytes().as_ref()],
+        seeds = [b"item2", item_id.to_le_bytes().as_ref()],
         bump
     )]
     pub item_type: Account<'info, ItemType>,
@@ -2322,7 +2413,7 @@ pub struct UpdateItemType<'info> {
     pub authority: Signer<'info>,
     #[account(seeds = [b"registry"], bump, has_one = authority)]
     pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(mut, seeds = [b"item2", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
 }
 
@@ -2330,7 +2421,7 @@ pub struct UpdateItemType<'info> {
 pub struct BuyGems<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
     /// CHECK: must equal the treasury stored in the economy account.
     #[account(mut, address = economy.treasury)]
@@ -2351,44 +2442,12 @@ pub struct BuyGems<'info> {
 }
 
 #[derive(Accounts)]
-pub struct BuyItemSparks<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
-    pub economy: Account<'info, Economy>,
-    #[account(seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
-    pub item_type: Account<'info, ItemType>,
-    #[account(mut, address = economy.spark_mint)]
-    pub spark_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(
-        mut,
-        associated_token::mint = spark_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_spark_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(mut, address = item_type.mint)]
-    pub item_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = item_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_item_account: Box<InterfaceAccount<'info, TokenAccount>>,
-    pub token_program: Program<'info, Token2022>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
 pub struct BuyItem<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(seeds = [b"item", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
+    #[account(seeds = [b"item2", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Account<'info, ItemType>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: InterfaceAccount<'info, Mint>,
@@ -2415,90 +2474,19 @@ pub struct BuyItem<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SetSparksMint<'info> {
-    pub authority: Signer<'info>,
-    #[account(seeds = [b"registry"], bump, has_one = authority)]
-    pub registry: Account<'info, RegistryRoot>,
-    #[account(mut, seeds = [b"economy"], bump = economy.bump)]
-    pub economy: Account<'info, Economy>,
-    pub spark_mint: InterfaceAccount<'info, Mint>,
-    pub token_program: Program<'info, Token2022>,
-}
-
-#[derive(Accounts)]
 pub struct ClaimDailyRation<'info> {
-    #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
+    #[account(seeds = [b"economy2"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
-    #[account(mut, address = economy.ration_mints[0])]
-    pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(mut, address = economy.ration_mints[1])]
-    pub plant_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(mut, address = economy.ration_mints[2])]
-    pub fish_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(mut, address = economy.ration_mints[3])]
-    pub fruit_mint: Box<InterfaceAccount<'info, Mint>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = meat_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_meat: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = plant_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_plant: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = fish_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_fish: Box<InterfaceAccount<'info, TokenAccount>>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = fruit_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_fruit: Box<InterfaceAccount<'info, TokenAccount>>,
-    pub token_program: Program<'info, Token2022>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct ClaimQuest<'info> {
-    #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(seeds = [b"economy"], bump = economy.bump)]
-    pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile3", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
-    #[account(mut, address = economy.spark_mint)]
-    pub spark_mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        init_if_needed,
-        payer = owner,
-        associated_token::mint = spark_mint,
-        associated_token::authority = owner,
-        associated_token::token_program = token_program
-    )]
-    pub owner_spark_account: InterfaceAccount<'info, TokenAccount>,
-    pub token_program: Program<'info, Token2022>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
 }
 
 #[event]
@@ -2513,7 +2501,23 @@ pub struct QuestClaimed {
     pub owner: Pubkey,
     pub day: u32,
     pub slot: u8,
-    pub sparks: u64,
+    pub food_type: u8,
+    pub meals: u8,
+}
+
+#[event]
+pub struct FoodPurchased {
+    pub owner: Pubkey,
+    pub food_type: u8,
+    pub meals: u16,
+    pub gems_spent: u64,
+}
+
+#[event]
+pub struct HabitatCreated {
+    pub owner: Pubkey,
+    pub mint: Pubkey,
+    pub item_id: u16,
 }
 
 #[event]
@@ -2533,15 +2537,3 @@ pub struct ItemPurchased {
     pub units: u64,
 }
 
-#[cfg(test)]
-mod food_tests {
-    use super::*;
-
-    #[test]
-    fn bound_food_is_used_before_plain_food() {
-        assert_eq!(food_source(3, 9), Some(FoodSource::Bound));
-        assert_eq!(food_source(0, 9), Some(FoodSource::Plain));
-        assert_eq!(food_source(1, 0), Some(FoodSource::Bound));
-        assert_eq!(food_source(0, 0), None);
-    }
-}

@@ -1,12 +1,12 @@
 /**
- * What the store sells. Every item becomes a Token-2022 mint created by the game program
- * in phase 2 of the economy plan; until then `mint` is null and the store shows prices only.
+ * What the store sells. Everything is bought with Gems, the one currency.
  *
- * - Food: fungible, 0 decimals, burnt when fed (99 meat − 5 fed = 94 in the wallet).
- * - Machines and decor: fungible, 0 decimals, never consumed.
- * - Habitats: 1/1 NFTs with a fixed size and climate.
+ * - Food: meals added to the player's profile (never tokens; free ration and quests also give it).
+ * - Machines and decor: fungible, transferable tokens in the wallet, never consumed.
+ * - Habitats: 1/1 NFTs that hold their own layout. The first (the 5x5 meadow) comes free in the
+ *   starter pack; the rest are bought.
  *
- * The 5x5 meadow and the starter decor are part of the engine: every player has them, free.
+ * The starter decor (tree, rocks, bush) is part of the engine: every player has it, free.
  */
 
 import { DEPLOYMENT } from "./deployment";
@@ -18,11 +18,9 @@ type Base = {
   id: string;
   name: string;
   description: string;
-  /** Price in whole Gems, or in Sparks when `currency` is "sparks". */
+  /** Price in whole Gems (for food: one pack). */
   price: number;
-  /** "sparks": earned for free, bought with Sparks, and account-bound (cannot be transferred). */
-  currency?: "sparks";
-  /** Token-2022 mint, once the program has created it. */
+  /** Token-2022 mint of decor and machines, once the program has created it. */
   mint: string | null;
   /** Part of the engine: owned by everyone, never sold. */
   starter?: boolean;
@@ -42,30 +40,27 @@ export const CLIMATES: Record<Climate, { label: string; hint: string }> = {
   volcanic: { label: "Volcanic", hint: "Tough, fiery rebyters thrive" },
 };
 
-/** The store tabs: the four Gem sections plus the Sparks shelf. */
-export type StoreTab = StoreCategory | "sparks";
+export type StoreTab = StoreCategory;
 
 export const STORE_CATEGORIES: { id: StoreTab; label: string }[] = [
   { id: "habitat", label: "Habitats" },
   { id: "food", label: "Food" },
   { id: "machine", label: "Machines" },
   { id: "decor", label: "Decor" },
-  { id: "sparks", label: "Sparks" },
 ];
 
 const BASE_CATALOG: StoreItem[] = [
   // Habitats
-  { id: "habitat-meadow-5", category: "habitat", name: "Verdant Meadow", description: "Your first island. Every player has one.", price: 0, mint: null, starter: true, size: 5, climate: "temperate", slots: 3 },
+  { id: "habitat-meadow-5", category: "habitat", name: "Verdant Meadow", description: "Your first island, free in the starter pack.", price: 0, mint: null, size: 5, climate: "temperate", slots: 3 },
   { id: "habitat-oasis-10", category: "habitat", name: "Dune Oasis", description: "A wide desert island with palms and warm sand.", price: 2500, mint: null, size: 10, climate: "arid", slots: 6 },
   { id: "habitat-frost-10", category: "habitat", name: "Frostpeak", description: "Snowy ridges and frozen ponds.", price: 2500, mint: null, size: 10, climate: "cold", slots: 6 },
   { id: "habitat-jungle-15", category: "habitat", name: "Rainforest Canopy", description: "A huge, lush island with rivers.", price: 6000, mint: null, size: 15, climate: "humid", slots: 10 },
   { id: "habitat-ember-15", category: "habitat", name: "Ember Crater", description: "A huge island around a sleeping volcano.", price: 6000, mint: null, size: 15, climate: "volcanic", slots: 10 },
-  // Food (the four meals the program already knows)
-  { id: "food-meat-10", category: "food", name: "Meat ×10", description: "Builds carnivore history.", price: 40, mint: null, food: 0, pack: 10 },
-  { id: "food-plants-10", category: "food", name: "Plants ×10", description: "Builds herbivore history.", price: 30, mint: null, food: 1, pack: 10 },
-  { id: "food-fish-10", category: "food", name: "Fish ×10", description: "Builds piscivore history.", price: 40, mint: null, food: 2, pack: 10 },
-  { id: "food-fruit-10", category: "food", name: "Fruit ×10", description: "Builds frugivore history.", price: 30, mint: null, food: 3, pack: 10 },
-  { id: "food-meat-99", category: "food", name: "Meat ×99", description: "A full larder for carnivores.", price: 350, mint: null, food: 0, pack: 99 },
+  // Food: a pack is 5 meals (see food.packMeals in deployment.json); the price is per pack.
+  { id: "food-meat", category: "food", name: "Meat ×5", description: "Builds carnivore history.", price: 20, mint: null, food: 0, pack: 5 },
+  { id: "food-plants", category: "food", name: "Plants ×5", description: "Builds herbivore history.", price: 15, mint: null, food: 1, pack: 5 },
+  { id: "food-fish", category: "food", name: "Fish ×5", description: "Builds piscivore history.", price: 20, mint: null, food: 2, pack: 5 },
+  { id: "food-fruit", category: "food", name: "Fruit ×5", description: "Builds frugivore history.", price: 15, mint: null, food: 3, pack: 5 },
   // Machines (one per training the program already knows)
   { id: "machine-power", category: "machine", name: "Power Press", description: "Heavy lifting for strong bodies.", price: 900, mint: null, training: 0, bonus: "+50% ATK from Power training" },
   { id: "machine-endurance", category: "machine", name: "Endurance Track", description: "Long laps build stamina.", price: 900, mint: null, training: 1, bonus: "+50% HP from Endurance training" },
@@ -82,15 +77,6 @@ const BASE_CATALOG: StoreItem[] = [
   { id: "decor-log", category: "decor", name: "Hollow Log", description: "A hideout for small rebyters.", price: 80, mint: null, prop: "log" },
   { id: "decor-lantern", category: "decor", name: "Enchanted Lantern", description: "A soft glow at night.", price: 250, mint: null, prop: "lantern" },
   { id: "decor-flowers", category: "decor", name: "Wildflowers", description: "A patch of colour.", price: 40, mint: null, prop: "wildflowers" },
-  // The Sparks shelf: bought with the free currency, account-bound. Keep these LAST: on-chain item
-  // ids come from the position in this list, so appending never renumbers anything already sold.
-  { id: "spark-food-meat", currency: "sparks", category: "food", name: "Meat ×5", description: "Bound to your account.", price: 40, mint: null, food: 0, pack: 5 },
-  { id: "spark-food-plants", currency: "sparks", category: "food", name: "Plants ×5", description: "Bound to your account.", price: 40, mint: null, food: 1, pack: 5 },
-  { id: "spark-food-fish", currency: "sparks", category: "food", name: "Fish ×5", description: "Bound to your account.", price: 40, mint: null, food: 2, pack: 5 },
-  { id: "spark-food-fruit", currency: "sparks", category: "food", name: "Fruit ×5", description: "Bound to your account.", price: 40, mint: null, food: 3, pack: 5 },
-  { id: "spark-decor-flowers", currency: "sparks", category: "decor", name: "Wildflowers", description: "A patch of colour. Bound to your account.", price: 60, mint: null, prop: "wildflowers" },
-  { id: "spark-decor-log", currency: "sparks", category: "decor", name: "Hollow Log", description: "A hideout for small rebyters. Bound.", price: 120, mint: null, prop: "log" },
-  { id: "spark-decor-pine", currency: "sparks", category: "decor", name: "Pine Tree", description: "Tall and evergreen. Bound to your account.", price: 180, mint: null, prop: "pine" },
 ];
 
 /** The catalog with the mints the economy setup created (see deployment.json). */
@@ -99,7 +85,13 @@ export const CATALOG: StoreItem[] = BASE_CATALOG.map((item) => ({ ...item, mint:
 /** The on-chain item id of a catalog item, or null while it is not registered. */
 export const itemIdOf = (item: StoreItem): number | null => DEPLOYMENT.items[item.id]?.itemId ?? null;
 
-/** Gem items of a section (the Sparks shelf is separate). */
-export const itemsIn = (category: StoreCategory) => CATALOG.filter((item) => item.category === category && !item.currency);
+export const itemsIn = (category: StoreCategory) => CATALOG.filter((item) => item.category === category);
 
-export const SPARK_ITEMS = CATALOG.filter((item) => item.currency === "sparks");
+/**
+ * Catalog items that exist as an on-chain item type, in the order that fixes their ids (100 + position):
+ * habitats and sellable decor and machines. Food is a counter, and starter decor is free. Append only.
+ */
+export const registrable = BASE_CATALOG.filter((item) => item.category !== "food" && !(item.starter && item.category !== "habitat"));
+
+/** The catalog id of the habitat given by the starter pack. */
+export const STARTER_HABITAT_ID = "habitat-meadow-5";

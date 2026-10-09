@@ -1,131 +1,14 @@
 {
   "cluster": "devnet",
   "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
-  "economy": "2MAfKVhQov5wNJ6fCFdrkKJK4C88Phrp1XEtFhMfNHjM",
+  "economy": "",
   "treasury": "AQfKYtAVyZARgKxSt6ZpqwLAtDNeE1LF8Jk5FYWteqbv",
-  "gemMint": "HBD9fpgkPnYczRi97Tm2vz7ywo3SgXYGC7MExTBoKcw3",
-  "sparkMint": "5si2Lbc4Pdx2DXfyD23kuTzjH1b3fVrmrd3bqZRunRuW",
-  "foodMints": [
-    "imwig5Q7JrrmCUMjzpg2b6PRruKH4s1gjMp9brSemiE",
-    "A2P44hM8JVfqN76VmMSyWwMbdPy5TQ9Ph1iw6QRMUbDv",
-    "14pEh5YHojwQuhCGXbupbhCSfmJRGCJmMeXkWLuzoYzk",
-    "36hAreDjMnQ9ZVWGcQQZ1CMi3V6vz5W5xFCQw8sWQd2K"
-  ],
-  "rationUnits": 2,
-  "packs": [
-    {
-      "id": 0,
-      "gems": 500,
-      "priceLamports": 50000000
-    },
-    {
-      "id": 1,
-      "gems": 1200,
-      "priceLamports": 100000000
-    },
-    {
-      "id": 2,
-      "gems": 3000,
-      "priceLamports": 220000000
-    },
-    {
-      "id": 3,
-      "gems": 7000,
-      "priceLamports": 500000000
-    }
-  ],
-  "items": {
-    "food-meat-10": {
-      "itemId": 100,
-      "mint": "FAfshLQuWNGy5N9cjn4Pmq5VAdL68MsSFAgsw4QseJ68"
-    },
-    "food-plants-10": {
-      "itemId": 101,
-      "mint": "3izbNz88ktPYMWh95C47KL1zRRQJ97fVYUiMNHX9oBdk"
-    },
-    "food-fish-10": {
-      "itemId": 102,
-      "mint": "4396x4yBYA6EKyWMjL4TZXHQYPEQ5qP6WY5AvRjYzB1h"
-    },
-    "food-fruit-10": {
-      "itemId": 103,
-      "mint": "6GZH3iV51nP9gJkeKchV218xyHRDmb36c4JyHEjvYyrn"
-    },
-    "food-meat-99": {
-      "itemId": 104,
-      "mint": "FAfshLQuWNGy5N9cjn4Pmq5VAdL68MsSFAgsw4QseJ68"
-    },
-    "machine-power": {
-      "itemId": 105,
-      "mint": "CxrySeWXR8RUAQAc525Z5cfhFbk4gmw3UfVPPy1T9pWZ"
-    },
-    "machine-endurance": {
-      "itemId": 106,
-      "mint": "CXn12RzRFFqmvJFfz1qDwg4jE8BibVL3ZpWReQK7AguA"
-    },
-    "machine-defense": {
-      "itemId": 107,
-      "mint": "AvnUPYZxpkwiHhPYMDAU7xNN4JAZiqRM2ByXXpR41g6i"
-    },
-    "machine-speed": {
-      "itemId": 108,
-      "mint": "9NojKE4bJPSgU3ZqFbtaE6zxme8rpU5ee9L1hKeWTZSL"
-    },
-    "machine-combat": {
-      "itemId": 109,
-      "mint": "BwubHipmEMQWhQ3qw1No7AWsyL4eeUPxHn6CfCSLUB7L"
-    },
-    "machine-balance": {
-      "itemId": 110,
-      "mint": "DP1hj8G2pe8awUdDoFgnxfiDmavuCgb66Ci3U3ifVeu8"
-    },
-    "decor-pine": {
-      "itemId": 111,
-      "mint": "Ht7YybLhEY3YNsufpTtGuFLbE2SskLLcrJdGQggJfJSh"
-    },
-    "decor-hero": {
-      "itemId": 112,
-      "mint": "CRinfXQkbYm3LossdAvUPZLqq1fHabbYzRTnj3Fb8No4"
-    },
-    "decor-log": {
-      "itemId": 113,
-      "mint": "98RqxXXZPwj1jtZYX1x8Ahphaasz472QJxRGDfihQgix"
-    },
-    "decor-lantern": {
-      "itemId": 114,
-      "mint": "2hYbQkpo5mRgeGtmBKVnXhMBNAPFDgzvPBFqaz4A23fT"
-    },
-    "decor-flowers": {
-      "itemId": 115,
-      "mint": "HZ6SRDgUQAjWS7GbuqqGwDpBiTJqe6SihgsvyNJ7Q49H"
-    },
-    "spark-food-meat": {
-      "itemId": 116,
-      "mint": "4s73JZTetdzNfNYkM9supAvSknnTqKUoWj5ft6Y1gWvz"
-    },
-    "spark-food-plants": {
-      "itemId": 117,
-      "mint": "D4HGnGUGB23crXzyEF3J8ftD3t2zkMUiFyK8z36KFJKR"
-    },
-    "spark-food-fish": {
-      "itemId": 118,
-      "mint": "FyGgZ9aVeVzPE8eS8LK9vgiSQ9sjZxJJRxmSiFcJuoN9"
-    },
-    "spark-food-fruit": {
-      "itemId": 119,
-      "mint": "8qfDu5aRgwN4M9zafMCFTwG5XudvFa8XmSDdZdVMicEB"
-    },
-    "spark-decor-flowers": {
-      "itemId": 120,
-      "mint": "3FSREqKBHFKKjyDQ84gJuoCgqNFtyTwqKFdieX1GD5B2"
-    },
-    "spark-decor-log": {
-      "itemId": 121,
-      "mint": "CRRi4LGJ5YukcsZX2bjvXRsKmVnpHfh2Jyjt8MhyfuKp"
-    },
-    "spark-decor-pine": {
-      "itemId": 122,
-      "mint": "CRVoWcpvksTK4399NoBmfHaTNjdFST7o6u4dKG4GsEPq"
-    }
-  }
+  "gemMint": null,
+  "food": {
+    "packMeals": 0,
+    "prices": []
+  },
+  "rationUnits": 0,
+  "packs": [],
+  "items": {}
 }

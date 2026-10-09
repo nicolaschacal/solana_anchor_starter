@@ -30,10 +30,10 @@ pub fn registry() -> Pubkey {
     Pubkey::find_program_address(&[b"registry"], &program_id()).0
 }
 pub fn economy() -> Pubkey {
-    Pubkey::find_program_address(&[b"economy"], &program_id()).0
+    Pubkey::find_program_address(&[b"economy2"], &program_id()).0
 }
 pub fn item_pda(id: u16) -> Pubkey {
-    Pubkey::find_program_address(&[b"item", &id.to_le_bytes()], &program_id()).0
+    Pubkey::find_program_address(&[b"item2", &id.to_le_bytes()], &program_id()).0
 }
 pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
     get_associated_token_address_with_program_id(owner, mint, &token_2022::ID)
@@ -131,8 +131,6 @@ pub struct World {
     pub treasury: Pubkey,
     pub gem_mint: Pubkey,
     pub food_mint: Pubkey,
-    pub spark_mint: Pubkey,
-    pub ration_mints: [Pubkey; 4],
 }
 
 pub fn init_registry(svm: &mut LiteSVM, admin: &Keypair) {
@@ -288,28 +286,17 @@ pub fn world() -> World {
     )
     .expect("economy initializes");
 
-    let spark = Keypair::new();
-    create_mint(&mut svm, &admin, &spark, &economy(), true, None).unwrap();
-    let ration: [Keypair; 4] = [Keypair::new(), Keypair::new(), Keypair::new(), Keypair::new()];
-    for mint in &ration {
-        create_mint(&mut svm, &admin, mint, &economy(), false, None).unwrap();
-    }
-    let ration_mints = [
-        ration[0].pubkey(),
-        ration[1].pubkey(),
-        ration[2].pubkey(),
-        ration[3].pubkey(),
-    ];
     send(
         &mut svm,
         &admin,
         &[],
         vec![
-            set_sparks_ix(&admin.pubkey(), &spark.pubkey()),
-            set_ration_ix(&admin.pubkey(), RATION_UNITS, ration_mints),
+            set_food_ix(&admin.pubkey(), RATION_UNITS, PACK_MEALS, FOOD_PRICES),
+            create_habitat_type_ix(&admin.pubkey(), STARTER_HABITAT, 0),
+            create_habitat_type_ix(&admin.pubkey(), PAID_HABITAT, PAID_HABITAT_PRICE),
         ],
     )
-    .expect("sparks and ration configure");
+    .expect("food and habitats configure");
     World {
         svm,
         admin,
@@ -318,17 +305,20 @@ pub fn world() -> World {
         treasury,
         gem_mint: gem.pubkey(),
         food_mint: food.pubkey(),
-        spark_mint: spark.pubkey(),
-        ration_mints,
     }
 }
 
 
 pub const DAY: i64 = 86_400;
 pub const RATION_UNITS: u8 = 5;
+pub const PACK_MEALS: u8 = 5;
+pub const FOOD_PRICES: [u64; 4] = [10, 11, 12, 13];
+pub const STARTER_HABITAT: u16 = 100;
+pub const PAID_HABITAT: u16 = 101;
+pub const PAID_HABITAT_PRICE: u64 = 50;
 
 pub fn daily_pda(owner: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"profile2", owner.as_ref()], &program_id()).0
+    Pubkey::find_program_address(&[b"profile3", owner.as_ref()], &program_id()).0
 }
 
 pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {
@@ -354,21 +344,9 @@ pub fn read_daily(svm: &LiteSVM, owner: &Pubkey) -> PlayerProfile {
     PlayerProfile::try_deserialize(&mut &account.data[..]).unwrap()
 }
 
-pub fn set_sparks_ix(authority: &Pubkey, spark_mint: &Pubkey) -> Instruction {
+pub fn set_food_ix(authority: &Pubkey, ration_units: u8, pack_meals: u8, prices: [u64; 4]) -> Instruction {
     ix(
-        instruction::SetSparksMint {},
-        accounts::SetSparksMint {
-            authority: *authority,
-            registry: registry(),
-            economy: economy(),
-            spark_mint: *spark_mint,
-            token_program: token_2022::ID,
-        },
-    )
-}
-pub fn set_ration_ix(authority: &Pubkey, units: u8, mints: [Pubkey; 4]) -> Instruction {
-    ix(
-        instruction::SetRation { units, mints },
+        instruction::SetFood { ration_units, pack_meals, prices },
         accounts::AdminEconomy {
             authority: *authority,
             registry: registry(),
@@ -386,93 +364,154 @@ pub fn init_daily_ix(owner: &Pubkey) -> Instruction {
         },
     )
 }
-pub fn claim_ration_ix(owner: &Pubkey, mints: &[Pubkey; 4]) -> Instruction {
+pub fn claim_ration_ix(owner: &Pubkey) -> Instruction {
     ix(
         instruction::ClaimDailyRation {},
         accounts::ClaimDailyRation {
             owner: *owner,
             economy: economy(),
             player_profile: daily_pda(owner),
-            meat_mint: mints[0],
-            plant_mint: mints[1],
-            fish_mint: mints[2],
-            fruit_mint: mints[3],
-            owner_meat: ata(owner, &mints[0]),
-            owner_plant: ata(owner, &mints[1]),
-            owner_fish: ata(owner, &mints[2]),
-            owner_fruit: ata(owner, &mints[3]),
-            token_program: token_2022::ID,
-            associated_token_program: associated_token::ID,
-            system_program: system_program::ID,
         },
     )
 }
-pub fn claim_quest_ix(owner: &Pubkey, spark_mint: &Pubkey, slot: u8) -> Instruction {
+pub fn claim_quest_ix(owner: &Pubkey, slot: u8) -> Instruction {
     ix(
         instruction::ClaimQuest { slot },
         accounts::ClaimQuest {
             owner: *owner,
-            economy: economy(),
             player_profile: daily_pda(owner),
-            spark_mint: *spark_mint,
-            owner_spark_account: ata(owner, spark_mint),
-            token_program: token_2022::ID,
-            associated_token_program: associated_token::ID,
-            system_program: system_program::ID,
         },
     )
 }
-
-pub fn buy_item_sparks_ix(owner: &Pubkey, spark_mint: &Pubkey, item_mint: &Pubkey, id: u16, quantity: u16) -> Instruction {
+pub fn buy_food_ix(owner: &Pubkey, gem_mint: &Pubkey, food_type: u8, packs: u16) -> Instruction {
     ix(
-        instruction::BuyItemSparks { quantity },
-        accounts::BuyItemSparks {
+        instruction::BuyFood { food_type, packs },
+        accounts::BuyFood {
             owner: *owner,
             economy: economy(),
-            item_type: item_pda(id),
-            spark_mint: *spark_mint,
-            owner_spark_account: ata(owner, spark_mint),
-            item_mint: *item_mint,
-            owner_item_account: ata(owner, item_mint),
+            player_profile: daily_pda(owner),
+            gem_mint: *gem_mint,
+            owner_gem_account: ata(owner, gem_mint),
             token_program: token_2022::ID,
-            associated_token_program: associated_token::ID,
-            system_program: system_program::ID,
         },
     )
 }
-
-pub fn food_config() -> Pubkey {
-    Pubkey::find_program_address(&[b"food"], &program_id()).0
-}
-pub fn set_bound_food_ix(authority: &Pubkey, mints: &[Pubkey; 4]) -> Instruction {
+pub fn create_habitat_type_ix(authority: &Pubkey, id: u16, price: u64) -> Instruction {
     ix(
-        instruction::SetBoundFood {},
-        accounts::SetBoundFood {
+        instruction::CreateHabitatType { item_id: id, price_gems: price },
+        accounts::CreateHabitatType {
             authority: *authority,
             registry: registry(),
-            economy: economy(),
-            food_config: food_config(),
-            meat_mint: mints[0],
-            plant_mint: mints[1],
-            fish_mint: mints[2],
-            fruit_mint: mints[3],
-            token_program: token_2022::ID,
+            item_type: item_pda(id),
             system_program: system_program::ID,
         },
     )
 }
+pub fn habitat_authority(mint: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[b"habitat_authority", mint.as_ref()], &program_id()).0
+}
 
-pub fn set_layout_ix(
+/// Sets the compute unit limit (hand-built so the tests need no extra crate).
+pub fn compute_limit_ix(units: u32) -> Instruction {
+    let mut data = vec![2u8];
+    data.extend_from_slice(&units.to_le_bytes());
+    Instruction::new_with_bytes(
+        "ComputeBudget111111111111111111111111111111".parse().unwrap(),
+        &data,
+        vec![],
+    )
+}
+
+/// Buys (or claims, for the free starter) one habitat NFT the way the client does: the mint with a
+/// metadata pointer, the owner's token account and `create_habitat` in one transaction.
+pub fn buy_habitat(svm: &mut LiteSVM, owner: &Keypair, item_id: u16, gem_mint: &Pubkey, paid: bool) -> Result<Pubkey, String> {
+    let mint = Keypair::new();
+    let authority = habitat_authority(&mint.pubkey());
+    let space = ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::MetadataPointer]).unwrap();
+    let rent = svm.minimum_balance_for_rent_exemption(space);
+    let owner_key = owner.pubkey();
+    let ixs = vec![
+        compute_limit_ix(600_000),
+        system_instruction::create_account(&owner_key, &mint.pubkey(), rent, space as u64, &token_2022::ID),
+        spl_token_2022::extension::metadata_pointer::instruction::initialize(
+            &token_2022::ID,
+            &mint.pubkey(),
+            Some(authority),
+            Some(mint.pubkey()),
+        )
+        .unwrap(),
+        spl_token_2022::instruction::initialize_mint2(&token_2022::ID, &mint.pubkey(), &authority, None, 0).unwrap(),
+        associated_token::spl_associated_token_account::instruction::create_associated_token_account(
+            &owner_key,
+            &owner_key,
+            &mint.pubkey(),
+            &token_2022::ID,
+        ),
+        ix(
+            instruction::CreateHabitat {
+                item_id,
+                name: "Test habitat".to_string(),
+                metadata_uri: "https://example.com/habitat.json".to_string(),
+            },
+            accounts::CreateHabitat {
+                owner: owner_key,
+                player_profile: daily_pda(&owner_key),
+                economy: economy(),
+                item_type: item_pda(item_id),
+                gem_mint: *gem_mint,
+                owner_gem_account: if paid { Some(ata(&owner_key, gem_mint)) } else { None },
+                habitat_authority: authority,
+                mint: mint.pubkey(),
+                owner_token_account: ata(&owner_key, &mint.pubkey()),
+                token_program: token_2022::ID,
+                system_program: system_program::ID,
+            },
+        ),
+    ];
+    send(svm, owner, &[&mint], ixs).map(|_| mint.pubkey())
+}
+
+pub fn habitat_layout_ix(
     owner: &Pubkey,
+    mint: &Pubkey,
     placed: [solana_anchor_starter::PlacedSlot; 3],
     props: [solana_anchor_starter::PropSlot; 14],
     prop_count: u8,
 ) -> Instruction {
     ix(
-        instruction::SetLayout { placed, props, prop_count },
-        accounts::SetLayout {
+        instruction::SetHabitatLayout { placed, props, prop_count },
+        accounts::HabitatLayout {
             owner: *owner,
-            player_profile: daily_pda(owner),
+            mint: *mint,
+            owner_token_account: ata(owner, mint),
+            habitat_authority: habitat_authority(mint),
+            token_program: token_2022::ID,
         },
     )
+}
+
+pub fn select_habitat_ix(owner: &Pubkey, mint: &Pubkey) -> Instruction {
+    ix(
+        instruction::SelectHabitat {},
+        accounts::SelectHabitat {
+            owner: *owner,
+            mint: *mint,
+            owner_token_account: ata(owner, mint),
+            player_profile: daily_pda(owner),
+            token_program: token_2022::ID,
+        },
+    )
+}
+
+/// The raw layout bytes stored inside a habitat mint's metadata (the LAYOUT field, hex-decoded).
+pub fn habitat_layout_bytes(svm: &LiteSVM, mint: &Pubkey) -> Vec<u8> {
+    let data = svm.get_account(mint).expect("habitat mint exists").data;
+    let needle = b"LAYOUT";
+    let at = data.windows(needle.len()).position(|w| w == needle).expect("LAYOUT field present");
+    let len_at = at + needle.len();
+    let len = u32::from_le_bytes(data[len_at..len_at + 4].try_into().unwrap()) as usize;
+    let hex = &data[len_at + 4..len_at + 4 + len];
+    hex.chunks(2)
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect()
 }

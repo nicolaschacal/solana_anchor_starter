@@ -19,9 +19,6 @@ function parseMint(value: string | undefined) {
   }
 }
 
-/** Sparks: free, account-bound quest currency. */
-export const SPARKS = { symbol: "Sparks", mint: parseMint(DEPLOYMENT.sparkMint ?? undefined) };
-
 export const BALANCE_EVENT = "rebyters:balances-changed";
 /** Ask every balance hook to re-read the wallet (after a purchase or a claim). */
 export const refreshBalances = () => {

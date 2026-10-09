@@ -21,7 +21,7 @@ import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
 import { saveHabitatLayout } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
-import { SPARKS, useGemBalance, useTokenBalance } from "../../lib/economy/token";
+import { useGemBalance } from "../../lib/economy/token";
 import { StorageSheet } from "../../components/store/StorageSheet";
 import { DailySheet } from "../../components/daily/DailySheet";
 import { useDaily } from "../../hooks/useDaily";
@@ -583,7 +583,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [dailyOpen,setDailyOpen]=useState(false);
   const [storageOpen,setStorageOpen]=useState(false);
   const daily=useDaily();
-  const sparks=useTokenBalance(SPARKS.mint);
   const dailyReady=daily.claimable+(daily.rationReady?1:0);
   const rbtyr=useGemBalance();
   const inventory=useInventory();
@@ -766,8 +765,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           :<Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
           <PlayerWorld
             creatures={worldCreatures}
-            initialLayout={player.playerProfile?.layout??null}
-            onCommitLayout={layout=>saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,layout)}
+            key={inventory.activeHabitat?.mint??"no-habitat"}
+            initialLayout={inventory.activeHabitat?.layout??null}
+            onCommitLayout={layout=>inventory.activeHabitat?saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,inventory.activeHabitat.mint,layout):Promise.resolve()}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
@@ -833,9 +833,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </section>
     </div>}
 
-    {storageOpen&&<StorageSheet balance={rbtyr} sparks={sparks} inventory={inventory} onClose={()=>setStorageOpen(false)}/>}
-    {dailyOpen&&<DailySheet daily={daily} sparks={sparks} onClose={()=>setDailyOpen(false)}/>}
-    {storeOpen&&<StoreSheet balance={rbtyr} sparks={sparks} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
+    {storageOpen&&<StorageSheet balance={rbtyr} inventory={inventory} onClose={()=>setStorageOpen(false)}/>}
+    {dailyOpen&&<DailySheet daily={daily} onClose={()=>setDailyOpen(false)}/>}
+    {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
     {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
       <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>
@@ -910,9 +910,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             ["Plants","Builds herbivore history",1],
             ["Fish","Builds piscivore history",2],
             ["Fruit","Builds frugivore history",3],
-          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint||(inventory.food(Number(id))<1&&DEPLOYMENT.foodMints.length===4)} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
+          ].map(([name,desc,id])=><button key={String(name)} disabled={!!player.interactingMint||(inventory.food(Number(id))<1&&DEPLOYMENT.food.packMeals>0)} onClick={()=>void interact("feed",Number(id)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
             <Apple/><span><strong>{String(name)}</strong><small className={mealWarning(active,Number(id))?"meal-warning":""}>{mealWarning(active,Number(id))||String(desc)}</small></span>
-            {DEPLOYMENT.foodMints.length===4&&<b className="food-count" aria-label={`${inventory.food(Number(id))} in your wallet`}>×{inventory.food(Number(id))}</b>}
+            {DEPLOYMENT.food.packMeals>0&&<b className="food-count" aria-label={`${inventory.food(Number(id))} in your wallet`}>×{inventory.food(Number(id))}</b>}
           </button>)}
         </div>
         {player.status&&<div className="create-status">{player.status}</div>}

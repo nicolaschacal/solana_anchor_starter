@@ -4,8 +4,7 @@ import type { Inventory } from "./inventory";
 
 /**
  * How many objects of one kind a player may have placed. Free (starter) objects and the engine's own
- * props that are not sold are unlimited; sold decor is limited to what the wallet holds, whether it
- * was bought with Gems or with Sparks.
+ * props that are not sold are unlimited; sold decor is limited to what the wallet holds.
  */
 export function propAllowance(inventory: Inventory, key: AssetKey): number {
   const sold = CATALOG.filter((item) => item.category === "decor" && item.prop === key);
