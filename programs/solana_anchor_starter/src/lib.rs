@@ -1819,7 +1819,7 @@ pub struct InitializePlayer<'info> {
         init,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile", owner.key().as_ref()],
+        seeds = [b"profile2", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -1910,7 +1910,7 @@ pub struct CreateRebyter<'info> {
         init_if_needed,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile", owner.key().as_ref()],
+        seeds = [b"profile2", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -1990,7 +1990,7 @@ pub struct FeedRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
@@ -2013,7 +2013,7 @@ pub struct FeedRebyter<'info> {
 #[derive(Accounts)]
 pub struct SetLayout<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 
@@ -2036,7 +2036,7 @@ pub struct InteractRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     /// The player's profile: counts the action for today's quests.
-    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
@@ -2047,7 +2047,7 @@ pub struct EvolveRebyter<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"profile", owner.key().as_ref()],
+        seeds = [b"profile2", owner.key().as_ref()],
         bump,
         has_one = owner
     )]
@@ -2431,7 +2431,7 @@ pub struct ClaimDailyRation<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.ration_mints[0])]
     pub meat_mint: Box<InterfaceAccount<'info, Mint>>,
@@ -2484,7 +2484,7 @@ pub struct ClaimQuest<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile2", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.spark_mint)]
     pub spark_mint: InterfaceAccount<'info, Mint>,

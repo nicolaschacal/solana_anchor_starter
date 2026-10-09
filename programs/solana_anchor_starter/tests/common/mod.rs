@@ -328,7 +328,7 @@ pub const DAY: i64 = 86_400;
 pub const RATION_UNITS: u8 = 5;
 
 pub fn daily_pda(owner: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"profile", owner.as_ref()], &program_id()).0
+    Pubkey::find_program_address(&[b"profile2", owner.as_ref()], &program_id()).0
 }
 
 pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {
