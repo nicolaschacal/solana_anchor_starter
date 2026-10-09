@@ -73,7 +73,7 @@ jobs:
           exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           trap 'exec >&- 2>&-; sleep 2' EXIT
           solana balance --url devnet --keypair artifacts/private/admin-keypair.json
-          solana program show "$PROGRAM_ID" --url devnet || echo "Program not found on devnet"
+          solana program show "$PROGRAM_ID" --url devnet --keypair artifacts/private/admin-keypair.json || echo "Program not found on devnet"
 
       - name: test
         if: inputs.action == 'test'
@@ -103,7 +103,7 @@ jobs:
             --url devnet \
             --keypair artifacts/private/admin-keypair.json \
             --upgrade-authority artifacts/private/admin-keypair.json
-          solana program show "$PROGRAM_ID" --url devnet
+          solana program show "$PROGRAM_ID" --url devnet --keypair artifacts/private/admin-keypair.json
 
       - name: publish to Irys devnet
         if: startsWith(inputs.action, 'publish-')
