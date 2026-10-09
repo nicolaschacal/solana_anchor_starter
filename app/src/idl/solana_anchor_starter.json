@@ -2646,6 +2646,89 @@
       ]
     },
     {
+      "name": "set_layout",
+      "docs": [
+        "Saves the habitat layout in the player's own profile: which Rebyters stand where and",
+        "where each object is. Nothing here has economic value; what is *owned* is read from the",
+        "wallet when the habitat is shown."
+      ],
+      "discriminator": [
+        120,
+        129,
+        190,
+        57,
+        80,
+        186,
+        146,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "placed",
+          "type": {
+            "array": [
+              {
+                "defined": {
+                  "name": "PlacedSlot"
+                }
+              },
+              3
+            ]
+          }
+        },
+        {
+          "name": "props",
+          "type": {
+            "array": [
+              {
+                "defined": {
+                  "name": "PropSlot"
+                }
+              },
+              14
+            ]
+          }
+        },
+        {
+          "name": "prop_count",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "set_ration",
       "docs": [
         "Sets the four food mints given by the daily ration (meat, plant, fish, fruit)",
@@ -3439,6 +3522,11 @@
     },
     {
       "code": 6033,
+      "name": "InvalidLayout",
+      "msg": "The habitat layout is not valid"
+    },
+    {
+      "code": 6034,
       "name": "WrongCurrency",
       "msg": "This item is bought with a different currency"
     }
@@ -3702,6 +3790,29 @@
       }
     },
     {
+      "name": "PlacedSlot",
+      "docs": [
+        "A Rebyter in the habitat: its mint and tile."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "i",
+            "type": "u8"
+          },
+          {
+            "name": "j",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "PlayerDiscovery",
       "type": {
         "kind": "struct",
@@ -3776,6 +3887,53 @@
             "type": "u8"
           },
           {
+            "name": "layout_set",
+            "docs": [
+              "True once the player has saved a habitat layout (until then the client shows its default)."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "placed",
+            "docs": [
+              "Rebyters standing in the habitat (empty slots hold the default key)."
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "PlacedSlot"
+                  }
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "prop_count",
+            "docs": [
+              "How many of `props` are in use."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "props",
+            "docs": [
+              "Objects placed in the habitat. Ownership is checked by whoever renders the habitat",
+              "(the wallet decides what shows); the program only keeps the layout well-formed."
+            ],
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "PropSlot"
+                  }
+                },
+                14
+              ]
+            }
+          },
+          {
             "name": "discoveries",
             "type": {
               "vec": "u16"
@@ -3796,6 +3954,38 @@
           {
             "name": "created_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PropSlot",
+      "docs": [
+        "An object in the habitat. Position and size are fixed-point (value * 1000), rotation is a",
+        "fraction of a turn in 1/65535."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "x",
+            "type": "i16"
+          },
+          {
+            "name": "z",
+            "type": "i16"
+          },
+          {
+            "name": "h",
+            "type": "u16"
+          },
+          {
+            "name": "r",
+            "type": "u16"
           }
         ]
       }
