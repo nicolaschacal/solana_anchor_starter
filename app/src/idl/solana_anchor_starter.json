@@ -66,7 +66,7 @@
     {
       "name": "buy_food",
       "docs": [
-        "Player burns Gems and gets `packs` packs of one food added to their profile."
+        "Player burns Gems and gets `amount` meals of one food and tier added to their profile."
       ],
       "discriminator": [
         126,
@@ -101,7 +101,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -122,7 +122,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -204,7 +204,11 @@
           "type": "u8"
         },
         {
-          "name": "packs",
+          "name": "tier",
+          "type": "u8"
+        },
+        {
+          "name": "amount",
           "type": "u16"
         }
       ]
@@ -244,7 +248,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -370,7 +374,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -387,7 +391,7 @@
                   116,
                   101,
                   109,
-                  50
+                  51
                 ]
               },
               {
@@ -621,7 +625,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -675,7 +679,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -696,7 +700,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -748,7 +752,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -865,7 +869,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -889,7 +893,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -906,7 +910,7 @@
                   116,
                   101,
                   109,
-                  50
+                  51
                 ]
               },
               {
@@ -1053,7 +1057,7 @@
                   116,
                   101,
                   109,
-                  50
+                  51
                 ]
               },
               {
@@ -1083,7 +1087,9 @@
       "name": "create_item_type",
       "docs": [
         "Registers an item mint (created client-side, 0 decimals, mint authority =",
-        "economy PDA). Items are plain transferable tokens bought with Gems."
+        "economy PDA). Items are plain transferable tokens bought with Gems. A training machine",
+        "names the training it improves and its bonus (percent of the gains); an evolution item",
+        "names the evolution id it turns a Rebyter into. Plain items pass NO_MACHINE, 0 and 0."
       ],
       "discriminator": [
         62,
@@ -1138,7 +1144,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -1156,7 +1162,7 @@
                   116,
                   101,
                   109,
-                  50
+                  51
                 ]
               },
               {
@@ -1189,6 +1195,18 @@
         },
         {
           "name": "units_per_purchase",
+          "type": "u16"
+        },
+        {
+          "name": "machine_training",
+          "type": "u8"
+        },
+        {
+          "name": "machine_bonus",
+          "type": "u8"
+        },
+        {
+          "name": "evo_target",
           "type": "u16"
         }
       ]
@@ -1233,7 +1251,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -1558,7 +1576,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -1638,6 +1656,24 @@
           ]
         },
         {
+          "name": "item_type",
+          "docs": [
+            "Optional evolution item: type, mint and the wallet's token account. When given, one unit is",
+            "burnt and the item replaces the rule requirements (the path itself must still be in the atlas)."
+          ],
+          "optional": true
+        },
+        {
+          "name": "item_mint",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "owner_item_account",
+          "writable": true,
+          "optional": true
+        },
+        {
           "name": "token_program",
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
@@ -1683,8 +1719,8 @@
     {
       "name": "feed",
       "docs": [
-        "Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit. Uses up one meal of",
-        "that food from the profile."
+        "Feed with one of four food groups (0 meat, 1 plant, 2 fish, 3 fruit) and one of four",
+        "tiers (0 plain .. 3 feast). Uses up one meal of that food and tier from the profile."
       ],
       "discriminator": [
         46,
@@ -1762,7 +1798,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -1780,6 +1816,10 @@
       "args": [
         {
           "name": "food_type",
+          "type": "u8"
+        },
+        {
+          "name": "tier",
           "type": "u8"
         }
       ]
@@ -1845,7 +1885,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -1903,7 +1943,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -2050,7 +2090,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -2202,7 +2242,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -2263,7 +2303,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -2332,8 +2372,8 @@
     {
       "name": "set_food",
       "docs": [
-        "Sets the food economy: meals of each food in the daily ration (0 = off), meals per",
-        "purchased pack, and the Gem price of one pack of each food (meat, plant, fish, fruit)."
+        "Sets the food economy: meals of each plain food in the daily ration (0 = off) and the Gem",
+        "price of one meal for every food (meat, plants, fish, fruit) and tier (index type * 4 + tier)."
       ],
       "discriminator": [
         82,
@@ -2388,7 +2428,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -2401,15 +2441,11 @@
           "type": "u8"
         },
         {
-          "name": "pack_meals",
-          "type": "u8"
-        },
-        {
           "name": "prices",
           "type": {
             "array": [
               "u64",
-              4
+              16
             ]
           }
         }
@@ -2473,7 +2509,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -2650,7 +2686,7 @@
                   111,
                   109,
                   121,
-                  50
+                  51
                 ]
               }
             ]
@@ -2667,8 +2703,10 @@
     {
       "name": "train",
       "docs": [
-        "Train with one of six machines:",
-        "0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced."
+        "Train with one of six trainings:",
+        "0 power, 1 endurance, 2 defense, 3 speed, 4 combat, 5 balanced.",
+        "Everyone trains at the normal rate. A specialised machine of the matching training held in",
+        "the wallet (pass its item type and token account) adds its bonus to the gains."
       ],
       "discriminator": [
         27,
@@ -2730,9 +2768,6 @@
         },
         {
           "name": "player_profile",
-          "docs": [
-            "The player's profile: counts the action for today's quests."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -2746,7 +2781,7 @@
                   105,
                   108,
                   101,
-                  51
+                  52
                 ]
               },
               {
@@ -2755,6 +2790,20 @@
               }
             ]
           }
+        },
+        {
+          "name": "item_type",
+          "docs": [
+            "Optional: the type of the specialised machine the wallet holds (only the program creates these)."
+          ],
+          "optional": true
+        },
+        {
+          "name": "machine_account",
+          "docs": [
+            "Optional: the wallet's token account of that machine."
+          ],
+          "optional": true
         },
         {
           "name": "token_program",
@@ -2820,7 +2869,7 @@
                   116,
                   101,
                   109,
-                  50
+                  51
                 ]
               },
               {
@@ -3262,6 +3311,16 @@
       "code": 6035,
       "name": "StarterClaimed",
       "msg": "The starter habitat was already claimed"
+    },
+    {
+      "code": 6036,
+      "name": "InvalidMachine",
+      "msg": "That machine does not fit this training"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidEvolutionItem",
+      "msg": "That item does not evolve this Rebyter into that form"
     }
   ],
   "types": [
@@ -3294,21 +3353,14 @@
           {
             "name": "food_prices",
             "docs": [
-              "Gem price of one pack of each food: meat, plant, fish, fruit."
+              "Gem price of one meal, index food type * 4 + tier."
             ],
             "type": {
               "array": [
                 "u64",
-                4
+                16
               ]
             }
-          },
-          {
-            "name": "food_pack_meals",
-            "docs": [
-              "Meals in a purchased pack."
-            ],
-            "type": "u8"
           },
           {
             "name": "ration_units",
@@ -3386,6 +3438,10 @@
           },
           {
             "name": "food_type",
+            "type": "u8"
+          },
+          {
+            "name": "tier",
             "type": "u8"
           },
           {
@@ -3529,6 +3585,27 @@
             "type": "bool"
           },
           {
+            "name": "machine_training",
+            "docs": [
+              "Training this item improves (0..6), or NO_MACHINE."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "machine_bonus",
+            "docs": [
+              "Percent added to the gains of that training."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "evo_target",
+            "docs": [
+              "Evolution id this item turns a Rebyter into (0 = not an evolution item)."
+            ],
+            "type": "u16"
+          },
+          {
             "name": "bump",
             "type": "u8"
           }
@@ -3649,12 +3726,12 @@
           {
             "name": "food",
             "docs": [
-              "Meals in stock: meat, plant, fish, fruit."
+              "Meals in stock, index food type * 4 + tier (meat, plants, fish, fruit; plain to feast)."
             ],
             "type": {
               "array": [
                 "u16",
-                4
+                16
               ]
             }
           },
