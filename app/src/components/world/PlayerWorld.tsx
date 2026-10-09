@@ -61,7 +61,7 @@ type Props = {
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
 
 /** The objects a player can add. The game's own props, in the editor's order. */
-const PALETTE: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern"];
+const PALETTE: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending"];
 const LABELS: Partial<Record<AssetKey, string>> = {
   tree: "Tree",
   pine: "Pine",
@@ -72,6 +72,7 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   mushrooms: "Mushrooms",
   wildflowers: "Wildflowers",
   lantern: "Lantern",
+  vending: "Vending machine",
 };
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));
