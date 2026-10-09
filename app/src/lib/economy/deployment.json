@@ -1,13 +1,190 @@
 {
   "cluster": "devnet",
   "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
-  "economy": "",
+  "economy": "62mdN1xJgw17EGx4ofACbNq4yjUWqpPZWjGes1MHatN5",
   "treasury": "AQfKYtAVyZARgKxSt6ZpqwLAtDNeE1LF8Jk5FYWteqbv",
-  "gemMint": null,
+  "gemMint": "8rSqYPMsTK7A9qC9QDXDJ6KiMCWhWdwrJKgpBGkLsWYN",
   "food": {
-    "prices": []
+    "prices": [
+      4,
+      6,
+      9,
+      12,
+      3,
+      4,
+      6,
+      8,
+      4,
+      6,
+      9,
+      12,
+      3,
+      4,
+      6,
+      8
+    ]
   },
-  "rationUnits": 0,
-  "packs": [],
-  "items": {}
+  "rationUnits": 2,
+  "packs": [
+    {
+      "id": 0,
+      "gems": 500,
+      "priceLamports": 50000000
+    },
+    {
+      "id": 1,
+      "gems": 1200,
+      "priceLamports": 100000000
+    },
+    {
+      "id": 2,
+      "gems": 3000,
+      "priceLamports": 220000000
+    },
+    {
+      "id": 3,
+      "gems": 7000,
+      "priceLamports": 500000000
+    }
+  ],
+  "items": {
+    "habitat-meadow-5": {
+      "itemId": 100,
+      "mint": null
+    },
+    "habitat-oasis-10": {
+      "itemId": 101,
+      "mint": null
+    },
+    "habitat-frost-10": {
+      "itemId": 102,
+      "mint": null
+    },
+    "habitat-jungle-15": {
+      "itemId": 103,
+      "mint": null
+    },
+    "habitat-ember-15": {
+      "itemId": 104,
+      "mint": null
+    },
+    "machine-power": {
+      "itemId": 105,
+      "mint": "aYirL1nLvbtYGzKEMgweEXVJZj2M7FdECq6wZDELeS6"
+    },
+    "machine-endurance": {
+      "itemId": 106,
+      "mint": "AHNTDpGyLUuCAJhtusGiBiKWAuZ2NVxhmu85oBhW5QPm"
+    },
+    "machine-defense": {
+      "itemId": 107,
+      "mint": "EDAX7XCfH3bLUqX77mSzcDe7v1ecA4MVw8tyytd1EZ9u"
+    },
+    "machine-speed": {
+      "itemId": 108,
+      "mint": "73eKfjG3AijQazMAdUmYWScN2qWoUPrM84hRiF1dKXoc"
+    },
+    "machine-combat": {
+      "itemId": 109,
+      "mint": "EfJEAYVQfkfejcBXGLiqcc6V12gTYeAh8kx1Su6Y5Q6"
+    },
+    "machine-balance": {
+      "itemId": 110,
+      "mint": "QYjubtwD9raG7BT3tAGPTEs7eh1Vasv6u75ew3HGCJu"
+    },
+    "decor-pine": {
+      "itemId": 111,
+      "mint": "89Ci52qnReHauv27vgoc6daarPNCJSMNDxegWp4Ejb4y"
+    },
+    "decor-hero": {
+      "itemId": 112,
+      "mint": "GWS6thZbMf8Vhj5yeLiznHdKVFNVvCr1rydgtbYqqM7p"
+    },
+    "decor-log": {
+      "itemId": 113,
+      "mint": "6GuePhvMUD124LKeW5Uhg91kVp3bqVVPDjeetNv88bUi"
+    },
+    "decor-lantern": {
+      "itemId": 114,
+      "mint": "HF5QxdA17okdB8r9PRGaRMM3B2XowDztR7Zsg5XyVJrg"
+    },
+    "decor-flowers": {
+      "itemId": 115,
+      "mint": "Efviggf4e9n4EiJHZ2qwzuNmibMsZ5DEcegkLLyy17MN"
+    },
+    "machine-power-pro": {
+      "itemId": 116,
+      "mint": "5NktcT9EPAnJyE9jmLejEQJC9uonTLK6hkVUvQxiRkVV"
+    },
+    "machine-endurance-pro": {
+      "itemId": 117,
+      "mint": "E43RRV2No6TLRLNZGprFE3PXg4DhEQ4ZjEnFQymqaQzt"
+    },
+    "machine-defense-pro": {
+      "itemId": 118,
+      "mint": "7eDNeeXnYNi99vRohXX83F9cBVq4vbe9eABK5Cc2jQfM"
+    },
+    "machine-speed-pro": {
+      "itemId": 119,
+      "mint": "FkaR5xsHmEWJbah1TR9F548CuqLrTDC655ZsMrp7uvov"
+    },
+    "machine-combat-pro": {
+      "itemId": 120,
+      "mint": "6pgQP6wjm9ChsxashpWTRcLuaipcfDgd7Yx4ud36g8Lm"
+    },
+    "machine-balance-pro": {
+      "itemId": 121,
+      "mint": "GDvwhtvkRb5X5DyW62C957qdWGwcCL19co1TzV2QdMh9"
+    },
+    "evo-spirit_fox": {
+      "itemId": 122,
+      "mint": "E7mcBcLeffe1hivHTo2mVKMM4k38pGxtSHFkjVahzgx9",
+      "evoTarget": 657
+    },
+    "evo-dire_wolf": {
+      "itemId": 123,
+      "mint": "7LLYs8qrNHJdgwAU5SWrWFWAgMHJwJXmvPnzfXq43qsC",
+      "evoTarget": 658
+    },
+    "evo-iron_bear": {
+      "itemId": 124,
+      "mint": "HN2mebRxKfskCQsThPSSfoMmyAYhUPnX6hM7EcaFAJqV",
+      "evoTarget": 661
+    },
+    "evo-titan_ape": {
+      "itemId": 125,
+      "mint": "GAH2yyGe3QjsRUQ5yoodVByYAu85BaSdhinnhVHVvrTR",
+      "evoTarget": 664
+    },
+    "evo-sky_courser": {
+      "itemId": 126,
+      "mint": "DyLGQ2M9B9zBWY7WjTnU8GrDuM4cJXkRQjUCzMVHj2TG",
+      "evoTarget": 665
+    },
+    "evo-mammoth": {
+      "itemId": 127,
+      "mint": "FKejgy7wQLztfUVcdPbZ9co8vY4m9wZVUbho5RxMCUz5",
+      "evoTarget": 669
+    },
+    "evo-kitsune": {
+      "itemId": 128,
+      "mint": "9aaCFqERHj7RjWrAGZZo2kbRH4ZLuLgCp216FbSA17Xp",
+      "evoTarget": 670
+    },
+    "evo-fenrir": {
+      "itemId": 129,
+      "mint": "93V8H7SxKwsxd3KvC1xGhTgzHrNRnJAjKVpneLL6aDog",
+      "evoTarget": 671
+    },
+    "evo-behemoth": {
+      "itemId": 130,
+      "mint": "9niMB8NFK3P79XA4pfMQB8b73oEsCp168aKKRGLzSJbq",
+      "evoTarget": 673
+    },
+    "evo-leviathan": {
+      "itemId": 131,
+      "mint": "ASywH4vtw76dtD9PB5NVyLLz8dWygBtK1oFLDDTkisUL",
+      "evoTarget": 674
+    }
+  }
 }
