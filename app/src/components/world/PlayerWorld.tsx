@@ -7,7 +7,7 @@ import type { FxAsset } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import { OX, OZ, TileMap } from "../admin/habitat/tiles";
-import { FRONT_FACING, HabitatWorld, facingInward, type PropEntry } from "../admin/habitat/world";
+import { FRONT_FACING, HabitatWorld, facingInward, footprint, spanOf, type PropEntry } from "../admin/habitat/world";
 import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
@@ -61,7 +61,7 @@ type Props = {
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
 
 /** The objects a player can add. The game's own props, in the editor's order. */
-const PALETTE: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending"];
+const PALETTE: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop"];
 const LABELS: Partial<Record<AssetKey, string>> = {
   tree: "Tree",
   pine: "Pine",
@@ -73,6 +73,7 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   wildflowers: "Wildflowers",
   lantern: "Lantern",
   vending: "Vending machine",
+  busStop: "Bus stop",
 };
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));
@@ -85,7 +86,6 @@ const NOTICES: Record<string, string> = {
 };
 const TAP_PIXELS = 8;
 
-const tileOfEntry = (e: { x: number; z: number }) => TileMap.tileOf(e.x, e.z);
 
 export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -332,10 +332,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       return i >= BOARD.i0 && i <= BOARD.i1 && j >= BOARD.j0 && j <= BOARD.j1 ? { i, j } : null;
     };
     const propAt = (i: number, j: number) =>
-      world.entries.find((e) => {
-        const t = tileOfEntry(e);
-        return t.i === i && t.j === j;
-      });
+      world.entries.find((e) => footprint(e.key, e.x, e.z, e.r).some(([ti, tj]) => ti === i && tj === j));
     const walkerAt = (i: number, j: number) => walkers.current.find((k) => (k.i === i && k.j === j) || (k.ti === i && k.tj === j));
 
     const COVER_FREE = (entry: PropEntry) => ["grass", "wildflowers", "mushrooms"].includes(entry.key);
@@ -349,6 +346,8 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       setPropCount(world.entries.length);
     };
     persistRef.current = persistNow;
+    // Wide objects must stay on the board and off the rebyters.
+    world.tileFilter = (i, j) => i >= BOARD.i0 && i <= BOARD.i1 && j >= BOARD.j0 && j <= BOARD.j1 && !walkerAt(i, j);
     // Fine adjustments for the selected object: turn it, or slide it inside its tile.
     const dir = new THREE.Vector3();
     editRef.current = {
@@ -361,8 +360,7 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
       rotate: (delta) => {
         const sel = selectionRef.current;
         if (sel?.kind !== "prop") return;
-        world.updateProp(sel.entry, { r: sel.entry.r + delta });
-        persistNow();
+        if (world.rotateProp(sel.entry, delta)) persistNow();
       },
       nudge: (right, forward) => {
         const sel = selectionRef.current;
@@ -864,10 +862,14 @@ export function PlayerWorld({ creatures, storageKey, period, worldTime, onSelect
                     <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
                     <button onClick={() => editRef.current?.rotate(-Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
                     <button onClick={() => editRef.current?.rotate(Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
-                    <button onClick={() => editRef.current?.nudge(-1, 0)} aria-label="Move left"><ArrowLeft /></button>
-                    <button onClick={() => editRef.current?.nudge(0, 1)} aria-label="Move up"><ArrowUp /></button>
-                    <button onClick={() => editRef.current?.nudge(0, -1)} aria-label="Move down"><ArrowDown /></button>
-                    <button onClick={() => editRef.current?.nudge(1, 0)} aria-label="Move right"><ArrowRight /></button>
+                    {spanOf(selection.entry.key) === 1 && (
+                      <>
+                        <button onClick={() => editRef.current?.nudge(-1, 0)} aria-label="Move left"><ArrowLeft /></button>
+                        <button onClick={() => editRef.current?.nudge(0, 1)} aria-label="Move up"><ArrowUp /></button>
+                        <button onClick={() => editRef.current?.nudge(0, -1)} aria-label="Move down"><ArrowDown /></button>
+                        <button onClick={() => editRef.current?.nudge(1, 0)} aria-label="Move right"><ArrowRight /></button>
+                      </>
+                    )}
                   </span>
                 )}
                 <button className="ui-btn ui-btn-secondary world-remove" onClick={removeSelection}>

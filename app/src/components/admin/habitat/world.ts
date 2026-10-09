@@ -93,14 +93,41 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
   { key: "vending", label: "Máquina expendedora", h: 4.6 },
+  { key: "busStop", label: "Parada de colectivo", h: 5 },
 ];
 
 /** Props with a clear front (the model faces +z at rotation 0): placed facing the middle, not at random. */
-export const FRONT_FACING: AssetKey[] = ["vending"];
+export const FRONT_FACING: AssetKey[] = ["vending", "busStop"];
 /** Rotation (snapped to quarter turns) that makes a front-facing prop look at (cx, cz) from (x, z). */
 export function facingInward(x: number, z: number, cx: number, cz: number) {
   const angle = Math.atan2(cx - x, cz - z);
   return Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+}
+
+/** Tiles a prop covers along its own width (default 1). Wider props are quarter-turn only. */
+export const PROP_SPAN: Partial<Record<AssetKey, number>> = { busStop: 2 };
+export const spanOf = (key: AssetKey) => PROP_SPAN[key] ?? 1;
+/** Direction of the prop's width on the grid, for a quarter-turn rotation. */
+const axisOf = (r: number) => ({ x: Math.round(Math.cos(r)), z: Math.round(-Math.sin(r)) });
+/** Every tile a prop stands on. Two-tile props are centred between their tiles. */
+export function footprint(key: AssetKey, x: number, z: number, r: number): [number, number][] {
+  if (spanOf(key) === 1) {
+    const t = TileMap.tileOf(x, z);
+    return [[t.i, t.j]];
+  }
+  const a = axisOf(r);
+  const t0 = TileMap.tileOf(x - 0.5 * a.x, z - 0.5 * a.z);
+  const t1 = TileMap.tileOf(x + 0.5 * a.x, z + 0.5 * a.z);
+  return [
+    [t0.i, t0.j],
+    [t1.i, t1.j],
+  ];
+}
+/** Centre of a prop whose first tile is (i, j); `side` picks which way its width runs. */
+export function spanCenter(key: AssetKey, i: number, j: number, r: number, side = 1) {
+  if (spanOf(key) === 1) return { x: OX + i, z: OZ + j };
+  const a = axisOf(r);
+  return { x: OX + i + 0.5 * a.x * side, z: OZ + j + 0.5 * a.z * side };
 }
 
 export const CREATURE_Z = -2.97; // same depth the game uses for the companion
@@ -566,15 +593,13 @@ diffuseColor.rgb = painted;`,
   private solidOn(i: number, j: number, ignore?: PropEntry) {
     return this.entries.some((e) => {
       if (e === ignore || COVER.includes(e.key) || WATER_PROPS.includes(e.key)) return false;
-      const t = TileMap.tileOf(e.x, e.z);
-      return t.i === i && t.j === j;
+      return footprint(e.key, e.x, e.z, e.r).some(([ti, tj]) => ti === i && tj === j);
     });
   }
   private anyPropOn(i: number, j: number) {
     return this.entries.some((e) => {
       if (WATER_PROPS.includes(e.key)) return false;
-      const t = TileMap.tileOf(e.x, e.z);
-      return t.i === i && t.j === j;
+      return footprint(e.key, e.x, e.z, e.r).some(([ti, tj]) => ti === i && tj === j);
     });
   }
   /** Water never sits under the creature, whatever an old save says. */
@@ -586,8 +611,19 @@ diffuseColor.rgb = painted;`,
     this.callbacks.onNotice?.(message);
   }
   /** Why a prop cannot stand on this tile, or null if it can. */
+  /** Extra rule from the host (the player's board edge, rebyters standing about). */
+  tileFilter: ((i: number, j: number) => boolean) | null = null;
+  /** Why a prop (all the tiles it covers) cannot stand at this centre, or null if it can. */
+  placementBlock(key: AssetKey, x: number, z: number, r: number, ignore?: PropEntry) {
+    for (const [i, j] of footprint(key, x, z, r)) {
+      const why = this.propBlock(key, i, j, ignore);
+      if (why) return why;
+    }
+    return null;
+  }
   private propBlock(key: AssetKey, i: number, j: number, ignore?: PropEntry) {
     if (!this.map.inside(i, j)) return "Fuera del diorama.";
+    if (this.tileFilter && !this.tileFilter(i, j)) return "No hay lugar ahí.";
     if (!WATER_PROPS.includes(key) && this.wet(i, j)) return "Ese objeto no puede ir sobre el agua.";
     if (this.creatureBlocks(i, j)) return "La criatura ocupa esa baldosa.";
     if (!COVER.includes(key) && !WATER_PROPS.includes(key) && this.solidOn(i, j, ignore))
@@ -696,19 +732,26 @@ diffuseColor.rgb = painted;`,
   async addProp(key: AssetKey, x: number, z: number, rotation?: number) {
     const item = PROP_CATALOG.find((p) => p.key === key);
     const tile = TileMap.tileOf(x, z);
-    const why = this.propBlock(key, tile.i, tile.j);
+    const r =
+      rotation ??
+      (FRONT_FACING.includes(key)
+        ? facingInward(OX + tile.i, OZ + tile.j, OX + (this.map.region.i0 + this.map.region.i1) / 2, OZ + (this.map.region.j0 + this.map.region.j1) / 2)
+        : Math.random() * Math.PI * 2);
+    let at = { x: OX + tile.i, z: OZ + tile.j };
+    let why = this.placementBlock(key, at.x, at.z, r);
+    if (why && spanOf(key) > 1) {
+      // A wide prop starts at the tapped tile and runs either way along its width.
+      for (const side of [1, -1]) {
+        at = spanCenter(key, tile.i, tile.j, r, side);
+        why = this.placementBlock(key, at.x, at.z, r);
+        if (!why) break;
+      }
+    }
     if (why) {
       this.notice(why);
       return null;
     }
-    const px = OX + tile.i,
-      pz = OZ + tile.j;
-    const r =
-      rotation ??
-      (FRONT_FACING.includes(key)
-        ? facingInward(px, pz, OX + (this.map.region.i0 + this.map.region.i1) / 2, OZ + (this.map.region.j0 + this.map.region.j1) / 2)
-        : Math.random() * Math.PI * 2);
-    return this.spawnEntry({ key, x: px, z: pz, h: (item?.h ?? 1) * this.propScale, r });
+    return this.spawnEntry({ key, x: at.x, z: at.z, h: (item?.h ?? 1) * this.propScale, r });
   }
   /** Tufts of tall grass scattered inside the given tiles (one visit per tile). */
   async addCover(key: AssetKey, tiles: [number, number][], visited: Set<number>) {
@@ -735,8 +778,7 @@ diffuseColor.rgb = painted;`,
     let removed = 0;
     for (const entry of [...this.entries]) {
       if (only && !only.includes(entry.key)) continue;
-      const t = TileMap.tileOf(entry.x, entry.z);
-      if (wanted.has(TileMap.index(t.i, t.j))) {
+      if (footprint(entry.key, entry.x, entry.z, entry.r).some(([i, j]) => wanted.has(TileMap.index(i, j)))) {
         this.removeProp(entry);
         removed++;
       }
@@ -765,20 +807,49 @@ diffuseColor.rgb = painted;`,
   }
   moveProp(entry: PropEntry, x: number, z: number) {
     const tile = TileMap.tileOf(x, z);
-    const why = this.propBlock(entry.key, tile.i, tile.j, entry);
+    // A wide prop moves with its first tile on the tapped tile, running either way.
+    let at = spanCenter(entry.key, tile.i, tile.j, entry.r);
+    let why = this.placementBlock(entry.key, at.x, at.z, entry.r, entry);
+    if (why && spanOf(entry.key) > 1) {
+      at = spanCenter(entry.key, tile.i, tile.j, entry.r, -1);
+      why = this.placementBlock(entry.key, at.x, at.z, entry.r, entry);
+    }
     if (why) {
       this.notice(why);
       return false;
     }
-    entry.x = OX + tile.i;
-    entry.z = OZ + tile.j;
+    entry.x = at.x;
+    entry.z = at.z;
     this.applyEntry(entry);
     this.updateRing();
     this.env.markShadowsDirty();
     return true;
   }
+  /**
+   * Turns a prop. Single-tile props turn by `delta` radians; wide props turn a quarter
+   * at a time around their first tile, and only if the new spot is free.
+   */
+  rotateProp(entry: PropEntry, delta: number) {
+    if (spanOf(entry.key) === 1) {
+      this.updateProp(entry, { r: entry.r + delta });
+      return true;
+    }
+    const [first] = footprint(entry.key, entry.x, entry.z, entry.r);
+    const r = entry.r + Math.sign(delta) * (Math.PI / 2);
+    const at = spanCenter(entry.key, first[0], first[1], r);
+    const why = this.placementBlock(entry.key, at.x, at.z, r, entry);
+    if (why) {
+      this.notice(why);
+      return false;
+    }
+    entry.x = at.x;
+    entry.z = at.z;
+    this.updateProp(entry, { r });
+    return true;
+  }
   /** Slides a prop inside its own tile (to the edge at most), so rows of props need not line up. */
   nudgeProp(entry: PropEntry, dx: number, dz: number) {
+    if (spanOf(entry.key) > 1) return;
     const tile = TileMap.tileOf(entry.x, entry.z);
     const limit = 0.45;
     const cx = OX + tile.i,
