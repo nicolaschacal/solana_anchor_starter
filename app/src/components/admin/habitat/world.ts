@@ -92,6 +92,7 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
+  { key: "vending", label: "Máquina expendedora", h: 1.8 },
 ];
 
 export const CREATURE_Z = -2.97; // same depth the game uses for the companion

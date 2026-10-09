@@ -66,6 +66,7 @@ const extraFiles = {
   hero: "hero_tree_mobile.glb",
   lantern: "enchanted_lantern_mobile.glb",
   shoreRocks: "shore_rocks_strip_mobile.glb",
+  vending: "vending-machine.glb",
 } as const;
 const allFiles = { ...files, ...extraFiles } as const;
 type BaseKey = keyof typeof files;
