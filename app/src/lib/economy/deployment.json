@@ -1,12 +1,38 @@
 {
   "cluster": "devnet",
   "programId": "7AnfhSTGK11PUqep6wdfkCcSuwhAsaU4RwYfDGdcWyfp",
-  "economy": "",
+  "economy": "2MAfKVhQov5wNJ6fCFdrkKJK4C88Phrp1XEtFhMfNHjM",
   "treasury": "AQfKYtAVyZARgKxSt6ZpqwLAtDNeE1LF8Jk5FYWteqbv",
   "gemMint": null,
-  "sparkMint": null,
-  "foodMints": [],
+  "sparkMint": "5si2Lbc4Pdx2DXfyD23kuTzjH1b3fVrmrd3bqZRunRuW",
+  "foodMints": [
+    "imwig5Q7JrrmCUMjzpg2b6PRruKH4s1gjMp9brSemiE",
+    "A2P44hM8JVfqN76VmMSyWwMbdPy5TQ9Ph1iw6QRMUbDv",
+    "14pEh5YHojwQuhCGXbupbhCSfmJRGCJmMeXkWLuzoYzk",
+    "36hAreDjMnQ9ZVWGcQQZ1CMi3V6vz5W5xFCQw8sWQd2K"
+  ],
   "rationUnits": 5,
-  "packs": [],
+  "packs": [
+    {
+      "id": 0,
+      "gems": 500,
+      "priceLamports": 50000000
+    },
+    {
+      "id": 1,
+      "gems": 1200,
+      "priceLamports": 100000000
+    },
+    {
+      "id": 2,
+      "gems": 3000,
+      "priceLamports": 220000000
+    },
+    {
+      "id": 3,
+      "gems": 7000,
+      "priceLamports": 500000000
+    }
+  ],
   "items": {}
 }
