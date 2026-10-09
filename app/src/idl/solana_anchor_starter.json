@@ -64,6 +64,152 @@
       ]
     },
     {
+      "name": "buy_food",
+      "docs": [
+        "Player burns Gems and gets `packs` packs of one food added to their profile."
+      ],
+      "discriminator": [
+        126,
+        142,
+        236,
+        163,
+        144,
+        102,
+        101,
+        44
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "gem_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_gem_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "gem_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "food_type",
+          "type": "u8"
+        },
+        {
+          "name": "packs",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "buy_gems",
       "docs": [
         "Player pays SOL to the treasury and receives gems."
@@ -97,7 +243,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -222,7 +369,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -238,7 +386,8 @@
                   105,
                   116,
                   101,
-                  109
+                  109,
+                  50
                 ]
               },
               {
@@ -269,209 +418,6 @@
               {
                 "kind": "account",
                 "path": "gem_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "item_mint",
-          "writable": true
-        },
-        {
-          "name": "owner_item_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "item_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "quantity",
-          "type": "u16"
-        }
-      ]
-    },
-    {
-      "name": "buy_item_sparks",
-      "docs": [
-        "Player burns Sparks (the price of an account-bound item) and receives item units."
-      ],
-      "discriminator": [
-        2,
-        180,
-        72,
-        103,
-        248,
-        37,
-        247,
-        199
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "economy",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  99,
-                  111,
-                  110,
-                  111,
-                  109,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "item_type",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  105,
-                  116,
-                  101,
-                  109
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "item_type.item_id",
-                "account": "ItemType"
-              }
-            ]
-          }
-        },
-        {
-          "name": "spark_mint",
-          "writable": true
-        },
-        {
-          "name": "owner_spark_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "spark_mint"
               }
             ],
             "program": {
@@ -675,7 +621,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -695,7 +641,7 @@
     {
       "name": "claim_daily_ration",
       "docs": [
-        "Once per UTC day: mints the free ration (all four foods) to the player."
+        "Once per UTC day: adds the free ration (all four foods) to the player's profile."
       ],
       "discriminator": [
         102,
@@ -710,7 +656,6 @@
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
           "signer": true,
           "relations": [
             "player_profile"
@@ -729,7 +674,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -750,7 +696,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -759,262 +705,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "meat_mint",
-          "writable": true
-        },
-        {
-          "name": "plant_mint",
-          "writable": true
-        },
-        {
-          "name": "fish_mint",
-          "writable": true
-        },
-        {
-          "name": "fruit_mint",
-          "writable": true
-        },
-        {
-          "name": "owner_meat",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "meat_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "owner_plant",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "plant_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "owner_fish",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "fish_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "owner_fruit",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "fruit_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
@@ -1022,7 +712,7 @@
     {
       "name": "claim_quest",
       "docs": [
-        "Claims the Sparks of one of today's quests once the program has counted",
+        "Claims the meals of one of today's quests once the program has counted",
         "enough of the matching actions (feed, play, care, rest, train) today."
       ],
       "discriminator": [
@@ -1038,30 +728,10 @@
       "accounts": [
         {
           "name": "owner",
-          "writable": true,
           "signer": true,
           "relations": [
             "player_profile"
           ]
-        },
-        {
-          "name": "economy",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  99,
-                  111,
-                  110,
-                  111,
-                  109,
-                  121
-                ]
-              }
-            ]
-          }
         },
         {
           "name": "player_profile",
@@ -1078,7 +748,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -1087,79 +757,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "spark_mint",
-          "writable": true
-        },
-        {
-          "name": "owner_spark_account",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "account",
-                "path": "token_program"
-              },
-              {
-                "kind": "account",
-                "path": "spark_mint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -1227,11 +824,266 @@
       ]
     },
     {
+      "name": "create_habitat",
+      "docs": [
+        "Creates a habitat as its own 1/1 Token-2022 NFT. The layout (where the Rebyters and",
+        "objects stand) lives inside the NFT's metadata, so it travels with the habitat. A free",
+        "habitat type is the starter pack: claimable once per wallet, it also gives the first",
+        "meals. Other habitats cost Gems. The new habitat becomes the active one."
+      ],
+      "discriminator": [
+        233,
+        22,
+        47,
+        200,
+        21,
+        106,
+        79,
+        249
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101,
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "economy",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  99,
+                  111,
+                  110,
+                  111,
+                  109,
+                  121,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109,
+                  50
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "gem_mint",
+          "writable": true
+        },
+        {
+          "name": "owner_gem_account",
+          "docs": [
+            "Omit (null) for the free starter habitat."
+          ],
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "habitat_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  97,
+                  98,
+                  105,
+                  116,
+                  97,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "docs": [
+            "single account that stores the habitat."
+          ],
+          "writable": true
+        },
+        {
+          "name": "owner_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "item_id",
+          "type": "u16"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "metadata_uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_habitat_type",
+      "docs": [
+        "Registers a habitat kind (no shared mint: every habitat is its own 1/1 NFT). A price of 0",
+        "is the starter habitat, which each wallet can claim once."
+      ],
+      "discriminator": [
+        116,
+        161,
+        62,
+        109,
+        147,
+        59,
+        103,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "registry"
+          ]
+        },
+        {
+          "name": "registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_type",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109,
+                  50
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "item_id",
+          "type": "u16"
+        },
+        {
+          "name": "price_gems",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "create_item_type",
       "docs": [
         "Registers an item mint (created client-side, 0 decimals, mint authority =",
-        "economy PDA). A NonTransferable mint makes the item account-bound",
-        "(the Sparks-purchasable version)."
+        "economy PDA). Items are plain transferable tokens bought with Gems."
       ],
       "discriminator": [
         62,
@@ -1285,7 +1137,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -1302,7 +1155,8 @@
                   105,
                   116,
                   101,
-                  109
+                  109,
+                  50
                 ]
               },
               {
@@ -1379,7 +1233,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -1704,7 +1558,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -1829,7 +1683,8 @@
     {
       "name": "feed",
       "docs": [
-        "Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit."
+        "Feed with one of four food groups: 0 meat, 1 plant, 2 fish, 3 fruit. Uses up one meal of",
+        "that food from the profile."
       ],
       "discriminator": [
         46,
@@ -1891,6 +1746,9 @@
         },
         {
           "name": "player_profile",
+          "docs": [
+            "The player's profile: counts the action for today's quests."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1904,7 +1762,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -1913,68 +1771,6 @@
               }
             ]
           }
-        },
-        {
-          "name": "economy",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  99,
-                  111,
-                  110,
-                  111,
-                  109,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "food_config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  111,
-                  111,
-                  100
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "food_mint",
-          "docs": [
-            "The free-to-trade mint of this food (the ration mint)."
-          ],
-          "writable": true
-        },
-        {
-          "name": "bound_food_mint",
-          "docs": [
-            "The account-bound mint of this food."
-          ],
-          "writable": true
-        },
-        {
-          "name": "owner_food",
-          "docs": [
-            "Omit (null) when the wallet holds none of that food."
-          ],
-          "writable": true,
-          "optional": true
-        },
-        {
-          "name": "owner_bound_food",
-          "writable": true,
-          "optional": true
         },
         {
           "name": "token_program",
@@ -2048,7 +1844,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -2106,7 +1903,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -2253,7 +2050,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -2405,7 +2202,68 @@
                   105,
                   108,
                   101,
-                  50
+                  51
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "select_habitat",
+      "docs": [
+        "Chooses which habitat in the wallet is the one shown when the game opens."
+      ],
+      "discriminator": [
+        238,
+        210,
+        33,
+        96,
+        210,
+        5,
+        3,
+        60
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "player_profile"
+          ]
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "player_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101,
+                  51
                 ]
               },
               {
@@ -2472,25 +2330,24 @@
       ]
     },
     {
-      "name": "set_bound_food",
+      "name": "set_food",
       "docs": [
-        "Registers the four account-bound food mints (meat, plant, fish, fruit) that feeding burns",
-        "before the free-to-trade ones. Each must be a NonTransferable economy mint."
+        "Sets the food economy: meals of each food in the daily ration (0 = off), meals per",
+        "purchased pack, and the Gem price of one pack of each food (meat, plant, fish, fruit)."
       ],
       "discriminator": [
-        226,
-        5,
-        29,
-        169,
-        152,
-        122,
-        147,
-        160
+        82,
+        20,
+        93,
+        28,
+        200,
+        19,
+        66,
+        172
       ],
       "accounts": [
         {
           "name": "authority",
-          "writable": true,
           "signer": true,
           "relations": [
             "registry"
@@ -2518,6 +2375,7 @@
         },
         {
           "name": "economy",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -2529,51 +2387,33 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
           }
-        },
-        {
-          "name": "food_config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  111,
-                  111,
-                  100
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "meat_mint"
-        },
-        {
-          "name": "plant_mint"
-        },
-        {
-          "name": "fish_mint"
-        },
-        {
-          "name": "fruit_mint"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "ration_units",
+          "type": "u8"
+        },
+        {
+          "name": "pack_meals",
+          "type": "u8"
+        },
+        {
+          "name": "prices",
+          "type": {
+            "array": [
+              "u64",
+              4
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "set_gem_pack",
@@ -2632,7 +2472,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -2655,54 +2496,70 @@
       ]
     },
     {
-      "name": "set_layout",
+      "name": "set_habitat_layout",
       "docs": [
-        "Saves the habitat layout in the player's own profile: which Rebyters stand where and",
-        "where each object is. Nothing here has economic value; what is *owned* is read from the",
-        "wallet when the habitat is shown."
+        "Saves the layout inside the habitat NFT: which Rebyters stand where and where each",
+        "object is. Nothing here has economic value; what is *owned* is read from the wallet",
+        "when the habitat is shown."
       ],
       "discriminator": [
-        120,
-        129,
-        190,
-        57,
+        251,
+        53,
+        33,
         80,
-        186,
-        146,
-        92
+        92,
+        19,
+        55,
+        210
       ],
       "accounts": [
         {
           "name": "owner",
-          "signer": true,
-          "relations": [
-            "player_profile"
-          ]
+          "signer": true
         },
         {
-          "name": "player_profile",
-          "writable": true,
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account"
+        },
+        {
+          "name": "habitat_authority",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  114,
-                  111,
-                  102,
+                  104,
+                  97,
+                  98,
                   105,
-                  108,
-                  101,
-                  50
+                  116,
+                  97,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
                 ]
               },
               {
                 "kind": "account",
-                "path": "owner"
+                "path": "mint"
               }
             ]
           }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         }
       ],
       "args": [
@@ -2737,161 +2594,6 @@
           "type": "u8"
         }
       ]
-    },
-    {
-      "name": "set_ration",
-      "docs": [
-        "Sets the four food mints given by the daily ration (meat, plant, fish, fruit)",
-        "and how many units of each. Zero units turns the ration off."
-      ],
-      "discriminator": [
-        63,
-        249,
-        43,
-        83,
-        128,
-        164,
-        252,
-        168
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "signer": true,
-          "relations": [
-            "registry"
-          ]
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "economy",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  99,
-                  111,
-                  110,
-                  111,
-                  109,
-                  121
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "units",
-          "type": "u8"
-        },
-        {
-          "name": "mints",
-          "type": {
-            "array": [
-              "pubkey",
-              4
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "set_sparks_mint",
-      "docs": [
-        "Registers the Sparks mint: Token-2022, 0 decimals, NonTransferable,",
-        "mint authority = economy PDA, no freeze authority."
-      ],
-      "discriminator": [
-        182,
-        155,
-        147,
-        197,
-        86,
-        140,
-        105,
-        63
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "signer": true,
-          "relations": [
-            "registry"
-          ]
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "economy",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  101,
-                  99,
-                  111,
-                  110,
-                  111,
-                  109,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "spark_mint"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        }
-      ],
-      "args": []
     },
     {
       "name": "set_treasury",
@@ -2947,7 +2649,8 @@
                   110,
                   111,
                   109,
-                  121
+                  121,
+                  50
                 ]
               }
             ]
@@ -3043,7 +2746,7 @@
                   105,
                   108,
                   101,
-                  50
+                  51
                 ]
               },
               {
@@ -3116,7 +2819,8 @@
                   105,
                   116,
                   101,
-                  109
+                  109,
+                  50
                 ]
               },
               {
@@ -3165,19 +2869,6 @@
         221,
         105,
         238
-      ]
-    },
-    {
-      "name": "FoodConfig",
-      "discriminator": [
-        147,
-        119,
-        79,
-        147,
-        133,
-        141,
-        149,
-        165
       ]
     },
     {
@@ -3235,6 +2926,19 @@
   ],
   "events": [
     {
+      "name": "FoodPurchased",
+      "discriminator": [
+        137,
+        254,
+        36,
+        61,
+        222,
+        65,
+        209,
+        96
+      ]
+    },
+    {
       "name": "GemsPurchased",
       "discriminator": [
         26,
@@ -3245,6 +2949,19 @@
         112,
         128,
         143
+      ]
+    },
+    {
+      "name": "HabitatCreated",
+      "discriminator": [
+        48,
+        1,
+        153,
+        248,
+        120,
+        49,
+        41,
+        100
       ]
     },
     {
@@ -3540,6 +3257,11 @@
       "code": 6034,
       "name": "WrongCurrency",
       "msg": "This item is bought with a different currency"
+    },
+    {
+      "code": 6035,
+      "name": "StarterClaimed",
+      "msg": "The starter habitat was already claimed"
     }
   ],
   "types": [
@@ -3570,28 +3292,28 @@
             }
           },
           {
-            "name": "spark_mint",
+            "name": "food_prices",
             "docs": [
-              "Non-transferable quest currency (default key until `set_sparks_mint`)."
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "ration_mints",
-            "docs": [
-              "Foods of the free daily ration: meat, plant, fish, fruit."
+              "Gem price of one pack of each food: meat, plant, fish, fruit."
             ],
             "type": {
               "array": [
-                "pubkey",
+                "u64",
                 4
               ]
             }
           },
           {
+            "name": "food_pack_meals",
+            "docs": [
+              "Meals in a purchased pack."
+            ],
+            "type": "u8"
+          },
+          {
             "name": "ration_units",
             "docs": [
-              "Units of each food in the ration; 0 = off."
+              "Meals of each food in the free daily ration; 0 = off."
             ],
             "type": "u8"
           },
@@ -3654,25 +3376,25 @@
       }
     },
     {
-      "name": "FoodConfig",
+      "name": "FoodPurchased",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "bound_mints",
-            "docs": [
-              "Account-bound (Sparks-bought) mints of meat, plant, fish, fruit."
-            ],
-            "type": {
-              "array": [
-                "pubkey",
-                4
-              ]
-            }
+            "name": "owner",
+            "type": "pubkey"
           },
           {
-            "name": "bump",
+            "name": "food_type",
             "type": "u8"
+          },
+          {
+            "name": "meals",
+            "type": "u16"
+          },
+          {
+            "name": "gems_spent",
+            "type": "u64"
           }
         ]
       }
@@ -3713,6 +3435,26 @@
           {
             "name": "price_lamports",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HabitatCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "item_id",
+            "type": "u16"
           }
         ]
       }
@@ -3787,13 +3529,6 @@
             "type": "bool"
           },
           {
-            "name": "bound",
-            "docs": [
-              "True when the item mint is NonTransferable (account-bound version)."
-            ],
-            "type": "bool"
-          },
-          {
             "name": "bump",
             "type": "u8"
           }
@@ -3846,8 +3581,8 @@
     {
       "name": "PlayerProfile",
       "docs": [
-        "The one per-wallet account: pokedex discoveries plus the small fixed-size daily state",
-        "(ration day, quest counters). Fixed fields come first; only `discoveries` ever grows."
+        "The one per-wallet account: pokedex discoveries, food counters and the small fixed-size daily",
+        "state (ration day, quest counters). Fixed fields come first; only `discoveries` ever grows."
       ],
       "type": {
         "kind": "struct",
@@ -3898,49 +3633,28 @@
             "type": "u8"
           },
           {
-            "name": "layout_set",
+            "name": "starter_claimed",
             "docs": [
-              "True once the player has saved a habitat layout (until then the client shows its default)."
+              "True once the starter habitat (and its first meals) was claimed."
             ],
             "type": "bool"
           },
           {
-            "name": "placed",
+            "name": "active_habitat",
             "docs": [
-              "Rebyters standing in the habitat (empty slots hold the default key)."
+              "The habitat NFT shown when the game opens (default key = none yet)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "food",
+            "docs": [
+              "Meals in stock: meat, plant, fish, fruit."
             ],
             "type": {
               "array": [
-                {
-                  "defined": {
-                    "name": "PlacedSlot"
-                  }
-                },
-                3
-              ]
-            }
-          },
-          {
-            "name": "prop_count",
-            "docs": [
-              "How many of `props` are in use."
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "props",
-            "docs": [
-              "Objects placed in the habitat. Ownership is checked by whoever renders the habitat",
-              "(the wallet decides what shows); the program only keeps the layout well-formed."
-            ],
-            "type": {
-              "array": [
-                {
-                  "defined": {
-                    "name": "PropSlot"
-                  }
-                },
-                14
+                "u16",
+                4
               ]
             }
           },
@@ -4019,8 +3733,12 @@
             "type": "u8"
           },
           {
-            "name": "sparks",
-            "type": "u64"
+            "name": "food_type",
+            "type": "u8"
+          },
+          {
+            "name": "meals",
+            "type": "u8"
           }
         ]
       }
