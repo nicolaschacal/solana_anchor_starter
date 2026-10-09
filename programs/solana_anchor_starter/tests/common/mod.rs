@@ -461,3 +461,18 @@ pub fn set_bound_food_ix(authority: &Pubkey, mints: &[Pubkey; 4]) -> Instruction
         },
     )
 }
+
+pub fn set_layout_ix(
+    owner: &Pubkey,
+    placed: [solana_anchor_starter::PlacedSlot; 3],
+    props: [solana_anchor_starter::PropSlot; 14],
+    prop_count: u8,
+) -> Instruction {
+    ix(
+        instruction::SetLayout { placed, props, prop_count },
+        accounts::SetLayout {
+            owner: *owner,
+            player_profile: daily_pda(owner),
+        },
+    )
+}

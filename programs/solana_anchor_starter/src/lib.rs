@@ -496,6 +496,35 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
+    /// Saves the habitat layout in the player's own profile: which Rebyters stand where and
+    /// where each object is. Nothing here has economic value; what is *owned* is read from the
+    /// wallet when the habitat is shown.
+    pub fn set_layout(
+        ctx: Context<SetLayout>,
+        placed: [PlacedSlot; MAX_PLACED_SLOTS],
+        props: [PropSlot; MAX_PROP_SLOTS],
+        prop_count: u8,
+    ) -> Result<()> {
+        require!(usize::from(prop_count) <= MAX_PROP_SLOTS, RegistryError::InvalidLayout);
+        for prop in props.iter().take(usize::from(prop_count)) {
+            require!(prop.kind < PROP_KINDS && prop.h > 0, RegistryError::InvalidLayout);
+        }
+        for (n, slot) in placed.iter().enumerate() {
+            if slot.mint != Pubkey::default() {
+                require!(
+                    !placed[..n].iter().any(|other| other.mint == slot.mint),
+                    RegistryError::InvalidLayout
+                );
+            }
+        }
+        let profile = &mut ctx.accounts.player_profile;
+        profile.layout_set = true;
+        profile.placed = placed;
+        profile.prop_count = prop_count;
+        profile.props = props;
+        Ok(())
+    }
+
     /// Registers the four account-bound food mints (meat, plant, fish, fruit) that feeding burns
     /// before the free-to-trade ones. Each must be a NonTransferable economy mint.
     pub fn set_bound_food(ctx: Context<SetBoundFood>) -> Result<()> {
@@ -1694,13 +1723,48 @@ pub struct PlayerProfile {
     /// Bit i set = quest slot i already claimed on `quest_day`.
     pub claimed: u8,
     pub bump: u8,
+    /// True once the player has saved a habitat layout (until then the client shows its default).
+    pub layout_set: bool,
+    /// Rebyters standing in the habitat (empty slots hold the default key).
+    pub placed: [PlacedSlot; MAX_PLACED_SLOTS],
+    /// How many of `props` are in use.
+    pub prop_count: u8,
+    /// Objects placed in the habitat. Ownership is checked by whoever renders the habitat
+    /// (the wallet decides what shows); the program only keeps the layout well-formed.
+    pub props: [PropSlot; MAX_PROP_SLOTS],
     pub discoveries: Vec<u16>,
 }
 
+/// A Rebyter in the habitat: its mint and tile.
+#[derive(Clone, Copy, Default, AnchorSerialize, AnchorDeserialize, InitSpace)]
+pub struct PlacedSlot {
+    pub mint: Pubkey,
+    pub i: u8,
+    pub j: u8,
+}
+
+/// An object in the habitat. Position and size are fixed-point (value * 1000), rotation is a
+/// fraction of a turn in 1/65535.
+#[derive(Clone, Copy, Default, AnchorSerialize, AnchorDeserialize, InitSpace)]
+pub struct PropSlot {
+    pub kind: u8,
+    pub x: i16,
+    pub z: i16,
+    pub h: u16,
+    pub r: u16,
+}
+
+pub const MAX_PLACED_SLOTS: usize = 3;
+pub const MAX_PROP_SLOTS: usize = 14;
+/// How many object kinds the client knows (the palette order is part of the format).
+pub const PROP_KINDS: u8 = 11;
+
 impl PlayerProfile {
     // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
-    // + Vec length prefix.
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 4;
+    // + layout (flag, placed slots, prop count, prop slots) + Vec length prefix.
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1
+        + 1 + MAX_PLACED_SLOTS * (32 + 2) + 1 + MAX_PROP_SLOTS * 9
+        + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
@@ -1758,7 +1822,7 @@ pub struct InitializePlayer<'info> {
         seeds = [b"profile", owner.key().as_ref()],
         bump
     )]
-    pub player_profile: Account<'info, PlayerProfile>,
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1849,7 +1913,7 @@ pub struct CreateRebyter<'info> {
         seeds = [b"profile", owner.key().as_ref()],
         bump
     )]
-    pub player_profile: Account<'info, PlayerProfile>,
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"registry"], bump)]
     pub registry: Account<'info, RegistryRoot>,
     #[account(
@@ -1927,7 +1991,7 @@ pub struct FeedRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
-    pub player_profile: Account<'info, PlayerProfile>,
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"economy"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
     #[account(seeds = [b"food"], bump = food_config.bump)]
@@ -1944,6 +2008,13 @@ pub struct FeedRebyter<'info> {
     #[account(mut, token::mint = bound_food_mint, token::authority = owner, token::token_program = token_program)]
     pub owner_bound_food: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
     pub token_program: Program<'info, Token2022>,
+}
+
+#[derive(Accounts)]
+pub struct SetLayout<'info> {
+    pub owner: Signer<'info>,
+    #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 
 #[derive(Accounts)]
@@ -1966,7 +2037,7 @@ pub struct InteractRebyter<'info> {
     pub rebyter_authority: UncheckedAccount<'info>,
     /// The player's profile: counts the action for today's quests.
     #[account(mut, seeds = [b"profile", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
-    pub player_profile: Account<'info, PlayerProfile>,
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
 
@@ -1980,7 +2051,7 @@ pub struct EvolveRebyter<'info> {
         bump,
         has_one = owner
     )]
-    pub player_profile: Account<'info, PlayerProfile>,
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     /// CHECK: Token-2022 mint; ownership and DNA are validated in the handler.
     #[account(mut, owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
@@ -2120,6 +2191,8 @@ pub enum RegistryError {
     InsufficientSparks,
     #[msg("You have no food of that kind")]
     NoFood,
+    #[msg("The habitat layout is not valid")]
+    InvalidLayout,
     #[msg("This item is bought with a different currency")]
     WrongCurrency,
 }
