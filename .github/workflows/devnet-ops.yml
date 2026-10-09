@@ -80,6 +80,7 @@ jobs:
         run: |
           exec > >(tee -a "$RUNNER_TEMP/ops.log") 2>&1
           trap 'exec >&- 2>&-; sleep 2' EXIT
+          anchor build
           cargo test
           cd app && npm ci && npm test
 
