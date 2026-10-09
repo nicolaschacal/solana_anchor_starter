@@ -134,17 +134,22 @@ for that single target; the route must still exist in the active atlas. Ids are 
 **Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
 (ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.
 
-## Habitats: capacity by island size (deployed)
+## Habitats: fixed size and land (deployed)
 
-The layout inside a habitat NFT now grows with use and the owner pays the rent of the extra bytes when saving
-(a blank habitat is 1 byte, so the starter pack locks 0.0064 SOL instead of 0.0087). Capacity is about one Rebyter per 8 tiles
-and the program accepts at most 12 Rebyters and 50 objects per habitat; the app limits each island by its size:
+Three island sizes with a fixed ceiling, lowered by the island's own land. Water and cliffs (level 3+) are not standable;
+a Rebyter needs about 8 free tiles and an object about 2 (0.6 objects per free tile). The land is part of the habitat kind,
+so the capacity cannot be changed. The layout inside the NFT grows with use and the owner pays the rent of the extra bytes
+(starter pack locks 0.0064 SOL). The program accepts at most 8 Rebyters and 40 objects; the app applies each island's own limit.
 
-| Island | Rebyters | Objects |
-|---|---|---|
-| 5x5 (starter) | 3 | 14 |
-| 10x10 | 12 | 30 |
-| 15x15 | 12 | 50 |
+| Island | Size | Land | Free tiles | Rebyters | Objects |
+|---|---|---|---|---|---|
+| Verdant Meadow (starter) | 5x5 | flat | 25 | 3 | 14 |
+| Dune Oasis | 7x7 | pond + dunes | 40 | 5 | 24 |
+| Frostpeak | 7x7 | ridge + frozen pond | 38 | 4 | 22 |
+| Rainforest Canopy | 9x9 | river | 67 | 8 | 40 |
+| Ember Crater | 9x9 | cone + peak | 51 | 6 | 30 |
+
+Camera limits scale with the island so the whole board fits a phone screen.
 
 ## Game HUD (open world)
 
@@ -154,5 +159,5 @@ a strip with every companion and what it needs (tap to open it), and a dock with
 ## Roadmap status
 
 - Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with growing on-chain layout and
-  capacity by island size, open-world HUD, Storage menu.
+  island land and capacity (3/5/8 ceiling), open-world HUD, Storage menu.
 - Next: vending-machine sales, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
