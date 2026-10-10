@@ -52,9 +52,10 @@ async function readHabitats(connection: ReturnType<typeof useConnection>["connec
   const found: OwnedHabitat[] = [];
   const todo = candidates.filter((m) => !notHabitat.has(m.toBase58()));
   for (let n = 0; n < todo.length; n += 6) {
-    await Promise.all(
+    const results = await Promise.allSettled(
       todo.slice(n, n + 6).map(async (mint) => {
-        const meta = await getTokenMetadata(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID).catch(() => null);
+        // A failed read says nothing about the mint: never remember it as "not a habitat".
+        const meta = await getTokenMetadata(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID);
         const fields = new Map(meta?.additionalMetadata ?? []);
         const kind = fields.get("HABITAT");
         if (!meta || kind === undefined || meta.symbol !== "HBTT") {
@@ -64,6 +65,7 @@ async function readHabitats(connection: ReturnType<typeof useConnection>["connec
         found.push({ mint: mint.toBase58(), itemId: Number(kind), name: meta.name, layout: layoutFromHex(fields.get("LAYOUT")) });
       }),
     );
+    if (results.some((r) => r.status === "rejected")) throw new Error("Could not read every habitat");
   }
   return found;
 }
@@ -105,8 +107,9 @@ export function useInventory(): Inventory {
       const idle: PublicKey[] = [];
       const singles: PublicKey[] = [];
       for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
-        const accounts = await connection.getParsedTokenAccountsByOwner(owner, { programId }, "confirmed").catch(() => null);
-        for (const record of accounts?.value ?? []) {
+        // A failed read must not look like an empty wallet: it would hide the island and its objects.
+        const accounts = await connection.getParsedTokenAccountsByOwner(owner, { programId }, "confirmed");
+        for (const record of accounts.value) {
           const info = (record.account.data as { parsed?: { info?: { mint?: string; tokenAmount?: { uiAmount?: number; amount?: string; decimals?: number } } } }).parsed?.info;
           if (!info?.mint) continue;
           const amount = info.tokenAmount?.uiAmount ?? 0;
@@ -118,7 +121,7 @@ export function useInventory(): Inventory {
           }
         }
       }
-      const [owned, state] = await Promise.all([readHabitats(connection, singles), fetchProfileState(connection, owner).catch(() => null)]);
+      const [owned, state] = await Promise.all([readHabitats(connection, singles), fetchProfileState(connection, owner)]);
       if (!dead) {
         setBalances(next);
         setHabitats(owned);
@@ -128,7 +131,17 @@ export function useInventory(): Inventory {
         setReady(true);
       }
     };
-    void read();
+    // On failure the last good state stays; the next tick (or the 30 s refresh events) tries again.
+    const attempt = (left: number) =>
+      read().catch(() => {
+        if (dead) return;
+        if (left > 0) window.setTimeout(() => !dead && void attempt(left - 1), 2500);
+        else {
+          setLoading(false);
+          setReady(true);
+        }
+      });
+    void attempt(2);
     return () => {
       dead = true;
     };

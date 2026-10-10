@@ -770,11 +770,12 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             creatures={worldCreatures}
             key={inventory.activeHabitat?.mint??"no-habitat"}
             initialLayout={inventory.activeHabitat?.layout??null}
-            onCommitLayout={layout=>inventory.activeHabitat?saveHabitatLayout(worldConnection,authForWorld.anchorWallet!,inventory.activeHabitat.mint,inventory.activeHabitat.itemId,layout):Promise.resolve()}
+            onCommitLayout={layout=>inventory.activeHabitat&&authForWorld.anchorWallet?saveHabitatLayout(worldConnection,authForWorld.anchorWallet,inventory.activeHabitat.mint,inventory.activeHabitat.itemId,layout):Promise.reject(new Error("No island to save to"))}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
             focusMint={focusMint}
+            complete={player.ownedLoadedAll&&!player.error}
             onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}

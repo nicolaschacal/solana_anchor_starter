@@ -943,4 +943,6 @@
 .rb-ui .landing-features span{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border-radius:50%!important;background:var(--ui-card)!important}
 .rb-ui .landing-features svg{width:22px!important;height:22px!important;color:var(--ui-accent)!important}
 .rb-ui .landing-features small{font-size:var(--ui-fs-micro)!important;font-weight:700!important;letter-spacing:.12em!important;color:var(--ui-text)!important}
+.rb-ui .world-saving{display:flex!important;align-items:center!important;gap:10px!important}
+.rb-ui .world-saving .world-retry{min-height:32px!important;padding:0 12px!important}
 }

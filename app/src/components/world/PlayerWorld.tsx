@@ -63,6 +63,8 @@ type Props = {
   focusMint?: string | null;
   /** The protagonist was tapped again: go back to the open view. */
   onExit?: () => void;
+  /** The whole collection has been read; until then nobody is dropped from the saved layout. */
+  complete?: boolean;
   /** A read-only postcard of the game (sign-in screen): no deck, no editing. */
   showcase?: boolean;
   /** The islands the wallet holds, for the Islands tab of the edit panel. */
@@ -110,7 +112,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, showcase = false, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, showcase = false, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -171,7 +173,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       await commitRef.current(toSave);
       baselineRef.current = JSON.stringify(current);
     } catch (e) {
-      setSaveError(e instanceof Error && /reject|cancel|denied/i.test(e.message) ? "Not saved: signature cancelled" : "Couldn't save your habitat. Try Edit → Done again.");
+      setSaveError(e instanceof Error && /reject|cancel|denied/i.test(e.message) ? "Not saved: signature cancelled" : "Couldn't save your island.");
     } finally {
       setSaving(false);
     }
@@ -652,6 +654,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   // The collection changed: drop what is gone, and show a newly minted rebyter right away.
   const known = useRef<Set<string> | null>(null);
   useEffect(() => {
+    // A partial scan must never remove saved rebyters from the layout: they may simply not have loaded yet.
+    if (!complete) return;
     const current = layoutRef.current;
     const cleaned = reconcile(current, owned);
     let next = cleaned;
@@ -667,7 +671,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     }
     if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned, spec).placed };
     if (next !== current && JSON.stringify(next) !== JSON.stringify(current)) setLayout(next);
-  }, [owned, setLayout]);
+  }, [owned, complete, setLayout]);
 
   // ---- Speech bubbles ------------------------------------------------------------------
 
@@ -862,6 +866,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       {(saving || saveError) && (
         <div className="world-saving gl-panel" role="status">
           {saving ? "Saving to your wallet…" : saveError}
+          {!saving && saveError && (
+            <button className="ui-btn ui-btn-primary world-retry" onClick={() => void commit()}>
+              Retry
+            </button>
+          )}
         </div>
       )}
 
