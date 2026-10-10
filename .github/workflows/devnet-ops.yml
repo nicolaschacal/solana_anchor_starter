@@ -17,6 +17,7 @@ on:
           - publish-current
           - publish-rebalance
           - publish-workbook
+          - publish-model
           - setup-economy
           - smoke-feed
           - cost-report
@@ -165,7 +166,7 @@ jobs:
           npm run "publish:${PUBLISH_SCRIPT#publish-}"
 
       - name: Commit generated files (IDL, economy addresses)
-        if: always() && (inputs.action == 'deploy' || inputs.action == 'setup-economy')
+        if: always() && (inputs.action == 'deploy' || inputs.action == 'setup-economy' || inputs.action == 'publish-model')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -174,6 +175,7 @@ jobs:
           fi
           git add app/src/idl/solana_anchor_starter.json || true
           git add app/src/lib/economy/deployment.json || true
+          git add app/src/lib/rebyters/model-uris.json || true
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
