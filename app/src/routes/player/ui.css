@@ -995,4 +995,21 @@
 .rb-ui .landing-loading{position:absolute!important;left:50%!important;bottom:18%!important;transform:translateX(-50%)!important;z-index:9!important;display:flex!important;align-items:center!important;gap:10px!important;padding:12px 20px!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-panel)!important;color:var(--ui-text)!important;font-weight:700!important;box-shadow:0 8px 24px rgba(48,28,14,.3)!important}
 .rb-ui .landing-loading svg{width:20px!important;height:20px!important;color:#5d7d3a!important;animation:landing-bob 1.2s ease-in-out infinite!important}
 @keyframes landing-bob{50%{transform:translateY(-3px)}}
+
+/* Feed sheet: readable cream cards */
+.rb-ui .food-grid .food-row{gap:8px!important;margin-top:6px!important}
+.rb-ui .food-group{font-size:var(--ui-fs-label)!important;font-weight:800!important;letter-spacing:.1em!important;color:var(--ui-text)!important}
+.rb-ui .food-group small{font-size:var(--ui-fs-caption)!important;font-weight:600!important;letter-spacing:0!important;color:var(--ui-text-2)!important}
+.rb-ui .food-grid .food-tier{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:space-between!important;gap:6px!important;min-height:84px!important;padding:10px 12px!important;border:1.5px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-md)!important;background:var(--ui-card)!important;color:var(--ui-text)!important;text-align:left!important;box-shadow:0 2px 0 rgba(120,80,40,.12)!important}
+.rb-ui .food-grid .food-tier>svg{width:26px!important;height:26px!important;padding:0!important;color:var(--ui-accent)!important}
+.rb-ui .food-grid .food-tier>span{display:flex!important;flex-direction:column!important;gap:2px!important}
+.rb-ui .food-grid .food-tier strong{font-size:var(--ui-fs-body)!important;font-weight:700!important;color:var(--ui-text)!important}
+.rb-ui .food-grid .food-tier small{font-size:var(--ui-fs-caption)!important;font-weight:600!important;color:var(--ui-text-2)!important}
+.rb-ui .food-grid .food-tier .food-count{position:absolute!important;top:8px!important;right:10px!important;margin:0!important;font-size:var(--ui-fs-body)!important;font-weight:800!important;color:var(--ui-text)!important}
+.rb-ui .food-grid .food-tier:disabled{opacity:1!important;background:rgba(120,90,60,.1)!important;border-style:dashed!important;box-shadow:none!important}
+.rb-ui .food-grid .food-tier:disabled>svg{color:var(--ui-text-3)!important}
+.rb-ui .food-grid .food-tier:disabled strong,.rb-ui .food-grid .food-tier:disabled small{color:var(--ui-text-2)!important;opacity:.75!important}
+.rb-ui .food-grid .food-tier:disabled .food-count{color:var(--ui-text-3)!important}
+.rb-ui .food-grid .food-tier:not(:disabled):active{transform:translateY(1px)!important}
+.rb-ui .food-grid .food-tier.meal-warning{border-color:var(--ui-warn)!important}
 }
