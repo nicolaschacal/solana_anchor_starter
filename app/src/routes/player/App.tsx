@@ -572,11 +572,16 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   useEffect(()=>{setResting(false);setVisualAction("idle");},[activeMint]);
   const worldClock=useWorldClock();
   const localNow=worldClock.now;
-  const active = selectedCompanion(
+  const activeNow = selectedCompanion(
     owned,
     activeMint,
     player.ownedLoadedAll && !player.error,
   );
+  // Once the world is up it stays up: a background refresh must never swap it for a loading or empty screen.
+  const lastGood=useRef<{active:typeof activeNow}>({active:undefined});
+  if(!authForWorld.connected) lastGood.current={active:undefined};
+  else if(activeNow) lastGood.current={active:activeNow};
+  const active = activeNow ?? (WORLD_VIEW_ENABLED&&owned.length>0?lastGood.current.active:undefined);
   useEffect(()=>{
     if(active && !activeMint && player.ownedLoadedAll && !player.error)
       setActiveMint(active.mint);

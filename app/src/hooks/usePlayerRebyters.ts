@@ -1,5 +1,5 @@
 import type { StoreItem } from "../lib/economy/catalog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import type { TreeJson } from "../lib/rebyters/types";
 import { useRebytersAuth } from "../lib/rebyters/auth";
@@ -125,6 +125,8 @@ export function usePlayerRebyters() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [interactingMint, setInteractingMint] = useState("");
+  // Only the newest scan may write the collection: an older, slower one must never replace it with fewer Rebyters.
+  const scanSeq = useRef(0);
 
   // The atlas is public data. Warm it while the guest/login screen is visible so
   // authentication does not have to wait for registry + Irys verification.
@@ -141,12 +143,14 @@ export function usePlayerRebyters() {
   const refresh = useCallback(async (force = false) => {
     setError("");
     if (!auth.publicKey) {
+      scanSeq.current++;
       setOwned([]);
       setOwnedLoadedAll(false);
       setPlayerProfile(null);
       setProfileLoaded(false);
       return;
     }
+    const seq = ++scanSeq.current;
     setLoading(true);
     try {
       const snapshot = await getPlayerSnapshot(
@@ -154,6 +158,7 @@ export function usePlayerRebyters() {
         auth.publicKey,
         force,
         (earlyOwned, complete) => {
+          if (seq !== scanSeq.current) return;
           if (complete) {
             setOwned(earlyOwned);
             setOwnedLoadedAll(true);
@@ -170,17 +175,17 @@ export function usePlayerRebyters() {
           setOwnedLoadedAll(false);
         },
       );
+      if (seq !== scanSeq.current) return;
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
       setProfileLoaded(true);
       if (snapshot.mammalTree) setMammalTree(snapshot.mammalTree);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setOwned([]);
-      setOwnedLoadedAll(false);
+      // A failed scan (RPC hiccup) keeps what is already on screen instead of emptying the world.
+      if (seq === scanSeq.current) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (seq === scanSeq.current) setLoading(false);
     }
   }, [connection, auth.publicKey]);
 
@@ -190,10 +195,12 @@ export function usePlayerRebyters() {
 
   const loadAll = useCallback(async (force = false) => {
     if (!auth.publicKey) {
+      scanSeq.current++;
       setOwned([]);
       setOwnedLoadedAll(false);
       return [];
     }
+    const seq = ++scanSeq.current;
     setLoading(true);
     setError("");
     try {
@@ -202,6 +209,7 @@ export function usePlayerRebyters() {
         auth.publicKey,
         force,
         (earlyOwned, complete) => {
+          if (seq !== scanSeq.current) return;
           if (complete) {
             setOwned(earlyOwned);
             setOwnedLoadedAll(true);
@@ -218,6 +226,7 @@ export function usePlayerRebyters() {
           setOwnedLoadedAll(false);
         },
       );
+      if (seq !== scanSeq.current) return snapshot.owned;
       setOwned(snapshot.owned);
       setOwnedLoadedAll(true);
       setPlayerProfile(snapshot.playerProfile);
@@ -225,10 +234,10 @@ export function usePlayerRebyters() {
       return snapshot.owned;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      setError(message);
+      if (seq === scanSeq.current) setError(message);
       throw e;
     } finally {
-      setLoading(false);
+      if (seq === scanSeq.current) setLoading(false);
     }
   }, [connection, auth.publicKey]);
 

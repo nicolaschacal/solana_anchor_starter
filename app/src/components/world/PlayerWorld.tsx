@@ -165,6 +165,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   }, []);
 
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState<"rebyters" | "objects">("rebyters");
   const [armed, setArmed] = useState<AssetKey | null>(null);
@@ -197,6 +198,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     try {
       world = new HabitatWorld(host, canvas, { onNotice: (message) => say(NOTICES[message] ?? "That spot is not available."), ownSky: true, ownBase: true });
     } catch {
+      setFailed(true);
       return;
     }
     worldRef.current = world;
@@ -304,6 +306,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         world.clockMs = clockRef.current ?? Date.now();
         skyRef.current = createSky(world.scene, world.centre, period);
       } catch {
+        if (!dead) setFailed(true);
         return;
       }
       if (dead) return;
@@ -312,13 +315,18 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       rig = new WorldRig(world.centre, size / 2 + 0.4, spots);
       rigRef.current = rig;
       rig.intro();
-      if (layoutNow.props) {
-        // Only what the wallet holds is shown; the rest stays saved but hidden.
-        const { shown, hidden } = limitProps(layoutNow.props, (key) => allowanceRef.current?.(key) ?? Number.POSITIVE_INFINITY);
-        hiddenRef.current = hidden;
-        await world.restore({ ...world.snapshot(), props: shown.map((p, n) => ({ id: n + 1, ...p })) });
-      } else {
-        await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
+      try {
+        if (layoutNow.props) {
+          // Only what the wallet holds is shown; the rest stays saved but hidden.
+          const { shown, hidden } = limitProps(layoutNow.props, (key) => allowanceRef.current?.(key) ?? Number.POSITIVE_INFINITY);
+          hiddenRef.current = hidden;
+          await world.restore({ ...world.snapshot(), props: shown.map((p, n) => ({ id: n + 1, ...p })) });
+        } else {
+          await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
+        }
+      } catch {
+        if (!dead) setFailed(true);
+        return;
       }
       if (dead) return;
       setPropCount(world.entries.length);
@@ -787,9 +795,17 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   return (
     <div className="world-view" ref={hostRef} data-ready={ready} data-editing={editing}>
       <canvas ref={canvasRef} className="world-canvas" />
-      {!ready && (
+      {!ready && !failed && (
         <div className="world-loading" role="status">
           Loading your world…
+        </div>
+      )}
+      {failed && !ready && (
+        <div className="world-loading" role="alert">
+          <span>The world could not start on this device.</span>
+          <button className="ui-btn ui-btn-primary" onClick={() => window.location.reload()}>
+            Reload
+          </button>
         </div>
       )}
 

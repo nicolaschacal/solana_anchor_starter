@@ -641,11 +641,11 @@
 @media(prefers-reduced-motion:reduce){.rb-ui.evo-fx,.rb-ui .evo-status,.rb-ui .evo-rail li{transition:none!important}}
 
 /* ---- World view: the 5x5 habitat with its rebyters ------------------------------ */
-.rb-ui .world-view{position:absolute!important;inset:0!important;overflow:hidden!important;touch-action:none!important;background:radial-gradient(80% 60% at 50% 45%,#16406e,#07142c)!important}
+.rb-ui .world-view{position:absolute!important;inset:0!important;overflow:hidden!important;touch-action:none!important;background:linear-gradient(180deg,#6fb4ee 0%,#cfe6fb 100%)!important}
 .rb-ui .world-canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important;touch-action:none!important;opacity:0!important;transition:opacity .6s ease!important;cursor:grab!important}
 .rb-ui .world-view[data-ready="true"] .world-canvas{opacity:1!important}
 .rb-ui .world-view[data-editing="true"] .world-canvas{cursor:pointer!important}
-.rb-ui .world-loading{position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;color:var(--ui-text-2)!important;font-size:var(--ui-fs-label)!important;font-weight:600!important;letter-spacing:.04em!important}
+.rb-ui .world-loading{position:absolute!important;inset:0!important;display:flex!important;flex-direction:column!important;gap:14px!important;align-items:center!important;justify-content:center!important;z-index:6!important;color:#fff7e6!important;text-shadow:0 1px 3px rgba(0,0,0,.6)!important;font-size:var(--ui-fs-label)!important;font-weight:600!important;letter-spacing:.04em!important}
 .rb-ui .world-sr{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
 .rb-ui .world-emote{position:absolute!important;left:0!important;top:0!important;width:0!important;height:0!important;pointer-events:none!important;will-change:transform!important}
 .rb-ui .world-emote-bubble{
