@@ -74,7 +74,7 @@ export class WorldRig {
   private get homeDist() {
     // Shows a bit less than the whole board: close enough to see the rebyters, far enough to see where they live.
     // Bigger islands show nearly all of the board so the land can be read at a glance.
-    const trim = this.half > 3.5 ? 0.2 : this.half > 3 ? 0.5 : 0.9;
+    const trim = this.half > 3.5 ? 0.9 : this.half > 3 ? 1.1 : 1.25;
     // The view is turned 35 degrees, so the board's diagonal is what has to fit.
     const reach = this.half > 3 ? (this.half - trim) * 1.22 : this.half - trim;
     return clamp(fitDistance(reach, this.aspect), LIMITS.minDist + 1.5, this.maxDist);
