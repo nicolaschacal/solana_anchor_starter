@@ -43,6 +43,7 @@ export type WorldCreature = {
   /** 0-100 */
   fullness: number;
   energy: number;
+  bond: number;
 };
 
 type Props = {

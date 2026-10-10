@@ -907,6 +907,7 @@
 .rb-ui .rb-deck-meters i::after{content:""!important;position:absolute!important;inset:0 auto 0 0!important;width:var(--v)!important;border-radius:3px!important}
 .rb-ui .rb-deck-meters i.food::after{background:#e07a2f!important}
 .rb-ui .rb-deck-meters i.energy::after{background:#3f8fd8!important}
+.rb-ui .rb-deck-meters i.bond::after{background:#d9556f!important}
 .rb-ui .rb-deck-go{width:34px!important;height:34px!important;border-radius:11px!important;background:var(--ui-primary)!important;display:grid!important;place-items:center!important;flex:none!important;box-shadow:var(--ui-shadow-primary)!important}
 .rb-ui .rb-deck-go svg{width:18px!important;height:18px!important;color:var(--ui-on-accent)!important}
 .rb-ui .rb-deck-dots{display:flex!important;justify-content:center!important;gap:6px!important;padding:2px 0 2px!important}

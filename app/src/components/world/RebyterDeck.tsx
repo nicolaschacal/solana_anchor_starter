@@ -67,6 +67,7 @@ export function RebyterDeck({ creatures, onOpen }: { creatures: WorldCreature[];
               <span className="rb-deck-meters" aria-hidden="true">
                 <i className="food" style={{ ["--v" as string]: `${Math.max(4, c.fullness)}%` }} />
                 <i className="energy" style={{ ["--v" as string]: `${Math.max(4, c.energy)}%` }} />
+                <i className="bond" style={{ ["--v" as string]: `${Math.max(4, c.bond)}%` }} />
               </span>
             </span>
             <span className="rb-deck-go" aria-hidden="true">
