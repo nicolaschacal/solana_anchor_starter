@@ -1,7 +1,7 @@
-import { Check, Coins, PackageOpen, X } from "lucide-react";
+import { Coins, PackageOpen, X } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useState } from "react";
-import { ACCOUNT_RENT_LAMPORTS, reclaimRent, selectHabitat } from "../../lib/economy/actions";
+import { ACCOUNT_RENT_LAMPORTS, reclaimRent } from "../../lib/economy/actions";
 import { CATALOG, STORE_CATEGORIES, type StoreItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { GEMS, formatGems, type GemBalance } from "../../lib/economy/token";
@@ -9,7 +9,6 @@ import { useRebytersAuth } from "../../lib/rebyters/auth";
 import { FoodArt } from "./FoodArt";
 import { detailFor, iconFor } from "./StoreSheet";
 
-const SECTION_LABEL: Record<string, string> = { habitat: "Habitats", food: "Food", machine: "Machines", evolution: "Evolution items", decor: "Decor" };
 
 /** Everything the wallet holds, grouped by type. Read from the wallet; nothing is stored by the game. */
 export function StorageSheet({ balance, inventory, onClose, embedded = false }: { balance: GemBalance; inventory: Inventory; onClose: () => void; embedded?: boolean }) {
@@ -22,27 +21,14 @@ export function StorageSheet({ balance, inventory, onClose, embedded = false }: 
     const n = inventory.count(item);
     return n === Number.POSITIVE_INFINITY ? 0 : n;
   };
-  const sections = STORE_CATEGORIES.filter((c) => c.id !== "habitat").map((c) => ({
-    id: c.id,
-    label: SECTION_LABEL[c.id] ?? c.label,
-    items: CATALOG.filter((item) => item.category === c.id && owned(item) > 0).sort((a, b) => a.name.localeCompare(b.name)),
-  }));
-  const total = sections.reduce((sum, s) => sum + s.items.length, 0) + inventory.habitats.length;
+  // Habitats live in Decorate → Islands; the bag holds what you carry: food, machines, items, decor.
+  const items = STORE_CATEGORIES.filter((c) => c.id !== "habitat")
+    .flatMap((c) => CATALOG.filter((item) => item.category === c.id && owned(item) > 0).sort((a, b) => a.name.localeCompare(b.name)));
+  const [picked, setPicked] = useState<string | null>(null);
+  const selected = items.find((item) => item.id === picked) ?? null;
+  const slots = Math.max(16, Math.ceil(items.length / 4) * 4 + (items.length % 4 === 0 ? 4 : 0));
+  const total = items.length;
   const reclaimable = inventory.empties.length;
-
-  const choose = async (mint: string) => {
-    if (!anchorWallet) return;
-    setBusy(true);
-    setNote("");
-    try {
-      await selectHabitat(connection, anchorWallet, mint);
-      setNote("This habitat will open with the game");
-    } catch {
-      setNote("Couldn't switch habitat. Try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const reclaim = async () => {
     if (!anchorWallet) return;
@@ -93,65 +79,26 @@ export function StorageSheet({ balance, inventory, onClose, embedded = false }: 
           </p>
         )}
 
-        {inventory.habitats.length > 0 && (
-          <div className="storage-section">
-            <h3>
-              Habitats <small>{inventory.habitats.length}</small>
-            </h3>
-            <div className="storage-list">
-              {inventory.habitats.map((habitat) => {
-                const active = inventory.activeHabitat?.mint === habitat.mint;
-                return (
-                  <article key={habitat.mint} className="storage-row">
-                    <span className="storage-copy">
-                      <strong>{habitat.name}</strong>
-                      <small>{habitat.mint.slice(0, 4)}…{habitat.mint.slice(-4)} · its layout is saved inside it</small>
-                    </span>
-                    {active ? (
-                      <b className="storage-count">
-                        <Check aria-hidden="true" /> In use
-                      </b>
-                    ) : (
-                      <button className="ui-btn ui-btn-secondary store-buy" disabled={busy || !anchorWallet} onClick={() => choose(habitat.mint)}>
-                        Use
-                      </button>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
+        <div className="bag-grid" role="list">
+          {Array.from({ length: slots }, (_, i) => {
+            const item = items[i];
+            if (!item) return <span key={`empty-${i}`} className="bag-slot empty" role="listitem" aria-hidden="true" />;
+            const Glyph = iconFor(item);
+            return (
+              <button key={item.id} role="listitem" className="bag-slot" data-on={picked === item.id} aria-label={`${item.name}, ${owned(item)}`} onClick={() => setPicked(picked === item.id ? null : item.id)}>
+                <span className="bag-art" aria-hidden="true">{item.category === "food" ? <FoodArt food={item.food} size={36} /> : <Glyph />}</span>
+                <span className="bag-name">{item.name}</span>
+                <b className="bag-count">×{owned(item)}</b>
+              </button>
+            );
+          })}
+        </div>
+        {selected && (
+          <div className="bag-detail" role="status">
+            <strong>{selected.name}</strong>
+            <small>{detailFor(selected)}</small>
           </div>
         )}
-
-        {sections
-          .filter((s) => s.items.length)
-          .map((s) => (
-            <div key={s.id} className="storage-section">
-              <h3>
-                {s.label} <small>{s.items.length}</small>
-              </h3>
-              <div className="storage-list">
-                {s.items.map((item) => {
-                  const Glyph = iconFor(item);
-                  return (
-                    <article key={item.id} className="storage-row">
-                      <span className="storage-art" aria-hidden="true">
-                        {item.category === "food" ? <FoodArt food={item.food} size={34} /> : <Glyph />}
-                      </span>
-                      <span className="storage-copy">
-                        <strong>{item.name}</strong>
-                        <small>
-                          {detailFor(item)}
-                          
-                        </small>
-                      </span>
-                      <b className="storage-count">×{owned(item)}</b>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
 
         {reclaimable > 0 && (
           <div className="storage-reclaim">

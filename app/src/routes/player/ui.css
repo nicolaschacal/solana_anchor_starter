@@ -1012,4 +1012,25 @@
 .rb-ui .food-grid .food-tier:disabled .food-count{color:var(--ui-text-3)!important}
 .rb-ui .food-grid .food-tier:not(:disabled):active{transform:translateY(1px)!important}
 .rb-ui .food-grid .food-tier.meal-warning{border-color:var(--ui-warn)!important}
+
+/* Bag: square slots, four per row */
+.rb-ui .storage-currencies svg{color:#c9871a!important}
+.rb-ui .bag-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin:6px 0 10px!important}
+.rb-ui .bag-slot{position:relative!important;aspect-ratio:1/1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:6px 4px 4px!important;border:1.5px solid var(--ui-line-strong)!important;border-radius:14px!important;background:var(--ui-card)!important;color:var(--ui-text)!important;box-shadow:0 2px 0 rgba(120,80,40,.14)!important;cursor:pointer!important;min-width:0!important}
+.rb-ui .bag-slot.empty{background:rgba(120,90,60,.08)!important;border:1.5px dashed rgba(120,90,60,.22)!important;box-shadow:none!important;cursor:default!important}
+.rb-ui .bag-slot[data-on="true"]{border-color:var(--ui-accent)!important;background:#fff7e6!important;box-shadow:0 0 0 2px rgba(182,58,43,.25)!important}
+.rb-ui .bag-art{display:grid!important;place-items:center!important;width:40px!important;height:40px!important}
+.rb-ui .bag-art svg{width:30px!important;height:30px!important;color:var(--ui-accent)!important}
+.rb-ui .bag-name{max-width:100%!important;font-size:10px!important;font-weight:700!important;line-height:1.1!important;text-align:center!important;overflow:hidden!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;color:var(--ui-text)!important}
+.rb-ui .bag-count{position:absolute!important;top:4px!important;right:6px!important;font-size:12px!important;font-weight:800!important;font-variant-numeric:tabular-nums!important;color:var(--ui-text)!important}
+.rb-ui .bag-detail{display:flex!important;flex-direction:column!important;gap:2px!important;padding:10px 14px!important;border-radius:12px!important;background:rgba(120,90,60,.1)!important;margin-bottom:8px!important}
+.rb-ui .bag-detail strong{font-size:var(--ui-fs-body)!important;color:var(--ui-text)!important}
+.rb-ui .bag-detail small{font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
+/* Shop: prices readable on cream */
+.rb-ui .store-price{color:#8f5600!important}
+.rb-ui .store-price svg{color:#c9871a!important}
+.rb-ui .store-price.free{color:#3f7a2c!important}
+.rb-ui .gem-pack svg{color:#c9871a!important}
+.rb-ui .gem-pack strong{color:var(--ui-text)!important}
+.rb-ui .store-card.climate-arid .store-card-art svg{color:#d98a14!important}
 }
