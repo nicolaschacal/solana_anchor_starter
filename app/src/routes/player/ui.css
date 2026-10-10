@@ -984,7 +984,7 @@
 .rb-ui .landing-sheet p{font-weight:600!important;font-size:15px!important}
 .rb-ui .landing-start{min-height:62px!important}
 .rb-ui .landing-start strong{font-family:'Baloo 2','Nunito',sans-serif!important;font-weight:700!important;font-size:28px!important;text-align:center!important}
-.rb-ui .landing-start .landing-start-mark{border-radius:14px!important;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)!important;width:44px!important;height:44px!important}
+.rb-ui .landing-start .landing-start-mark{border-radius:50%!important;width:44px!important;height:44px!important}
 .rb-ui .landing-atlas{font-weight:700!important;font-size:15px!important}
 .rb-ui .landing-features span{width:50px!important;height:50px!important}
 .rb-ui .landing-features small{font-weight:800!important;letter-spacing:.14em!important;position:relative!important;padding-bottom:6px!important}

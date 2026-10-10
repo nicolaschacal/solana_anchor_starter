@@ -13,7 +13,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package, Leaf,
+  Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -673,9 +673,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       <section className="game-viewer game-world world-scene landing">
         <LandingBackdrop night={worldClock.period==="Night"}/>
         <RebytersLoginButton className="landing-login gl-panel"/>
-        <div className="landing-logo"><Sprout className="landing-leaf"/><strong>reByters</strong><span><i/>digital companions<i/></span></div>
+        <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
-          <h1><Leaf className="l1"/><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b><Leaf className="l2"/></h1>
+          <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
           <p>Build your bond and grow your companions.</p>
           <button className="landing-start" onClick={()=>authForWorld.openLogin()}><span className="landing-start-mark"><Sparkles/></span><strong>Start</strong><ChevronRight/></button>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
