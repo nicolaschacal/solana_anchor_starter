@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { meadowTexture } from "../assets/habitat-materials";
+import { islandLawnTexture } from "../assets/habitat-materials";
 
 /**
  * The habitat as a floating island: a rounded, slightly irregular lawn on top and a craggy
@@ -96,7 +96,7 @@ export function createIsland(scene: THREE.Scene, centre: { x: number; z: number 
   // The lawn: a fan from the middle, painted with the game's meadow.
   const lawn: number[] = [];
   const uvs: number[] = [];
-  const uv = (x: number, z: number) => uvs.push((x + centre.x + 60) / 120, (60 - (z + centre.z)) / 120);
+  const uv = (x: number, z: number) => uvs.push(x / 7.4 + 0.5, 0.5 - z / 7.4);
   for (let n = 0; n < SIDES; n++) {
     const a = rings[0][n],
       b = rings[0][(n + 1) % SIDES];
@@ -109,7 +109,7 @@ export function createIsland(scene: THREE.Scene, centre: { x: number; z: number 
   lawnGeometry.setAttribute("position", new THREE.Float32BufferAttribute(lawn, 3));
   lawnGeometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   lawnGeometry.setAttribute("normal", new THREE.Float32BufferAttribute(Array.from({ length: lawn.length / 3 }, () => [0, 1, 0]).flat(), 3));
-  const lawnMaterial = new THREE.MeshStandardMaterial({ map: meadowTexture(), roughness: 0.96 });
+  const lawnMaterial = new THREE.MeshStandardMaterial({ map: islandLawnTexture(), roughness: 0.96 });
   const top = new THREE.Mesh(lawnGeometry, lawnMaterial);
   top.receiveShadow = true;
   group.add(underside, top);
