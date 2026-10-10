@@ -328,6 +328,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       // The editor's own creature is not part of this world: park it off the board.
       world.creature = { x: OX + 60, z: OZ + 60 };
       rig = new WorldRig(world.centre, size / 2 + 0.4, spots);
+      if (showcase) rig.homeY = 3.8;
       rigRef.current = rig;
       rig.intro();
       try {

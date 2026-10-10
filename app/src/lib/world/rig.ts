@@ -79,8 +79,10 @@ export class WorldRig {
     const reach = this.half > 3 ? (this.half - trim) * 1.22 : this.half - trim;
     return clamp(fitDistance(reach, this.aspect), LIMITS.minDist + 1.5, this.maxDist);
   }
+  /** Height the home view looks at; raising it moves the island lower on screen. */
+  homeY = 0.35;
   private home(): Pose {
-    return { yaw: 0.62, pitch: 0.62, dist: this.homeDist, x: this.centre.x, y: 0.35, z: this.centre.z };
+    return { yaw: 0.62, pitch: 0.62, dist: this.homeDist, x: this.centre.x, y: this.homeY, z: this.centre.z };
   }
   private topDist() {
     return clamp(fitDistance(this.half + 0.1, this.aspect), 6, 24 * this.scale);

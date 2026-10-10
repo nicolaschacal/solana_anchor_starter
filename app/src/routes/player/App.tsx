@@ -43,6 +43,7 @@ import "./player.css";
 import "./ui.css";
 
 // The 3D world is loaded on demand: it brings the whole habitat engine with it.
+const LandingWorld = lazy(() => import("../../components/world/LandingWorld").then(m => ({ default: m.LandingWorld })));
 const PlayerWorld = lazy(() => import("../../components/world/PlayerWorld").then(m => ({ default: m.PlayerWorld })));
 const fallbackTree = sampleMammal();
 const FOOD_DIET = ["carnivore", "herbivore", "piscivore", "frugivore"];
@@ -668,11 +669,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
   if (!connected) {
     // The sign-in screen is a postcard of the real game: an island with a few reByters, nothing to edit.
-    const demo=tree.evolutions.filter(e=>e.enabled&&e.stage<=1).slice(0,4).map<WorldCreature>((form,n)=>({mint:`showcase-${n}`,evolution:form,emote:null,happy:n%2===0,level:form.stage+1,stageName:STAGE_NAMES[form.stage]??"",fullness:80,energy:80,bond:60}));
     return <Shell showNav={false}><main className="game-home landing-home">
       <section className="game-viewer game-world world-scene landing">
         <Suspense fallback={<div className="world-loading" role="status">Loading…</div>}>
-          <PlayerWorld showcase creatures={demo} initialLayout={null} onCommitLayout={()=>Promise.resolve()} period="Day" worldTime={worldClock.now} onSelect={()=>undefined} size={7} climate="temperate"/>
+          <LandingWorld evolutions={tree.evolutions} worldTime={worldClock.now}/>
         </Suspense>
         <RebytersLoginButton className="landing-login gl-panel"/>
         <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>

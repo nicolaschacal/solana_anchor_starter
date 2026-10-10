@@ -945,4 +945,14 @@
 .rb-ui .landing-features small{font-size:var(--ui-fs-micro)!important;font-weight:700!important;letter-spacing:.12em!important;color:var(--ui-text)!important}
 .rb-ui .world-saving{display:flex!important;align-items:center!important;gap:10px!important}
 .rb-ui .world-saving .world-retry{min-height:32px!important;padding:0 12px!important}
+.rb-ui .landing,.rb-ui .landing :is(button,strong,span,small,h1,p,b){font-family:'Fredoka','Sora',system-ui,sans-serif!important}
+.rb-ui .landing .world-view{bottom:230px!important}
+.rb-ui .landing-logo{top:calc(58px + env(safe-area-inset-top,0px))!important}
+.rb-ui .landing-logo strong{font-weight:700!important;letter-spacing:0!important;font-size:clamp(40px,13vw,58px)!important}
+.rb-ui .landing-logo span{font-weight:500!important;letter-spacing:.22em!important}
+.rb-ui .landing-sheet h1{font-weight:700!important}
+.rb-ui .landing-sheet p{font-weight:500!important;font-size:var(--ui-fs-lead)!important}
+.rb-ui .landing-start strong{font-weight:600!important;font-size:24px!important}
+.rb-ui .landing-atlas,.rb-ui .landing-login{font-weight:600!important}
+.rb-ui .landing-features small{font-weight:600!important;letter-spacing:.1em!important}
 }
