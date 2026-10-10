@@ -18,9 +18,12 @@ import "./theme.css";
 import "./rules.css";
 import { initializeTheme } from "./lib/theme";
 import { RebytersAuthProvider } from "./lib/rebyters/auth";
+import { AppErrorBoundary, reloadOnce } from "./components/AppErrorBoundary";
 initializeTheme();
+window.addEventListener("vite:preloadError", (event) => { if (reloadOnce()) event.preventDefault(); });
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
+    <AppErrorBoundary>
     <ConnectionProvider
       endpoint={RPC_URL}
       config={{
@@ -43,5 +46,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
+    </AppErrorBoundary>
   </React.StrictMode>,
 );
+// A page that stayed up for a while is healthy: allow one more automatic reload after a future deploy.
+setTimeout(() => { try { sessionStorage.removeItem("rebyters-chunk-reload"); } catch { /* ignore */ } }, 15000);
