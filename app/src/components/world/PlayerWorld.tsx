@@ -122,6 +122,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const entities = useRef(new Map<string, Entity>());
   const walkers = useRef<Walker[]>([]);
   const assets = useRef(new Map<number, Promise<FxAsset>>());
+  /** Which form (evolution id) each shown body was built from, so an evolution swaps the model. */
+  const shownForm = useRef(new Map<string, number>());
   const loadedAssets = useRef<FxAsset[]>([]);
   const creaturesRef = useRef(creatures);
   creaturesRef.current = creatures;
@@ -629,17 +631,33 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       world.scene.remove(entity.outer);
       disposeObject(entity.outer, false);
       entities.current.delete(mint);
+      shownForm.current.delete(mint);
     }
     walkers.current = walkers.current.filter((k) => wanted.some((p) => p.mint === k.id));
-    // Bring in the ones that arrived.
+    // Bring in the ones that arrived, and rebuild the ones that evolved into another form.
     for (const p of wanted) {
-      if (walkers.current.some((k) => k.id === p.mint)) continue;
       const creature = creatures.find((c) => c.mint === p.mint);
       if (!creature) continue;
-      walkers.current.push(createWalker(p.mint, p.i, p.j));
+      const hasWalker = walkers.current.some((k) => k.id === p.mint);
+      const stale = hasWalker && shownForm.current.get(p.mint) !== undefined && shownForm.current.get(p.mint) !== creature.evolution.id;
+      if (hasWalker && !stale) continue;
+      if (stale) {
+        const old = entities.current.get(p.mint);
+        if (old) {
+          old.mixer?.stopAllAction();
+          world.scene.remove(old.outer);
+          disposeObject(old.outer, false);
+          entities.current.delete(p.mint);
+        }
+      } else {
+        walkers.current.push(createWalker(p.mint, p.i, p.j));
+      }
+      const formId = creature.evolution.id;
+      shownForm.current.set(p.mint, formId);
       void assetFor(creature.evolution)
         .then((asset) => {
           if (!walkers.current.some((k) => k.id === p.mint) || entities.current.has(p.mint) || !worldRef.current) return;
+          if (shownForm.current.get(p.mint) !== formId) return;
           const entity = buildEntity(p.mint, asset);
           entities.current.set(p.mint, entity);
           worldRef.current.scene.add(entity.outer);
