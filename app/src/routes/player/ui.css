@@ -972,7 +972,7 @@
 @media (prefers-reduced-motion:reduce){.rb-ui .landing-art{animation:none!important}}
 .rb-ui .landing-logo{top:calc(46px + env(safe-area-inset-top,0px))!important;gap:2px!important}
 .rb-ui .landing-leaf{width:34px!important;height:34px!important;color:#5d7d3a!important;fill:#7ea14d!important;margin-bottom:-8px!important;transform:rotate(-4deg)!important;filter:drop-shadow(0 2px 0 rgba(255,243,214,.8))!important}
-.rb-ui .landing-logo strong{font-family:'Baloo 2','Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:clamp(54px,18vw,76px)!important;line-height:.95!important;letter-spacing:-.01em!important;color:#4b2a1b!important;-webkit-text-stroke:5px #fff3d6!important;paint-order:stroke fill!important;text-shadow:0 5px 12px rgba(40,20,8,.35)!important}
+.rb-ui .landing-logo strong{font-family:'Baloo 2','Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:clamp(42px,13.5vw,58px)!important;line-height:.95!important;letter-spacing:-.01em!important;color:#4b2a1b!important;-webkit-text-stroke:5px #fff3d6!important;paint-order:stroke fill!important;text-shadow:0 5px 12px rgba(40,20,8,.35)!important}
 .rb-ui .landing-logo span{font-weight:700!important;letter-spacing:.3em!important;font-size:12px!important;color:#fff3d6!important;text-shadow:0 1px 6px rgba(40,20,8,.7)!important}
 .rb-ui .landing-logo i{background:#fff3d6!important;opacity:.85!important;width:28px!important}
 .rb-ui .landing-sheet{border-radius:34px 34px 0 0!important;padding-top:20px!important}
