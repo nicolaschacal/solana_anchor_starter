@@ -820,7 +820,7 @@
 .rb-ui .world-nav button:focus-visible{outline:2px solid var(--ui-accent)!important;outline-offset:2px!important}
 .rb-ui .world-nav button>svg{width:22px!important;height:22px!important;stroke-width:1.8!important;color:var(--ui-accent)!important}
 .rb-ui .world-view[data-editing="true"] ~ .world-nav{display:none!important}
-.rb-ui .world-saving{bottom:84px!important}
+.rb-ui .world-saving{bottom:250px!important;z-index:10!important}
 .rb-ui .player-panel-title{flex:1!important;margin:0 0 0 6px!important;font:600 var(--ui-fs-lead) var(--ui-font)!important;color:var(--ui-text)!important}
 .rb-ui .storage-embedded .game-sheet-head{display:block!important;margin-bottom:12px!important}
 .rb-ui .player-panel-header nav a .den-grid-icon{flex:none!important;color:inherit!important}
