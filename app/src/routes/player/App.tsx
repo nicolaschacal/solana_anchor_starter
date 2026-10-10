@@ -13,7 +13,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
+  Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package, Leaf,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -43,7 +43,7 @@ import "./player.css";
 import "./ui.css";
 
 // The 3D world is loaded on demand: it brings the whole habitat engine with it.
-const LandingWorld = lazy(() => import("../../components/world/LandingWorld").then(m => ({ default: m.LandingWorld })));
+import { LandingBackdrop } from "../../components/world/LandingBackdrop";
 const PlayerWorld = lazy(() => import("../../components/world/PlayerWorld").then(m => ({ default: m.PlayerWorld })));
 const fallbackTree = sampleMammal();
 const FOOD_DIET = ["carnivore", "herbivore", "piscivore", "frugivore"];
@@ -671,13 +671,11 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     // The sign-in screen is a postcard of the real game: an island with a few reByters, nothing to edit.
     return <Shell showNav={false}><main className="game-home landing-home">
       <section className="game-viewer game-world world-scene landing">
-        <Suspense fallback={<div className="world-loading" role="status">Loading…</div>}>
-          <LandingWorld evolutions={tree.evolutions} worldTime={worldClock.now}/>
-        </Suspense>
+        <LandingBackdrop night={worldClock.period==="Night"}/>
         <RebytersLoginButton className="landing-login gl-panel"/>
-        <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
+        <div className="landing-logo"><Sprout className="landing-leaf"/><strong>reByters</strong><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
-          <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
+          <h1><Leaf className="l1"/><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b><Leaf className="l2"/></h1>
           <p>Build your bond and grow your companions.</p>
           <button className="landing-start" onClick={()=>authForWorld.openLogin()}><span className="landing-start-mark"><Sparkles/></span><strong>Start</strong><ChevronRight/></button>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>

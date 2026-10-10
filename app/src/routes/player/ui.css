@@ -960,4 +960,35 @@
 .rb-ui .starter-claim small{font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
 .rb-ui .starter-claim .starter-error{color:var(--ui-bad)!important;font-weight:600!important}
 .rb-ui .starter-claim button{margin-top:6px!important;min-height:46px!important}
+
+/* Landing: illustrated day/night postcard */
+.rb-ui .landing,.rb-ui .landing :is(button,strong,span,small,h1,p,b){font-family:'Nunito','Sora',system-ui,sans-serif!important}
+.rb-ui .landing-backdrop{position:absolute!important;inset:0!important;overflow:hidden!important;background:#1d2a63!important}
+.rb-ui .landing-art{position:absolute!important;inset:-12px!important;animation:landing-drift 38s ease-in-out infinite alternate!important;transform:translate3d(var(--px,0px),var(--py,0px),0) scale(1.04)!important}
+.rb-ui .landing-art img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:50% 22%!important;opacity:0!important;transition:opacity 1.6s ease!important}
+.rb-ui .landing-art img.on{opacity:1!important}
+.rb-ui .landing-backdrop canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;pointer-events:none!important}
+@keyframes landing-drift{from{margin:0 0 0 -6px}to{margin:-8px 0 0 6px}}
+@media (prefers-reduced-motion:reduce){.rb-ui .landing-art{animation:none!important}}
+.rb-ui .landing-logo{top:calc(46px + env(safe-area-inset-top,0px))!important;gap:2px!important}
+.rb-ui .landing-leaf{width:34px!important;height:34px!important;color:#5d7d3a!important;fill:#7ea14d!important;margin-bottom:-8px!important;transform:rotate(-4deg)!important;filter:drop-shadow(0 2px 0 rgba(255,243,214,.8))!important}
+.rb-ui .landing-logo strong{font-family:'Baloo 2','Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:clamp(54px,18vw,76px)!important;line-height:.95!important;letter-spacing:-.01em!important;color:#4b2a1b!important;-webkit-text-stroke:5px #fff3d6!important;paint-order:stroke fill!important;text-shadow:0 5px 12px rgba(40,20,8,.35)!important}
+.rb-ui .landing-logo span{font-weight:700!important;letter-spacing:.3em!important;font-size:12px!important;color:#fff3d6!important;text-shadow:0 1px 6px rgba(40,20,8,.7)!important}
+.rb-ui .landing-logo i{background:#fff3d6!important;opacity:.85!important;width:28px!important}
+.rb-ui .landing-sheet{border-radius:34px 34px 0 0!important;padding-top:20px!important}
+.rb-ui .landing-sheet h1{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;font-family:'Baloo 2','Nunito',sans-serif!important;font-size:clamp(26px,8vw,34px)!important;font-weight:800!important;letter-spacing:-.01em!important;white-space:nowrap!important}
+.rb-ui .landing-sheet h1 b{font-family:'Baloo 2','Nunito',sans-serif!important;font-weight:800!important}
+.rb-ui .landing-sheet h1 svg{width:20px!important;height:20px!important;color:#5d7d3a!important;fill:#8fb15a!important;flex:none!important}
+.rb-ui .landing-sheet h1 .l1{transform:scaleX(-1) rotate(20deg)!important;color:#b6452f!important;fill:#d98b73!important;margin-right:2px!important}
+.rb-ui .landing-sheet h1 .l2{transform:rotate(20deg)!important;margin-left:2px!important}
+.rb-ui .landing-sheet p{font-weight:600!important;font-size:15px!important}
+.rb-ui .landing-start{min-height:62px!important}
+.rb-ui .landing-start strong{font-family:'Baloo 2','Nunito',sans-serif!important;font-weight:700!important;font-size:28px!important;text-align:center!important}
+.rb-ui .landing-start .landing-start-mark{border-radius:14px!important;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)!important;width:44px!important;height:44px!important}
+.rb-ui .landing-atlas{font-weight:700!important;font-size:15px!important}
+.rb-ui .landing-features span{width:50px!important;height:50px!important}
+.rb-ui .landing-features small{font-weight:800!important;letter-spacing:.14em!important;position:relative!important;padding-bottom:6px!important}
+.rb-ui .landing-features small::after{content:""!important;position:absolute!important;left:25%!important;right:25%!important;bottom:0!important;height:2px!important;border-radius:2px!important;background:#b6452f!important}
+.rb-ui .landing-features>div:nth-child(even) small::after{background:#5d7d3a!important}
+.rb-ui .landing-features>div:nth-child(even) svg{color:#5d7d3a!important}
 }
