@@ -784,9 +784,12 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>
     <div className="world-hud-right">
-      <button className="world-wallet gl-panel" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
-        <span className="wallet-row"><i className="wallet-sol" aria-hidden="true">◎</i><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span>
-        <span className="wallet-row"><i className="wallet-gem" aria-hidden="true"><Coins/></i><strong>{rbtyr.loading?"…":formatGems(rbtyr.amount)}</strong><small>Gems</small></span>
+      <button className="world-wallet" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
+        <i className="wallet-coin" aria-hidden="true"><Coins/></i>
+        <span className="wallet-lines">
+          <span><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span>
+          <span><strong>{rbtyr.loading?"…":formatGems(rbtyr.amount)}</strong><small>Gems</small></span>
+        </span>
       </button>
       {daily.available&&<button className={`world-daily gl-panel${dailyHot?" hot":""}`} onClick={()=>setDailyOpen(true)} aria-label="Open daily missions">
         <span className="daily-badge" aria-hidden="true">{dailyHot?<Gift/>:<Target/>}</span>
@@ -980,6 +983,7 @@ export function PlayerDen() {
   const navigate=useNavigate();
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   return <Shell><main className="player-main den-page">
+    <div className="den-scroll">
     <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My reByters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
     {loading&&!ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
       {owned.map((item,index)=>{
@@ -998,6 +1002,7 @@ export function PlayerDen() {
         </article>;
       })}
     </div>}
+    </div>
     <div className="den-footer"><button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new reByter</strong><ChevronRight/></button></div>
   </main></Shell>;
 }
