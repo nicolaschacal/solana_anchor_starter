@@ -626,13 +626,13 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const nextWorldCreatures=useMemo<WorldCreature[]>(()=>owned.flatMap(item=>{
     const form=tree.evolutions.find(e=>e.id===item.evolutionId);
     if(!form)return [];
-    return [{mint:item.mint,evolution:form,emote:needEmote(item,careGuidance(item)),happy:moodProfile(item)==="Happy"}];
+    return [{mint:item.mint,evolution:form,emote:needEmote(item,careGuidance(item)),happy:moodProfile(item)==="Happy",level:item.level,stageName:STAGE_NAMES[form.stage]??"",fullness:Math.round(item.fullness),energy:Math.round(item.energy)}];
   }),[owned,tree]);
   // `owned` is rebuilt on every render; hand the world the same array until something it shows changes.
   const worldCreaturesRef=useRef<WorldCreature[]>([]);
   const worldCreatures=useMemo(()=>{
     const prev=worldCreaturesRef.current;
-    const same=prev.length===nextWorldCreatures.length&&prev.every((c,n)=>{const d=nextWorldCreatures[n];return c.mint===d.mint&&c.evolution===d.evolution&&c.emote===d.emote&&c.happy===d.happy});
+    const same=prev.length===nextWorldCreatures.length&&prev.every((c,n)=>{const d=nextWorldCreatures[n];return c.mint===d.mint&&c.evolution===d.evolution&&c.emote===d.emote&&c.happy===d.happy&&c.fullness===d.fullness&&c.energy===d.energy&&c.level===d.level});
     if(same)return prev;
     worldCreaturesRef.current=nextWorldCreatures;
     return nextWorldCreatures;

@@ -1,3 +1,4 @@
+import { RebyterDeck } from "./RebyterDeck";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Mountain, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -37,6 +38,11 @@ export type WorldCreature = {
   emote: Emote | null;
   /** Happy rebyters show a heart now and then. */
   happy: boolean;
+  level: number;
+  stageName: string;
+  /** 0-100 */
+  fullness: number;
+  energy: number;
 };
 
 type Props = {
@@ -850,6 +856,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         <div className="world-saving gl-panel" role="status">
           {saving ? "Saving to your wallet…" : saveError}
         </div>
+      )}
+
+      {ready && !editing && !focusMint && (
+        <RebyterDeck creatures={creatures.filter((c) => placedMints.has(c.mint))} onOpen={onSelect} />
       )}
 
       {ready && !editing && !focusMint && (

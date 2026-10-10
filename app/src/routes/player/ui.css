@@ -660,7 +660,7 @@
 .rb-ui .world-emote-bubble.needs-attention{animation:rb-emote-pop .42s cubic-bezier(.2,1.5,.4,1) both,rb-emote-bob 1.8s ease-in-out .42s infinite!important}
 .rb-ui .world-emote-bubble::after{content:""!important;position:absolute!important;left:50%!important;top:100%!important;width:14px!important;height:7px!important;margin:-1px 0 0 -7px!important;background:inherit!important;clip-path:polygon(0 0,100% 0,50% 100%)!important}
 .rb-ui .world-edit-button{
-  position:absolute!important;right:14px!important;bottom:92px!important;z-index:8!important;height:44px!important;padding:0 14px!important;
+  position:absolute!important;right:14px!important;bottom:190px!important;z-index:8!important;height:44px!important;padding:0 14px!important;
   display:flex!important;align-items:center!important;gap:8px!important;border-radius:var(--ui-r-lg)!important;cursor:pointer!important;
   font-size:var(--ui-fs-label)!important;font-weight:600!important;color:var(--ui-text)!important;
 }
@@ -836,30 +836,30 @@
 /* World HUD in the cream style: chips with a soft ledge, dark wallet, red accents */
 .rb-ui .world-hud-left{position:absolute!important;left:14px!important;top:calc(14px + env(safe-area-inset-top,0px))!important;z-index:8!important}
 .rb-ui .world-hud-left .monster-hud-right{position:static!important}
-.rb-ui .world-hud-right{position:absolute!important;right:14px!important;top:calc(14px + env(safe-area-inset-top,0px))!important;z-index:8!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important}
+.rb-ui .world-hud-right{position:absolute!important;right:14px!important;top:calc(14px + env(safe-area-inset-top,0px))!important;z-index:8!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important}
 .rb-ui .world-clock{border-radius:var(--ui-r-lg)!important}
 .rb-ui .world-clock-face{background:var(--ui-ink)!important;border:0!important;border-radius:14px!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}
 .rb-ui .world-clock-face svg{color:#ffb43a!important}
 .rb-ui .world-clock-face::after{display:none!important}
 /* wallet: dark chip, coin + SOL | gem + Gems */
-.rb-ui .world-wallet{display:flex!important;align-items:center!important;gap:12px!important;padding:8px 16px 8px 8px!important;border-radius:var(--ui-r-lg)!important;cursor:pointer!important;background:linear-gradient(180deg,#3a3633,#262321)!important;border:1px solid rgba(255,255,255,.1)!important;box-shadow:0 4px 0 rgba(20,14,10,.45),0 8px 16px rgba(48,28,14,.25)!important;color:#fff7e6!important}
+.rb-ui .world-wallet{display:flex!important;align-items:center!important;gap:9px!important;padding:5px 12px 5px 5px!important;border-radius:var(--ui-r-md)!important;cursor:pointer!important;background:linear-gradient(180deg,#3a3633,#262321)!important;border:1px solid rgba(255,255,255,.1)!important;box-shadow:0 4px 0 rgba(20,14,10,.45),0 8px 16px rgba(48,28,14,.25)!important;color:#fff7e6!important}
 .rb-ui .world-wallet .wallet-cell{display:flex!important;align-items:center!important;gap:8px!important}
 .rb-ui .world-wallet .wallet-cell+.wallet-cell{padding-left:12px!important;border-left:1px solid rgba(255,255,255,.18)!important}
-.rb-ui .world-wallet .wallet-coin{display:grid!important;place-items:center!important;width:38px!important;height:38px!important;flex:none!important;border-radius:50%!important;background:radial-gradient(circle at 35% 30%,#fff1a8,#f5b82e 55%,#c98412)!important;border:2px solid rgba(255,255,255,.55)!important}
-.rb-ui .world-wallet .wallet-coin svg{width:20px!important;height:20px!important;color:#6b4300!important}
-.rb-ui .world-wallet .wallet-gem svg{width:34px!important;height:34px!important;color:#43c6ff!important;fill:rgba(67,198,255,.28)!important;stroke-width:1.5!important}
+.rb-ui .world-wallet .wallet-coin{display:grid!important;place-items:center!important;width:28px!important;height:28px!important;flex:none!important;border-radius:50%!important;background:radial-gradient(circle at 35% 30%,#fff1a8,#f5b82e 55%,#c98412)!important;border:2px solid rgba(255,255,255,.55)!important}
+.rb-ui .world-wallet .wallet-coin svg{width:15px!important;height:15px!important;color:#6b4300!important}
+.rb-ui .world-wallet .wallet-gem svg{width:26px!important;height:26px!important;color:#43c6ff!important;fill:rgba(67,198,255,.28)!important;stroke-width:1.5!important}
 .rb-ui .world-wallet .wallet-num{display:flex!important;flex-direction:column!important;gap:3px!important;line-height:1!important}
-.rb-ui .world-wallet strong{font-size:var(--ui-fs-lead)!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;color:#fff7e6!important}
+.rb-ui .world-wallet strong{font-size:var(--ui-fs-body)!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;color:#fff7e6!important}
 .rb-ui .world-wallet small{font-size:var(--ui-fs-micro)!important;font-weight:500!important;color:rgba(255,247,230,.7)!important;letter-spacing:.03em!important}
 /* daily chip */
-.rb-ui .world-daily{position:relative!important;display:flex!important;align-items:center!important;gap:10px!important;padding:8px 10px 8px 8px!important;border-radius:var(--ui-r-lg)!important;cursor:pointer!important;color:var(--ui-text)!important;text-align:left!important;overflow:hidden!important}
-.rb-ui .world-daily .daily-badge{display:grid!important;place-items:center!important;width:38px!important;height:38px!important;flex:none!important;border-radius:11px!important;background:var(--ui-primary)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)!important}
-.rb-ui .world-daily .daily-badge svg{width:21px!important;height:21px!important;color:#fffaf0!important}
+.rb-ui .world-daily{position:relative!important;display:flex!important;align-items:center!important;gap:8px!important;padding:5px 8px 5px 5px!important;border-radius:var(--ui-r-md)!important;cursor:pointer!important;color:var(--ui-text)!important;text-align:left!important;overflow:hidden!important}
+.rb-ui .world-daily .daily-badge{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;flex:none!important;border-radius:9px!important;background:var(--ui-primary)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)!important}
+.rb-ui .world-daily .daily-badge svg{width:17px!important;height:17px!important;color:#fffaf0!important}
 .rb-ui .world-daily .daily-copy{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important;flex:1!important}
-.rb-ui .world-daily strong{font-size:var(--ui-fs-label)!important;font-weight:700!important;color:var(--ui-text)!important;white-space:nowrap!important}
+.rb-ui .world-daily strong{font-size:var(--ui-fs-caption)!important;font-weight:700!important;color:var(--ui-text)!important;white-space:nowrap!important}
 .rb-ui .world-daily small{font-size:var(--ui-fs-micro)!important;line-height:1.2!important;color:var(--ui-text-2)!important}
-.rb-ui .world-daily .daily-pips{display:flex!important;gap:4px!important;margin-top:3px!important}
-.rb-ui .world-daily .daily-pips i{flex:1!important;height:5px!important;border-radius:3px!important;background:rgba(120,78,40,.2)!important}
+.rb-ui .world-daily .daily-pips{display:flex!important;gap:3px!important;margin-top:2px!important}
+.rb-ui .world-daily .daily-pips i{flex:1!important;height:4px!important;border-radius:2px!important;background:rgba(120,78,40,.2)!important}
 .rb-ui .world-daily .daily-pips i.done{background:#e8a424!important}
 .rb-ui .world-daily .daily-pips i.claimed{background:var(--ui-good)!important}
 .rb-ui .world-daily .daily-go,.rb-ui .world-edit-button .edit-go{width:16px!important;height:16px!important;flex:none!important;color:var(--ui-text-2)!important}
@@ -891,4 +891,25 @@
 .rb-ui .den-footer{flex:none;margin:0 -18px;padding:12px 18px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ui-line);background:var(--ui-panel)}
 .rb-ui .den-footer .den-mint-cta{margin-top:0!important;width:100%}
 @media(min-width:900px){.rb-ui .den-scroll{margin:0 -28px;padding:0 28px 16px}.rb-ui .den-footer{margin:0 -28px;padding:14px 28px 22px}}
+
+/* reByter deck: one slim card per reByter, swipeable */
+.rb-ui .rb-deck{position:absolute!important;left:12px!important;right:12px!important;bottom:92px!important;z-index:7!important;max-width:520px!important;margin:0 auto!important;padding:6px 0 4px!important;border-radius:var(--ui-r-xl)!important;overflow:hidden!important}
+.rb-ui .rb-deck-track{display:flex!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-x:contain!important;touch-action:pan-x!important}
+.rb-ui .rb-deck-track::-webkit-scrollbar{display:none!important}
+.rb-ui .rb-deck-card{flex:0 0 100%!important;scroll-snap-align:center!important;display:flex!important;align-items:center!important;gap:12px!important;padding:6px 14px 6px 10px!important;border:0!important;background:none!important;cursor:pointer!important;text-align:left!important;color:var(--ui-text)!important}
+.rb-ui .rb-deck-art{width:54px!important;height:54px!important;flex:none!important;border-radius:var(--ui-r-sm)!important;background:var(--ui-well)!important;border:1px solid var(--ui-line)!important;display:grid!important;place-items:center!important;overflow:hidden!important}
+.rb-ui .rb-deck-art .creature-sprite{width:100%!important;height:100%!important}
+.rb-ui .rb-deck-info{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;flex:1!important}
+.rb-ui .rb-deck-info strong{font-size:var(--ui-fs-lead)!important;font-weight:700!important;color:var(--ui-text)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.rb-ui .rb-deck-info small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;color:var(--ui-text-2)!important;letter-spacing:.04em!important;text-transform:uppercase!important}
+.rb-ui .rb-deck-meters{display:flex!important;gap:6px!important;margin-top:2px!important}
+.rb-ui .rb-deck-meters i{flex:1!important;height:5px!important;border-radius:3px!important;background:rgba(120,78,40,.2)!important;position:relative!important;overflow:hidden!important}
+.rb-ui .rb-deck-meters i::after{content:""!important;position:absolute!important;inset:0 auto 0 0!important;width:var(--v)!important;border-radius:3px!important}
+.rb-ui .rb-deck-meters i.food::after{background:#e07a2f!important}
+.rb-ui .rb-deck-meters i.energy::after{background:#3f8fd8!important}
+.rb-ui .rb-deck-go{width:34px!important;height:34px!important;border-radius:11px!important;background:var(--ui-primary)!important;display:grid!important;place-items:center!important;flex:none!important;box-shadow:var(--ui-shadow-primary)!important}
+.rb-ui .rb-deck-go svg{width:18px!important;height:18px!important;color:var(--ui-on-accent)!important}
+.rb-ui .rb-deck-dots{display:flex!important;justify-content:center!important;gap:6px!important;padding:2px 0 2px!important}
+.rb-ui .rb-deck-dots button{width:6px!important;height:6px!important;padding:0!important;border-radius:50%!important;border:0!important;background:rgba(120,78,40,.3)!important;cursor:pointer!important;min-height:0!important}
+.rb-ui .rb-deck-dots button.on{width:16px!important;border-radius:3px!important;background:var(--ui-accent)!important}
 }
