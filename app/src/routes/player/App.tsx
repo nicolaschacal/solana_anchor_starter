@@ -21,7 +21,8 @@ import { useEvolutionAnimation } from "../../components/player/EvolutionAnimatio
 import { StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
-import { saveHabitatLayout } from "../../lib/economy/actions";
+import { saveHabitatLayout, selectHabitat } from "../../lib/economy/actions";
+import { REBYTERS_BY_SIZE } from "../../components/world/terrain";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { useGemBalance, formatGems } from "../../lib/economy/token";
 import { useSolBalance } from "../../hooks/useSolBalance";
@@ -555,7 +556,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [homeParams]=useSearchParams();
   const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
   const [detailOpen,setDetailOpen]=useState(false);
-  const [habitatOpen,setHabitatOpen]=useState(false);
   const [storeOpen,setStoreOpen]=useState(false);
   const [dailyOpen,setDailyOpen]=useState(false);
   const daily=useDaily();
@@ -774,7 +774,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             propAllowance={key=>propAllowance(inventory,key)}
             size={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.size)||5}
             climate={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.climate)||"temperate"}
-            onChangeIsland={()=>setHabitatOpen(true)}
+            islands={inventory.habitats.map(h=>{const spec=habitatOf(h.itemId);return {mint:h.mint,name:h.name,size:spec?.size??5,reByters:REBYTERS_BY_SIZE[(spec?.size??5) as 5|7|9]??3,active:inventory.activeHabitat?.mint===h.mint}})}
+            onPickIsland={mint=>{if(authForWorld.anchorWallet)void selectHabitat(worldConnection,authForWorld.anchorWallet,mint).catch(()=>undefined)}}
           />
         </Suspense>}
         {worldHud}
@@ -841,29 +842,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     {dailyOpen&&<DailySheet daily={daily} onClose={()=>setDailyOpen(false)}/>}
     {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
-    {habitatOpen&&<div className="game-sheet-backdrop" onClick={()=>setHabitatOpen(false)}>
-      <section className="game-sheet habitat-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>ENVIRONMENT</small><h2>Habitats</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setHabitatOpen(false)}><X/></button></div>
-        <div className="habitat-rail">
-          {[
-            ["Verdant Meadow","Equipped"],
-            ["Moonlit Ruins","Owned"],
-            ["Crystal Cavern","Locked"],
-            ["Golden Dunes","Locked"],
-          ].map(([name,state],index)=><button
-            key={name}
-            className={`habitat-card habitat-tone-${index}${habitat===index?" selected":""}`}
-            disabled={state==="Locked"}
-            onClick={()=>{setHabitat(index)}}
-          >
-            <span className="habitat-preview"><Mountain/></span>
-            <strong>{name}</strong>
-            <small>{habitat===index?"Equipped":state}</small>
-          </button>)}
-        </div>
-        <p className="ui-note">Environment selection is visual for now.</p>
-      </section>
-    </div>}
 
 
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>

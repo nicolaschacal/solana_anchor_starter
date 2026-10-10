@@ -823,7 +823,8 @@
 .rb-ui .world-saving{bottom:84px!important}
 .rb-ui .player-panel-title{flex:1!important;margin:0 0 0 6px!important;font:600 var(--ui-fs-lead) var(--ui-font)!important;color:var(--ui-text)!important}
 .rb-ui .storage-embedded .game-sheet-head{display:block!important;margin-bottom:12px!important}
-.rb-ui .player-panel-header nav a .den-grid-icon{flex:none!important}
+.rb-ui .player-panel-header nav a .den-grid-icon{flex:none!important;color:inherit!important}
+.rb-ui .player-panel-header nav a .den-grid-icon i{border-color:currentColor!important}
 .rb-ui .player-panel-header nav a{flex:1 1 auto!important;min-width:0!important;justify-content:center!important;white-space:nowrap!important}
 .rb-ui .player-panel-header nav a>span:not(.den-grid-icon){overflow:hidden!important;text-overflow:ellipsis!important}
 @media(max-width:480px){

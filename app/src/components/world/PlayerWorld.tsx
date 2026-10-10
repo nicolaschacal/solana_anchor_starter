@@ -1,5 +1,5 @@
 import { RebyterDeck } from "./RebyterDeck";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Mountain, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
@@ -31,6 +31,8 @@ import {
 import type { Climate } from "../../lib/economy/catalog";
 import { PROP_KEYS } from "../../lib/rebyters/habitat-layout";
 
+export type IslandOption = { mint: string; name: string; size: number; reByters: number; active: boolean };
+
 export type WorldCreature = {
   mint: string;
   evolution: Evolution;
@@ -61,8 +63,10 @@ type Props = {
   focusMint?: string | null;
   /** The protagonist was tapped again: go back to the open view. */
   onExit?: () => void;
-  /** Opens the island picker (shown inside the edit panel). */
-  onChangeIsland?: () => void;
+  /** The islands the wallet holds, for the Islands tab of the edit panel. */
+  islands?: IslandOption[];
+  /** Makes another island the active one; the world reopens on it. */
+  onPickIsland?: (mint: string) => void;
   /** What the protagonist is doing (idle | touch | feed | train | train-power | sad). */
   action?: string;
   /** A one-shot action finished. */
@@ -104,7 +108,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, onChangeIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -174,7 +178,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<"rebyters" | "objects">("rebyters");
+  const [tab, setTab] = useState<"rebyters" | "objects" | "islands">("rebyters");
   const [armed, setArmed] = useState<AssetKey | null>(null);
   const [selection, setSelectionState] = useState<Selection>(null);
   const [notice, setNotice] = useState("");
@@ -889,13 +893,35 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             <button role="tab" aria-selected={tab === "objects"} onClick={() => setTab("objects")}>
               Objects
             </button>
-            {onChangeIsland && (
-              <button role="tab" aria-selected={false} className="world-tab-islands" onClick={onChangeIsland}>
-                <Mountain /> Islands
+            {islands && islands.length > 0 && (
+              <button role="tab" aria-selected={tab === "islands"} onClick={() => setTab("islands")}>
+                Islands
               </button>
             )}
           </div>
-          {tab === "rebyters" ? (
+          {tab === "islands" ? (
+            <div className="world-chips">
+              {(islands ?? []).map((island) => (
+                <button
+                  key={island.mint}
+                  className="world-chip"
+                  data-on={island.active}
+                  aria-pressed={island.active}
+                  onClick={() => {
+                    if (island.active) return;
+                    if (JSON.stringify(layoutRef.current) !== baselineRef.current) {
+                      say("Press Done first to save your changes.");
+                      return;
+                    }
+                    onPickIsland?.(island.mint);
+                  }}
+                >
+                  <span>{island.name}</span>
+                  <small>{island.active ? "You are here" : `${island.size}×${island.size} · up to ${island.reByters}`}</small>
+                </button>
+              ))}
+            </div>
+          ) : tab === "rebyters" ? (
             <div className="world-chips">
               {creatures.map((c) => (
                 <button
