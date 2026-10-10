@@ -216,10 +216,10 @@ function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,onStor
         <button className="game-drawer-balance" onClick={()=>go("/account")} aria-label={`Balance ${balanceLabel}. Open account`}><CircleUserRound/><span>{balanceLabel}</span><ChevronDown/></button>
         <nav className="game-drawer-nav" aria-label="Game sections">
           <NavLink end to="/" onClick={onClose}><Home/><span>Home</span></NavLink>
-          <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My Rebyters</span></button>
+          <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My reByters</span></button>
           <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
           <button onClick={()=>{onClose();onStore()}}><ShoppingBag/><span>Store</span></button>
-          <button onClick={()=>{onClose();onStorage()}}><Package/><span>Storage</span></button>
+          <button onClick={()=>{onClose();onStorage()}}><Package/><span>Bag</span></button>
           <button onClick={()=>{onClose();onDaily()}}><Gift/><span>Daily</span>{dailyReady>0&&<small className="daily-dot">{dailyReady}</small>}</button>
           <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
           <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
@@ -980,7 +980,7 @@ export function PlayerDen() {
   const navigate=useNavigate();
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   return <Shell><main className="player-main den-page">
-    <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My Rebyters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
+    <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My reByters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
     {loading&&!ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
       {owned.map((item,index)=>{
         const form=tree.evolutions.find(e=>e.id===item.evolutionId);
@@ -998,7 +998,7 @@ export function PlayerDen() {
         </article>;
       })}
     </div>}
-    <div className="den-footer"><button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button></div>
+    <div className="den-footer"><button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new reByter</strong><ChevronRight/></button></div>
   </main></Shell>;
 }
 

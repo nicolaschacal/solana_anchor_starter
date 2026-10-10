@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Atom, BookOpen, CircleUserRound, Package, X } from "lucide-react";
+import { Atom, Backpack, BookOpen, CircleUserRound, X } from "lucide-react";
 import { PlayerAtlas, PlayerHome, PlayerLab, PlayerTrainer } from "./App";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
@@ -15,8 +15,8 @@ type Panel = keyof typeof panels;
 const panelNames = Object.keys(panels) as Panel[];
 /** The pages of the Trainer panel, in its top bar. */
 const trainerPages = [
-  { to: "/trainer", title: "My Rebyters", short: "Rebyters", end: true },
-  { to: "/trainer/storage", title: "Storage", short: "Storage", end: false },
+  { to: "/trainer", title: "My reByters", short: "reByters", end: true },
+  { to: "/trainer/storage", title: "Bag", short: "Bag", end: false },
   { to: "/trainer/profile", title: "Trainer profile", short: "Profile", end: false },
 ];
 /** Which panel a path opens (the old /account is the trainer profile). */
@@ -136,7 +136,7 @@ export function PlayerGame() {
               <nav aria-label="Trainer pages">
                 {trainerPages.map(({ to, short, end }) => (
                   <NavLink key={to} to={to} end={end}>
-                    {to === "/trainer/storage" ? <Package /> : to === "/trainer/profile" ? <CircleUserRound /> : <span className="den-grid-icon" aria-hidden="true"><i /><i /><i /><i /></span>}
+                    {to === "/trainer/storage" ? <Backpack /> : to === "/trainer/profile" ? <CircleUserRound /> : <span className="den-grid-icon" aria-hidden="true"><i /><i /><i /><i /></span>}
                     <span>{short}</span>
                   </NavLink>
                 ))}

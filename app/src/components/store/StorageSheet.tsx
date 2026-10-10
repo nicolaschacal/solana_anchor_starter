@@ -60,10 +60,10 @@ export function StorageSheet({ balance, inventory, onClose, embedded = false }: 
 
   const Wrap = ({ children }: { children: React.ReactNode }) =>
     embedded ? (
-      <section className="storage-sheet storage-embedded" aria-label="Storage">{children}</section>
+      <section className="storage-sheet storage-embedded" aria-label="Bag">{children}</section>
     ) : (
       <div className="game-sheet-backdrop" onClick={onClose}>
-        <section className="game-sheet store-sheet storage-sheet" role="dialog" aria-modal="true" aria-label="Storage" onClick={(e) => e.stopPropagation()}>{children}</section>
+        <section className="game-sheet store-sheet storage-sheet" role="dialog" aria-modal="true" aria-label="Bag" onClick={(e) => e.stopPropagation()}>{children}</section>
       </div>
     );
 
@@ -72,7 +72,7 @@ export function StorageSheet({ balance, inventory, onClose, embedded = false }: 
         <div className="game-sheet-head">
           <div>
             <small>YOUR WALLET</small>
-            <h2>Storage</h2>
+            <h2>Bag</h2>
           </div>
           {!embedded && (
             <button className="ui-close" aria-label="Close" onClick={onClose}>
