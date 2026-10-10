@@ -63,6 +63,8 @@ type Props = {
   focusMint?: string | null;
   /** The protagonist was tapped again: go back to the open view. */
   onExit?: () => void;
+  /** A read-only postcard of the game (sign-in screen): no deck, no editing. */
+  showcase?: boolean;
   /** The islands the wallet holds, for the Islands tab of the edit panel. */
   islands?: IslandOption[];
   /** Makes another island the active one; the world reopens on it. */
@@ -108,7 +110,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, showcase = false, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -863,11 +865,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         </div>
       )}
 
-      {ready && !editing && !focusMint && (
+      {ready && !editing && !focusMint && !showcase && (
         <RebyterDeck creatures={creatures.filter((c) => placedMints.has(c.mint))} onOpen={onSelect} />
       )}
 
-      {ready && !editing && !focusMint && (
+      {ready && !editing && !focusMint && !showcase && (
         <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Decorate habitat">
           <Paintbrush />
           <span>Decorate</span>

@@ -13,7 +13,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Store as ShopIcon, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
+  Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -666,24 +666,31 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
   const { connected } = useRebytersAuth();
 
-  if (!connected) return <Shell showNav={false}><Header/><main className="game-home guest-home">
-    <section className="game-viewer game-viewer-empty guest-world">
-      <GuestWorld period="Day"/>
-      <div className="guest-world-shade"/>
-      <div className="guest-hero">
-        <div className="guest-title"><strong>REBYTERS</strong><span>DIGITAL COMPANIONS</span></div>
-        <div className="guest-divider"><i/><Sparkles/><i/></div>
-        <p>Raise. Evolve. Own.<br/>On Solana.</p>
-        <RebytersLoginButton className="ui-btn ui-btn-primary guest-login-button"/>
-      </div>
-      <div className="guest-features" aria-label="Rebyters features">
-        <div><Heart/><span>RAISE</span></div>
-        <div><Sparkles/><span>EVOLVE</span></div>
-        <div><Dna/><span>COLLECT</span></div>
-        <div><Zap/><span>ON SOLANA</span></div>
-      </div>
-    </section>
-  </main></Shell>;
+  if (!connected) {
+    // The sign-in screen is a postcard of the real game: an island with a few reByters, nothing to edit.
+    const demo=tree.evolutions.filter(e=>e.enabled&&e.stage<=1).slice(0,4).map<WorldCreature>((form,n)=>({mint:`showcase-${n}`,evolution:form,emote:null,happy:n%2===0,level:form.stage+1,stageName:STAGE_NAMES[form.stage]??"",fullness:80,energy:80,bond:60}));
+    return <Shell showNav={false}><main className="game-home landing-home">
+      <section className="game-viewer game-world world-scene landing">
+        <Suspense fallback={<div className="world-loading" role="status">Loading…</div>}>
+          <PlayerWorld showcase creatures={demo} initialLayout={null} onCommitLayout={()=>Promise.resolve()} period="Day" worldTime={worldClock.now} onSelect={()=>undefined} size={7} climate="temperate"/>
+        </Suspense>
+        <RebytersLoginButton className="landing-login gl-panel"/>
+        <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
+        <div className="landing-sheet">
+          <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
+          <p>Build your bond and grow your companions.</p>
+          <button className="landing-start" onClick={()=>authForWorld.openLogin()}><span className="landing-start-mark"><Sparkles/></span><strong>Start</strong><ChevronRight/></button>
+          <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
+          <div className="landing-features" aria-label="reByters features">
+            <div><span><Heart/></span><small>RAISE</small></div>
+            <div><span><Sprout/></span><small>EVOLVE</small></div>
+            <div><span><Gem/></span><small>COLLECT</small></div>
+            <div><span><Mountain/></span><small>EXPLORE</small></div>
+          </div>
+        </div>
+      </section>
+    </main></Shell>;
+  }
 
   if (loading && (!owned.length || !active || !evolution)) return <Shell showNav={false}><main className="game-home">
     <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
