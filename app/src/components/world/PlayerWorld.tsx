@@ -873,7 +873,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           </div>
           <div className="world-tabs" role="tablist">
             <button role="tab" aria-selected={tab === "rebyters"} onClick={() => setTab("rebyters")}>
-              Rebyters
+              reByters
             </button>
             <button role="tab" aria-selected={tab === "objects"} onClick={() => setTab("objects")}>
               Objects
