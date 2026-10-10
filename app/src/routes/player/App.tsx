@@ -693,7 +693,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   }
 
   if (loading && (!owned.length || !active || !evolution)) return <Shell showNav={false}><main className="game-home">
-    <section className="game-viewer game-viewer-empty"><div className="viewer-glow"/><div className="viewer-loading-indicator"><Sparkles/><span>Loading companion…</span></div></section>
+    <section className="game-viewer game-world world-scene landing"><LandingBackdrop night={worldClock.period==="Night"}/><div className="landing-loading" role="status"><Sprout/><span>Loading your island…</span></div></section>
   </main></Shell>;
 
   if (!active || !evolution) return <Shell><Header/><EmptyCompanion

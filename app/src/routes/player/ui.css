@@ -991,4 +991,8 @@
 .rb-ui .landing-features small::after{content:""!important;position:absolute!important;left:25%!important;right:25%!important;bottom:0!important;height:2px!important;border-radius:2px!important;background:#b6452f!important}
 .rb-ui .landing-features>div:nth-child(even) small::after{background:#5d7d3a!important}
 .rb-ui .landing-features>div:nth-child(even) svg{color:#5d7d3a!important}
+
+.rb-ui .landing-loading{position:absolute!important;left:50%!important;bottom:18%!important;transform:translateX(-50%)!important;z-index:9!important;display:flex!important;align-items:center!important;gap:10px!important;padding:12px 20px!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-panel)!important;color:var(--ui-text)!important;font-weight:700!important;box-shadow:0 8px 24px rgba(48,28,14,.3)!important}
+.rb-ui .landing-loading svg{width:20px!important;height:20px!important;color:#5d7d3a!important;animation:landing-bob 1.2s ease-in-out infinite!important}
+@keyframes landing-bob{50%{transform:translateY(-3px)}}
 }
