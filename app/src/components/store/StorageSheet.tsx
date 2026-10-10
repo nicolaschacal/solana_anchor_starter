@@ -12,7 +12,7 @@ import { detailFor, iconFor } from "./StoreSheet";
 const SECTION_LABEL: Record<string, string> = { habitat: "Habitats", food: "Food", machine: "Machines", evolution: "Evolution items", decor: "Decor" };
 
 /** Everything the wallet holds, grouped by type. Read from the wallet; nothing is stored by the game. */
-export function StorageSheet({ balance, inventory, onClose }: { balance: GemBalance; inventory: Inventory; onClose: () => void }) {
+export function StorageSheet({ balance, inventory, onClose, embedded = false }: { balance: GemBalance; inventory: Inventory; onClose: () => void; embedded?: boolean }) {
   const { connection } = useConnection();
   const anchorWallet = useRebytersAuth().anchorWallet;
   const [busy, setBusy] = useState(false);
@@ -58,17 +58,27 @@ export function StorageSheet({ balance, inventory, onClose }: { balance: GemBala
     }
   };
 
+  const Wrap = ({ children }: { children: React.ReactNode }) =>
+    embedded ? (
+      <section className="storage-sheet storage-embedded" aria-label="Storage">{children}</section>
+    ) : (
+      <div className="game-sheet-backdrop" onClick={onClose}>
+        <section className="game-sheet store-sheet storage-sheet" role="dialog" aria-modal="true" aria-label="Storage" onClick={(e) => e.stopPropagation()}>{children}</section>
+      </div>
+    );
+
   return (
-    <div className="game-sheet-backdrop" onClick={onClose}>
-      <section className="game-sheet store-sheet storage-sheet" role="dialog" aria-modal="true" aria-label="Storage" onClick={(e) => e.stopPropagation()}>
+    <Wrap>
         <div className="game-sheet-head">
           <div>
             <small>YOUR WALLET</small>
             <h2>Storage</h2>
           </div>
-          <button className="ui-close" aria-label="Close" onClick={onClose}>
-            <X />
-          </button>
+          {!embedded && (
+            <button className="ui-close" aria-label="Close" onClick={onClose}>
+              <X />
+            </button>
+          )}
         </div>
 
         <div className="storage-currencies">
@@ -154,7 +164,6 @@ export function StorageSheet({ balance, inventory, onClose }: { balance: GemBala
           </div>
         )}
         {note && <p className="store-message ok">{note}</p>}
-      </section>
-    </div>
+    </Wrap>
   );
 }

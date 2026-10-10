@@ -572,6 +572,16 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const [minting,setMinting]=useState(false);
   const [focusMint,setFocusMint]=useState<string|null>(null);
+  // The Trainer panel sends the player back here to open a Rebyter or to mint a new one.
+  const homeLocation=useLocation();
+  const homeNavigate=useNavigate();
+  useEffect(()=>{
+    const wanted=homeLocation.state as {focus?:string;mint?:boolean}|null;
+    if(!wanted||homeLocation.pathname!=="/")return;
+    if(wanted.focus)setFocusMint(wanted.focus);
+    if(wanted.mint)setMinting(true);
+    homeNavigate("/",{replace:true,state:null});
+  },[homeLocation.key]);
   useEffect(()=>{
     if(!focusMint)return;
     const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape")setFocusMint(null)};
@@ -592,12 +602,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [training,setTraining]=useState(false);
   const [homeParams]=useSearchParams();
   const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
-  const [denOpen,setDenOpen]=useState(homeParams.get("den")==="1");
   const [detailOpen,setDetailOpen]=useState(false);
   const [habitatOpen,setHabitatOpen]=useState(false);
   const [storeOpen,setStoreOpen]=useState(false);
   const [dailyOpen,setDailyOpen]=useState(false);
-  const [storageOpen,setStorageOpen]=useState(false);
   const daily=useDaily();
   const dailyReady=daily.claimable+(daily.rationReady?1:0);
   const rbtyr=useGemBalance();
@@ -695,11 +703,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const growthReady=stageTimer===null||growthProgress>=100;
 
 
-  async function openDen() {
-    setDenOpen(true);
-    if (!player.ownedLoadedAll) {
-      try { await player.loadAll(); } catch { /* hook exposes error */ }
-    }
+  const goTo=useNavigate();
+  function openDen() {
+    goTo("/trainer");
   }
 
   const { connected } = useRebytersAuth();
@@ -773,7 +779,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>
   );
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} onStorage={()=>setStorageOpen(true)} dailyReady={dailyReady}/>
+    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} onStorage={()=>goTo("/trainer/storage")} dailyReady={dailyReady}/>
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
         {(authForWorld.publicKey&&(!player.profileLoaded||!inventory.ready))
@@ -797,6 +803,12 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           />
         </Suspense>}
         {clockHud}
+        {!focusMint&&<nav className="world-nav gl-panel" aria-label="Game">
+          <button onClick={()=>goTo("/trainer")}><CircleUserRound/><span>Trainer</span></button>
+          <button onClick={()=>goTo("/lab")}><Atom/><span>Lab</span></button>
+          <button onClick={()=>setStoreOpen(true)}><ShoppingBag/><span>Store</span></button>
+          <button onClick={()=>goTo("/atlas")}><BookOpen/><span>Atlas</span></button>
+        </nav>}
         {focusMint&&active?.mint===focusMint&&<>
           {restOverlay}
           {idChip}
@@ -851,7 +863,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </section>
     </div>}
 
-    {storageOpen&&<StorageSheet balance={rbtyr} inventory={inventory} onClose={()=>setStorageOpen(false)}/>}
     {dailyOpen&&<DailySheet daily={daily} onClose={()=>setDailyOpen(false)}/>}
     {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
@@ -879,29 +890,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </section>
     </div>}
 
-    {denOpen&&<div className="game-sheet-backdrop" onClick={()=>setDenOpen(false)}>
-      <section className="game-sheet den-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>YOUR COLLECTION</small><h2>Your den</h2></div><button className="ui-close" aria-label="Close" onClick={()=>setDenOpen(false)}><X/></button></div>
-        {player.loading&&!player.ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
-          {owned.map((item,index)=>{
-            const form=tree.evolutions.find(e=>e.id===item.evolutionId);
-            if(!form) return null;
-            const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
-            return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===active.mint?" active":""}`}>
-              <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);setFocusMint(item.mint);setDenOpen(false)}}>
-                <div className="den-card-art"><CreatureSprite evolution={form}/></div>
-                <strong>{form.name}</strong>
-                <small>{STAGE_NAMES[form.stage]}</small>
-              </button>
-              <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
-                {mintLabel}<ExternalLink/>
-              </a>
-            </article>;
-          })}
-        </div>}
-        <button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>{setDenOpen(false);setMinting(true)}}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
-      </section>
-    </div>}
 
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
       <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
@@ -962,6 +950,50 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       onCreate={(familyId)=>{void mintCompanion(familyId).then(()=>setMinting(false)).catch(()=>undefined)}}
     />
   </main></Shell>;
+}
+
+/** Trainer > My Rebyters: everything the wallet holds. Tapping one opens it in the world. */
+export function PlayerDen() {
+  const { owned, tree, ownedLoadedAll, loading, loadAll }=usePlayerCollection();
+  const [activeMint,setActiveMint]=useSelectedRebyter();
+  const navigate=useNavigate();
+  useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
+  return <Shell><main className="player-main den-page">
+    <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My Rebyters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
+    {loading&&!ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
+      {owned.map((item,index)=>{
+        const form=tree.evolutions.find(e=>e.id===item.evolutionId);
+        if(!form) return null;
+        const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
+        return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===activeMint?" active":""}`}>
+          <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);navigate("/",{state:{focus:item.mint}})}}>
+            <div className="den-card-art"><CreatureSprite evolution={form}/></div>
+            <strong>{form.name}</strong>
+            <small>{STAGE_NAMES[form.stage]}</small>
+          </button>
+          <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
+            {mintLabel}<ExternalLink/>
+          </a>
+        </article>;
+      })}
+    </div>}
+    <button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
+  </main></Shell>;
+}
+
+/** Trainer > Storage: what the wallet holds, grouped by type. */
+export function PlayerStorage() {
+  const balance=useGemBalance();
+  const inventory=useInventory();
+  return <Shell><main className="player-main storage-page"><StorageSheet embedded balance={balance} inventory={inventory} onClose={()=>undefined}/></main></Shell>;
+}
+
+/** The Trainer panel: its three pages are chosen from the panel's own top bar. */
+export function PlayerTrainer() {
+  const {pathname}=useLocation();
+  if(pathname.endsWith("/storage")) return <PlayerStorage/>;
+  if(pathname.endsWith("/profile")||pathname.startsWith("/account")) return <PlayerAccount/>;
+  return <PlayerDen/>;
 }
 
 export function PlayerLab() {

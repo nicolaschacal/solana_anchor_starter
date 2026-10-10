@@ -1,28 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Atom, BookOpen, CircleUserRound, X } from "lucide-react";
-import { PlayerAccount, PlayerAtlas, PlayerHome, PlayerLab } from "./App";
+import { Atom, BookOpen, CircleUserRound, Package, X } from "lucide-react";
+import { PlayerAtlas, PlayerHome, PlayerLab, PlayerTrainer } from "./App";
 import { usePlayerRebyters } from "../../hooks/usePlayerRebyters";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { ScenePausedContext } from "../../components/assets/scene-visibility";
 
 const panels = {
+  trainer: { title: "Trainer", Icon: CircleUserRound, Content: PlayerTrainer },
   lab: { title: "Lab", Icon: Atom, Content: PlayerLab },
   atlas: { title: "Atlas", Icon: BookOpen, Content: PlayerAtlas },
-  account: { title: "Account", Icon: CircleUserRound, Content: PlayerAccount },
 };
 type Panel = keyof typeof panels;
 const panelNames = Object.keys(panels) as Panel[];
+/** The pages of the Trainer panel, in its top bar. */
+const trainerPages = [
+  { to: "/trainer", title: "My Rebyters", short: "Rebyters", end: true },
+  { to: "/trainer/storage", title: "Storage", short: "Storage", end: false },
+  { to: "/trainer/profile", title: "Trainer profile", short: "Profile", end: false },
+];
+/** Which panel a path opens (the old /account is the trainer profile). */
+const panelOf = (pathname: string): Panel | undefined => {
+  if (pathname === "/account" || pathname.startsWith("/account/")) return "trainer";
+  return panelNames.find((name) => pathname === `/${name}` || pathname.startsWith(`/${name}/`));
+};
 
 export function PlayerGame() {
   const player = usePlayerRebyters();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const panel = panelNames.find((name) => pathname === `/${name}`);
+  const panel = panelOf(pathname);
   const [visited, setVisited] = useState<Panel[]>(() => (panel ? [panel] : []));
   const dialog = useRef<HTMLElement>(null);
   const trigger = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (pathname === "/account" || pathname.startsWith("/account/")) navigate("/trainer/profile", { replace: true });
+  }, [pathname, navigate]);
 
   useEffect(() => {
     if (panel)
@@ -117,17 +132,19 @@ export function PlayerGame() {
           tabIndex={-1}
         >
           <header className="player-panel-header">
-            <nav aria-label="Game panels">
-              {panelNames.map((name) => {
-                const { Icon, title } = panels[name];
-                return (
-                  <NavLink key={name} to={`/${name}`}>
-                    <Icon />
-                    <span>{title}</span>
+            {panel === "trainer" ? (
+              <nav aria-label="Trainer pages">
+                {trainerPages.map(({ to, title, short, end }) => (
+                  <NavLink key={to} to={to} end={end}>
+                    {to === "/trainer/storage" ? <Package /> : to === "/trainer/profile" ? <CircleUserRound /> : <span className="den-grid-icon" aria-hidden="true"><i /><i /><i /><i /></span>}
+                    <span className="tab-full">{title}</span>
+                    <span className="tab-short">{short}</span>
                   </NavLink>
-                );
-              })}
-            </nav>
+                ))}
+              </nav>
+            ) : (
+              <h2 className="player-panel-title">{panel ? panels[panel].title : ""}</h2>
+            )}
             <button
               className="ui-close player-panel-close"
               aria-label="Back to companion"
