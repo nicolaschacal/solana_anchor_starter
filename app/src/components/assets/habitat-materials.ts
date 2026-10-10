@@ -32,7 +32,7 @@ function random(seed: number) {
 export function meadowTexture() {
   const map = texture("meadow-ground", 512, 512, (ctx) => {
     const rand = random(7419);
-    ctx.fillStyle = "#638c48";
+    ctx.fillStyle = "#6fb12f";
     ctx.fillRect(0, 0, 512, 512);
     // Draw wrapped copies at edges, including the corners, for a seamless tile.
     const wrapped = (x: number, y: number, draw: () => void) => {
@@ -46,21 +46,21 @@ export function meadowTexture() {
     };
     for (let i = 0; i < 58; i++) {
       const x = rand() * 512, y = rand() * 512, radius = 20 + rand() * 48;
-      const tint = i % 2 ? "99,139,61" : "33,84,55";
+      const tint = i % 3 === 0 ? "46,128,36" : i % 3 === 1 ? "170,214,62" : "104,176,40";
       wrapped(x, y, () => {
         const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-        gradient.addColorStop(0, "rgba(" + tint + ",0.32)");
+        gradient.addColorStop(0, "rgba(" + tint + ",0.42)");
         gradient.addColorStop(1, "rgba(" + tint + ",0)");
         ctx.fillStyle = gradient;
         ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
       });
     }
     // Fine overlapping brush strokes, never large polygons or grid-shaped dirt.
-    const shades = ["#769d54", "#87a760", "#557e43", "#416f45", "#9caf70"];
+    const shades = ["#8cc83c", "#a6d84a", "#5ea52e", "#3f8a2c", "#c4e266", "#79bb35"];
     ctx.lineCap = "round";
-    for (let i = 0; i < 2700; i++) {
+    for (let i = 0; i < 5200; i++) {
       const x = rand() * 512, y = rand() * 512;
-      const length = 3 + rand() * 9, lean = (rand() - 0.5) * 7;
+      const length = 4 + rand() * 11, lean = (rand() - 0.5) * 8;
       const shade = shades[Math.floor(rand() * shades.length)];
       const angle = rand() * Math.PI * 2;
       wrapped(x, y, () => {

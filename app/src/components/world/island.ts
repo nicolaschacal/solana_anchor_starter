@@ -21,7 +21,7 @@ const outline = (angle: number) => {
 
 // Where each ring of the underside sits: shrink factor, depth, colour.
 const RINGS: { k: number; y: number; colour: number }[] = [
-  { k: 1.0, y: 0, colour: 0x5f8f42 },
+  { k: 1.0, y: 0, colour: 0x6cae38 },
   { k: 0.98, y: -0.16, colour: 0x6f6a3c },
   { k: 0.88, y: -0.7, colour: 0x7a5a3b },
   { k: 0.7, y: -1.4, colour: 0x68503a },
