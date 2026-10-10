@@ -21,10 +21,10 @@ import { useEvolutionAnimation } from "../../components/player/EvolutionAnimatio
 import { StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
-import { saveHabitatLayout, selectHabitat } from "../../lib/economy/actions";
+import { saveHabitatLayout, selectHabitat, claimStarterPack } from "../../lib/economy/actions";
 import { REBYTERS_BY_SIZE } from "../../components/world/terrain";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
-import { useGemBalance, formatGems } from "../../lib/economy/token";
+import { useGemBalance, formatGems, refreshBalances } from "../../lib/economy/token";
 import { useSolBalance } from "../../hooks/useSolBalance";
 import { StorageSheet } from "../../components/store/StorageSheet";
 import { DailySheet } from "../../components/daily/DailySheet";
@@ -742,8 +742,24 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   );
   const questsDone=daily.quests.filter(q=>q.claimed).length;
   const dailyHot=daily.claimable>0||daily.rationReady;
+  const [claiming,setClaiming]=useState(false);
+  const [claimError,setClaimError]=useState("");
+  const noIsland=authForWorld.connected&&inventory.ready&&!inventory.loading&&!inventory.activeHabitat;
+  async function claimIsland() {
+    if(!authForWorld.anchorWallet)return;
+    setClaiming(true);setClaimError("");
+    try{await claimStarterPack(worldConnection,authForWorld.anchorWallet);refreshBalances();}
+    catch(e){setClaimError(e instanceof Error&&/reject|cancel|denied/i.test(e.message)?"Signature cancelled.":"Couldn't claim the island. Try again.");}
+    finally{setClaiming(false);}
+  }
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>
+    {noIsland&&<div className="starter-claim gl-panel" role="status">
+      <strong>{inventory.starterClaimed?"You have no island":"Your island is waiting"}</strong>
+      <small>{inventory.starterClaimed?"Pick one in the Shop to have somewhere to live.":"Claim your free starter island and first meals."}</small>
+      {claimError&&<small className="starter-error">{claimError}</small>}
+      <button className="ui-btn ui-btn-primary" disabled={claiming} onClick={()=>inventory.starterClaimed?setStoreOpen(true):void claimIsland()}>{claiming?"Waiting for signature…":inventory.starterClaimed?"Open Shop":"Claim island"}</button>
+    </div>}
     <div className="world-hud-right">
       <button className="world-wallet" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
         <span className="wallet-cell"><i className="wallet-coin" aria-hidden="true"><Coins/></i><span className="wallet-num"><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span></span>
@@ -776,6 +792,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
             focusMint={focusMint}
             complete={player.ownedLoadedAll&&!player.error}
+            editable={!!inventory.activeHabitat}
             onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}

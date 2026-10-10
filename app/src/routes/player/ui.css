@@ -955,4 +955,9 @@
 .rb-ui .landing-start strong{font-weight:600!important;font-size:24px!important}
 .rb-ui .landing-atlas,.rb-ui .landing-login{font-weight:600!important}
 .rb-ui .landing-features small{font-weight:600!important;letter-spacing:.1em!important}
+.rb-ui .starter-claim{position:absolute!important;left:16px!important;right:16px!important;bottom:196px!important;z-index:9!important;max-width:420px!important;margin:0 auto!important;padding:16px!important;border-radius:var(--ui-r-xl)!important;display:flex!important;flex-direction:column!important;gap:6px!important;align-items:stretch!important;text-align:center!important}
+.rb-ui .starter-claim strong{font-size:var(--ui-fs-lead)!important;color:var(--ui-text)!important}
+.rb-ui .starter-claim small{font-size:var(--ui-fs-caption)!important;color:var(--ui-text-2)!important}
+.rb-ui .starter-claim .starter-error{color:var(--ui-bad)!important;font-weight:600!important}
+.rb-ui .starter-claim button{margin-top:6px!important;min-height:46px!important}
 }

@@ -65,6 +65,8 @@ type Props = {
   onExit?: () => void;
   /** The whole collection has been read; until then nobody is dropped from the saved layout. */
   complete?: boolean;
+  /** The wallet has an island to save into. */
+  editable?: boolean;
   /** A read-only postcard of the game (sign-in screen): no deck, no editing. */
   showcase?: boolean;
   /** The islands the wallet holds, for the Islands tab of the edit panel. */
@@ -112,7 +114,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, showcase = false, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, islands, onPickIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -879,7 +881,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         <RebyterDeck creatures={creatures.filter((c) => placedMints.has(c.mint))} onOpen={onSelect} />
       )}
 
-      {ready && !editing && !focusMint && !showcase && (
+      {ready && !editing && !focusMint && !showcase && editable && (
         <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Decorate habitat">
           <Paintbrush />
           <span>Decorate</span>
