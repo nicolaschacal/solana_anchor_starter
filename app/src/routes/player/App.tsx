@@ -666,6 +666,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   }
 
   const { connected } = useRebytersAuth();
+  const [claiming,setClaiming]=useState(false);
+  const [claimError,setClaimError]=useState("");
 
   if (!connected) {
     // The sign-in screen is a postcard of the real game: an island with a few reByters, nothing to edit.
@@ -740,8 +742,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   );
   const questsDone=daily.quests.filter(q=>q.claimed).length;
   const dailyHot=daily.claimable>0||daily.rationReady;
-  const [claiming,setClaiming]=useState(false);
-  const [claimError,setClaimError]=useState("");
   const noIsland=authForWorld.connected&&inventory.ready&&!inventory.loading&&!inventory.activeHabitat;
   async function claimIsland() {
     if(!authForWorld.anchorWallet)return;
