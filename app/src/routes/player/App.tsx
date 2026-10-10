@@ -784,7 +784,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>
     <div className="world-hud-right">
-      <button className="world-wallet" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
+      <button className="world-wallet gl-panel" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
         <i className="wallet-coin" aria-hidden="true"><Coins/></i>
         <span className="wallet-lines">
           <span><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span>

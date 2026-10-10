@@ -871,3 +871,9 @@
 .rb-ui .world-wallet strong{font-size:var(--ui-fs-body)!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;color:#fff!important}
 .rb-ui .world-wallet small{font-size:var(--ui-fs-micro)!important;font-weight:600!important;color:rgba(255,255,255,.85)!important;letter-spacing:.04em!important}
 .rb-ui .den-scroll>*{flex:none!important}
+/* Wallet sits inside a chip, same width as the daily chip below it */
+.rb-ui .world-wallet.gl-panel{padding:8px 14px 8px 8px!important;border-radius:var(--ui-r-lg)!important;border:1px solid var(--ui-line-strong)!important;align-self:stretch!important;justify-content:flex-start!important}
+.rb-ui .world-wallet.gl-panel .wallet-lines{text-shadow:none!important;flex:1!important}
+.rb-ui .world-wallet.gl-panel .wallet-lines>span{justify-content:space-between!important}
+.rb-ui .world-wallet.gl-panel .wallet-coin{width:42px!important;height:42px!important}
+.rb-ui .world-wallet.gl-panel .wallet-lines{height:42px!important}
