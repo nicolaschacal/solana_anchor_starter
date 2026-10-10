@@ -183,55 +183,6 @@ function useSolBalanceLabel() {
   return solBalance===null?"SOL":`${solBalance.toLocaleString("en-US",{maximumFractionDigits:2})} SOL`;
 }
 
-/**
- * Side menu of the logged-in Home, shared by the mobile and web layouts.
- * The edge tab summons it; the balance chip and Account both open the account panel.
- */
-function GameDrawer({open,onOpen,onClose,onHabitats,onDen,onStore,onDaily,onStorage,dailyReady}:{open:boolean;onOpen:()=>void;onClose:()=>void;onHabitats:()=>void;onDen:()=>void;onStore:()=>void;onDaily:()=>void;onStorage:()=>void;dailyReady:number}) {
-  const navigate=useNavigate();
-  const balanceLabel=useSolBalanceLabel();
-  const panel=useRef<HTMLElement>(null);
-
-  useEffect(()=>{
-    if(!open) return;
-    panel.current?.focus();
-    const onKey=(event:KeyboardEvent)=>{ if(event.key==="Escape") onClose(); };
-    // On web the dimmed area is only the world card; a press anywhere else closes too.
-    const onPress=(event:PointerEvent)=>{ if(!panel.current?.contains(event.target as Node)) onClose(); };
-    document.addEventListener("keydown",onKey);
-    document.addEventListener("pointerdown",onPress);
-    return()=>{
-      document.removeEventListener("keydown",onKey);
-      document.removeEventListener("pointerdown",onPress);
-    };
-  },[open,onClose]);
-
-  const go=(to:string)=>{onClose();navigate(to)};
-
-  return <>
-    <button className="game-drawer-tab gl-panel" onClick={onOpen} aria-label="Open navigation" aria-expanded={open}><ChevronRight/></button>
-    {open&&<div className="game-drawer-backdrop" onClick={onClose}>
-      <aside ref={panel} className="game-drawer" role="dialog" aria-modal="true" aria-label="Game navigation" tabIndex={-1} onClick={event=>event.stopPropagation()}>
-        <div className="game-drawer-head"><div><strong>REBYTERS</strong><small>digital companions</small></div><button onClick={onClose} aria-label="Close navigation"><X/></button></div>
-        <button className="game-drawer-balance" onClick={()=>go("/account")} aria-label={`Balance ${balanceLabel}. Open account`}><CircleUserRound/><span>{balanceLabel}</span><ChevronDown/></button>
-        <nav className="game-drawer-nav" aria-label="Game sections">
-          <NavLink end to="/" onClick={onClose}><Home/><span>Home</span></NavLink>
-          <button onClick={()=>{onClose();onDen()}}><span className="den-grid-icon"><i/><i/><i/><i/></span><span>My reByters</span></button>
-          <button onClick={()=>{onClose();onHabitats()}}><Mountain/><span>Habitats</span></button>
-          <button onClick={()=>{onClose();onStore()}}><ShoppingBag/><span>Store</span></button>
-          <button onClick={()=>{onClose();onStorage()}}><Package/><span>Bag</span></button>
-          <button onClick={()=>{onClose();onDaily()}}><Gift/><span>Daily</span>{dailyReady>0&&<small className="daily-dot">{dailyReady}</small>}</button>
-          <NavLink to="/lab" onClick={onClose}><Atom/><span>Evolution Lab</span></NavLink>
-          <NavLink to="/atlas" onClick={onClose}><BookOpen/><span>Atlas</span></NavLink>
-        </nav>
-        <div className="game-drawer-footer">
-          <button onClick={()=>go("/account")}><CircleUserRound/><span>Account</span></button>
-          <button disabled title="Coming soon"><Settings/><span>Settings</span><small>Soon</small></button>
-        </div>
-      </aside>
-    </div>}
-  </>;
-}
 
 function Header() {
   const embedded = useContext(PlayerPanelContext);
@@ -612,8 +563,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const rbtyr=useGemBalance();
   const solBalance=useSolBalance();
   const inventory=useInventory();
-  const [drawerOpen,setDrawerOpen]=useState(false);
-  const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
   const [habitat,setHabitat]=useState(0);
     const bubbleRef=useRef<HTMLDivElement>(null);
   const [visualAction,setVisualAction]=useState("idle");
@@ -799,8 +748,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </button>}
     </div>
   </>);
-  return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
-    <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} onStorage={()=>goTo("/trainer/storage")} dailyReady={dailyReady}/>
+  return <Shell showNav={false}><main className="game-home">
     {worldView
       ?<section className={`game-viewer game-world world-scene habitat-${habitat} world-${worldClock.period.toLowerCase()}`}>
         {(authForWorld.publicKey&&(!player.profileLoaded||!inventory.ready))
@@ -821,6 +769,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             propAllowance={key=>propAllowance(inventory,key)}
             size={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.size)||5}
             climate={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.climate)||"temperate"}
+            onChangeIsland={()=>setHabitatOpen(true)}
           />
         </Suspense>}
         {worldHud}

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Mountain, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
@@ -54,6 +54,8 @@ type Props = {
   focusMint?: string | null;
   /** The protagonist was tapped again: go back to the open view. */
   onExit?: () => void;
+  /** Opens the island picker (shown inside the edit panel). */
+  onChangeIsland?: () => void;
   /** What the protagonist is doing (idle | touch | feed | train | train-power | sad). */
   action?: string;
   /** A one-shot action finished. */
@@ -95,7 +97,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, onChangeIsland, propAllowance, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -849,6 +851,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             <span className="world-edit-count">
               {layout.placed.length}/{MAX_PLACED} rebyters · {propCount}/{MAX_PROPS} objects
             </span>
+            {onChangeIsland && (
+              <button className="ui-btn ui-btn-secondary world-islands" onClick={onChangeIsland}>
+                <Mountain /> Islands
+              </button>
+            )}
             <button className="ui-btn ui-btn-primary world-done" onClick={finishEditing}>
               <Check /> Done
             </button>
