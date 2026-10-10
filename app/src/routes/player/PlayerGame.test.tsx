@@ -48,7 +48,7 @@ vi.mock("./App", () => ({
       </button>
     );
   },
-  PlayerAccount: () => <div>Wallet settings</div>,
+  PlayerTrainer: () => <div>Trainer pages</div>,
   PlayerAtlas: function Atlas() {
     const [selected, setSelected] = useState(false);
     return (
@@ -135,4 +135,23 @@ it("supports direct panel links and browser Back without replacing Home", async 
   ).toBe("Atlas");
   expect(host.querySelector('[data-testid="home"]')).toBe(home);
   expect(counts.homeMounts).toBe(1);
+});
+it("opens the Trainer panel with its own three pages, and keeps /account as the trainer profile", async () => {
+  await act(async () =>
+    root.render(
+      <MemoryRouter initialEntries={["/trainer"]}>
+        <Navigation />
+      </MemoryRouter>,
+    ),
+  );
+  const tabs = [...host.querySelectorAll('nav[aria-label="Trainer pages"] a')].map((a) => a.getAttribute("href"));
+  expect(tabs).toEqual(["/trainer", "/trainer/storage", "/trainer/profile"]);
+  expect(host.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe("Trainer");
+  // Lab and Atlas have no navigation of their own, only a title and Close.
+  await open("/lab");
+  expect(host.querySelector('nav[aria-label="Trainer pages"]')).toBeNull();
+  expect(host.querySelector(".player-panel-title")?.textContent).toBe("Lab");
+  await open("/account");
+  expect(host.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe("Trainer");
+  expect(host.querySelector('nav[aria-label="Trainer pages"] a.active')?.getAttribute("href")).toBe("/trainer/profile");
 });
