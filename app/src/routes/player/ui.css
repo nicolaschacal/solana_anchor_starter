@@ -824,12 +824,11 @@
 .rb-ui .player-panel-header nav a{flex:1 1 0!important;min-width:0!important;justify-content:center!important;white-space:nowrap!important}
 .rb-ui .player-panel-header nav a>span:not(.den-grid-icon){overflow:hidden!important;text-overflow:ellipsis!important}
 @media(max-width:480px){
-  .rb-ui .player-panel-header nav a{padding:0 6px!important;gap:0!important}
-  .rb-ui .player-panel-header nav a>svg,.rb-ui .player-panel-header nav a>.den-grid-icon{display:none!important}
+  .rb-ui .player-panel-header nav{gap:4px!important}
+  .rb-ui .player-panel-header nav a{padding:0 6px!important;gap:5px!important}
+  .rb-ui .player-panel-header nav a>svg{width:18px!important;height:18px!important}
   .rb-ui .player-panel-header nav a>span:not(.den-grid-icon){font-size:12px!important}
 }
-.rb-ui .player-panel-header nav .tab-short{display:none!important}
-@media(max-width:480px){
-  .rb-ui .player-panel-header nav .tab-full{display:none!important}
-  .rb-ui .player-panel-header nav .tab-short{display:inline!important}
-}
+.rb-ui .den-footer{position:sticky;bottom:0;z-index:5;margin:0 -18px -24px;padding:12px 18px 24px;background:linear-gradient(to bottom,transparent,var(--ui-panel) 28%)}
+.rb-ui .den-footer .den-mint-cta{margin-top:0!important;width:100%}
+@media(min-width:900px){.rb-ui .den-footer{margin:0 -28px -30px;padding:12px 28px 30px}}

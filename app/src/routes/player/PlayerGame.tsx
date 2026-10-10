@@ -134,11 +134,10 @@ export function PlayerGame() {
           <header className="player-panel-header">
             {panel === "trainer" ? (
               <nav aria-label="Trainer pages">
-                {trainerPages.map(({ to, title, short, end }) => (
+                {trainerPages.map(({ to, short, end }) => (
                   <NavLink key={to} to={to} end={end}>
                     {to === "/trainer/storage" ? <Package /> : to === "/trainer/profile" ? <CircleUserRound /> : <span className="den-grid-icon" aria-hidden="true"><i /><i /><i /><i /></span>}
-                    <span className="tab-full">{title}</span>
-                    <span className="tab-short">{short}</span>
+                    <span>{short}</span>
                   </NavLink>
                 ))}
               </nav>

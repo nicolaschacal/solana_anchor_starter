@@ -977,7 +977,7 @@ export function PlayerDen() {
         </article>;
       })}
     </div>}
-    <button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button>
+    <div className="den-footer"><button className="ui-btn ui-btn-primary den-mint-cta compact" onClick={()=>navigate("/",{state:{mint:true}})}><Plus/><strong>Mint new Rebyter</strong><ChevronRight/></button></div>
   </main></Shell>;
 }
 
