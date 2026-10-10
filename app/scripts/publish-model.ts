@@ -26,7 +26,9 @@ async function main() {
   const balance = await irys.getLoadedBalance();
   if (balance.lt(price)) {
     console.log("Funding Irys upload balance with required devnet SOL");
-    await irys.fund(price.minus(balance));
+    await irys.fund(price.minus(balance).multipliedBy(1.2).integerValue());
+    // The deposit is credited a little after the transaction confirms; wait for it before uploading.
+    for (let n = 0; n < 30 && (await irys.getLoadedBalance()).lt(price); n++) await new Promise((r) => setTimeout(r, 5000));
   }
   const receipt = await irys.upload(data, { tags: [{ name: "Content-Type", value: "model/gltf-binary" }, { name: "App", value: "reByters" }, { name: "Model", value: name }] });
   const uri = `${gateway}/${receipt.id}`;
