@@ -23,7 +23,7 @@ import {
 import { hexToBytes } from "@noble/hashes/utils";
 import { budgetIxs } from "../economy/budget";
 import { claimStarterPack, ensureProfileIx, itemTypePda } from "../economy/actions";
-import { STARTER_HABITAT_ID, itemIdOf, type StoreItem } from "../economy/catalog";
+import { itemIdOf, type StoreItem } from "../economy/catalog";
 import { DEPLOYMENT } from "../economy/deployment";
 import { fetchProfileState } from "../economy/profile";
 import { refreshBalances } from "../economy/token";
@@ -378,9 +378,9 @@ export async function createRebyter(
   if (!wallet.publicKey || !wallet.signTransaction)
     throw new Error("Connect a wallet that can sign transactions");
 
-  // First Rebyter of this wallet: the starter pack (profile, habitat NFT, first meals) comes first.
+  // First Rebyter of this wallet: the starter pack (profile and first meals) comes first.
   // It is its own transaction because a second mint would not fit next to the evolution proof.
-  if (DEPLOYMENT.items[STARTER_HABITAT_ID]) {
+  {
     const state = await fetchProfileState(connection, wallet.publicKey).catch(() => null);
     if (!state?.starterClaimed) await claimStarterPack(connection, anchorWallet);
   }

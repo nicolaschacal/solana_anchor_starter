@@ -1,24 +1,13 @@
 import { useConnection } from "@solana/wallet-adapter-react";
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID, getTokenMetadata } from "@solana/spl-token";
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useMemo, useState } from "react";
 import type { WorldLayout } from "../../components/world/layout";
 import { useRebytersAuth } from "../rebyters/auth";
-import { layoutFromHex } from "../rebyters/habitat-layout";
-import { CATALOG, foodSlot, type StoreItem } from "./catalog";
+import { CATALOG, ISLAND_SIZES, foodSlot, type StoreItem } from "./catalog";
 import { DEPLOYMENT } from "./deployment";
 import { fetchProfileState, type ProfileState } from "./profile";
 import { BALANCE_EVENT } from "./token";
-
-/** A habitat NFT in the wallet. Its layout is stored inside the NFT itself. */
-export type OwnedHabitat = {
-  mint: string;
-  /** On-chain item id (see catalog). */
-  itemId: number;
-  name: string;
-  /** The saved layout, or null while the habitat has never been laid out. */
-  layout: WorldLayout | null;
-};
 
 /**
  * What the player owns, read from the wallet and the player's profile: decor, machines and habitat
@@ -31,9 +20,8 @@ export type Inventory = {
   food(kind: number): number;
   /** Meals of one kind and tier (0 plain .. 3 feast). */
   meals(kind: number, tier: number): number;
-  habitats: OwnedHabitat[];
-  /** The habitat shown when the game opens: the profile's choice if still held, else the first one. */
-  activeHabitat: OwnedHabitat | null;
+  /** The player's island: its level (0..2), side in tiles and saved layout. */
+  island: { level: number; size: 5 | 7 | 9; layout: WorldLayout | null };
   /** The profile exists and the starter pack was already claimed. */
   starterClaimed: boolean;
   /** Token accounts of known items that hold 0: their rent deposit can be taken back. */
@@ -47,54 +35,16 @@ export type Inventory = {
 
 const STARTER = Number.POSITIVE_INFINITY;
 
-/** Mints already known not to be habitats (Rebyters and other 1/1s never change into one). */
-const notHabitat = new Set<string>();
-
-/** The last successfully read copy of each habitat: a failed read falls back to it instead of hiding the island. */
-const lastKnown = new Map<string, OwnedHabitat>();
-
-async function readHabitats(connection: ReturnType<typeof useConnection>["connection"], candidates: PublicKey[]): Promise<{ found: OwnedHabitat[]; incomplete: boolean }> {
-  const found: OwnedHabitat[] = [];
-  let incomplete = false;
-  const todo = candidates.filter((m) => !notHabitat.has(m.toBase58()));
-  for (let n = 0; n < todo.length; n += 4) {
-    const batch = todo.slice(n, n + 4);
-    const results = await Promise.allSettled(
-      batch.map(async (mint) => {
-        // A failed read says nothing about the mint: never remember it as "not a habitat".
-        const meta = await getTokenMetadata(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID);
-        const fields = new Map(meta?.additionalMetadata ?? []);
-        const kind = fields.get("HABITAT");
-        if (!meta || kind === undefined || meta.symbol !== "HBTT") {
-          notHabitat.add(mint.toBase58());
-          return;
-        }
-        const habitat = { mint: mint.toBase58(), itemId: Number(kind), name: meta.name, layout: layoutFromHex(fields.get("LAYOUT")) };
-        lastKnown.set(habitat.mint, habitat);
-        found.push(habitat);
-      }),
-    );
-    results.forEach((r, i) => {
-      if (r.status !== "rejected") return;
-      incomplete = true;
-      const old = lastKnown.get(batch[i].toBase58());
-      if (old) found.push(old);
-    });
-  }
-  return { found, incomplete };
-}
-
 type Conn = ReturnType<typeof useConnection>["connection"];
 type Snapshot = {
   balances: Map<string, number>;
-  habitats: OwnedHabitat[];
   profile: ProfileState | null;
   empties: PublicKey[];
   loading: boolean;
   ready: boolean;
   loaded: boolean;
 };
-const blank = (): Snapshot => ({ balances: new Map(), habitats: [], profile: null, empties: [], loading: false, ready: false, loaded: false });
+const blank = (): Snapshot => ({ balances: new Map(), profile: null, empties: [], loading: false, ready: false, loaded: false });
 
 /**
  * One shared read of the wallet for the whole game. Every screen used to read the chain on its own, which
@@ -110,7 +60,6 @@ const publish = (patch: Partial<Snapshot>) => {
 async function readWallet(connection: Conn, owner: PublicKey, mints: Set<string>) {
   const balances = new Map<string, number>();
   const idle: PublicKey[] = [];
-  const singles: PublicKey[] = [];
   for (const programId of [TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID]) {
     // A failed read must not look like an empty wallet: it would hide the island and its objects.
     const accounts = await connection.getParsedTokenAccountsByOwner(owner, { programId }, "confirmed");
@@ -121,15 +70,12 @@ async function readWallet(connection: Conn, owner: PublicKey, mints: Set<string>
       if (mints.has(info.mint)) {
         balances.set(info.mint, (balances.get(info.mint) ?? 0) + amount);
         if (programId.equals(TOKEN_2022_PROGRAM_ID) && !amount) idle.push(record.pubkey);
-      } else if (programId.equals(TOKEN_2022_PROGRAM_ID) && info.tokenAmount?.amount === "1" && info.tokenAmount?.decimals === 0) {
-        singles.push(new PublicKey(info.mint));
       }
     }
   }
-  const [{ found: habitats, incomplete }, profile] = await Promise.all([readHabitats(connection, singles), fetchProfileState(connection, owner)]);
-  // Some habitats could not be read: fine as long as the active one is there; otherwise read again.
-  if (incomplete && !habitats.some((h) => h.mint === profile?.activeHabitat || !profile?.activeHabitat)) throw new Error("Could not read the active habitat");
-  return { balances, habitats, profile, empties: idle, incomplete };
+  // The island (level and layout) lives in the profile: one account read.
+  const profile = await fetchProfileState(connection, owner);
+  return { balances, profile, empties: idle };
 }
 
 /** Reads once at a time; a refresh asked for meanwhile runs right after. A failure keeps the last good state and retries. */
@@ -144,12 +90,7 @@ function refresh(connection: Conn, owner: PublicKey, mints: Set<string>, retries
   readWallet(connection, owner, mints)
     .then((result) => {
       if (store.owner !== key) return;
-      const { incomplete, ...snapshot } = result;
-      publish({ ...snapshot, loading: false, loaded: true, ready: true });
-      if (incomplete) {
-        window.clearTimeout(store.timer);
-        store.timer = window.setTimeout(() => store.owner === key && refresh(connection, owner, mints, 1), 4000);
-      }
+      publish({ ...result, loading: false, loaded: true, ready: true });
     })
     .catch(() => {
       if (store.owner !== key) return;
@@ -204,30 +145,26 @@ export function useInventory(): Inventory {
     window.addEventListener(BALANCE_EVENT, bump);
     return () => window.removeEventListener(BALANCE_EVENT, bump);
   }, [connection, owner, ownerKey, mints]);
-  const { balances, habitats, profile, empties, loading, ready, loaded } = snap;
+  const { balances, profile, empties, loading, ready, loaded } = snap;
 
   return useMemo(() => {
-    const active = habitats.find((h) => h.mint === profile?.activeHabitat) ?? habitats[0] ?? null;
+    const level = Math.min(2, profile?.islandLevel ?? 0);
     return {
       count: (item) => {
         if (item.starter) return STARTER;
         if (item.category === "food") return profile?.food[foodSlot(item.food, item.tier)] ?? 0;
-        if (item.category === "habitat") {
-          const id = DEPLOYMENT.items[item.id]?.itemId;
-          return id === undefined ? 0 : habitats.filter((h) => h.itemId === id).length;
-        }
+        if (item.category === "habitat") return item.size <= ISLAND_SIZES[level] ? 1 : 0;
         return item.mint ? (balances.get(item.mint) ?? 0) : 0;
       },
       food: (kind) => [0, 1, 2, 3].reduce((sum, tier) => sum + (profile?.food[foodSlot(kind, tier)] ?? 0), 0),
       meals: (kind, tier) => profile?.food[foodSlot(kind, tier)] ?? 0,
-      habitats,
-      activeHabitat: active,
+      island: { level, size: ISLAND_SIZES[level], layout: profile?.layout ?? null },
       starterClaimed: !!profile?.starterClaimed,
       empties,
       loading,
       ready,
       loaded,
     };
-  }, [balances, habitats, profile, empties, loading, ready, loaded]);
+  }, [balances, profile, empties, loading, ready, loaded]);
 }
 

@@ -8,17 +8,9 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import type { WorldLayout } from "../../components/world/layout";
-import {
-  ExtensionType,
-  createAssociatedTokenAccountInstruction,
-  createInitializeMetadataPointerInstruction,
-  createInitializeMint2Instruction,
-  getMintLen,
-} from "@solana/spl-token";
-import { Keypair } from "@solana/web3.js";
 import { encodeLayout } from "../rebyters/habitat-layout";
-import { IRYS_GATEWAY, PROGRAM_ID, habitatAuthorityPda, playerProfilePda } from "../rebyters/config";
-import { CATALOG, STARTER_HABITAT_ID, itemIdOf } from "./catalog";
+import { PROGRAM_ID, playerProfilePda } from "../rebyters/config";
+import { CATALOG, itemIdOf } from "./catalog";
 import { getProgram } from "../rebyters/registry";
 import { DEPLOYMENT } from "./deployment";
 import { budgetIxs } from "./budget";
@@ -94,101 +86,45 @@ export async function buyItem(connection: Connection, wallet: Wallet, itemId: nu
   return send(connection, wallet, [ix]);
 }
 
-/** Saves the layout inside the habitat NFT the wallet holds. */
-export async function saveHabitatLayout(connection: Connection, wallet: Wallet, habitatMint: string, kindItemId: number, layout: WorldLayout) {
+/** Saves where the reByters and objects stand on the island, inside the profile. */
+export async function saveIslandLayout(connection: Connection, wallet: Wallet, layout: WorldLayout) {
   const { placed, props } = encodeLayout(layout);
-  const mint = new PublicKey(habitatMint);
   const ix = await getProgram(connection, wallet)
-    .methods.setHabitatLayout(placed as never, props as never)
-    .accountsStrict({
-      owner: wallet.publicKey,
-      itemType: itemTypePda(kindItemId),
-      mint,
-      ownerTokenAccount: ata(mint, wallet.publicKey),
-      habitatAuthority: habitatAuthorityPda(mint),
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    } as never)
+    .methods.setIslandLayout(placed as never, props as never)
+    .accountsStrict({ owner: wallet.publicKey, playerProfile: playerProfilePda(wallet.publicKey) })
     .instruction();
   return send(connection, wallet, [ix]);
 }
 
-/** Chooses which of the wallet's habitats opens with the game. */
-export async function selectHabitat(connection: Connection, wallet: Wallet, habitatMint: string) {
-  const mint = new PublicKey(habitatMint);
-  const ix = await getProgram(connection, wallet)
-    .methods.selectHabitat()
-    .accountsStrict({
-      owner: wallet.publicKey,
-      mint,
-      ownerTokenAccount: ata(mint, wallet.publicKey),
-      playerProfile: playerProfilePda(wallet.publicKey),
-      tokenProgram: TOKEN_2022_PROGRAM_ID,
-    })
-    .instruction();
-  return send(connection, wallet, [ix]);
-}
-
-/**
- * Creates a habitat NFT: the mint, the owner's token account and `create_habitat` in one
- * transaction. The free starter habitat (price 0) is claimable once; others burn Gems.
- * The profile is created in the same transaction when missing.
- */
-export async function buyHabitat(connection: Connection, wallet: Wallet, catalogId: string) {
+/** Burns Gems to grow the island one level (the catalog island item says which size it buys). */
+export async function expandIsland(connection: Connection, wallet: Wallet, catalogId: string) {
   const item = CATALOG.find((i) => i.id === catalogId);
   const itemId = item ? itemIdOf(item) : null;
-  if (!item || itemId === null) throw new Error("This habitat is not for sale on this network yet");
-  const free = item.price === 0;
-  const gemMint = free ? null : need(DEPLOYMENT.gemMint, "Gems");
-  const mint = Keypair.generate();
-  const authority = habitatAuthorityPda(mint.publicKey);
-  const ownerToken = ata(mint.publicKey, wallet.publicKey);
-  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-  const mintRent = await connection.getMinimumBalanceForRentExemption(mintLen);
-  const program = getProgram(connection, wallet);
-  const create = await program.methods
-    .createHabitat(itemId, item.name.slice(0, 32), `${IRYS_GATEWAY}/rebyters/habitat/${itemId}.json`)
+  if (!item || itemId === null) throw new Error("This island size is not for sale on this network yet");
+  const gemMint = need(DEPLOYMENT.gemMint, "Gems");
+  const ix = await getProgram(connection, wallet)
+    .methods.expandIsland(itemId)
     .accountsStrict({
       owner: wallet.publicKey,
-      playerProfile: playerProfilePda(wallet.publicKey),
       economy: economyPda(),
+      playerProfile: playerProfilePda(wallet.publicKey),
       itemType: itemTypePda(itemId),
-      gemMint: need(DEPLOYMENT.gemMint, "Gems"),
-      ownerGemAccount: (gemMint ? ata(gemMint, wallet.publicKey) : null) as never,
-      habitatAuthority: authority,
-      mint: mint.publicKey,
-      ownerTokenAccount: ownerToken,
+      gemMint,
+      ownerGemAccount: ata(gemMint, wallet.publicKey),
       tokenProgram: TOKEN_2022_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
     })
     .instruction();
-  const block = await connection.getLatestBlockhash("confirmed");
-  const tx = new Transaction({ ...block, feePayer: wallet.publicKey }).add(
-    ...budgetIxs(600_000),
-    ...(await ensureProfileIx(connection, wallet)),
-    SystemProgram.createAccount({
-      fromPubkey: wallet.publicKey,
-      newAccountPubkey: mint.publicKey,
-      space: mintLen,
-      lamports: mintRent,
-      programId: TOKEN_2022_PROGRAM_ID,
-    }),
-    createInitializeMetadataPointerInstruction(mint.publicKey, authority, mint.publicKey, TOKEN_2022_PROGRAM_ID),
-    createInitializeMint2Instruction(mint.publicKey, 0, authority, null, TOKEN_2022_PROGRAM_ID),
-    createAssociatedTokenAccountInstruction(wallet.publicKey, ownerToken, wallet.publicKey, mint.publicKey, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID),
-    create,
-  );
-  tx.partialSign(mint);
-  const signed = await wallet.signTransaction(tx);
-  const signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
-  const result = await connection.confirmTransaction({ ...block, signature }, "confirmed");
-  if (result.value.err) throw new Error(`Transaction failed: ${JSON.stringify(result.value.err)}`);
-  refreshBalances();
-  return { signature, mint: mint.publicKey.toBase58() };
+  return send(connection, wallet, [...(await ensureProfileIx(connection, wallet)), ix]);
 }
 
-/** The starter pack: your first habitat and your first meals. Claimable once per wallet. */
-export const claimStarterPack = (connection: Connection, wallet: Wallet) => buyHabitat(connection, wallet, STARTER_HABITAT_ID);
+/** The starter pack: your first meals. Claimable once per wallet; the island itself is already yours. */
+export async function claimStarterPack(connection: Connection, wallet: Wallet) {
+  const ix = await getProgram(connection, wallet)
+    .methods.claimStarterPack()
+    .accountsStrict({ owner: wallet.publicKey, playerProfile: playerProfilePda(wallet.publicKey) })
+    .instruction();
+  return send(connection, wallet, [...(await ensureProfileIx(connection, wallet)), ix]);
+}
 
 /** What closing one empty Token-2022 account gives back (about; the exact deposit is 0.00207408 SOL). */
 export const ACCOUNT_RENT_LAMPORTS = 2_074_080;

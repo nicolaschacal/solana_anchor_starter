@@ -1,7 +1,7 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
-import { CATALOG, evolutionItemFor, habitatOf, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
+import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
@@ -21,7 +21,7 @@ import { useEvolutionAnimation } from "../../components/player/EvolutionAnimatio
 import { StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
-import { saveHabitatLayout, selectHabitat, claimStarterPack } from "../../lib/economy/actions";
+import { saveIslandLayout, claimStarterPack } from "../../lib/economy/actions";
 import { REBYTERS_BY_SIZE } from "../../components/world/terrain";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { useGemBalance, formatGems, refreshBalances } from "../../lib/economy/token";
@@ -742,7 +742,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   );
   const questsDone=daily.quests.filter(q=>q.claimed).length;
   const dailyHot=daily.claimable>0||daily.rationReady;
-  const noIsland=authForWorld.connected&&inventory.loaded&&!inventory.loading&&!inventory.activeHabitat;
+  const noIsland=authForWorld.connected&&inventory.loaded&&!inventory.loading&&!inventory.starterClaimed;
   async function claimIsland() {
     if(!authForWorld.anchorWallet)return;
     setClaiming(true);setClaimError("");
@@ -753,7 +753,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>
     {noIsland&&<div className="starter-claim gl-panel" role="status">
-      <strong>{inventory.starterClaimed?"You have no island":"Your island is waiting"}</strong>
+      <strong>Your island is waiting</strong>
       <small>{inventory.starterClaimed?"Pick one in the Shop to have somewhere to live.":"Claim your free starter island and first meals."}</small>
       {claimError&&<small className="starter-error">{claimError}</small>}
       <button className="ui-btn ui-btn-primary" disabled={claiming} onClick={()=>inventory.starterClaimed?setStoreOpen(true):void claimIsland()}>{claiming?"Waiting for signature…":inventory.starterClaimed?"Open Shop":"Claim island"}</button>
@@ -782,23 +782,21 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           :<Suspense fallback={<div className="world-loading" role="status">Loading your world…</div>}>
           <PlayerWorld
             creatures={worldCreatures}
-            key={inventory.activeHabitat?.mint??"no-habitat"}
-            initialLayout={inventory.activeHabitat?.layout??null}
-            onCommitLayout={layout=>inventory.activeHabitat&&authForWorld.anchorWallet?saveHabitatLayout(worldConnection,authForWorld.anchorWallet,inventory.activeHabitat.mint,inventory.activeHabitat.itemId,layout):Promise.reject(new Error("No island to save to"))}
+            key={`island-${inventory.island.level}`}
+            initialLayout={inventory.island.layout}
+            onCommitLayout={layout=>authForWorld.anchorWallet?saveIslandLayout(worldConnection,authForWorld.anchorWallet,layout):Promise.reject(new Error("Sign in to save your island"))}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
             focusMint={focusMint}
             complete={player.ownedLoadedAll&&!player.error}
-            editable={!!inventory.activeHabitat}
+            editable={inventory.starterClaimed}
             onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}
             propAllowance={key=>propAllowance(inventory,key)}
-            size={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.size)||5}
-            climate={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.climate)||"temperate"}
-            islands={inventory.habitats.map(h=>{const spec=habitatOf(h.itemId);return {mint:h.mint,name:h.name,size:spec?.size??5,reByters:REBYTERS_BY_SIZE[(spec?.size??5) as 5|7|9]??3,active:inventory.activeHabitat?.mint===h.mint}})}
-            onPickIsland={mint=>{if(authForWorld.anchorWallet)void selectHabitat(worldConnection,authForWorld.anchorWallet,mint).catch(()=>undefined)}}
+            size={inventory.island.size}
+            climate="temperate"
           />
         </Suspense>}
         {worldHud}

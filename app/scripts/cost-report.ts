@@ -9,8 +9,7 @@
 import { readFile } from "node:fs/promises";
 import { Wallet } from "@anchor-lang/core";
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
-import { buyFood, buyGems, buyHabitat, buyItem, claimDailyRation, saveHabitatLayout } from "../src/lib/economy/actions";
-import { STARTER_HABITAT_ID } from "../src/lib/economy/catalog";
+import { buyFood, buyGems, buyItem, claimDailyRation, claimStarterPack, saveIslandLayout } from "../src/lib/economy/actions";
 import { DEPLOYMENT } from "../src/lib/economy/deployment";
 import { createRebyter, interactWithRebyter } from "../src/lib/rebyters/companions";
 
@@ -51,12 +50,7 @@ async function main() {
   // Buying gems moves real SOL to the treasury; report only what it costs on top of the price.
   const pack = DEPLOYMENT.packs[0];
   let mint = "";
-  let habitat = "";
-  await measure("starter pack (profile + habitat NFT + first meals)", async () => {
-    const pack = await buyHabitat(connection, wallet as never, STARTER_HABITAT_ID);
-    habitat = pack.mint;
-    return pack;
-  });
+  await measure("starter pack (profile + first meals)", () => claimStarterPack(connection, wallet as never));
   await measure("create first Rebyter (mint)", async () => {
     const created = await createRebyter(connection, wallet as never, wallet, 0);
     mint = created.mint;
@@ -69,8 +63,8 @@ async function main() {
   await measure("care", () => interactWithRebyter(connection, wallet as never, wallet, mint, "care", 0));
   await measure("train (normal rate, no machine)", () => interactWithRebyter(connection, wallet as never, wallet, mint, "train", 5));
   await measure("rest", () => interactWithRebyter(connection, wallet as never, wallet, mint, "rest", 0));
-  await measure("save habitat layout", () =>
-    saveHabitatLayout(connection, wallet as never, habitat, DEPLOYMENT.items[STARTER_HABITAT_ID].itemId, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
+  await measure("save island layout", () =>
+    saveIslandLayout(connection, wallet as never, { v: 1, placed: [{ mint, i: 18, j: 30 }], props: [{ key: "pine", x: -13, z: -25, h: 1.8, r: 1 }] }),
   );
   await measure(`buy Gems (pack 0, price ${sol(pack.priceLamports)} SOL excluded)`, async () => {
     const sig = await buyGems(connection, wallet as never, pack.id);

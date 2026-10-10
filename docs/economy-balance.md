@@ -14,22 +14,20 @@ players start a new account.
   Because food can neither be sent nor sold, free food cannot be farmed into anything tradable.
 - **Assets are real tokens in the wallet and are transferable:** decor and machines (fungible, one mint each)
   and habitats (below). What is not in the wallet does not show in the game.
-- **A habitat is a 1/1 NFT that stores its own layout.** Where the Rebyters stand and where each object sits is a
-  fixed-size field (`LAYOUT`, 230 bytes as hex) inside the habitat's own metadata, so saving never reallocates
-  and the layout travels with the habitat if it is transferred. The profile only remembers which habitat is
-  `active_habitat`. Objects only show if the wallet holds them (decor beyond what is held is hidden, not deleted).
-- **One PDA per player:** `PlayerProfile` (`profile4`): pokedex, ration day, quest counters, food, starter flag,
-  active habitat.
-- **Starter pack,** claimed once per wallet together with the first Rebyter (own transaction, because a second
-  mint does not fit next to the evolution proof): the profile, a free Verdant Meadow (5x5) habitat NFT and 3 meals
+- **One island per player, stored in the profile.** The island level (0/1/2 = 5x5, 7x7, 9x9) and the layout
+  (`LAYOUT`, fixed-size bytes: where the Rebyters stand and each object) live in the player's own `PlayerProfile`,
+  so saving never reallocates and the game needs no extra account reads. Everyone starts on 5x5; the Store sells
+  two one-way expansions (7x7 and 9x9, one level at a time, paid by burning Gems). Only the temperate climate exists.
+  Objects only show if the wallet holds them (decor beyond what is held is hidden, not deleted).
+- **One PDA per player:** `PlayerProfile` (`profile5`): pokedex, ration day, quest counters, food, starter flag,
+  island level, layout.
+- **Starter pack,** claimed once per wallet together with the first Rebyter (own transaction): the profile and 3 meals
   of each food. The starter decor (tree, rocks, bush) is part of the engine and free for everyone.
-- **Storage** (game menu) lists what the wallet holds grouped by type, lets the player pick which habitat opens
-  with the game, and returns the deposit of empty token accounts.
+- **Storage** (game menu) lists what the wallet holds grouped by type, and returns the deposit of empty token accounts.
 
-On-chain pieces: `buy_gems`, `buy_item` (decor/machines), `buy_food`, `create_habitat` (free starter or Gems),
-`set_habitat_layout`, `select_habitat`, `claim_daily_ration`, `claim_quest`, `set_food` and
-`create_habitat_type` / `create_item_type` (admin). PDA seeds: `economy2`, `item2`, `profile4`,
-`habitat_authority`.
+On-chain pieces: `buy_gems`, `buy_item` (decor/machines), `buy_food`, `claim_starter_pack`,
+`set_island_layout`, `expand_island`, `claim_daily_ration`, `claim_quest`, `set_food` and
+`create_habitat_type` / `create_item_type` (admin). PDA seeds: `economy3`, `item4`, `profile5`.
 
 ## Demand: what feeding costs
 
@@ -61,7 +59,7 @@ A free player can keep roughly 4-5 Rebyters alive. More than that is a choice th
 
 - Gems: 1 Gem = 0.0001 SOL (500 Gems = 0.05 SOL, bigger packs are ~10-30% cheaper per Gem).
 - Food: a pack is 5 meals; meat and fish 20 Gems, plants and fruit 15 (3-4 Gems per meal, ~0.0003-0.0004 SOL).
-- Decor 40-400 Gems, machines 700-1,200, habitats 2,500 (10x10) and 6,000 (15x15).
+- Decor 40-400 Gems, machines 700-1,200, island expansions 2,500 (7x7) and 6,000 (9x9).
 - Rough monthly food bill for the paying part: 6 Rebyters ~0.04 SOL, 10 Rebyters ~0.15 SOL.
 
 ## Why it holds together
@@ -99,7 +97,7 @@ Measured on devnet (new wallet, real client code, `cost-report`):
 | Action | Network fee | Deposit locked |
 |---|---|---|
 | claim ration, feed, play, care, rest, save layout, buy food | 0.000005 SOL | none |
-| starter pack (profile + habitat NFT + first meals) | 0.00001 SOL | 0.0086 SOL |
+| starter pack (profile + first meals) | 0.00001 SOL | 0.0086 SOL |
 | create first Rebyter | 0.00001 SOL | 0.0053 SOL |
 | buy Gems (first time) | 0.000005 SOL | 0.0015 SOL |
 | buy a decor item (first of its type) | 0.000005 SOL | 0.0015 SOL |
@@ -129,7 +127,7 @@ owned for that training automatically. Machines are not consumed.
 **Evolution items.** 10 items (rare 1800 Gems, ultra 4500 Gems) for the mammal line. Using one burns 1 and skips the rule's requirements
 for that single target; the route must still exist in the active atlas. Ids are resolved by evolution key at setup time.
 
-**Seeds** are `economy3` / `item4` / `profile4`: old devnet accounts are never read (no backward compatibility).
+**Seeds** are `economy3` / `item4` / `profile5`: old devnet accounts are never read (no backward compatibility).
 
 **Measured on devnet after the change:** starter pack 0.0087 SOL locked, Rebyter mint 0.0053 SOL locked, every daily action
 (ration, feed, play, care, train, rest, layout, buy food) 0.000005 SOL fee only, first decor token account 0.0015 SOL.
@@ -139,7 +137,7 @@ for that single target; the route must still exist in the active atlas. Ids are 
 Three island sizes. Each habitat kind registers its limits when it is created (`create_habitat_type`: max Rebyters, max objects)
 and the program rejects any layout above them; it also checks that the NFT really is of that kind (its `HABITAT` field, which only
 the program can write). The layout inside the NFT grows with use and the owner pays the rent of the extra bytes (starter pack
-locks 0.0064 SOL). Seeds are now `economy3` / `item4` / `profile4`.
+locks 0.0064 SOL). Seeds are now `economy3` / `item4` / `profile5`. (Superseded: habitat NFTs were removed; the level and layout now live in the profile, see above.)
 
 | Island | Size | Rebyters | Objects |
 |---|---|---|---|

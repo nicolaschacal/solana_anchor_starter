@@ -74,10 +74,11 @@ pub const FOOD_TIER_DIET: [u16; FOOD_TIERS] = [1, 2, 3, 4];
 pub const NO_MACHINE: u8 = 255;
 /// Highest bonus (percent) a machine can give.
 pub const MAX_MACHINE_BONUS: u8 = 200;
-/// A habitat NFT keeps its layout in one metadata field (hex) that grows with what is placed, and the
-/// owner pays the rent of the extra bytes when saving: set flag, placed count, placed Rebyters (34
-/// bytes each), prop count, props (9 bytes each). A blank habitat is the single byte 0.
-pub const BLANK_LAYOUT: [u8; 1] = [0];
+/// The island's layout lives in the profile: set flag, placed count, placed Rebyters (34 bytes each),
+/// prop count, props (9 bytes each), zero-padded to LAYOUT_BYTES. A blank island starts with byte 0.
+pub const LAYOUT_BYTES: usize = 2 + MAX_PLACED_SLOTS * 34 + 1 + MAX_PROP_SLOTS * 9;
+/// What each island level holds (Rebyters, objects). Level 0 is the starter 5x5, 1 is 7x7, 2 is 9x9.
+pub const ISLAND_LEVELS: [(u8, u8); 3] = [(3, 14), (5, 24), (8, 40)];
 
 /// Game day number (UTC). Day 0 means "never", so the first real day is 1.
 pub fn game_day(unix_timestamp: i64) -> u32 {
@@ -96,17 +97,7 @@ pub fn quest_food(day: u32, slot: usize) -> usize {
     (day as usize + slot) % 4
 }
 
-fn to_hex(bytes: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut out = String::with_capacity(bytes.len() * 2);
-    for b in bytes {
-        out.push(DIGITS[usize::from(b >> 4)] as char);
-        out.push(DIGITS[usize::from(b & 15)] as char);
-    }
-    out
-}
-
-/// Serializes a habitat layout (see BLANK_LAYOUT for the format).
+/// Serializes an island layout (see LAYOUT_BYTES for the format).
 fn encode_layout(placed: &[PlacedSlot], props: &[PropSlot]) -> Vec<u8> {
     let mut out = Vec::with_capacity(3 + placed.len() * 34 + props.len() * 9);
     out.push(1);
@@ -606,162 +597,31 @@ pub mod solana_anchor_starter {
         Ok(())
     }
 
-    /// Creates a habitat as its own 1/1 Token-2022 NFT. The layout (where the Rebyters and
-    /// objects stand) lives inside the NFT's metadata, so it travels with the habitat. A free
-    /// habitat type is the starter pack: claimable once per wallet, it also gives the first
-    /// meals. Other habitats cost Gems. The new habitat becomes the active one.
-    pub fn create_habitat(
-        ctx: Context<CreateHabitat>,
-        item_id: u16,
-        name: String,
-        metadata_uri: String,
-    ) -> Result<()> {
-        let item = &ctx.accounts.item_type;
-        require!(item.active && item.mint == Pubkey::default(), RegistryError::ItemInactive);
-        require!(
-            !name.is_empty() && name.len() <= 32 && !name.chars().any(char::is_control),
-            RegistryError::InvalidMetadata
-        );
-        require!(
-            !metadata_uri.is_empty()
-                && metadata_uri.len() <= MAX_URI_LENGTH
-                && metadata_uri.starts_with("https://")
-                && !metadata_uri.chars().any(char::is_control),
-            RegistryError::InvalidMetadata
-        );
-        let price = item.price_gems;
-        let mint_key = ctx.accounts.mint.key();
-        if price == 0 {
-            let profile = &mut ctx.accounts.player_profile;
-            require!(!profile.starter_claimed, RegistryError::StarterClaimed);
-            profile.starter_claimed = true;
-            for food_type in 0..FOOD_TYPES {
-                profile.food[food_type * FOOD_TIERS] = STARTER_MEALS;
-            }
-        } else {
-            let gems = ctx
-                .accounts
-                .owner_gem_account
-                .as_ref()
-                .ok_or(RegistryError::InsufficientGems)?;
-            require!(gems.amount >= price, RegistryError::InsufficientGems);
-            burn(
-                CpiContext::new(
-                    ctx.accounts.token_program.key(),
-                    Burn {
-                        mint: ctx.accounts.gem_mint.to_account_info(),
-                        from: gems.to_account_info(),
-                        authority: ctx.accounts.owner.to_account_info(),
-                    },
-                ),
-                price,
-            )?;
+    /// The starter pack: the first meals, once per wallet. The island needs no account of its own:
+    /// it is a level (and a layout) stored in the player's profile.
+    pub fn claim_starter_pack(ctx: Context<ClaimStarterPack>) -> Result<()> {
+        let profile = &mut ctx.accounts.player_profile;
+        require!(!profile.starter_claimed, RegistryError::StarterClaimed);
+        profile.starter_claimed = true;
+        for food_type in 0..FOOD_TYPES {
+            profile.food[food_type * FOOD_TIERS] = STARTER_MEALS;
         }
-        ctx.accounts.player_profile.active_habitat = mint_key;
-
-        let blank = to_hex(&BLANK_LAYOUT);
-        let additional_metadata = vec![
-            ("HABITAT".to_string(), item_id.to_string()),
-            ("LAYOUT".to_string(), blank),
-        ];
-        let final_metadata = TokenMetadata {
-            name: name.clone(),
-            symbol: "HBTT".to_string(),
-            uri: metadata_uri.clone(),
-            additional_metadata: additional_metadata.clone(),
-            ..Default::default()
-        };
-        let metadata_lamports = Rent::get()?.minimum_balance(final_metadata.tlv_size_of()?);
-        if metadata_lamports > 0 {
-            transfer(
-                CpiContext::new(
-                    ctx.accounts.system_program.key(),
-                    Transfer {
-                        from: ctx.accounts.owner.to_account_info(),
-                        to: ctx.accounts.mint.to_account_info(),
-                    },
-                ),
-                metadata_lamports,
-            )?;
-        }
-
-        let bump = ctx.bumps.habitat_authority;
-        let signer_seeds: &[&[&[u8]]] = &[&[b"habitat_authority", mint_key.as_ref(), &[bump]]];
-        token_metadata_initialize(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                TokenMetadataInitialize {
-                    program_id: ctx.accounts.token_program.to_account_info(),
-                    mint: ctx.accounts.mint.to_account_info(),
-                    metadata: ctx.accounts.mint.to_account_info(),
-                    mint_authority: ctx.accounts.habitat_authority.to_account_info(),
-                    update_authority: ctx.accounts.habitat_authority.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            name,
-            "HBTT".to_string(),
-            metadata_uri,
-        )?;
-        for (key, value) in additional_metadata {
-            token_metadata_update_field(
-                CpiContext::new(
-                    ctx.accounts.token_program.key(),
-                    TokenMetadataUpdateField {
-                        program_id: ctx.accounts.token_program.to_account_info(),
-                        metadata: ctx.accounts.mint.to_account_info(),
-                        update_authority: ctx.accounts.habitat_authority.to_account_info(),
-                    },
-                )
-                .with_signer(signer_seeds),
-                Field::Key(key),
-                value,
-            )?;
-        }
-        mint_to(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                MintTo {
-                    mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.owner_token_account.to_account_info(),
-                    authority: ctx.accounts.habitat_authority.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            1,
-        )?;
-        anchor_spl::token_2022::set_authority(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                SetAuthority {
-                    current_authority: ctx.accounts.habitat_authority.to_account_info(),
-                    account_or_mint: ctx.accounts.mint.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            AuthorityType::MintTokens,
-            None,
-        )?;
-        emit!(HabitatCreated {
-            owner: ctx.accounts.owner.key(),
-            mint: mint_key,
-            item_id,
-        });
         Ok(())
     }
 
-    /// Saves the layout inside the habitat NFT: which Rebyters stand where and where each
-    /// object is. Nothing here has economic value; what is *owned* is read from the wallet
-    /// when the habitat is shown.
-    pub fn set_habitat_layout(
-        ctx: Context<HabitatLayout>,
+    /// Saves where the Rebyters and objects stand on the player's island, inside the profile.
+    /// Nothing here has economic value; what is *owned* is read from the wallet when the island
+    /// is shown. The island's level sets how much it can hold.
+    pub fn set_island_layout(
+        ctx: Context<SetIslandLayout>,
         placed: Vec<PlacedSlot>,
         props: Vec<PropSlot>,
     ) -> Result<()> {
-        // The island's own limits come from its kind, fixed when the kind was registered.
-        let item = &ctx.accounts.item_type;
+        let profile = &mut ctx.accounts.player_profile;
+        let level = usize::from(profile.island_level).min(ISLAND_LEVELS.len() - 1);
+        let (max_placed, max_props) = ISLAND_LEVELS[level];
         require!(
-            placed.len() <= usize::from(item.max_placed) && props.len() <= usize::from(item.max_props),
+            placed.len() <= usize::from(max_placed) && props.len() <= usize::from(max_props),
             RegistryError::InvalidLayout
         );
         for prop in props.iter() {
@@ -774,68 +634,47 @@ pub mod solana_anchor_starter {
                 RegistryError::InvalidLayout
             );
         }
-        let value = to_hex(&encode_layout(&placed, &props));
-
-        // The field grows (or shrinks): pre-fund the mint for the new metadata size, paid by the owner.
-        let required_lamports = {
-            let mint_info = ctx.accounts.mint.to_account_info();
-            let data = mint_info.try_borrow_data()?;
-            let state = PodStateWithExtensions::<PodMint>::unpack(&data)
-                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
-            let mut metadata = state
-                .get_variable_len_extension::<TokenMetadata>()
-                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
-            // The HABITAT field (only this program can write it) says which kind of island this is.
-            let kind = metadata
-                .additional_metadata
-                .iter()
-                .find(|(key, _)| key == "HABITAT")
-                .map(|(_, value)| value.as_str())
-                .ok_or_else(|| error!(RegistryError::InvalidMetadata))?;
-            require!(
-                kind == ctx.accounts.item_type.item_id.to_string(),
-                RegistryError::InvalidLayout
-            );
-            metadata.update(Field::Key("LAYOUT".to_string()), value.clone());
-            let new_len = state
-                .try_get_new_account_len_for_variable_len_extension(&metadata)
-                .map_err(|_| error!(RegistryError::InvalidMetadata))?;
-            Rent::get()?.minimum_balance(new_len)
-        };
-        let current_lamports = ctx.accounts.mint.to_account_info().lamports();
-        if required_lamports > current_lamports {
-            transfer(
-                CpiContext::new(
-                    ctx.accounts.system_program.key(),
-                    Transfer {
-                        from: ctx.accounts.owner.to_account_info(),
-                        to: ctx.accounts.mint.to_account_info(),
-                    },
-                ),
-                required_lamports - current_lamports,
-            )?;
-        }
-        let mint_key = ctx.accounts.mint.key();
-        let bump = ctx.bumps.habitat_authority;
-        let signer_seeds: &[&[&[u8]]] = &[&[b"habitat_authority", mint_key.as_ref(), &[bump]]];
-        token_metadata_update_field(
-            CpiContext::new(
-                ctx.accounts.token_program.key(),
-                TokenMetadataUpdateField {
-                    program_id: ctx.accounts.token_program.to_account_info(),
-                    metadata: ctx.accounts.mint.to_account_info(),
-                    update_authority: ctx.accounts.habitat_authority.to_account_info(),
-                },
-            )
-            .with_signer(signer_seeds),
-            Field::Key("LAYOUT".to_string()),
-            value,
-        )
+        let bytes = encode_layout(&placed, &props);
+        require!(bytes.len() <= LAYOUT_BYTES, RegistryError::InvalidLayout);
+        profile.layout = [0u8; LAYOUT_BYTES];
+        profile.layout[..bytes.len()].copy_from_slice(&bytes);
+        Ok(())
     }
 
-    /// Chooses which habitat in the wallet is the one shown when the game opens.
-    pub fn select_habitat(ctx: Context<SelectHabitat>) -> Result<()> {
-        ctx.accounts.player_profile.active_habitat = ctx.accounts.mint.key();
+    /// Grows the island by one level, burning the Gems the matching island item costs. The item
+    /// registered for a level must have that level's limits, so the price cannot be dodged by
+    /// passing another item.
+    pub fn expand_island(ctx: Context<ExpandIsland>, item_id: u16) -> Result<()> {
+        let _ = item_id; // selects the item account (see ExpandIsland)
+        let item = &ctx.accounts.item_type;
+        let next = usize::from(ctx.accounts.player_profile.island_level) + 1;
+        require!(next < ISLAND_LEVELS.len(), RegistryError::IslandMaxed);
+        require!(
+            item.active && item.mint == Pubkey::default() && item.price_gems > 0,
+            RegistryError::ItemInactive
+        );
+        require!(
+            item.max_placed == ISLAND_LEVELS[next].0 && item.max_props == ISLAND_LEVELS[next].1,
+            RegistryError::InvalidLayout
+        );
+        let price = item.price_gems;
+        require!(ctx.accounts.owner_gem_account.amount >= price, RegistryError::InsufficientGems);
+        burn(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                Burn {
+                    mint: ctx.accounts.gem_mint.to_account_info(),
+                    from: ctx.accounts.owner_gem_account.to_account_info(),
+                    authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            price,
+        )?;
+        ctx.accounts.player_profile.island_level = next as u8;
+        emit!(IslandExpanded {
+            owner: ctx.accounts.owner.key(),
+            level: next as u8,
+        });
         Ok(())
     }
 
@@ -1943,10 +1782,12 @@ pub struct PlayerProfile {
     /// Bit i set = quest slot i already claimed on `quest_day`.
     pub claimed: u8,
     pub bump: u8,
-    /// True once the starter habitat (and its first meals) was claimed.
+    /// True once the starter pack (the first meals) was claimed.
     pub starter_claimed: bool,
-    /// The habitat NFT shown when the game opens (default key = none yet).
-    pub active_habitat: Pubkey,
+    /// How far the island has grown: 0 = 5x5, 1 = 7x7, 2 = 9x9.
+    pub island_level: u8,
+    /// Where the Rebyters and objects stand on the island (see LAYOUT_BYTES); all zeros = blank.
+    pub layout: [u8; LAYOUT_BYTES],
     /// Meals in stock, index food type * 4 + tier (meat, plants, fish, fruit; plain to feast).
     pub food: [u16; FOOD_SLOTS],
     pub discoveries: Vec<u16>,
@@ -1971,7 +1812,7 @@ pub struct PropSlot {
     pub r: u16,
 }
 
-/// Largest layout any habitat can hold (the app limits each habitat by its size).
+/// Largest layout any island can hold (each level limits it further).
 pub const MAX_PLACED_SLOTS: usize = 8;
 pub const MAX_PROP_SLOTS: usize = 40;
 /// How many object kinds the client knows (the palette order is part of the format).
@@ -1979,8 +1820,8 @@ pub const PROP_KINDS: u8 = 11;
 
 impl PlayerProfile {
     // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
-    // + starter flag + active habitat + food + Vec length prefix.
-    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 1 + 32 + FOOD_SLOTS * 2 + 4;
+    // + starter flag + island level + layout + food + Vec length prefix.
+    pub const FIXED_SPACE: usize = 8 + 32 + 8 + 4 + 4 + 5 + 1 + 1 + 1 + 1 + LAYOUT_BYTES + FOOD_SLOTS * 2 + 4;
 
     pub fn space_for(discoveries: usize) -> usize {
         Self::FIXED_SPACE.saturating_add(discoveries.saturating_mul(2))
@@ -2035,7 +1876,7 @@ pub struct InitializePlayer<'info> {
         init,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile4", owner.key().as_ref()],
+        seeds = [b"profile5", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -2126,7 +1967,7 @@ pub struct CreateRebyter<'info> {
         init_if_needed,
         payer = owner,
         space = PlayerProfile::space_for(PLAYER_PROFILE_INITIAL_DISCOVERY_CAPACITY),
-        seeds = [b"profile4", owner.key().as_ref()],
+        seeds = [b"profile5", owner.key().as_ref()],
         bump
     )]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
@@ -2173,72 +2014,39 @@ pub struct CreateHabitatType<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ClaimStarterPack<'info> {
+    pub owner: Signer<'info>,
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
+}
+
+#[derive(Accounts)]
+pub struct SetIslandLayout<'info> {
+    pub owner: Signer<'info>,
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
+}
+
+#[derive(Accounts)]
 #[instruction(item_id: u16)]
-pub struct CreateHabitat<'info> {
+pub struct ExpandIsland<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
-    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Box<Account<'info, Economy>>,
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(seeds = [b"item4", item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
     pub item_type: Box<Account<'info, ItemType>>,
     #[account(mut, address = economy.gem_mint)]
-    pub gem_mint: Box<InterfaceAccount<'info, Mint>>,
-    /// Omit (null) for the free starter habitat.
-    #[account(mut, token::mint = gem_mint, token::authority = owner, token::token_program = token_program)]
-    pub owner_gem_account: Option<Box<InterfaceAccount<'info, TokenAccount>>>,
-    /// CHECK: Program-derived authority; it stores no data and only signs Token-2022 CPIs.
-    #[account(seeds = [b"habitat_authority", mint.key().as_ref()], bump)]
-    pub habitat_authority: UncheckedAccount<'info>,
-    /// CHECK: Token-2022 mint initialized by the client in the same transaction; it is the
-    /// single account that stores the habitat.
-    #[account(mut, owner = token_program.key())]
-    pub mint: UncheckedAccount<'info>,
-    /// CHECK: Owner ATA initialized by the client in the same transaction.
-    #[account(mut, owner = token_program.key())]
-    pub owner_token_account: UncheckedAccount<'info>,
-    pub token_program: Program<'info, Token2022>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct HabitatLayout<'info> {
-    #[account(mut)]
-    pub owner: Signer<'info>,
-    /// The kind of island this habitat is: it holds the limits.
-    #[account(seeds = [b"item4", item_type.item_id.to_le_bytes().as_ref()], bump = item_type.bump)]
-    pub item_type: Box<Account<'info, ItemType>>,
-    /// CHECK: Token-2022 mint holding the habitat; only our PDA can write its layout.
-    #[account(mut, owner = token_program.key())]
-    pub mint: UncheckedAccount<'info>,
+    pub gem_mint: InterfaceAccount<'info, Mint>,
     #[account(
-        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
-        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
-        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
+        mut,
+        associated_token::mint = gem_mint,
+        associated_token::authority = owner,
+        associated_token::token_program = token_program
     )]
-    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
-    /// CHECK: PDA signs the metadata update and stores no data.
-    #[account(seeds = [b"habitat_authority", mint.key().as_ref()], bump)]
-    pub habitat_authority: UncheckedAccount<'info>,
-    pub token_program: Program<'info, Token2022>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct SelectHabitat<'info> {
-    pub owner: Signer<'info>,
-    /// CHECK: any mint the owner holds one of; the client only shows genuine habitats.
-    #[account(owner = token_program.key())]
-    pub mint: UncheckedAccount<'info>,
-    #[account(
-        constraint = owner_token_account.mint == mint.key() @ RegistryError::NotOwner,
-        constraint = owner_token_account.owner == owner.key() @ RegistryError::NotOwner,
-        constraint = owner_token_account.amount == 1 @ RegistryError::NotOwner
-    )]
-    pub owner_token_account: InterfaceAccount<'info, TokenAccount>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
-    pub player_profile: Box<Account<'info, PlayerProfile>>,
+    pub owner_gem_account: InterfaceAccount<'info, TokenAccount>,
     pub token_program: Program<'info, Token2022>,
 }
 
@@ -2248,7 +2056,7 @@ pub struct BuyFood<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     #[account(mut, address = economy.gem_mint)]
     pub gem_mint: InterfaceAccount<'info, Mint>,
@@ -2281,7 +2089,7 @@ pub struct InteractRebyter<'info> {
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
     /// The player's profile: counts the action for today's quests.
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     pub token_program: Program<'info, Token2022>,
 }
@@ -2304,7 +2112,7 @@ pub struct TrainRebyter<'info> {
         bump
     )]
     pub rebyter_authority: UncheckedAccount<'info>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
     /// Optional: the type of the specialised machine the wallet holds (only the program creates these).
     pub item_type: Option<Box<Account<'info, ItemType>>>,
@@ -2320,7 +2128,7 @@ pub struct EvolveRebyter<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"profile4", owner.key().as_ref()],
+        seeds = [b"profile5", owner.key().as_ref()],
         bump,
         has_one = owner
     )]
@@ -2475,12 +2283,14 @@ pub enum RegistryError {
     InvalidLayout,
     #[msg("This item is bought with a different currency")]
     WrongCurrency,
-    #[msg("The starter habitat was already claimed")]
+    #[msg("The starter pack was already claimed")]
     StarterClaimed,
     #[msg("That machine does not fit this training")]
     InvalidMachine,
     #[msg("That item does not evolve this Rebyter into that form")]
     InvalidEvolutionItem,
+    #[msg("The island is already at its largest size")]
+    IslandMaxed,
 }
 
 fn mint_is_non_transferable(mint: &InterfaceAccount<Mint>) -> Result<bool> {
@@ -2678,14 +2488,14 @@ pub struct ClaimDailyRation<'info> {
     pub owner: Signer<'info>,
     #[account(seeds = [b"economy3"], bump = economy.bump)]
     pub economy: Account<'info, Economy>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 
 #[derive(Accounts)]
 pub struct ClaimQuest<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, seeds = [b"profile4", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
+    #[account(mut, seeds = [b"profile5", owner.key().as_ref()], bump = player_profile.bump, has_one = owner)]
     pub player_profile: Box<Account<'info, PlayerProfile>>,
 }
 
@@ -2715,10 +2525,9 @@ pub struct FoodPurchased {
 }
 
 #[event]
-pub struct HabitatCreated {
+pub struct IslandExpanded {
     pub owner: Pubkey,
-    pub mint: Pubkey,
-    pub item_id: u16,
+    pub level: u8,
 }
 
 #[event]

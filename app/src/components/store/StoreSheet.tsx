@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { useState, type ComponentType } from "react";
-import { buyFood, buyGems, buyHabitat, buyItem } from "../../lib/economy/actions";
+import { buyFood, buyGems, expandIsland, buyItem } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
 import { useRebytersAuth } from "../../lib/rebyters/auth";
 import { islandCapacity } from "../world/terrain";
@@ -148,10 +148,14 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
           {items.map((item) => {
             const Glyph = iconFor(item);
             const owned = inventory.count(item);
-            const starter = owned === Number.POSITIVE_INFINITY || item.price === 0;
+            const isIsland = item.category === "habitat";
+            const starter = !isIsland && (owned === Number.POSITIVE_INFINITY || item.price === 0);
+            // Islands grow one level at a time: what you already have, the next size, and what comes after.
+            const islandOwned = isIsland && owned > 0;
+            const islandLater = isIsland && !islandOwned && item.size > inventory.island.size + 2;
             const forSale = item.category === "food" ? DEPLOYMENT.food.prices.length > 0 : item.category === "habitat" ? itemIdOf(item) !== null : !!item.mint;
             const affordable = balance.amount >= item.price;
-            const state = starter ? "starter" : !balance.launched || !forSale ? "soon" : affordable ? "buy" : "short";
+            const state = starter ? "starter" : islandOwned ? "owned" : islandLater ? "later" : !balance.launched || !forSale ? "soon" : affordable ? "buy" : "short";
             return (
               <article key={item.id} className={`store-card cat-${item.category}${item.category === "habitat" ? ` climate-${item.climate}` : ""}`}>
                 <div className="store-card-art" aria-hidden="true">
@@ -164,26 +168,26 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                   <em>{detailFor(item)}</em>
                 </div>
                 <div className="store-card-foot">
-                  {starter ? (
+                  {starter || islandOwned ? (
                     <span className="store-price free">
-                      <Check aria-hidden="true" /> {item.category === "habitat" ? "Starter pack" : "Included"}
+                      <Check aria-hidden="true" /> {islandOwned ? "Your island" : "Included"}
                     </span>
                   ) : (
                     <span className="store-price">
                       <Coins aria-hidden="true" /> {formatGems(item.price)}
                     </span>
                   )}
-                  {state !== "starter" && (
+                  {state !== "starter" && state !== "owned" && (
                     <button
                       className="ui-btn ui-btn-primary store-buy"
                       disabled={state !== "buy" || !!busy}
-                      title={state === "soon" ? "Coming soon" : undefined}
+                      title={state === "soon" ? "Coming soon" : state === "later" ? "Get the smaller expansion first" : undefined}
                       onClick={() =>
-                        run(item.id, item.category === "food" ? `${item.name} added to your food` : `${item.name} added to your wallet`, () =>
+                        run(item.id, item.category === "food" ? `${item.name} added to your food` : isIsland ? `Your island is now ${item.size}×${item.size}` : `${item.name} added to your wallet`, () =>
                           item.category === "food"
                             ? buyFood(connection, anchorWallet!, item.food, item.tier)
                             : item.category === "habitat"
-                              ? buyHabitat(connection, anchorWallet!, item.id)
+                              ? expandIsland(connection, anchorWallet!, item.id)
                               : buyItem(connection, anchorWallet!, itemIdOf(item)!, item.mint!),
                         )
                       }
@@ -193,6 +197,10 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
                       ) : state === "soon" ? (
                         <>
                           <Lock aria-hidden="true" /> Soon
+                        </>
+                      ) : state === "later" ? (
+                        <>
+                          <Lock aria-hidden="true" /> Next first
                         </>
                       ) : state === "short" ? (
                         "Not enough"

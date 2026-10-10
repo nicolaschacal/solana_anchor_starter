@@ -90,7 +90,7 @@ export const CLIMATES: Record<Climate, { label: string; hint: string }> = {
 export type StoreTab = StoreCategory;
 
 export const STORE_CATEGORIES: { id: StoreTab; label: string }[] = [
-  { id: "habitat", label: "Habitats" },
+  { id: "habitat", label: "Island" },
   { id: "food", label: "Food" },
   { id: "machine", label: "Training" },
   { id: "evolution", label: "Evolution" },
@@ -99,11 +99,8 @@ export const STORE_CATEGORIES: { id: StoreTab; label: string }[] = [
 
 const BASE_CATALOG: StoreItem[] = [
   // Habitats
-  { id: "habitat-meadow-5", category: "habitat", name: "Verdant Meadow", description: "Your first island, free in the starter pack.", price: 0, mint: null, size: 5, climate: "temperate" },
-  { id: "habitat-oasis-10", category: "habitat", name: "Dune Oasis", description: "A wide desert island with palms and warm sand.", price: 2500, mint: null, size: 7, climate: "arid" },
-  { id: "habitat-frost-10", category: "habitat", name: "Frostpeak", description: "Snowy ridges and frozen ponds.", price: 2500, mint: null, size: 7, climate: "cold" },
-  { id: "habitat-jungle-15", category: "habitat", name: "Rainforest Canopy", description: "A huge, lush island with rivers.", price: 6000, mint: null, size: 9, climate: "humid" },
-  { id: "habitat-ember-15", category: "habitat", name: "Ember Crater", description: "A huge island around a sleeping volcano.", price: 6000, mint: null, size: 9, climate: "volcanic" },
+  { id: "island-7", category: "habitat", name: "Island 7×7", description: "Grow your island: room for 5 reByters and 24 objects.", price: 2500, mint: null, size: 7, climate: "temperate" },
+  { id: "island-9", category: "habitat", name: "Island 9×9", description: "The biggest island: room for 8 reByters and 40 objects.", price: 6000, mint: null, size: 9, climate: "temperate" },
   // Food: 4 foods x 4 tiers, bought one meal at a time.
   ...FOOD_ITEMS,
   // Machines (one per training the program already knows)
@@ -161,9 +158,5 @@ export const registrable = BASE_CATALOG.filter((item) => item.category !== "food
 export const evolutionItemFor = (evolutionId: number): StoreItem | undefined =>
   CATALOG.find((item) => item.category === "evolution" && DEPLOYMENT.items[item.id]?.evoTarget === evolutionId);
 
-/** The catalog id of the habitat given by the starter pack. */
-/** The habitat kind with this on-chain item id. */
-export const habitatOf = (itemId: number): HabitatItem | undefined =>
-  CATALOG.find((i): i is HabitatItem => i.category === "habitat" && DEPLOYMENT.items[i.id]?.itemId === itemId);
-
-export const STARTER_HABITAT_ID = "habitat-meadow-5";
+/** Island sizes by level: the starter island is 5×5 and each expansion adds two tiles per side. */
+export const ISLAND_SIZES = [5, 7, 9] as const;

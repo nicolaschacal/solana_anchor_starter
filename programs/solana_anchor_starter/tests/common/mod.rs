@@ -310,6 +310,7 @@ pub fn world() -> World {
             set_food_ix(&admin.pubkey(), RATION_UNITS, FOOD_PRICES),
             create_habitat_type_ix(&admin.pubkey(), STARTER_HABITAT, 0),
             create_habitat_type_with_limits_ix(&admin.pubkey(), PAID_HABITAT, PAID_HABITAT_PRICE, 5, 24),
+            create_habitat_type_with_limits_ix(&admin.pubkey(), BIG_HABITAT, BIG_HABITAT_PRICE, 8, 40),
         ],
     )
     .expect("food and habitats configure");
@@ -332,9 +333,11 @@ pub const FOOD_PRICES: [u64; 16] = [4, 6, 9, 12, 3, 4, 6, 8, 4, 6, 9, 12, 3, 4, 
 pub const STARTER_HABITAT: u16 = 100;
 pub const PAID_HABITAT: u16 = 101;
 pub const PAID_HABITAT_PRICE: u64 = 50;
+pub const BIG_HABITAT: u16 = 102;
+pub const BIG_HABITAT_PRICE: u64 = 80;
 
 pub fn daily_pda(owner: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"profile4", owner.as_ref()], &program_id()).0
+    Pubkey::find_program_address(&[b"profile5", owner.as_ref()], &program_id()).0
 }
 
 pub fn set_time(svm: &mut LiteSVM, unix_timestamp: i64) {
@@ -426,10 +429,6 @@ pub fn create_habitat_type_with_limits_ix(authority: &Pubkey, id: u16, price: u6
         },
     )
 }
-pub fn habitat_authority(mint: &Pubkey) -> Pubkey {
-    Pubkey::find_program_address(&[b"habitat_authority", mint.as_ref()], &program_id()).0
-}
-
 /// Sets the compute unit limit (hand-built so the tests need no extra crate).
 pub fn compute_limit_ix(units: u32) -> Instruction {
     let mut data = vec![2u8];
@@ -441,98 +440,42 @@ pub fn compute_limit_ix(units: u32) -> Instruction {
     )
 }
 
-/// Buys (or claims, for the free starter) one habitat NFT the way the client does: the mint with a
-/// metadata pointer, the owner's token account and `create_habitat` in one transaction.
-pub fn buy_habitat(svm: &mut LiteSVM, owner: &Keypair, item_id: u16, gem_mint: &Pubkey, paid: bool) -> Result<Pubkey, String> {
-    let mint = Keypair::new();
-    let authority = habitat_authority(&mint.pubkey());
-    let space = ExtensionType::try_calculate_account_len::<Mint>(&[ExtensionType::MetadataPointer]).unwrap();
-    let rent = svm.minimum_balance_for_rent_exemption(space);
-    let owner_key = owner.pubkey();
-    let ixs = vec![
-        compute_limit_ix(600_000),
-        system_instruction::create_account(&owner_key, &mint.pubkey(), rent, space as u64, &token_2022::ID),
-        spl_token_2022::extension::metadata_pointer::instruction::initialize(
-            &token_2022::ID,
-            &mint.pubkey(),
-            Some(authority),
-            Some(mint.pubkey()),
-        )
-        .unwrap(),
-        spl_token_2022::instruction::initialize_mint2(&token_2022::ID, &mint.pubkey(), &authority, None, 0).unwrap(),
-        associated_token::spl_associated_token_account::instruction::create_associated_token_account(
-            &owner_key,
-            &owner_key,
-            &mint.pubkey(),
-            &token_2022::ID,
-        ),
-        ix(
-            instruction::CreateHabitat {
-                item_id,
-                name: "Test habitat".to_string(),
-                metadata_uri: "https://example.com/habitat.json".to_string(),
-            },
-            accounts::CreateHabitat {
-                owner: owner_key,
-                player_profile: daily_pda(&owner_key),
-                economy: economy(),
-                item_type: item_pda(item_id),
-                gem_mint: *gem_mint,
-                owner_gem_account: if paid { Some(ata(&owner_key, gem_mint)) } else { None },
-                habitat_authority: authority,
-                mint: mint.pubkey(),
-                owner_token_account: ata(&owner_key, &mint.pubkey()),
-                token_program: token_2022::ID,
-                system_program: system_program::ID,
-            },
-        ),
-    ];
-    send(svm, owner, &[&mint], ixs).map(|_| mint.pubkey())
+/// The starter pack (the first meals), once per wallet.
+pub fn claim_starter_ix(owner: &Pubkey) -> Instruction {
+    ix(instruction::ClaimStarterPack {}, accounts::ClaimStarterPack { owner: *owner, player_profile: daily_pda(owner) })
 }
 
-pub fn habitat_layout_ix(
+/// Saves the island layout inside the profile.
+pub fn island_layout_ix(
     owner: &Pubkey,
-    mint: &Pubkey,
     placed: Vec<solana_anchor_starter::PlacedSlot>,
     props: Vec<solana_anchor_starter::PropSlot>,
-    kind: u16,
 ) -> Instruction {
-    ix(
-        instruction::SetHabitatLayout { placed, props },
-        accounts::HabitatLayout {
-            owner: *owner,
-            item_type: item_pda(kind),
-            mint: *mint,
-            owner_token_account: ata(owner, mint),
-            habitat_authority: habitat_authority(mint),
-            token_program: token_2022::ID,
-            system_program: system_program::ID,
-        },
-    )
+    ix(instruction::SetIslandLayout { placed, props }, accounts::SetIslandLayout { owner: *owner, player_profile: daily_pda(owner) })
 }
 
-pub fn select_habitat_ix(owner: &Pubkey, mint: &Pubkey) -> Instruction {
+/// Grows the island one level, paying with the island item `item_id`.
+pub fn expand_island_ix(owner: &Pubkey, gem_mint: &Pubkey, item_id: u16) -> Instruction {
     ix(
-        instruction::SelectHabitat {},
-        accounts::SelectHabitat {
+        instruction::ExpandIsland { item_id },
+        accounts::ExpandIsland {
             owner: *owner,
-            mint: *mint,
-            owner_token_account: ata(owner, mint),
+            economy: economy(),
             player_profile: daily_pda(owner),
+            item_type: item_pda(item_id),
+            gem_mint: *gem_mint,
+            owner_gem_account: ata(owner, gem_mint),
             token_program: token_2022::ID,
         },
     )
 }
 
-/// The raw layout bytes stored inside a habitat mint's metadata (the LAYOUT field, hex-decoded).
-pub fn habitat_layout_bytes(svm: &LiteSVM, mint: &Pubkey) -> Vec<u8> {
-    let data = svm.get_account(mint).expect("habitat mint exists").data;
-    let needle = b"LAYOUT";
-    let at = data.windows(needle.len()).position(|w| w == needle).expect("LAYOUT field present");
-    let len_at = at + needle.len();
-    let len = u32::from_le_bytes(data[len_at..len_at + 4].try_into().unwrap()) as usize;
-    let hex = &data[len_at + 4..len_at + 4 + len];
-    hex.chunks(2)
-        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
-        .collect()
+/// The layout bytes stored in the profile (trimmed to what was written; a blank island is `[0]`).
+pub fn island_layout_bytes(svm: &LiteSVM, owner: &Pubkey) -> Vec<u8> {
+    let layout = read_daily(svm, owner).layout;
+    if layout[0] == 0 {
+        return vec![0];
+    }
+    let props_at = 2 + usize::from(layout[1]) * 34;
+    layout[..props_at + 1 + usize::from(layout[props_at]) * 9].to_vec()
 }

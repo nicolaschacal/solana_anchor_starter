@@ -31,15 +31,7 @@ export function ruleSetPda(family: number, version: number) {
 
 export function playerProfilePda(owner: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode("profile4"), owner.toBytes()],
-    PROGRAM_ID,
-  )[0];
-}
-
-/** The authority PDA that writes a habitat NFT's layout (it only signs inside the program). */
-export function habitatAuthorityPda(mint: PublicKey) {
-  return PublicKey.findProgramAddressSync(
-    [new TextEncoder().encode("habitat_authority"), mint.toBytes()],
+    [new TextEncoder().encode("profile5"), owner.toBytes()],
     PROGRAM_ID,
   )[0];
 }

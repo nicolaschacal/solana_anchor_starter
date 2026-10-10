@@ -1,10 +1,11 @@
-//! Habitats are 1/1 NFTs that keep their own layout. The starter habitat is free once per wallet.
+//! The island is a level and a layout stored in the player's profile. The starter pack (the first
+//! meals) is free once per wallet; each expansion burns Gems.
 
 mod common;
 use common::*;
 use solana_anchor_starter::{PlacedSlot, PropSlot, STARTER_MEALS};
 
-/// Limits of the starter island (5x5) as registered by the test world.
+/// Limits of the starter island (5x5).
 const STARTER_PLACED: usize = 3;
 const STARTER_PROPS: usize = 14;
 
@@ -20,43 +21,48 @@ fn slots(count: usize) -> Vec<PlacedSlot> {
     (0..count).map(|n| PlacedSlot { mint: Pubkey::new_unique(), i: 10 + n as u8, j: 20 }).collect()
 }
 
-fn started() -> (World, Pubkey) {
+fn started() -> World {
     let mut w = world();
     let player = w.player.pubkey();
     send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
-    let mint = buy_habitat(&mut w.svm, &w.player, STARTER_HABITAT, &w.gem_mint, false).expect("starter pack");
-    (w, mint)
+    send(&mut w.svm, &w.player, &[], vec![claim_starter_ix(&player)]).expect("starter pack");
+    w
+}
+
+fn gems(w: &mut World, packs: usize) {
+    let player = w.player.pubkey();
+    for _ in 0..packs {
+        send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
+    }
 }
 
 #[test]
-fn the_starter_pack_gives_a_habitat_and_the_first_meals_once() {
-    let (mut w, mint) = started();
+fn the_starter_pack_gives_the_first_meals_once() {
+    let mut w = started();
     let player = w.player.pubkey();
-    assert_eq!(token_amount(&w.svm, &ata(&player, &mint)), 1);
     let profile = read_daily(&w.svm, &player);
     assert!(profile.starter_claimed);
-    assert_eq!(profile.active_habitat, mint);
+    assert_eq!(profile.island_level, 0);
     let mut expected = [0u16; 16];
     for food_type in 0..4 {
         expected[food_type * 4] = STARTER_MEALS;
     }
     assert_eq!(profile.food, expected);
-    // A fresh habitat has a blank, unset layout of a single byte.
-    assert_eq!(habitat_layout_bytes(&w.svm, &mint), vec![0u8]);
+    // A fresh island has a blank, unset layout.
+    assert_eq!(island_layout_bytes(&w.svm, &player), vec![0u8]);
 
-    // Claiming a second free habitat is refused.
-    assert!(buy_habitat(&mut w.svm, &w.player, STARTER_HABITAT, &w.gem_mint, false).is_err());
+    // Claiming twice is refused.
+    assert!(send(&mut w.svm, &w.player, &[], vec![claim_starter_ix(&player)]).is_err());
 }
 
 #[test]
-fn the_layout_is_saved_inside_the_habitat_and_read_back() {
-    let (mut w, mint) = started();
+fn the_layout_is_saved_in_the_profile_and_read_back() {
+    let mut w = started();
     let player = w.player.pubkey();
     let placed = slots(2);
-    let ixs = vec![habitat_layout_ix(&player, &mint, placed.clone(), some_props(5), STARTER_HABITAT)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("save layout");
+    send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, placed.clone(), some_props(5))]).expect("save layout");
 
-    let bytes = habitat_layout_bytes(&w.svm, &mint);
+    let bytes = island_layout_bytes(&w.svm, &player);
     assert_eq!(bytes.len(), 1 + 1 + 2 * 34 + 1 + 5 * 9);
     assert_eq!(bytes[0], 1, "layout flagged as set");
     assert_eq!(bytes[1], 2, "placed count");
@@ -65,116 +71,97 @@ fn the_layout_is_saved_inside_the_habitat_and_read_back() {
     assert_eq!(bytes[2 + 68], 5, "prop count");
 
     // Saving again replaces it (and can shrink it).
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![], vec![], STARTER_HABITAT)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("save an empty layout");
-    assert_eq!(habitat_layout_bytes(&w.svm, &mint), vec![1, 0, 0]);
+    send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], vec![])]).expect("save an empty layout");
+    assert_eq!(island_layout_bytes(&w.svm, &player), vec![1, 0, 0]);
 }
 
 #[test]
-fn the_islands_own_layout_limit_fits_and_the_owner_pays_for_the_growth() {
-    let (mut w, mint) = started();
+fn the_starter_island_holds_its_limit() {
+    let mut w = started();
     let player = w.player.pubkey();
-    let rent_before = w.svm.get_account(&mint).unwrap().lamports;
-    let ixs = vec![habitat_layout_ix(&player, &mint, slots(STARTER_PLACED), some_props(STARTER_PROPS), STARTER_HABITAT)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("save the island's largest layout");
-    assert_eq!(habitat_layout_bytes(&w.svm, &mint).len(), 1 + 1 + STARTER_PLACED * 34 + 1 + STARTER_PROPS * 9);
-    assert!(w.svm.get_account(&mint).unwrap().lamports > rent_before, "the mint was topped up with rent");
-    // Saving the same size again costs no more rent.
-    let rent_full = w.svm.get_account(&mint).unwrap().lamports;
-    let ixs = vec![habitat_layout_ix(&player, &mint, slots(STARTER_PLACED), some_props(STARTER_PROPS), STARTER_HABITAT)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("save again");
-    assert_eq!(w.svm.get_account(&mint).unwrap().lamports, rent_full);
+    send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(STARTER_PLACED), some_props(STARTER_PROPS))]).expect("largest starter layout");
+    assert_eq!(island_layout_bytes(&w.svm, &player).len(), 1 + 1 + STARTER_PLACED * 34 + 1 + STARTER_PROPS * 9);
 }
 
 #[test]
 fn malformed_layouts_are_rejected() {
-    let (mut w, mint) = started();
+    let mut w = started();
     let player = w.player.pubkey();
-    // More objects or Rebyters than this kind of island holds.
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![], some_props(STARTER_PROPS + 1), STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    let ixs = vec![habitat_layout_ix(&player, &mint, slots(STARTER_PLACED + 1), vec![], STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    // More objects or Rebyters than this level holds.
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], some_props(STARTER_PROPS + 1))]).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(STARTER_PLACED + 1), vec![])]).is_err());
     // An object kind the client does not know.
     let mut props = some_props(3);
     props[1].kind = 11;
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![], props, STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], props)]).is_err());
     // A zero-size object.
     let mut props = some_props(3);
     props[2].h = 0;
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![], props, STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], props)]).is_err());
     // The same Rebyter twice, or an empty slot.
     let dup = PlacedSlot { mint: Pubkey::new_unique(), i: 1, j: 1 };
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![dup, dup], some_props(1), STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    let ixs = vec![habitat_layout_ix(&player, &mint, vec![PlacedSlot::default()], vec![], STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![dup, dup], some_props(1))]).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![PlacedSlot::default()], vec![])]).is_err());
     // Nothing was written.
-    assert_eq!(habitat_layout_bytes(&w.svm, &mint), vec![0u8]);
+    assert_eq!(island_layout_bytes(&w.svm, &player), vec![0u8]);
 }
 
 #[test]
-fn only_the_holder_can_change_a_habitat() {
-    let (mut w, mint) = started();
+fn only_the_owner_changes_the_island() {
+    let mut w = started();
     let other = w.other.pubkey();
-    // The other wallet holds no token of this habitat.
-    let ixs = vec![habitat_layout_ix(&other, &mint, vec![], some_props(1), STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.other, &[], ixs).is_err());
-    let ixs = vec![select_habitat_ix(&other, &mint)];
-    assert!(send(&mut w.svm, &w.other, &[], ixs).is_err());
+    // The other wallet has no profile of its own, and cannot write into someone else's.
+    assert!(send(&mut w.svm, &w.other, &[], vec![island_layout_ix(&other, vec![], some_props(1))]).is_err());
+    assert!(send(&mut w.svm, &w.other, &[], vec![expand_island_ix(&other, &w.gem_mint, PAID_HABITAT)]).is_err());
 }
 
 #[test]
-fn a_paid_habitat_burns_gems_and_can_be_selected() {
-    let (mut w, first) = started();
+fn expanding_burns_gems_and_raises_the_limits() {
+    let mut w = started();
     let player = w.player.pubkey();
     // Not enough Gems yet.
-    assert!(buy_habitat(&mut w.svm, &w.player, PAID_HABITAT, &w.gem_mint, true).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, PAID_HABITAT)]).is_err());
 
-    send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
-    let second = buy_habitat(&mut w.svm, &w.player, PAID_HABITAT, &w.gem_mint, true).expect("buy a habitat");
-    assert_eq!(token_amount(&w.svm, &ata(&player, &w.gem_mint)), PACK_GEMS - PAID_HABITAT_PRICE);
-    assert_eq!(read_daily(&w.svm, &player).active_habitat, second);
-
-    send(&mut w.svm, &w.player, &[], vec![select_habitat_ix(&player, &first)]).expect("select the first one");
-    assert_eq!(read_daily(&w.svm, &player).active_habitat, first);
-}
-
-#[test]
-fn habitats_need_a_profile_and_an_active_type() {
-    let mut w = world();
-    // No profile yet.
-    assert!(buy_habitat(&mut w.svm, &w.player, STARTER_HABITAT, &w.gem_mint, false).is_err());
-    // A mint-backed item id is not a habitat type.
-    let player = w.player.pubkey();
-    send(&mut w.svm, &w.player, &[], vec![init_daily_ix(&player)]).unwrap();
-    assert!(buy_habitat(&mut w.svm, &w.player, FOOD_ID, &w.gem_mint, false).is_err());
-}
-
-#[test]
-fn each_kind_of_island_has_its_own_limits_on_chain() {
-    let (mut w, starter) = started();
-    let player = w.player.pubkey();
-    send(&mut w.svm, &w.player, &[], vec![buy_gems_ix(&player, &w.gem_mint, &w.treasury, 0)]).unwrap();
-    let paid = buy_habitat(&mut w.svm, &w.player, PAID_HABITAT, &w.gem_mint, true).expect("buy the medium island");
+    gems(&mut w, 2);
+    send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, PAID_HABITAT)]).expect("expand to 7x7");
+    assert_eq!(token_amount(&w.svm, &ata(&player, &w.gem_mint)), 2 * PACK_GEMS - PAID_HABITAT_PRICE);
+    assert_eq!(read_daily(&w.svm, &player).island_level, 1);
 
     // The medium island (5 Rebyters, 24 objects) takes more than the starter does...
-    let ixs = vec![habitat_layout_ix(&player, &paid, slots(5), some_props(24), PAID_HABITAT)];
-    send(&mut w.svm, &w.player, &[], ixs).expect("the medium island holds 5 and 24");
+    send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(5), some_props(24))]).expect("the medium island holds 5 and 24");
     // ...but not more than its own limit.
-    let ixs = vec![habitat_layout_ix(&player, &paid, slots(6), vec![], PAID_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    let ixs = vec![habitat_layout_ix(&player, &paid, vec![], some_props(25), PAID_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(6), vec![])]).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], some_props(25))]).is_err());
 
-    // The starter island refuses what the medium one accepts.
-    let ixs = vec![habitat_layout_ix(&player, &starter, slots(4), vec![], STARTER_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
-    // A habitat cannot borrow another kind's limits: the kind must match the NFT.
-    let ixs = vec![habitat_layout_ix(&player, &starter, slots(5), some_props(20), PAID_HABITAT)];
-    assert!(send(&mut w.svm, &w.player, &[], ixs).is_err());
+    // The same item cannot be used twice: the next level asks for the big island item.
+    assert!(send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, PAID_HABITAT)]).is_err());
+    send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, BIG_HABITAT)]).expect("expand to 9x9");
+    assert_eq!(read_daily(&w.svm, &player).island_level, 2);
+    send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(8), some_props(40))]).expect("the big island holds 8 and 40");
+
+    // There is nothing beyond the largest island.
+    gems(&mut w, 1);
+    assert!(send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, BIG_HABITAT)]).is_err());
+}
+
+#[test]
+fn a_level_cannot_be_skipped_or_bought_with_the_wrong_item() {
+    let mut w = started();
+    let player = w.player.pubkey();
+    gems(&mut w, 2);
+    // The big island item at level 0 would skip a level.
+    assert!(send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, BIG_HABITAT)]).is_err());
+    // A mint-backed item is not an island.
+    assert!(send(&mut w.svm, &w.player, &[], vec![expand_island_ix(&player, &w.gem_mint, FOOD_ID)]).is_err());
+    assert_eq!(read_daily(&w.svm, &player).island_level, 0);
+}
+
+#[test]
+fn the_island_needs_a_profile() {
+    let mut w = world();
+    let player = w.player.pubkey();
+    assert!(send(&mut w.svm, &w.player, &[], vec![claim_starter_ix(&player)]).is_err());
+    assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], vec![])]).is_err());
 }
 
 #[test]
