@@ -23,12 +23,15 @@ async function main() {
   const signer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(await readFile(walletPath, "utf8"))));
   const irys = await Uploader(Solana).withWallet(signer.secretKey).withRpc(rpc).devnet();
   const price = await irys.getPrice(data.length);
+  const want = price.multipliedBy(2).integerValue();
   const balance = await irys.getLoadedBalance();
-  if (balance.lt(price)) {
-    console.log("Funding Irys upload balance with required devnet SOL");
-    await irys.fund(price.minus(balance).multipliedBy(1.2).integerValue());
+  console.log(`Irys price ${price.toString()}, loaded balance ${balance.toString()}`);
+  if (balance.lt(want)) {
+    console.log("Funding Irys upload balance with devnet SOL");
+    await irys.fund(want.minus(balance));
     // The deposit is credited a little after the transaction confirms; wait for it before uploading.
     for (let n = 0; n < 30 && (await irys.getLoadedBalance()).lt(price); n++) await new Promise((r) => setTimeout(r, 5000));
+    console.log(`Loaded balance now ${(await irys.getLoadedBalance()).toString()}`);
   }
   const receipt = await irys.upload(data, { tags: [{ name: "Content-Type", value: "model/gltf-binary" }, { name: "App", value: "reByters" }, { name: "Model", value: name }] });
   const uri = `${gateway}/${receipt.id}`;
