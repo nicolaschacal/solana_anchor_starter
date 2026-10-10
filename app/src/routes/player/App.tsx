@@ -13,17 +13,18 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
+  Sun, Sunrise, Sunset, Store as ShopIcon, Coins, Target, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
-import { BalanceChip, StoreSheet } from "../../components/store/StoreSheet";
+import { StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
 import { propAllowance } from "../../lib/economy/props";
 import { saveHabitatLayout } from "../../lib/economy/actions";
 import { DEPLOYMENT } from "../../lib/economy/deployment";
-import { useGemBalance } from "../../lib/economy/token";
+import { useGemBalance, formatGems } from "../../lib/economy/token";
+import { useSolBalance } from "../../hooks/useSolBalance";
 import { StorageSheet } from "../../components/store/StorageSheet";
 import { DailySheet } from "../../components/daily/DailySheet";
 import { useDaily } from "../../hooks/useDaily";
@@ -609,6 +610,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const daily=useDaily();
   const dailyReady=daily.claimable+(daily.rationReady?1:0);
   const rbtyr=useGemBalance();
+  const solBalance=useSolBalance();
   const inventory=useInventory();
   const [drawerOpen,setDrawerOpen]=useState(false);
   const closeDrawer=useCallback(()=>setDrawerOpen(false),[]);
@@ -771,13 +773,32 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       </div>):null;
   const clockHud=(
       <div className="monster-hud-right">
-        {worldView&&!focusMint&&<BalanceChip balance={rbtyr} onOpen={()=>setStoreOpen(true)}/>}
         <div className="world-clock gl-panel" title={worldClock.synced?"Solana time · UTC":"Estimated UTC · Solana clock unavailable"}>
           <span className={`world-clock-face ${worldClock.period.toLowerCase()}`} aria-hidden="true">{worldClock.period==="Night"?<MoonStar/>:worldClock.period==="Day"?<Sun/>:worldClock.period==="Morning"?<Sunrise/>:<Sunset/>}</span>
           <span><strong>{worldClock.period}</strong><small>{new Date(localNow).toISOString().slice(11,16)} UTC{!worldClock.synced?" ≈":""}</small></span>
         </div>
       </div>
   );
+  const questsDone=daily.quests.filter(q=>q.claimed).length;
+  const dailyHot=daily.claimable>0||daily.rationReady;
+  const worldHud=(!focusMint&&<>
+    <div className="world-hud-left">{clockHud}</div>
+    <div className="world-hud-right">
+      <button className="world-wallet gl-panel" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
+        <span className="wallet-row"><i className="wallet-sol" aria-hidden="true">◎</i><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span>
+        <span className="wallet-row"><i className="wallet-gem" aria-hidden="true"><Coins/></i><strong>{rbtyr.loading?"…":formatGems(rbtyr.amount)}</strong><small>Gems</small></span>
+      </button>
+      {daily.available&&<button className={`world-daily gl-panel${dailyHot?" hot":""}`} onClick={()=>setDailyOpen(true)} aria-label="Open daily missions">
+        <span className="daily-badge" aria-hidden="true">{dailyHot?<Gift/>:<Target/>}</span>
+        <span className="daily-copy">
+          <strong>Daily missions</strong>
+          <small>{daily.claimable>0?`${daily.claimable} reward${daily.claimable===1?"":"s"} ready to claim!`:daily.rationReady?"Free ration waiting!":`${questsDone}/${daily.quests.length} done today`}</small>
+          <span className="daily-pips" aria-hidden="true">{daily.quests.map(q=><i key={q.slot} className={q.claimed?"claimed":q.done?"done":""}/>)}</span>
+        </span>
+        <ChevronRight className="daily-go" aria-hidden="true"/>
+      </button>}
+    </div>
+  </>);
   return <Shell showNav={false}><main className={`game-home${drawerOpen?" drawer-is-open":""}`}>
     <GameDrawer open={drawerOpen} onOpen={()=>setDrawerOpen(true)} onClose={closeDrawer} onHabitats={()=>setHabitatOpen(true)} onDen={()=>void openDen()} onStore={()=>setStoreOpen(true)} onDaily={()=>setDailyOpen(true)} onStorage={()=>goTo("/trainer/storage")} dailyReady={dailyReady}/>
     {worldView
@@ -802,11 +823,11 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             climate={(inventory.activeHabitat&&habitatOf(inventory.activeHabitat.itemId)?.climate)||"temperate"}
           />
         </Suspense>}
-        {clockHud}
+        {worldHud}
         {!focusMint&&<nav className="world-nav gl-panel" aria-label="Game">
           <button onClick={()=>goTo("/trainer")}><CircleUserRound/><span>Trainer</span></button>
           <button onClick={()=>goTo("/lab")}><Atom/><span>Lab</span></button>
-          <button onClick={()=>setStoreOpen(true)}><ShoppingBag/><span>Store</span></button>
+          <button onClick={()=>setStoreOpen(true)}><ShopIcon/><span>Shop</span></button>
           <button onClick={()=>goTo("/atlas")}><BookOpen/><span>Atlas</span></button>
         </nav>}
         {focusMint&&active?.mint===focusMint&&<>
