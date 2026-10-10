@@ -50,12 +50,17 @@ const STARTER = Number.POSITIVE_INFINITY;
 /** Mints already known not to be habitats (Rebyters and other 1/1s never change into one). */
 const notHabitat = new Set<string>();
 
-async function readHabitats(connection: ReturnType<typeof useConnection>["connection"], candidates: PublicKey[]): Promise<OwnedHabitat[]> {
+/** The last successfully read copy of each habitat: a failed read falls back to it instead of hiding the island. */
+const lastKnown = new Map<string, OwnedHabitat>();
+
+async function readHabitats(connection: ReturnType<typeof useConnection>["connection"], candidates: PublicKey[]): Promise<{ found: OwnedHabitat[]; incomplete: boolean }> {
   const found: OwnedHabitat[] = [];
+  let incomplete = false;
   const todo = candidates.filter((m) => !notHabitat.has(m.toBase58()));
-  for (let n = 0; n < todo.length; n += 6) {
+  for (let n = 0; n < todo.length; n += 4) {
+    const batch = todo.slice(n, n + 4);
     const results = await Promise.allSettled(
-      todo.slice(n, n + 6).map(async (mint) => {
+      batch.map(async (mint) => {
         // A failed read says nothing about the mint: never remember it as "not a habitat".
         const meta = await getTokenMetadata(connection, mint, "confirmed", TOKEN_2022_PROGRAM_ID);
         const fields = new Map(meta?.additionalMetadata ?? []);
@@ -64,12 +69,19 @@ async function readHabitats(connection: ReturnType<typeof useConnection>["connec
           notHabitat.add(mint.toBase58());
           return;
         }
-        found.push({ mint: mint.toBase58(), itemId: Number(kind), name: meta.name, layout: layoutFromHex(fields.get("LAYOUT")) });
+        const habitat = { mint: mint.toBase58(), itemId: Number(kind), name: meta.name, layout: layoutFromHex(fields.get("LAYOUT")) };
+        lastKnown.set(habitat.mint, habitat);
+        found.push(habitat);
       }),
     );
-    if (results.some((r) => r.status === "rejected")) throw new Error("Could not read every habitat");
+    results.forEach((r, i) => {
+      if (r.status !== "rejected") return;
+      incomplete = true;
+      const old = lastKnown.get(batch[i].toBase58());
+      if (old) found.push(old);
+    });
   }
-  return found;
+  return { found, incomplete };
 }
 
 type Conn = ReturnType<typeof useConnection>["connection"];
@@ -114,8 +126,10 @@ async function readWallet(connection: Conn, owner: PublicKey, mints: Set<string>
       }
     }
   }
-  const [habitats, profile] = await Promise.all([readHabitats(connection, singles), fetchProfileState(connection, owner)]);
-  return { balances, habitats, profile, empties: idle };
+  const [{ found: habitats, incomplete }, profile] = await Promise.all([readHabitats(connection, singles), fetchProfileState(connection, owner)]);
+  // Some habitats could not be read: fine as long as the active one is there; otherwise read again.
+  if (incomplete && !habitats.some((h) => h.mint === profile?.activeHabitat || !profile?.activeHabitat)) throw new Error("Could not read the active habitat");
+  return { balances, habitats, profile, empties: idle, incomplete };
 }
 
 /** Reads once at a time; a refresh asked for meanwhile runs right after. A failure keeps the last good state and retries. */
@@ -130,7 +144,12 @@ function refresh(connection: Conn, owner: PublicKey, mints: Set<string>, retries
   readWallet(connection, owner, mints)
     .then((result) => {
       if (store.owner !== key) return;
-      publish({ ...result, loading: false, loaded: true, ready: true });
+      const { incomplete, ...snapshot } = result;
+      publish({ ...snapshot, loading: false, loaded: true, ready: true });
+      if (incomplete) {
+        window.clearTimeout(store.timer);
+        store.timer = window.setTimeout(() => store.owner === key && refresh(connection, owner, mints, 1), 4000);
+      }
     })
     .catch(() => {
       if (store.owner !== key) return;
