@@ -2124,3 +2124,11 @@ body:has(.admin-console){
 }
 
 
+
+.rpc-meter{position:fixed;left:8px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font:700 10px/1.2 system-ui,sans-serif;letter-spacing:.03em;color:#fff;background:rgba(20,20,20,.62);pointer-events:none;font-variant-numeric:tabular-nums}
+.rpc-meter i{width:7px;height:7px;border-radius:50%;background:#58c26b}
+.rpc-meter[data-level="warm"] i{background:#f2b33d}
+.rpc-meter[data-level="hot"]{background:rgba(190,30,30,.9)}
+.rpc-meter[data-level="hot"] i{background:#fff;animation:rpc-pulse .8s ease-in-out infinite}
+.rpc-meter b{font-weight:800;text-transform:uppercase}
+@keyframes rpc-pulse{50%{opacity:.25}}

@@ -72,7 +72,7 @@ export function useTokenBalance(mint: PublicKey | null): GemBalance {
       }
     };
     void read();
-    const timer = window.setInterval(read, 30_000);
+    const timer = window.setInterval(() => { if (!document.hidden) void read(); }, 60_000);
     window.addEventListener("focus", read);
     window.addEventListener(BALANCE_EVENT, read);
     return () => {

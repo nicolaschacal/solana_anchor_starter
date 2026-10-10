@@ -17,6 +17,8 @@ import "./atlas.css";
 import "./theme.css";
 import "./rules.css";
 import { initializeTheme } from "./lib/theme";
+import { RpcMeter } from "./components/RpcMeter";
+import { rpcFetch } from "./lib/rebyters/rpc-fetch";
 import { RebytersAuthProvider } from "./lib/rebyters/auth";
 import { AppErrorBoundary, reloadOnce } from "./components/AppErrorBoundary";
 initializeTheme();
@@ -30,12 +32,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         commitment: "confirmed",
         confirmTransactionInitialTimeout: 30000,
         disableRetryOnRateLimit: true,
+        fetch: rpcFetch,
       }}
     >
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
           <RebytersAuthProvider>
           <BrowserRouter>
+            <RpcMeter />
             <Routes>
               <Route path="/admin/*" element={<AdminApp />} />
               <Route path="/acquire" element={<Navigate to="/" replace />} />

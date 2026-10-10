@@ -24,7 +24,7 @@ export function useSolBalance(): { sol: number; loading: boolean } {
       }
     };
     void read();
-    const timer = window.setInterval(read, 30_000);
+    const timer = window.setInterval(() => { if (!document.hidden) void read(); }, 60_000);
     window.addEventListener(BALANCE_EVENT, read);
     window.addEventListener("focus", read);
     return () => {
