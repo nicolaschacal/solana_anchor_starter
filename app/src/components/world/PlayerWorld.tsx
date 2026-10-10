@@ -865,13 +865,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           <div className="world-edit-head">
             <strong>Edit habitat</strong>
             <span className="world-edit-count">
-              {layout.placed.length}/{MAX_PLACED} rebyters · {propCount}/{MAX_PROPS} objects
+              {layout.placed.length}/{MAX_PLACED} reByters · {propCount}/{MAX_PROPS} objects
             </span>
-            {onChangeIsland && (
-              <button className="ui-btn ui-btn-secondary world-islands" onClick={onChangeIsland}>
-                <Mountain /> Islands
-              </button>
-            )}
             <button className="ui-btn ui-btn-primary world-done" onClick={finishEditing}>
               <Check /> Done
             </button>
@@ -883,6 +878,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             <button role="tab" aria-selected={tab === "objects"} onClick={() => setTab("objects")}>
               Objects
             </button>
+            {onChangeIsland && (
+              <button role="tab" aria-selected={false} className="world-tab-islands" onClick={onChangeIsland}>
+                <Mountain /> Islands
+              </button>
+            )}
           </div>
           {tab === "rebyters" ? (
             <div className="world-chips">

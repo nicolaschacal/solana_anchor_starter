@@ -675,6 +675,9 @@
 .rb-ui .world-done{min-height:38px!important;padding:0 14px!important;display:inline-flex!important;align-items:center!important;gap:6px!important}
 .rb-ui .world-done svg{width:16px!important;height:16px!important}
 .rb-ui .world-tabs{display:flex!important;gap:6px!important}
+.rb-ui .world-tabs button{flex:1 1 0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important}
+.rb-ui .world-tabs button svg{width:16px!important;height:16px!important}
+.rb-ui .world-edit-count{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .rb-ui .world-tabs button{
   flex:1!important;height:34px!important;border-radius:var(--ui-r-pill)!important;border:1px solid var(--ui-line)!important;background:var(--ui-card)!important;
   color:var(--ui-text-2)!important;font:600 var(--ui-fs-caption) var(--ui-font)!important;cursor:pointer!important;
