@@ -1033,4 +1033,8 @@
 .rb-ui .gem-pack svg{color:#c9871a!important}
 .rb-ui .gem-pack strong{color:var(--ui-text)!important}
 .rb-ui .store-card.climate-arid .store-card-art svg{color:#d98a14!important}
+
+.rb-ui .world-chip-wrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:3px!important;flex:none!important}
+.rb-ui .island-address{align-self:center!important;font-size:10px!important;font-weight:600!important;letter-spacing:.02em!important;color:var(--ui-text-3)!important;text-decoration:none!important;font-variant-numeric:tabular-nums!important}
+.rb-ui .island-address:hover{color:var(--ui-accent)!important;text-decoration:underline!important}
 }

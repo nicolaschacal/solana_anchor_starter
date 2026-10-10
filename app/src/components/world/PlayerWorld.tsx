@@ -916,8 +916,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           {tab === "islands" ? (
             <div className="world-chips">
               {(islands ?? []).map((island) => (
+                <div key={island.mint} className="world-chip-wrap">
                 <button
-                  key={island.mint}
                   className="world-chip"
                   data-on={island.active}
                   aria-pressed={island.active}
@@ -933,6 +933,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
                   <span>{island.name}</span>
                   <small>{island.active ? "You are here" : `${island.size}×${island.size} · up to ${island.reByters}`}</small>
                 </button>
+                <a className="island-address" href={`https://explorer.solana.com/address/${island.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={island.mint}>
+                  {island.mint.slice(0, 4)}…{island.mint.slice(-4)}
+                </a>
+                </div>
               ))}
             </div>
           ) : tab === "rebyters" ? (
