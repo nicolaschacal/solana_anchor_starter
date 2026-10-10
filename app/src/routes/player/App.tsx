@@ -742,13 +742,13 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   );
   const questsDone=daily.quests.filter(q=>q.claimed).length;
   const dailyHot=daily.claimable>0||daily.rationReady;
-  const noIsland=authForWorld.connected&&inventory.ready&&!inventory.loading&&!inventory.activeHabitat;
+  const noIsland=authForWorld.connected&&inventory.loaded&&!inventory.loading&&!inventory.activeHabitat;
   async function claimIsland() {
     if(!authForWorld.anchorWallet)return;
     setClaiming(true);setClaimError("");
     try{await claimStarterPack(worldConnection,authForWorld.anchorWallet);refreshBalances();}
     catch(e){setClaimError(e instanceof Error&&/reject|cancel|denied/i.test(e.message)?"Signature cancelled.":"Couldn't claim the island. Try again.");}
-    finally{setClaiming(false);}
+    finally{setClaiming(false);refreshBalances();}
   }
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>

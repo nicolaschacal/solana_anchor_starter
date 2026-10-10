@@ -41,6 +41,8 @@ export type Inventory = {
   loading: boolean;
   /** The first read of the wallet finished (or there is nothing to read). */
   ready: boolean;
+  /** At least one full read of the wallet succeeded: only then is "no island" a fact rather than a failed RPC call. */
+  loaded: boolean;
 };
 
 const STARTER = Number.POSITIVE_INFINITY;
@@ -78,6 +80,7 @@ export function useInventory(): Inventory {
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [empties, setEmpties] = useState<PublicKey[]>([]);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -97,6 +100,7 @@ export function useInventory(): Inventory {
       setHabitats([]);
       setProfile(null);
       setEmpties([]);
+      setLoaded(false);
       setReady(true);
       return;
     }
@@ -128,6 +132,7 @@ export function useInventory(): Inventory {
         setProfile(state);
         setEmpties(idle);
         setLoading(false);
+        setLoaded(true);
         setReady(true);
       }
     };
@@ -167,7 +172,8 @@ export function useInventory(): Inventory {
       empties,
       loading,
       ready,
+      loaded,
     };
-  }, [balances, habitats, profile, empties, loading, ready]);
+  }, [balances, habitats, profile, empties, loading, ready, loaded]);
 }
 
