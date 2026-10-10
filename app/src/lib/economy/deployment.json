@@ -185,6 +185,14 @@
       "itemId": 131,
       "mint": "BFuDmBTroecE2VXGg7MSUYpvkX8qFBEcvWryBif9X3ZL",
       "evoTarget": 674
+    },
+    "island-7": {
+      "itemId": 100,
+      "mint": null
+    },
+    "island-9": {
+      "itemId": 101,
+      "mint": null
     }
   }
 }
