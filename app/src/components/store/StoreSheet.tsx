@@ -82,7 +82,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
       setMessage({ ok: true, text: okText });
     } catch (e) {
       const text = e instanceof Error ? e.message : "Something went wrong";
-      setMessage({ ok: false, text: /insufficient|0x1\b|custom program error/i.test(text) ? "Not enough SOL or Gems" : text.slice(0, 140) });
+      setMessage({ ok: false, text: /insufficient lamports|InsufficientGems|Not enough Gems/i.test(text) ? "Not enough SOL or Gems" : text.slice(0, 140) });
     } finally {
       setBusy("");
     }

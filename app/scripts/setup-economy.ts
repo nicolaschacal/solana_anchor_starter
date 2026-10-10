@@ -218,7 +218,8 @@ async function main() {
   // 4. Store items: habitat kinds (no mint) and sellable decor and machines (one mint each).
   for (const [index, item] of registrable.entries()) {
     if (state.items[item.id]) continue;
-    const itemId = 100 + index;
+    // Islands get their own id range so they never adopt an old item account from earlier layouts.
+    const itemId = item.category === "habitat" ? 200 + index : 100 + index;
     const evoTarget = item.category === "evolution" ? evoIds.get(item.evoKey) : undefined;
     if (item.category === "evolution" && !evoTarget) {
       console.log(`Skipping ${item.id}: no form with key ${item.evoKey} in the active atlas`);
