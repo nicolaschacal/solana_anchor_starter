@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, PencilRuler, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Minus, Paintbrush, ChevronRight, Plus, RotateCcw, RotateCw, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { WorldPeriod } from "../../hooks/useWorldClock";
@@ -836,8 +836,9 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
 
       {ready && !editing && !focusMint && (
         <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Decorate habitat">
-          <PencilRuler />
+          <Paintbrush />
           <span>Decorate</span>
+          <ChevronRight className="edit-go" />
         </button>
       )}
 

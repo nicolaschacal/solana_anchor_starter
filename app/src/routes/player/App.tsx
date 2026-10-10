@@ -13,7 +13,7 @@ import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import {
   Activity, Apple, Atom, Bird, BookOpen, Bug, ChevronDown, ChevronLeft, ChevronRight, Copy, Settings, X,
   CircleUserRound, Dna, Droplets, Dumbbell, ExternalLink, Heart, Home, KeyRound, LockKeyhole, Mountain, MoonStar,
-  Sun, Sunrise, Sunset, Store as ShopIcon, Coins, Target, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
+  Sun, Sunrise, Sunset, Store as ShopIcon, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
 import { CreatureSprite } from "../../components/admin/CreatureSprite";
@@ -784,15 +784,12 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const worldHud=(!focusMint&&<>
     <div className="world-hud-left">{clockHud}</div>
     <div className="world-hud-right">
-      <button className="world-wallet gl-panel" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
-        <i className="wallet-coin" aria-hidden="true"><Coins/></i>
-        <span className="wallet-lines">
-          <span><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span>
-          <span><strong>{rbtyr.loading?"…":formatGems(rbtyr.amount)}</strong><small>Gems</small></span>
-        </span>
+      <button className="world-wallet" onClick={()=>setStoreOpen(true)} aria-label={`${solBalance.sol.toFixed(3)} SOL and ${formatGems(rbtyr.amount)} Gems. Open the shop`}>
+        <span className="wallet-cell"><i className="wallet-coin" aria-hidden="true"><Coins/></i><span className="wallet-num"><strong>{solBalance.loading?"…":solBalance.sol.toFixed(solBalance.sol>=100?1:3)}</strong><small>SOL</small></span></span>
+        <span className="wallet-cell"><i className="wallet-gem" aria-hidden="true"><Gem/></i><span className="wallet-num"><strong>{rbtyr.loading?"…":formatGems(rbtyr.amount)}</strong><small>Gems</small></span></span>
       </button>
       {daily.available&&<button className={`world-daily gl-panel${dailyHot?" hot":""}`} onClick={()=>setDailyOpen(true)} aria-label="Open daily missions">
-        <span className="daily-badge" aria-hidden="true">{dailyHot?<Gift/>:<Target/>}</span>
+        <span className="daily-badge" aria-hidden="true">{dailyHot?<Gift/>:<ClipboardList/>}</span>
         <span className="daily-copy">
           <strong>Daily missions</strong>
           <small>{daily.claimable>0?`${daily.claimable} reward${daily.claimable===1?"":"s"} ready to claim!`:daily.rationReady?"Free ration waiting!":`${questsDone}/${daily.quests.length} done today`}</small>
