@@ -1037,4 +1037,16 @@
 .rb-ui .world-chip-wrap{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:3px!important;flex:none!important}
 .rb-ui .island-address{align-self:center!important;font-size:10px!important;font-weight:600!important;letter-spacing:.02em!important;color:var(--ui-text-3)!important;text-decoration:none!important;font-variant-numeric:tabular-nums!important}
 .rb-ui .island-address:hover{color:var(--ui-accent)!important;text-decoration:underline!important}
+
+.rb-ui .train-result{position:fixed!important;left:50%!important;bottom:calc(120px + env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important;z-index:60!important;width:min(86vw,320px)!important;padding:14px 16px!important;border-radius:20px!important;background:var(--ui-surface,#fbf3e0)!important;border:1px solid var(--ui-border,#d9c8a3)!important;box-shadow:0 14px 34px rgba(60,40,10,.28)!important;color:var(--ui-text,#3a2a14)!important;text-align:center!important;animation:train-result-in .35s cubic-bezier(.2,.9,.3,1.2) both!important;cursor:pointer!important}
+.rb-ui .train-result small{display:block!important;font-size:11px!important;font-weight:800!important;letter-spacing:.1em!important;color:var(--ui-accent,#b5472f)!important;margin-bottom:8px!important}
+.rb-ui .train-result-stats{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px!important}
+.rb-ui .train-result-stats div{display:flex!important;flex-direction:column!important;gap:2px!important;padding:8px 4px!important;border-radius:12px!important;background:rgba(120,90,40,.08)!important}
+.rb-ui .train-result-stats span{font-size:11px!important;font-weight:700!important;color:var(--ui-text-3,#7b6a4d)!important}
+.rb-ui .train-result-stats strong{font-size:20px!important;font-weight:800!important;font-variant-numeric:tabular-nums!important;color:var(--ui-text-3,#7b6a4d)!important}
+.rb-ui .train-result-stats .up{background:rgba(70,150,70,.16)!important}
+.rb-ui .train-result-stats .up strong{color:#2f7a35!important}
+.rb-ui .train-result-stats .down strong{color:#b5472f!important}
+.rb-ui .train-result p{margin:8px 0 0!important;font-size:12px!important;color:var(--ui-text-3,#7b6a4d)!important}
+@keyframes train-result-in{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.94)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 }

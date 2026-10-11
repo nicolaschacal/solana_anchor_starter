@@ -557,6 +557,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   /** Training happens at the punching bag: the rebyter walks there and the world calls back when it hits. */
   const [trainRequest,setTrainRequest]=useState<{mint:string;nonce:number}|null>(null);
   const pendingTrain=useRef<{id:number;machine?:MachineItem}|null>(null);
+  /** What the rebyter's stats were before a training, to show what it gained once the new numbers are in. */
+  type StatSnapshot={mint:string;id:number;hp:number;atk:number;def:number;spd:number;energy:number;weight:number};
+  const [trainCheck,setTrainCheck]=useState<StatSnapshot|null>(null);
+  const [trainResult,setTrainResult]=useState<{name:string;gains:{label:string;delta:number}[];cost:{label:string;delta:number}[]}|null>(null);
   const [trainNotice,setTrainNotice]=useState("");
   const [homeParams]=useSearchParams();
   const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
@@ -608,11 +612,17 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   function startTraining(id:number,machine?:MachineItem){
     if(!active)return;
     setTrainNotice("");
-    if(!worldEnabled){void interact("train",id,0,machine).then(()=>{setTraining(false);setVisualAction(id===0?"train-power":"train");}).catch(()=>undefined);return;}
+    if(!worldEnabled){void trainNow(id,machine).then(()=>{setTraining(false);setVisualAction(id===0?"train-power":"train");}).catch(()=>undefined);return;}
     pendingTrain.current={id,machine};
     setTraining(false);
     setFocusMint(active.mint);
     setTrainRequest({mint:active.mint,nonce:Date.now()});
+  }
+  async function trainNow(id:number,machine?:MachineItem){
+    if(!active)return;
+    const before:StatSnapshot={mint:active.mint,id,hp:active.hp,atk:active.atk,def:active.def,spd:active.spd,energy:active.energy,weight:active.weight};
+    await interact("train",id,0,machine);
+    setTrainCheck(before);
   }
   async function interact(action:RebyterInteraction,option=0,_unused=0,machine?:MachineItem){
     if(!active)return;
@@ -634,6 +644,20 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     const timer=window.setInterval(show,30000);
     return()=>{window.clearInterval(timer);window.clearTimeout(hide);setGlance(false);};
   },[active?.mint,need,mood]);
+  // Once the new numbers are in, show what the training gave.
+  useEffect(()=>{
+    if(!trainCheck||!active||active.mint!==trainCheck.mint||player.interactingMint)return;
+    const b=trainCheck;
+    const gains=[{label:"HP",delta:active.hp-b.hp},{label:"ATK",delta:active.atk-b.atk},{label:"DEF",delta:active.def-b.def},{label:"SPD",delta:active.spd-b.spd}];
+    const cost=[{label:"Energy",delta:active.energy-b.energy},{label:"Weight",delta:active.weight-b.weight}].filter(c=>c.delta!==0);
+    setTrainCheck(null);
+    setTrainResult({name:TRAININGS.find(t=>t.id===b.id)?.name??"Training",gains,cost});
+  },[trainCheck,active,player.interactingMint]);
+  useEffect(()=>{
+    if(!trainResult)return;
+    const timer=window.setTimeout(()=>setTrainResult(null),7000);
+    return()=>window.clearTimeout(timer);
+  },[trainResult]);
   const bubbleVisible=!resting&&(!!need||glance);
 
   // Everyone the world can show, with what each one needs right now.
@@ -809,7 +833,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             onActionComplete={()=>setVisualAction("idle")}
             propAllowance={key=>propAllowance(inventory,key)}
             trainRequest={trainRequest}
-            onTrainHit={()=>{const job=pendingTrain.current;pendingTrain.current=null;if(job)void interact("train",job.id,0,job.machine).catch(()=>undefined);}}
+            onTrainHit={()=>{const job=pendingTrain.current;pendingTrain.current=null;if(job)void trainNow(job.id,job.machine).catch(()=>undefined);}}
             onTrainEnd={(_mint,problem)=>{setTrainRequest(null);if(problem){pendingTrain.current=null;setTrainNotice(problem==="nobag"?"Place the Punching bag on your island first: tap Edit on the island, then Objects.":problem==="unsaved"?"Your island has to be saved with the Punching bag before training. Try again and approve the signature.":"Your rebyter can't reach the punching bag. Clear a path to it and try again.");setTraining(true);}}}
             size={inventory.island.size}
             climate="temperate"
@@ -880,6 +904,14 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
     {storeOpen&&<StoreSheet balance={rbtyr} inventory={inventory} onClose={()=>setStoreOpen(false)}/>}
 
 
+
+    {trainResult&&<div className="train-result gl-panel" role="status" onClick={()=>setTrainResult(null)}>
+      <small>{trainResult.name.toUpperCase()} TRAINING</small>
+      <div className="train-result-stats">
+        {trainResult.gains.map(g=><div key={g.label} className={g.delta>0?"up":g.delta<0?"down":""}><span>{g.label}</span><strong>{g.delta>0?`+${g.delta}`:g.delta<0?`${g.delta}`:"—"}</strong></div>)}
+      </div>
+      {trainResult.cost.length>0&&<p>{trainResult.cost.map(c=>`${c.label} ${c.delta>0?"+":""}${c.delta}`).join(" · ")}</p>}
+    </div>}
 
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
       <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
