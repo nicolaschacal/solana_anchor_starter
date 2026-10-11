@@ -849,7 +849,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         {focusMint&&active?.mint===focusMint&&<>
           {restOverlay}
           {idChip}
-          <button className="world-back hud-square gl-panel" onClick={()=>setFocusMint(null)} aria-label="Back to the world" title="Back to the world"><Mountain/></button>
+          <div className="monster-hud-right"><button className="world-back ui-btn ui-btn-secondary" onClick={()=>setFocusMint(null)} aria-label="Go back" title="Go back"><ChevronLeft/> Back</button></div>
           <div className="world-care">{careControls}</div>
         </>}
       </section>
