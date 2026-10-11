@@ -732,7 +732,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         .then((asset) => {
           if (!walkers.current.some((k) => k.id === p.mint) || entities.current.has(p.mint) || !worldRef.current) return;
           if (shownForm.current.get(p.mint) !== formId) return;
-          const entity = buildEntity(p.mint, asset);
+          const entity = buildEntity(p.mint, asset, creature.evolution.stage);
           entities.current.set(p.mint, entity);
           worldRef.current.scene.add(entity.outer);
           worldRef.current.markShadowsDirty();

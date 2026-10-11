@@ -28,6 +28,13 @@ export type Entity = {
 /** How tall a rebyter stands on a tile, as the editor's diorama sizes it. */
 const TILE_FIT = 0.92;
 
+/**
+ * Growth by stage: babies are small, each later form stands a bit bigger. Every model is first fitted to the
+ * same box (whatever its proportions), so this is the rule that makes an Origin look younger than a Kylo.
+ */
+export const STAGE_SIZE = [0.6, 0.72, 1.1, 1.25, 1.4, 1.5];
+export const stageSize = (stage: number) => STAGE_SIZE[Math.max(0, Math.min(STAGE_SIZE.length - 1, Math.floor(stage)))] ?? 1;
+
 function ownMaterials(root: THREE.Object3D) {
   root.traverse((node) => {
     const mesh = node as THREE.Mesh;
@@ -46,7 +53,7 @@ function ownMaterials(root: THREE.Object3D) {
   });
 }
 
-export function buildEntity(mint: string, asset: FxAsset): Entity {
+export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
   const root = clone(asset.scene);
   ownMaterials(root);
   const billboard = !asset.clips?.length && (asset.scene as THREE.Mesh).isMesh === true;
@@ -56,7 +63,7 @@ export function buildEntity(mint: string, asset: FxAsset): Entity {
   const box = new THREE.Box3().setFromObject(holder);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
-  const scale = TILE_FIT / Math.max(size.x, size.y, size.z, 0.001);
+  const scale = (TILE_FIT * stageSize(stage)) / Math.max(size.x, size.y, size.z, 0.001);
   root.scale.multiplyScalar(scale);
   root.position.set(-centre.x * scale, -box.min.y * scale, -centre.z * scale);
   const outer = new THREE.Group();
