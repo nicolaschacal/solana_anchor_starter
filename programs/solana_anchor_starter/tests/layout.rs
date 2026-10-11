@@ -92,7 +92,7 @@ fn malformed_layouts_are_rejected() {
     assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(STARTER_PLACED + 1), vec![])]).is_err());
     // An object kind the client does not know.
     let mut props = some_props(3);
-    props[1].kind = 12;
+    props[1].kind = 32;
     assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], props)]).is_err());
     // A zero-size object.
     let mut props = some_props(3);

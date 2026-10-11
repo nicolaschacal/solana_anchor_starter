@@ -73,6 +73,10 @@ const extraFiles = {
   vending: "vending-machine.glb",
   busStop: "bus-stop.glb",
   punchingBag: "punching-bag.glb",
+  payphone: "payphone.glb",
+  lanternPost: "lantern-post.glb",
+  crateBin: "crate-bin.glb",
+  fence: "fence.glb",
 } as const;
 const allFiles = { ...files, ...extraFiles } as const;
 type BaseKey = keyof typeof files;

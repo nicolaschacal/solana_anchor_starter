@@ -1833,8 +1833,8 @@ pub struct PropSlot {
 /// Largest layout any island can hold (each level limits it further).
 pub const MAX_PLACED_SLOTS: usize = 8;
 pub const MAX_PROP_SLOTS: usize = 40;
-/// How many object kinds the client knows (the palette order is part of the format).
-pub const PROP_KINDS: u8 = 12;
+/// Room for object kinds (the client's palette order is part of the format; the client may know fewer).
+pub const PROP_KINDS: u8 = 32;
 /// The punching bag: the training machine every Rebyter trains on. It must stand on the island.
 pub const PROP_PUNCHING_BAG: u8 = 11;
 

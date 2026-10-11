@@ -103,6 +103,10 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   vending: "Vending machine",
   busStop: "Bus stop",
   punchingBag: "Punching bag",
+  payphone: "Payphone",
+  lanternPost: "Lantern post",
+  crateBin: "Wooden bin",
+  fence: "Fence",
 };
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));

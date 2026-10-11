@@ -6,7 +6,7 @@ import type { WorldLayout } from "../../components/world/layout";
  * How the habitat layout is stored inside the habitat NFT (see `set_habitat_layout` in the program).
  * The order of PROP_KEYS is part of the format: append only, never reorder.
  */
-export const PROP_KEYS: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop", "punchingBag"];
+export const PROP_KEYS: AssetKey[] = ["tree", "pine", "bush", "rocks", "stump", "log", "mushrooms", "wildflowers", "lantern", "vending", "busStop", "punchingBag", "payphone", "lanternPost", "crateBin", "fence"];
 /** Largest layout any habitat can hold: MAX_PLACED_SLOTS and MAX_PROP_SLOTS in the program. */
 export const MAX_PLACED_SLOTS = 8;
 export const MAX_PROP_SLOTS = 40;
