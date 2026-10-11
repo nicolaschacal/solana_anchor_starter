@@ -14,7 +14,7 @@ fn prop(kind: u8, n: i16) -> PropSlot {
 }
 
 fn some_props(count: usize) -> Vec<PropSlot> {
-    (0..count).map(|n| prop((n % 11) as u8, n as i16)).collect()
+    (0..count).map(|n| prop((n % 12) as u8, n as i16)).collect()
 }
 
 fn slots(count: usize) -> Vec<PlacedSlot> {
@@ -92,7 +92,7 @@ fn malformed_layouts_are_rejected() {
     assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, slots(STARTER_PLACED + 1), vec![])]).is_err());
     // An object kind the client does not know.
     let mut props = some_props(3);
-    props[1].kind = 11;
+    props[1].kind = 12;
     assert!(send(&mut w.svm, &w.player, &[], vec![island_layout_ix(&player, vec![], props)]).is_err());
     // A zero-size object.
     let mut props = some_props(3);
