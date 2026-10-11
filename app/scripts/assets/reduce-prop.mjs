@@ -36,7 +36,7 @@ await doc.transform(
   prune(),
   weld(),
   // Locked borders keep the texture seams from tearing, which is what makes a simplified mesh look like spaghetti.
-  simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, Number(tris) / before), error: 0.02, lockBorder: true }),
+  simplify({ simplifier: MeshoptSimplifier, ratio: Math.min(1, Number(tris) / before), error: Number(process.env.ERROR ?? 0.02), lockBorder: true }),
   dedup(),
   prune(),
 );
