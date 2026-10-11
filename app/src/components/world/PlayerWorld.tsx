@@ -280,7 +280,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       for (const walker of walkers.current) {
         const starring = walker.id === focusRef.current;
         const training = trainRef.current?.mint === walker.id;
-        if (training ? walker.walking : (!calm && !starring) || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: 0.45 });
+        if (training ? walker.walking : (!calm && !starring) || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: training ? 0.8 : 0.45 });
         const entity = entities.current.get(walker.id);
         if (!entity) continue;
         const session = trainRef.current;
@@ -323,7 +323,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         scene.clock += dt;
         const node = scene.bag.prop?.node;
         // The bag takes the hit a moment after the swing starts, then settles.
-        const since = scene.clock - 0.45;
+        const since = scene.clock - 0.9;
         const sway = since > 0 ? Math.sin(since * 13) * 0.07 * Math.exp(-since * 2.6) : 0;
         if (node) {
           node.rotation.z = sway;

@@ -7,6 +7,7 @@ import type { PublicKey } from "@solana/web3.js";
 import {
   createRebyter,
   fetchActiveFamilyTree,
+  fetchOwnedRebyter,
   fetchOwnedRebyters,
   fetchPlayerProfile,
   interactWithRebyter,
@@ -104,6 +105,13 @@ async function getPlayerSnapshot(
 
   playerSnapshotInflight.set(key, promise);
   return promise;
+}
+
+function patchSnapshot(owner: string, fresh: OnchainRebyter) {
+  const cached = playerSnapshotCache.get(owner);
+  if (!cached) return;
+  const owned = cached.value.owned.map((r) => (r.mint === fresh.mint ? fresh : r));
+  playerSnapshotCache.set(owner, { at: cached.at, value: { ...cached.value, owned } });
 }
 
 function invalidatePlayerSnapshot(owner: string | undefined) {
@@ -271,6 +279,11 @@ export function usePlayerRebyters() {
   );
 
 
+  const patchOwned = useCallback((owner: string, fresh: OnchainRebyter) => {
+    patchSnapshot(owner, fresh);
+    setOwned((current) => current.map((r) => (r.mint === fresh.mint ? fresh : r)));
+  }, []);
+
   const interact = useCallback(
     async (
       mint: string,
@@ -298,8 +311,13 @@ export function usePlayerRebyters() {
           option,
           machine,
         );
-        invalidatePlayerSnapshot(auth.publicKey?.toBase58());
-        await refresh(true);
+        // Only this Rebyter changed: re-read its one account instead of rescanning the whole collection.
+        const fresh = auth.publicKey ? await fetchOwnedRebyter(connection, auth.publicKey, mint).catch(() => null) : null;
+        if (fresh) patchOwned(auth.publicKey!.toBase58(), fresh);
+        else {
+          invalidatePlayerSnapshot(auth.publicKey?.toBase58());
+          await refresh(true);
+        }
         setStatus(
           action === "feed" ? "Meal complete"
           : action === "play" ? "Play complete"
@@ -317,7 +335,7 @@ export function usePlayerRebyters() {
         setInteractingMint("");
       }
     },
-    [anchorWallet, connection, refresh, wallet],
+    [anchorWallet, connection, refresh, wallet, patchOwned, auth.publicKey],
   );
 
 

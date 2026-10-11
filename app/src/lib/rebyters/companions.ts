@@ -258,6 +258,61 @@ export async function fetchFirstOwnedRebyter(
   return null;
 }
 
+/** Reads one Rebyter's on-chain metadata/DNA (a single mint; used after an action instead of rescanning everything). */
+export async function fetchOwnedRebyter(connection: Connection, owner: PublicKey, mintString: string): Promise<OnchainRebyter | null> {
+  const mint = new PublicKey(mintString);
+  let metadata;
+  try {
+    metadata = await getTokenMetadata(
+      connection,
+      mint,
+      "confirmed",
+      TOKEN_2022_PROGRAM_ID,
+    );
+  } catch {
+    return null;
+  }
+  if (!metadata) return null;
+
+  const fields = metadataMap((metadata as any).additionalMetadata);
+  const dnaField = fields.get("DNA");
+  if (!dnaField) return null;
+
+  let dnaState;
+  try {
+    dnaState = effectiveDnaState(decodeDna(dnaField));
+  } catch {
+    return null;
+  }
+
+  return {
+    address: mintString,
+    dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
+    owner: owner.toBase58(),
+    mint: mintString,
+    evolutionId: dnaState.evolutionId,
+    dnaBase58: dnaField,
+    careMistakes: dnaState.careMistakes,
+    weight: dnaState.weight,
+    bond: dnaState.bond,
+    discipline: dnaState.discipline,
+    fullness: dnaState.fullness,
+    energy: dnaState.energy,
+    condition: dnaState.condition,
+    diet: dnaState.diet,
+    timeInteractions: dnaState.timeInteractions,
+    cycle: dnaState.cycle,
+    lastStateAt: dnaState.lastStateAt,
+    stageEnteredAt: dnaState.stageEnteredAt,
+    hp: dnaState.hp,
+    atk: dnaState.atk,
+    def: dnaState.def,
+    spd: dnaState.spd,
+    learnedSkills: dnaState.learnedSkills,
+    metadataUri: metadata.uri,
+  };
+}
+
 export async function fetchOwnedRebyters(
   connection: Connection,
   owner: PublicKey,
@@ -289,57 +344,8 @@ export async function fetchOwnedRebyters(
       const index = cursor++;
       if (index >= mintList.length) return;
       const mintString = mintList[index];
-      const mint = new PublicKey(mintString);
-      let metadata;
-      try {
-        metadata = await getTokenMetadata(
-          connection,
-          mint,
-          "confirmed",
-          TOKEN_2022_PROGRAM_ID,
-        );
-      } catch {
-        continue;
-      }
-      if (!metadata) continue;
-
-      const fields = metadataMap((metadata as any).additionalMetadata);
-      const dnaField = fields.get("DNA");
-      if (!dnaField) continue;
-
-      let dnaState;
-      try {
-        dnaState = effectiveDnaState(decodeDna(dnaField));
-      } catch {
-        continue;
-      }
-
-      const rebyter: OnchainRebyter = {
-        address: mintString,
-        dnaByteLength: decodeRebyterDnaBytes(dnaField).length,
-        owner: owner.toBase58(),
-        mint: mintString,
-        evolutionId: dnaState.evolutionId,
-        dnaBase58: dnaField,
-        careMistakes: dnaState.careMistakes,
-        weight: dnaState.weight,
-        bond: dnaState.bond,
-        discipline: dnaState.discipline,
-        fullness: dnaState.fullness,
-        energy: dnaState.energy,
-        condition: dnaState.condition,
-        diet: dnaState.diet,
-        timeInteractions: dnaState.timeInteractions,
-        cycle: dnaState.cycle,
-        lastStateAt: dnaState.lastStateAt,
-        stageEnteredAt: dnaState.stageEnteredAt,
-        hp: dnaState.hp,
-        atk: dnaState.atk,
-        def: dnaState.def,
-        spd: dnaState.spd,
-        learnedSkills: dnaState.learnedSkills,
-        metadataUri: metadata.uri,
-      };
+      const rebyter = await fetchOwnedRebyter(connection, owner, mintString);
+      if (!rebyter) continue;
       decoded[index] = rebyter;
       onFound?.(rebyter);
     }
