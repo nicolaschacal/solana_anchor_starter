@@ -32,7 +32,7 @@ const TILE_FIT = 0.92;
  * Growth by stage: babies are small, each later form stands a bit bigger. Every model is first fitted to the
  * same box (whatever its proportions), so this is the rule that makes an Origin look younger than a Kylo.
  */
-export const STAGE_SIZE = [0.7, 0.85, 1.4, 1.6, 1.8, 2.0];
+export const STAGE_SIZE = [1.05, 1.28, 2.1, 2.4, 2.7, 3.0];
 export const stageSize = (stage: number) => STAGE_SIZE[Math.max(0, Math.min(STAGE_SIZE.length - 1, Math.floor(stage)))] ?? 1;
 
 function ownMaterials(root: THREE.Object3D) {
