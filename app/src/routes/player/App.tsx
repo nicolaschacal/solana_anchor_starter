@@ -910,11 +910,11 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       <div className="train-rows">
         {trainResult.rows.map(r=>{
           const gain=r.after-r.before;
-          const scale=Math.max(100,Math.ceil(r.after*1.25/50)*50);
+          const scale=999;
           return <div key={r.label} className="train-row">
             <span className="train-label">{r.label}</span>
             <strong className="train-value">{r.after}</strong>
-            <span className="train-bar"><i className="base" style={{width:`${Math.min(100,r.before/scale*100)}%`}}/><i className="gain" style={{left:`${Math.min(100,r.before/scale*100)}%`,width:`${Math.min(100,Math.max(0,gain)/scale*100)}%`}}/></span>
+            <span className="train-bar"><i className="base" style={{width:`${Math.min(100,r.before/scale*100)}%`}}/><i className="gain" style={{left:`${Math.min(100,r.before/scale*100)}%`,width:`${gain>0?Math.max(1.2,Math.min(100,gain/scale*100)):0}%`}}/></span>
             <span className={`train-gain${gain>0?" up":""}`}>{gain>0?<><b>▲</b>{gain}</>:"—"}</span>
           </div>;
         })}
@@ -998,15 +998,18 @@ export function PlayerDen() {
         const form=tree.evolutions.find(e=>e.id===item.evolutionId);
         if(!form) return null;
         const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
+        const open=()=>{setActiveMint(item.mint);navigate("/",{state:{focus:item.mint}})};
         return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===activeMint?" active":""}`}>
-          <button className="den-card-select" onClick={()=>{setActiveMint(item.mint);navigate("/",{state:{focus:item.mint}})}}>
-            <div className="den-card-art"><CreatureSprite evolution={form}/></div>
-            <strong>{form.name}</strong>
-            <small>{STAGE_NAMES[form.stage]}</small>
-          </button>
-          <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
-            {mintLabel}<ExternalLink/>
-          </a>
+          <button className="den-card-art" onClick={open} aria-label={`Open ${form.name}`}><CreatureSprite evolution={form}/></button>
+          <div className="den-card-info">
+            <button className="den-card-select" onClick={open}>
+              <strong>{form.name}</strong>
+              <small>{STAGE_NAMES[form.stage]}</small>
+            </button>
+            <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
+              {mintLabel}<ExternalLink/>
+            </a>
+          </div>
         </article>;
       })}
     </div>}

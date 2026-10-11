@@ -1055,4 +1055,20 @@
 @keyframes train-gain-pulse{from{opacity:.55}to{opacity:1}}
 @keyframes train-arrow-bob{from{transform:translateY(2px)}to{transform:translateY(-2px)}}
 @keyframes train-result-in{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(.94)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+
+/* My reByters: a framed picture on the left, name, stage and address on the right. */
+.rb-ui .den-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;gap:10px!important}
+.rb-ui .den-card{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important;align-items:center!important;gap:14px!important;padding:10px!important;text-align:left!important}
+.rb-ui .den-card .den-card-art{display:block!important;width:84px!important;height:84px!important;padding:0!important;margin:0!important;border-radius:var(--ui-r-md)!important;border:2px solid var(--ui-line-strong)!important;overflow:hidden!important;background:var(--ui-well)!important;box-shadow:0 3px 0 rgba(150,100,50,.25)!important;cursor:pointer!important}
+.rb-ui .den-card .den-card-art>*{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:0!important}
+.rb-ui .den-card.active .den-card-art{border-color:var(--ui-accent)!important}
+.rb-ui .den-card-info{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:4px!important;min-width:0!important}
+.rb-ui .den-card-info .den-card-select{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:2px!important;width:auto!important;padding:0!important;text-align:left!important;cursor:pointer!important}
+.rb-ui .den-card-info .den-card-select strong{font-size:var(--ui-fs-lead)!important}
+.rb-ui .den-card-info .den-mint-link{margin:0!important;justify-content:flex-start!important}
+
+.rb-ui .den-card{min-height:0!important;height:auto!important;align-content:center!important}
+.rb-ui .den-card-info{align-self:center!important;justify-content:center!important;height:auto!important;flex:none!important}
+.rb-ui .den-card-info .den-mint-link{margin:2px 0 0!important;padding:0!important;min-height:0!important}
+.rb-ui .den-card-info .den-card-select{flex:none!important;min-height:0!important}
 }
