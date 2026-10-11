@@ -116,12 +116,12 @@ export function disposeAsset(asset: FxAsset) {
 }
 
 const ACTION_CLIPS: Record<string, string[]> = {
-  touch: ["touch", "touchspin", "bouncehappy", "happy"],
+  touch: ["touch", "touchspin", "bouncehappy", "touchhappy", "happy"],
   sad: ["sad"],
   feed: ["feed", "feeding"],
-  play: ["play", "playhappy", "bouncehappy", "happy"],
+  play: ["play", "playhappy", "bouncehappy", "touchhappy", "happy"],
   train: ["train", "attackslam", "attack", "training"],
-  care: ["care", "carehappy", "bouncehappy", "happy"],
+  care: ["care", "carehappy", "bouncehappy", "touchhappy", "happy"],
 };
 
 /** When no clip has the exact name, any clip whose name contains one of these words is used (models come from different tools). */
