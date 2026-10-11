@@ -551,11 +551,6 @@ export async function interactWithRebyter(
     playerProfile: playerProfilePda(wallet.publicKey),
     tokenProgram: TOKEN_2022_PROGRAM_ID,
   };
-  if (action === "feed") {
-    // Feeding uses up one meal from the profile: say so before signing if there is none.
-    const state = await fetchProfileState(connection, wallet.publicKey).catch(() => null);
-    if (!state || (state.food[option] ?? 0) < 1) throw new Error("You are out of that food. Claim your daily ration or visit the store.");
-  }
   const optional =
     action === "train" && machineMint && machineId !== null
       ? {

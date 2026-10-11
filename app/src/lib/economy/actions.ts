@@ -158,8 +158,15 @@ export async function buyFood(connection: Connection, wallet: Wallet, foodType: 
  * The wallet's single profile account (pokedex + daily ration/quest state). Creates it when it does not
  * exist yet, which also covers wallets that only had a legacy profile; returns [] otherwise.
  */
+const knownProfiles = new Set<string>();
 export async function ensureProfileIx(connection: Connection, wallet: Wallet): Promise<TransactionInstruction[]> {
-  if (await connection.getAccountInfo(playerProfilePda(wallet.publicKey), "confirmed")) return [];
+  // Once a profile is known to exist it always does: no need to ask the network on every action.
+  const key = wallet.publicKey.toBase58();
+  if (knownProfiles.has(key)) return [];
+  if (await connection.getAccountInfo(playerProfilePda(wallet.publicKey), "confirmed")) {
+    knownProfiles.add(key);
+    return [];
+  }
   return [
     await getProgram(connection, wallet)
       .methods.initializePlayer()
