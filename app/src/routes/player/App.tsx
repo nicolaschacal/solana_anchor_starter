@@ -560,7 +560,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   /** What the rebyter's stats were before a training, to show what it gained once the new numbers are in. */
   type StatSnapshot={mint:string;id:number;hp:number;atk:number;def:number;spd:number;energy:number;weight:number};
   const [trainCheck,setTrainCheck]=useState<StatSnapshot|null>(null);
-  const [trainResult,setTrainResult]=useState<{name:string;gains:{label:string;delta:number}[];cost:{label:string;delta:number}[]}|null>(null);
+  const [trainResult,setTrainResult]=useState<{name:string;rows:{label:string;before:number;after:number}[];cost:{label:string;delta:number}[]}|null>(null);
   const [trainNotice,setTrainNotice]=useState("");
   const [homeParams]=useSearchParams();
   const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
@@ -648,10 +648,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   useEffect(()=>{
     if(!trainCheck||!active||active.mint!==trainCheck.mint||player.interactingMint)return;
     const b=trainCheck;
-    const gains=[{label:"HP",delta:active.hp-b.hp},{label:"ATK",delta:active.atk-b.atk},{label:"DEF",delta:active.def-b.def},{label:"SPD",delta:active.spd-b.spd}];
+    const rows=[{label:"HP",before:b.hp,after:active.hp},{label:"ATK",before:b.atk,after:active.atk},{label:"DEF",before:b.def,after:active.def},{label:"SPD",before:b.spd,after:active.spd}];
     const cost=[{label:"Energy",delta:active.energy-b.energy},{label:"Weight",delta:active.weight-b.weight}].filter(c=>c.delta!==0);
     setTrainCheck(null);
-    setTrainResult({name:TRAININGS.find(t=>t.id===b.id)?.name??"Training",gains,cost});
+    setTrainResult({name:TRAININGS.find(t=>t.id===b.id)?.name??"Training",rows,cost});
   },[trainCheck,active,player.interactingMint]);
   useEffect(()=>{
     if(!trainResult)return;
@@ -905,10 +905,19 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
 
 
-    {trainResult&&<div className="train-result gl-panel" role="status" onClick={()=>setTrainResult(null)}>
+    {trainResult&&<div className="train-result" role="status" onClick={()=>setTrainResult(null)}>
       <small>{trainResult.name.toUpperCase()} TRAINING</small>
-      <div className="train-result-stats">
-        {trainResult.gains.map(g=><div key={g.label} className={g.delta>0?"up":g.delta<0?"down":""}><span>{g.label}</span><strong>{g.delta>0?`+${g.delta}`:g.delta<0?`${g.delta}`:"—"}</strong></div>)}
+      <div className="train-rows">
+        {trainResult.rows.map(r=>{
+          const gain=r.after-r.before;
+          const scale=Math.max(100,Math.ceil(r.after*1.25/50)*50);
+          return <div key={r.label} className="train-row">
+            <span className="train-label">{r.label}</span>
+            <strong className="train-value">{r.after}</strong>
+            <span className="train-bar"><i className="base" style={{width:`${Math.min(100,r.before/scale*100)}%`}}/><i className="gain" style={{left:`${Math.min(100,r.before/scale*100)}%`,width:`${Math.min(100,Math.max(0,gain)/scale*100)}%`}}/></span>
+            <span className={`train-gain${gain>0?" up":""}`}>{gain>0?<><b>▲</b>{gain}</>:"—"}</span>
+          </div>;
+        })}
       </div>
       {trainResult.cost.length>0&&<p>{trainResult.cost.map(c=>`${c.label} ${c.delta>0?"+":""}${c.delta}`).join(" · ")}</p>}
     </div>}
