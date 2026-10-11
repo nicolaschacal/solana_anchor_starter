@@ -1082,4 +1082,10 @@
 .rb-ui .den-card-info .den-card-select small{font-size:10px!important}
 .rb-ui .den-card-info .den-mint-link{font-size:10px!important;gap:3px!important}
 .rb-ui .den-card-info .den-mint-link svg{width:11px!important;height:11px!important}
+
+/* Same recipe as the picture in the world's reByter card: a grid tile that clips its image. */
+.rb-ui .den-card .den-card-art{display:grid!important;place-items:center!important;position:static!important;border-radius:16px!important;overflow:hidden!important}
+.rb-ui .den-card .den-card-art>*{position:static!important;inset:auto!important;width:100%!important;height:100%!important;object-fit:cover!important}
+.rb-ui .den-card-info .den-mint-link{display:inline-flex!important;align-items:center!important;flex-wrap:nowrap!important;white-space:nowrap!important;max-width:100%!important;gap:3px!important;letter-spacing:0!important;font-size:10px!important}
+.rb-ui .den-card-info .den-mint-link svg{flex:none!important;width:10px!important;height:10px!important}
 }

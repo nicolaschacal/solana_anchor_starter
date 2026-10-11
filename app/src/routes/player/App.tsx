@@ -1000,7 +1000,7 @@ export function PlayerDen() {
         const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
         const open=()=>{setActiveMint(item.mint);navigate("/",{state:{focus:item.mint}})};
         return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===activeMint?" active":""}`}>
-          <button className="den-card-art" onClick={open} aria-label={`Open ${form.name}`}><CreatureSprite evolution={form}/></button>
+          <div className="den-card-art" role="button" tabIndex={0} onClick={open} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}}} aria-label={`Open ${form.name}`}><CreatureSprite evolution={form}/></div>
           <div className="den-card-info">
             <button className="den-card-select" onClick={open}>
               <strong>{form.name}</strong>
