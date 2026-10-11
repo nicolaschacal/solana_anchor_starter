@@ -1088,4 +1088,9 @@
 .rb-ui .den-card .den-card-art>*{position:static!important;inset:auto!important;width:100%!important;height:100%!important;object-fit:cover!important}
 .rb-ui .den-card-info .den-mint-link{display:inline-flex!important;align-items:center!important;flex-wrap:nowrap!important;white-space:nowrap!important;max-width:100%!important;gap:3px!important;letter-spacing:0!important;font-size:10px!important}
 .rb-ui .den-card-info .den-mint-link svg{flex:none!important;width:10px!important;height:10px!important}
+
+/* The picture is a background on a tile that has its own rounded corners. */
+.rb-ui .den-card .den-card-art{padding:0!important;display:block!important;overflow:hidden!important}
+.rb-ui .den-card .den-card-art .sprite-tile{display:block!important;width:100%!important;height:100%!important;border-radius:14px!important;background-position:center!important;background-repeat:no-repeat!important}
+.rb-ui .den-card .den-card-art .sprite-tile:not([style*="contain"]){background-size:cover!important}
 }

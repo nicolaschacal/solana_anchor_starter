@@ -16,7 +16,7 @@ import {
   Sun, Sunrise, Sunset, Store as ShopIcon, Sprout, Coins, Gem, ClipboardList, Plus, Send, Shield, ShoppingBag, Sparkles, Waves, Zap, Gift, Package,
 } from "lucide-react";
 import { EvolutionModel, GuestWorld } from "../../components/assets/AssetViewer";
-import { CreatureSprite } from "../../components/admin/CreatureSprite";
+import { CreatureSprite, SpriteTile } from "../../components/admin/CreatureSprite";
 import { useEvolutionAnimation } from "../../components/player/EvolutionAnimation";
 import { StoreSheet } from "../../components/store/StoreSheet";
 import { useInventory } from "../../lib/economy/inventory";
@@ -1000,7 +1000,7 @@ export function PlayerDen() {
         const mintLabel=`${item.mint.slice(0,4)}…${item.mint.slice(-4)}`;
         const open=()=>{setActiveMint(item.mint);navigate("/",{state:{focus:item.mint}})};
         return <article key={item.mint} className={`den-card tone-${index%4}${item.mint===activeMint?" active":""}`}>
-          <div className="den-card-art" role="button" tabIndex={0} onClick={open} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}}} aria-label={`Open ${form.name}`}><CreatureSprite evolution={form}/></div>
+          <div className="den-card-art" role="button" tabIndex={0} onClick={open} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}}} aria-label={`Open ${form.name}`}><SpriteTile evolution={form}/></div>
           <div className="den-card-info">
             <button className="den-card-select" onClick={open}>
               <strong>{form.name}</strong>

@@ -254,3 +254,13 @@ export function CreatureArt({ evolution: e }: { evolution: Evolution }) {
     </svg>
   );
 }
+
+/**
+ * The creature's picture as a tile background: it always fills its rounded frame, whatever the image's own
+ * proportions, and needs no clipping (iOS Safari ignores overflow clipping on some images).
+ */
+export function SpriteTile({ evolution: e }: { evolution: Evolution }) {
+  const uri = creatureSpriteUri(e);
+  if (!uri) return <CreatureArt evolution={e} />;
+  return <span className="sprite-tile" style={{ backgroundImage: `url("${uri}")`, ...(/\.svg($|\?)/i.test(uri) ? { backgroundSize: "contain" } : {}) }} role="img" aria-label={e.name} />;
+}
