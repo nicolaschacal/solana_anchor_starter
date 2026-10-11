@@ -723,8 +723,7 @@
 .rb-ui .world-adjust button{width:36px!important;height:36px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:10px!important;border:1px solid var(--ui-line,rgba(255,255,255,.22))!important;background:rgba(255,255,255,.08)!important;color:inherit!important}
 .rb-ui .world-adjust button svg{width:16px!important;height:16px!important}
 @media(prefers-reduced-motion:reduce){.rb-ui .world-canvas,.rb-ui .world-emote-bubble{transition:none!important;animation:none!important}}
-.rb-ui .world-back{position:static!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;gap:4px!important;height:42px!important;padding:0 14px 0 8px!important;border-radius:var(--ui-r-lg)!important}
-.rb-ui .world-back svg{width:20px!important;height:20px!important;stroke-width:2!important}
+.rb-ui .world-back{position:static!important;cursor:pointer!important;display:flex!important;align-items:center!important}
 .rb-ui .world-care{display:contents!important}
 .rb-ui .world-care>.game-controls,.rb-ui .world-scene>.monster-id{animation:world-focus-in .4s ease both!important}
 @keyframes world-focus-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
