@@ -7,6 +7,8 @@ import type { Inventory } from "./inventory";
  * props that are not sold are unlimited; sold decor is limited to what the wallet holds.
  */
 export function propAllowance(inventory: Inventory, key: AssetKey): number {
+  // The punching bag is the one training machine: free, and one per island.
+  if (key === "punchingBag") return 1;
   const sold = CATALOG.filter((item) => item.category === "decor" && item.prop === key);
   if (!sold.length || sold.some((item) => item.starter)) return Number.POSITIVE_INFINITY;
   return sold.reduce((sum, item) => sum + inventory.count(item), 0);

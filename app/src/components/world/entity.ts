@@ -113,7 +113,7 @@ const ACTION_CLIPS: Record<string, string[]> = {
   sad: ["sad"],
   feed: ["feed", "feeding"],
   play: ["play", "playhappy", "bouncehappy", "happy"],
-  train: ["train", "attackslam", "training"],
+  train: ["train", "attackslam", "attack", "training"],
   care: ["care", "carehappy", "bouncehappy", "happy"],
 };
 

@@ -554,6 +554,10 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   };
   const [feeding,setFeeding]=useState(false);
   const [training,setTraining]=useState(false);
+  /** Training happens at the punching bag: the rebyter walks there and the world calls back when it hits. */
+  const [trainRequest,setTrainRequest]=useState<{mint:string;nonce:number}|null>(null);
+  const pendingTrain=useRef<{id:number;machine?:MachineItem}|null>(null);
+  const [trainNotice,setTrainNotice]=useState("");
   const [homeParams]=useSearchParams();
   const worldEnabled=WORLD_VIEW_ENABLED&&homeParams.get("classic")!=="1";
   const [detailOpen,setDetailOpen]=useState(false);
@@ -601,6 +605,15 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
 
   const guidance=active?careGuidance(active):null;
+  function startTraining(id:number,machine?:MachineItem){
+    if(!active)return;
+    setTrainNotice("");
+    if(!worldEnabled){void interact("train",id,0,machine).then(()=>{setTraining(false);setVisualAction(id===0?"train-power":"train");}).catch(()=>undefined);return;}
+    pendingTrain.current={id,machine};
+    setTraining(false);
+    setFocusMint(active.mint);
+    setTrainRequest({mint:active.mint,nonce:Date.now()});
+  }
   async function interact(action:RebyterInteraction,option=0,_unused=0,machine?:MachineItem){
     if(!active)return;
     try{
@@ -725,7 +738,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         <div className="care-actions">
           <button className={`gl-panel${guidance?.recommended==="feed"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>setFeeding(true)}><Apple/><span>{guidance?.recommended==="feed"?"Feed now":"Feed"}</span>{guidance?.recommended==="feed"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
           <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{if(active.energy<20||active.fullness<10||(active.condition&REBYTER_CONDITION.sick)){setActionWarning({action:"play",message:active.fullness<10?"Too hungry to play safely. Feed first.":active.energy<20?"Too exhausted to play safely. Rest first.":"Playing while sick adds a care mistake. Recover first."});return;}void interact("play").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Sparkles/><span>Play</span></button>
-          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>setTraining(true)}><Dumbbell/><span>Train</span></button>
+          <button className="gl-panel" disabled={resting||player.interactingMint===active.mint} onClick={()=>{setTrainNotice("");setTraining(true);}}><Dumbbell/><span>Train</span></button>
           <button className={`gl-panel${guidance?.recommended==="care"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} title={guidance?.care} onClick={()=>{if(guidance?.recommended!=="care"&&(active.condition&(REBYTER_CONDITION.sick|REBYTER_CONDITION.injured))){setActionWarning({action:"care",message:guidance?.care||"Rest first."});return;}void interact("care").then(()=>{setVisualAction("touch");}).catch(()=>undefined)}}><Heart/><span>{guidance?.recommended==="care"?"Care now":"Care"}</span>{guidance?.recommended==="care"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
           <button className={`gl-panel${guidance?.recommended==="rest"?" recommended-action":""}`} disabled={resting||player.interactingMint===active.mint} onClick={()=>{setResting(true);setRestPending(true);void interact("rest").catch(()=>setResting(false)).finally(()=>setRestPending(false));}}><MoonStar/><span>{guidance?.recommended==="rest"?"Rest now":"Rest"}</span>{guidance?.recommended==="rest"&&<b className="action-recommendation-dot" aria-label="Recommended"/>}</button>
         </div>
@@ -795,6 +808,9 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
             onActionComplete={()=>setVisualAction("idle")}
             propAllowance={key=>propAllowance(inventory,key)}
+            trainRequest={trainRequest}
+            onTrainHit={()=>{const job=pendingTrain.current;pendingTrain.current=null;if(job)void interact("train",job.id,0,job.machine).catch(()=>undefined);}}
+            onTrainEnd={(_mint,problem)=>{setTrainRequest(null);if(problem){pendingTrain.current=null;setTrainNotice(problem==="nobag"?"Place the Punching bag on your island first: tap Edit on the island, then Objects.":problem==="unsaved"?"Your island has to be saved with the Punching bag before training. Try again and approve the signature.":"Your rebyter can't reach the punching bag. Clear a path to it and try again.");setTraining(true);}}}
             size={inventory.island.size}
             climate="temperate"
           />
@@ -867,12 +883,13 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
 
     {training&&<div className="game-sheet-backdrop" onClick={()=>!player.interactingMint&&setTraining(false)}>
       <section className="game-sheet training-sheet" onClick={e=>e.stopPropagation()}>
-        <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a machine</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}><X/></button></div>
+        <div className="game-sheet-head"><div><small>TRAINING</small><h2>Choose a training</h2></div><button className="ui-close" aria-label="Close" disabled={!!player.interactingMint} onClick={()=>setTraining(false)}><X/></button></div>
         <p className="training-intro companion-guidance" role="status">{guidance?.training} Energy: {active.energy}% · Fullness: {active.fullness}%.</p>
+        {trainNotice&&<p className="training-intro interaction-error" role="alert">{trainNotice}</p>}
         <div className="training-grid">
           {TRAININGS.map(t=>{
             const machine=bestMachine(inventory,t.id);
-            return <button key={t.id} disabled={!!player.interactingMint} onClick={()=>void interact("train",t.id,0,machine).then(()=>{setTraining(false);setVisualAction(t.id===0?"train-power":"train");}).catch(()=>undefined)}>
+            return <button key={t.id} disabled={!!player.interactingMint} onClick={()=>startTraining(t.id,machine)}>
               <span className="training-icon">{t.icon}</span>
               <span><strong>{t.name}</strong><small>{trainingGains(guidance?.tier??0,t.gains,machine?.bonusPct??0)}</small><em>{t.cost}</em>{machine&&<em className="machine-badge">{machine.name} · +{machine.bonusPct}%</em>}</span>
               <ChevronRight/>

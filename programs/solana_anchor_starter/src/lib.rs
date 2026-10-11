@@ -97,6 +97,20 @@ pub fn quest_food(day: u32, slot: usize) -> usize {
     (day as usize + slot) % 4
 }
 
+/// Whether the stored island layout has an object of this kind standing on it.
+fn layout_has_prop(layout: &[u8], kind: u8) -> bool {
+    if layout.len() < 3 || layout[0] != 1 {
+        return false;
+    }
+    let mut at = 2 + usize::from(layout[1]) * 34;
+    let Some(&count) = layout.get(at) else { return false };
+    at += 1;
+    (0..usize::from(count)).any(|n| {
+        let start = at + n * 9;
+        start + 9 <= layout.len() && layout[start] == kind && (layout[start + 5] != 0 || layout[start + 6] != 0)
+    })
+}
+
 /// Serializes an island layout (see LAYOUT_BYTES for the format).
 fn encode_layout(placed: &[PlacedSlot], props: &[PropSlot]) -> Vec<u8> {
     let mut out = Vec::with_capacity(3 + placed.len() * 34 + props.len() * 9);
@@ -917,6 +931,10 @@ pub mod solana_anchor_starter {
     /// the wallet (pass its item type and token account) adds its bonus to the gains.
     pub fn train(ctx: Context<TrainRebyter>, training_type: u8) -> Result<()> {
         require!(training_type < 6, RegistryError::InvalidTraining);
+        require!(
+            layout_has_prop(&ctx.accounts.player_profile.layout, PROP_PUNCHING_BAG),
+            RegistryError::NoTrainingMachine
+        );
         let bonus = match (&ctx.accounts.item_type, &ctx.accounts.machine_account) {
             (None, None) => 0,
             (Some(item), Some(held)) => {
@@ -1816,7 +1834,9 @@ pub struct PropSlot {
 pub const MAX_PLACED_SLOTS: usize = 8;
 pub const MAX_PROP_SLOTS: usize = 40;
 /// How many object kinds the client knows (the palette order is part of the format).
-pub const PROP_KINDS: u8 = 11;
+pub const PROP_KINDS: u8 = 12;
+/// The punching bag: the training machine every Rebyter trains on. It must stand on the island.
+pub const PROP_PUNCHING_BAG: u8 = 11;
 
 impl PlayerProfile {
     // Anchor discriminator + owner + created_at + ration_day + quest_day + counts + claimed + bump
@@ -2287,6 +2307,8 @@ pub enum RegistryError {
     StarterClaimed,
     #[msg("That machine does not fit this training")]
     InvalidMachine,
+    #[msg("Place the punching bag on your island to train")]
+    NoTrainingMachine,
     #[msg("That item does not evolve this Rebyter into that form")]
     InvalidEvolutionItem,
     #[msg("The island is already at its largest size")]
@@ -2547,3 +2569,24 @@ pub struct ItemPurchased {
     pub units: u64,
 }
 
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+
+    #[test]
+    fn finds_the_punching_bag_in_a_stored_layout() {
+        let placed = [PlacedSlot { mint: Pubkey::new_unique(), i: 1, j: 2 }];
+        let bag = PropSlot { kind: PROP_PUNCHING_BAG, x: 100, z: -200, h: 1500, r: 3 };
+        let tree = PropSlot { kind: 0, x: 0, z: 0, h: 1000, r: 0 };
+        let mut stored = [0u8; LAYOUT_BYTES];
+        let with = encode_layout(&placed, &[tree, bag]);
+        stored[..with.len()].copy_from_slice(&with);
+        assert!(layout_has_prop(&stored, PROP_PUNCHING_BAG));
+        let without = encode_layout(&placed, &[tree]);
+        let mut empty = [0u8; LAYOUT_BYTES];
+        empty[..without.len()].copy_from_slice(&without);
+        assert!(!layout_has_prop(&empty, PROP_PUNCHING_BAG));
+        assert!(!layout_has_prop(&[0u8; LAYOUT_BYTES], PROP_PUNCHING_BAG), "a blank island has none");
+    }
+}

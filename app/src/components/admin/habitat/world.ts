@@ -95,10 +95,11 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "lantern", label: "Farol encantado", h: 1 },
   { key: "vending", label: "Máquina expendedora", h: 4.6 },
   { key: "busStop", label: "Parada de colectivo", h: 5 },
+  { key: "punchingBag", label: "Saco de boxeo", h: 3 },
 ];
 
 /** Props with a clear front (the model faces +z at rotation 0): placed facing the middle, not at random. */
-export const FRONT_FACING: AssetKey[] = ["vending", "busStop"];
+export const FRONT_FACING: AssetKey[] = ["vending", "busStop", "punchingBag"];
 /** Rotation (snapped to quarter turns) that makes a front-facing prop look at (cx, cz) from (x, z). */
 export function facingInward(x: number, z: number, cx: number, cz: number) {
   const angle = Math.atan2(cx - x, cz - z);

@@ -74,6 +74,12 @@ type Props = {
   onActionComplete?: () => void;
   /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
   propAllowance?: (key: AssetKey) => number;
+  /** Asks a rebyter to walk to the punching bag and hit it; `nonce` makes each ask distinct. */
+  trainRequest?: { mint: string; nonce: number } | null;
+  /** The rebyter started hitting the bag: this is the moment to send the training. */
+  onTrainHit?: (mint: string) => void;
+  /** The whole training scene is over. `problem` says why it could not happen (no bag, no way to it, not saved). */
+  onTrainEnd?: (mint: string, problem?: "nobag" | "blocked" | "unsaved") => void;
   /** The habitat's size in tiles per side (default 5). It fixes the board, the camera and the limits. */
   size?: HabitatSize;
   /** The island's climate: it gives the habitat its land (water, cliffs) and so its capacity. */
@@ -96,6 +102,7 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   lantern: "Lantern",
   vending: "Vending machine",
   busStop: "Bus stop",
+  punchingBag: "Punching bag",
 };
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));
@@ -109,7 +116,7 @@ const NOTICES: Record<string, string> = {
 const TAP_PIXELS = 8;
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate" }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -141,6 +148,21 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   allowanceRef.current = propAllowance;
   const doneRef = useRef(onActionComplete);
   doneRef.current = onActionComplete;
+  const trainHitRef = useRef(onTrainHit);
+  trainHitRef.current = onTrainHit;
+  const trainEndRef = useRef(onTrainEnd);
+  trainEndRef.current = onTrainEnd;
+  /** The training scene in progress: walk to the bag, hit it, let it sway. */
+  const trainRef = useRef<{
+    mint: string;
+    path: [number, number][];
+    phase: "walk" | "hit" | "sway";
+    bag: PropEntry;
+    bi: number;
+    bj: number;
+    clock: number;
+    done: boolean;
+  } | null>(null);
 
   // The parent hands over a fresh array every tick; only a real change in who is owned matters.
   const ownedKey = creatures.map((c) => c.mint).join("|");
@@ -253,9 +275,32 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       const calm = editingRef.current;
       for (const walker of walkers.current) {
         const starring = walker.id === focusRef.current;
-        if ((!calm && !starring) || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: 0.45 });
+        const training = trainRef.current?.mint === walker.id;
+        if (training ? walker.walking : (!calm && !starring) || walker.walking) stepWalker(walker, walkers.current, dt, { canStand: standable, rand, speed: 0.45 });
         const entity = entities.current.get(walker.id);
         if (!entity) continue;
+        const session = trainRef.current;
+        if (session && training && !walker.walking) {
+          if (session.phase === "walk") {
+            const next = session.path.shift();
+            if (next) {
+              walker.yaw = Math.atan2(next[0] - walker.i, next[1] - walker.j);
+              walker.ti = next[0];
+              walker.tj = next[1];
+              walker.t = 0;
+              walker.walking = true;
+            } else {
+              session.phase = "hit";
+              session.clock = 0;
+              walker.yaw = Math.atan2(session.bi - walker.i, session.bj - walker.j);
+              const finish = () => {
+                session.phase = "sway";
+              };
+              if (!playAction(entity, "train", finish)) window.setTimeout(finish, 1100);
+              trainHitRef.current?.(walker.id);
+            }
+          }
+        }
         const p = walkerPosition(walker);
         const x = OX + p.x,
           z = OZ + p.z;
@@ -264,10 +309,32 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         if (walker.walking) moving = true;
         if (starring) rig.trackFocus({ x, z }, entity.height);
         if (entity.billboard) entity.yaw = rig.cur.yaw;
-        else entity.yaw += angleDelta(entity.yaw, starring && !walker.walking ? rig.cur.yaw : walker.yaw) * Math.min(1, dt * 7);
+        else entity.yaw += angleDelta(entity.yaw, starring && !walker.walking && !training ? rig.cur.yaw : walker.yaw) * Math.min(1, dt * 7);
         entity.outer.rotation.y = entity.yaw;
         blendWalk(entity, walker.walking, dt);
         entity.mixer?.update(dt);
+      }
+      const scene = trainRef.current;
+      if (scene && scene.phase !== "walk") {
+        scene.clock += dt;
+        const node = scene.bag.prop?.node;
+        // The bag takes the hit a moment after the swing starts, then settles.
+        const since = scene.clock - 0.45;
+        const sway = since > 0 ? Math.sin(since * 13) * 0.07 * Math.exp(-since * 2.6) : 0;
+        if (node) {
+          node.rotation.z = sway;
+          node.rotation.x = sway * 0.4;
+        }
+        moving = true;
+        if (scene.phase === "sway" && since > 1.3 && !scene.done) {
+          scene.done = true;
+          if (node) {
+            node.rotation.z = 0;
+            node.rotation.x = 0;
+          }
+          trainRef.current = null;
+          trainEndRef.current?.(scene.mint);
+        }
       }
       shadowClock += dt;
       if ((moving || calm) && shadowClock > 0.07) {
@@ -338,6 +405,9 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           await world.restore({ ...world.snapshot(), props: shown.map((p, n) => ({ id: n + 1, ...p })) });
         } else {
           await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
+          // Every new island starts with the punching bag, the machine everyone trains on.
+          const spot = freeTile([{ i: TREE_TILE.i, j: TREE_TILE.j }, ...layoutNow.placed.map((p) => ({ i: p.i, j: p.j }))], (i, j) => !world.canStand(i, j), spec);
+          if (spot) await world.addProp("punchingBag", tileX(spot.i), tileZ(spot.j));
         }
       } catch {
         if (!dead) setFailed(true);
@@ -778,6 +848,60 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       if (action === "sad") stopAction(entity);
     };
   }, [action, ready, focusMint, layout]);
+
+  // A training was asked for: make sure the bag is saved on the island, find the way to it, then the update loop walks there.
+  useEffect(() => {
+    if (!trainRequest || !ready) return;
+    const world = worldRef.current;
+    const mint = trainRequest.mint;
+    let cancelled = false;
+    const end = (problem?: "nobag" | "blocked" | "unsaved") => trainEndRef.current?.(mint, problem);
+    void (async () => {
+      const walker = walkers.current.find((k) => k.id === mint);
+      if (!world || !walker || !entities.current.has(mint) || trainRef.current) return end("blocked");
+      persistRef.current();
+      if (!world.entries.some((e) => e.key === "punchingBag")) return end("nobag");
+      // The program only lets you train when the bag is in the island saved in your profile.
+      if (!baselineRef.current.includes('"punchingBag"')) {
+        await commit();
+        if (cancelled) return;
+        if (!baselineRef.current.includes('"punchingBag"')) return end("unsaved");
+      }
+      const bag = world.entries.find((e) => e.key === "punchingBag");
+      if (!bag) return end("nobag");
+      const bi = Math.round(bag.x - OX),
+        bj = Math.round(bag.z - OZ);
+      const inBoard = (i: number, j: number) => i >= BOARD.i0 && i <= BOARD.i1 && j >= BOARD.j0 && j <= BOARD.j1;
+      const free = (i: number, j: number) => inBoard(i, j) && world.canStand(i, j) && !tileTaken(walkers.current, i, j, mint);
+      const around = (i: number, j: number): [number, number][] => [[i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]];
+      const isGoal = (i: number, j: number) => Math.abs(i - bi) + Math.abs(j - bj) === 1;
+      // Breadth-first from where it is (or is heading) to a free tile beside the bag.
+      const start: [number, number] = [walker.ti, walker.tj];
+      const came = new Map<string, [number, number] | null>([[`${start[0]},${start[1]}`, null]]);
+      const queue: [number, number][] = [start];
+      let goal: [number, number] | null = isGoal(start[0], start[1]) ? start : null;
+      while (!goal && queue.length) {
+        const [ci, cj] = queue.shift()!;
+        for (const [ni, nj] of around(ci, cj)) {
+          const key = `${ni},${nj}`;
+          if (came.has(key) || !free(ni, nj)) continue;
+          came.set(key, [ci, cj]);
+          if (isGoal(ni, nj)) {
+            goal = [ni, nj];
+            break;
+          }
+          queue.push([ni, nj]);
+        }
+      }
+      if (!goal || trainRef.current) return end("blocked");
+      const path: [number, number][] = [];
+      for (let at: [number, number] | null | undefined = goal; at && !(at[0] === start[0] && at[1] === start[1]); at = came.get(`${at[0]},${at[1]}`)) path.unshift(at);
+      trainRef.current = { mint, path, phase: "walk", bag, bi, bj, clock: 0, done: false };
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trainRequest?.nonce, ready]);
 
   const finishEditing = () => {
     persistRef.current();

@@ -72,6 +72,7 @@ const extraFiles = {
   shoreRocks: "shore_rocks_strip_mobile.glb",
   vending: "vending-machine.glb",
   busStop: "bus-stop.glb",
+  punchingBag: "punching-bag.glb",
 } as const;
 const allFiles = { ...files, ...extraFiles } as const;
 type BaseKey = keyof typeof files;

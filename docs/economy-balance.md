@@ -21,6 +21,11 @@ players start a new account.
   Objects only show if the wallet holds them (decor beyond what is held is hidden, not deleted).
 - **One PDA per player:** `PlayerProfile` (`profile5`): pokedex, ration day, quest counters, food, starter flag,
   island level, layout.
+- **Training needs the punching bag.** The bag is the one training machine: a free object (one per island, part of the
+  engine like the starter decor) that must stand on the island saved in the profile. `train` reads the profile's
+  `layout` and fails with `NoTrainingMachine` if no bag (prop kind 11) is on it. In the app the rebyter walks to the
+  bag, hits it with its attack clip and the bag sways; the training is sent as the hit starts. Specialised machines
+  (tokens in the wallet) still add their bonus on top.
 - **Starter pack,** claimed once per wallet together with the first Rebyter (own transaction): the profile and 3 meals
   of each food. The starter decor (tree, rocks, bush) is part of the engine and free for everyone.
 - **Storage** (game menu) lists what the wallet holds grouped by type, and returns the deposit of empty token accounts.
