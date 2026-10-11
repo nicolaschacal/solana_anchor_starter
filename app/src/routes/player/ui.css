@@ -1071,4 +1071,15 @@
 .rb-ui .den-card-info{align-self:center!important;justify-content:center!important;height:auto!important;flex:none!important}
 .rb-ui .den-card-info .den-mint-link{margin:2px 0 0!important;padding:0!important;min-height:0!important}
 .rb-ui .den-card-info .den-card-select{flex:none!important;min-height:0!important}
+
+/* Two per row; the picture is a rounded, framed tile with the text beside it. */
+.rb-ui .den-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+@media (min-width:720px){.rb-ui .den-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))!important}}
+.rb-ui .den-card{grid-template-columns:64px minmax(0,1fr)!important;gap:10px!important;padding:8px!important}
+.rb-ui .den-card .den-card-art{width:64px!important;height:64px!important;min-width:0!important;border-radius:16px!important;border-width:2px!important;box-shadow:none!important;overflow:hidden!important;position:relative!important;display:block!important}
+.rb-ui .den-card .den-card-art>*{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;transform:none!important;object-fit:cover!important;border-radius:0!important;aspect-ratio:auto!important}
+.rb-ui .den-card-info .den-card-select strong{font-size:var(--ui-fs-body)!important;line-height:1.2!important;overflow-wrap:anywhere!important}
+.rb-ui .den-card-info .den-card-select small{font-size:10px!important}
+.rb-ui .den-card-info .den-mint-link{font-size:10px!important;gap:3px!important}
+.rb-ui .den-card-info .den-mint-link svg{width:11px!important;height:11px!important}
 }
