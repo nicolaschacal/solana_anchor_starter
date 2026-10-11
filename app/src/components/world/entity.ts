@@ -124,6 +124,32 @@ const ACTION_CLIPS: Record<string, string[]> = {
   care: ["care", "carehappy", "bouncehappy", "happy"],
 };
 
+/** When no clip has the exact name, any clip whose name contains one of these words is used (models come from different tools). */
+const ACTION_WORDS: Record<string, string[]> = {
+  touch: ["happy", "joy", "cheer", "bounce", "jump", "hop", "excite", "celebrat", "dance", "spin", "wave"],
+  sad: ["sad", "cry", "sorrow", "unhappy"],
+  feed: ["feed", "eat", "munch", "chew", "nom", "bite"],
+  play: ["happy", "joy", "play", "cheer", "bounce", "jump", "hop", "excite", "celebrat", "dance", "spin", "wave"],
+  train: ["attack", "slam", "punch", "strike", "hit", "train", "kick", "smash"],
+  care: ["happy", "joy", "care", "love", "cheer", "bounce", "jump", "hop", "celebrat", "dance", "wave"],
+};
+const NOT_ACTIONS = ["idle", "walk", "run", "sad", "sleep", "rest", "death", "die"];
+
+function findClip(entity: Entity, key: string, wanted: string[]) {
+  const exact = entity.clips.find((c) => wanted.includes(normalize(c.name)));
+  if (exact) return exact;
+  const words = ACTION_WORDS[key] ?? [];
+  const usable = entity.clips.filter((c) => {
+    const n = normalize(c.name);
+    return key === "sad" || !NOT_ACTIONS.some((bad) => n.includes(bad));
+  });
+  for (const word of words) {
+    const hit = usable.find((c) => normalize(c.name).includes(word));
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 /**
  * Plays a named action on a rebyter. "sad" loops until stopped; the rest play once and
  * call `onDone`. Returns false (and does nothing) when the model has no such clip.
@@ -133,8 +159,11 @@ export function playAction(entity: Entity, name: string, onDone?: () => void) {
   const wanted = ACTION_CLIPS[key];
   const mixer = entity.mixer;
   if (!wanted || !mixer) return false;
-  const clip = entity.clips.find((c) => wanted.includes(normalize(c.name)));
-  if (!clip) return false;
+  const clip = findClip(entity, key, wanted);
+  if (!clip) {
+    if (import.meta.env?.DEV) console.warn(`No "${name}" clip in`, entity.clips.map((c) => c.name));
+    return false;
+  }
   stopAction(entity);
   const action = mixer.clipAction(clip).reset();
   const loops = key === "sad";
