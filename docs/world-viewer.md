@@ -59,4 +59,4 @@ Rules: the creature and every solid prop occupy exactly one tile. Water cannot c
 Code: `components/admin/HabitatEditor.tsx` (UI), `components/admin/habitat/world.ts` (engine), `habitat/tiles.ts` (tile maths and meshes). `meadow()` gained opt-in `props`, `scenery`, `spawn` and `removeProp`; its default game behaviour is unchanged. Rendering was checked in headless Chromium only; review on real devices.
 
 ## Size by stage
-Every model is first fitted to the same box, so proportions alone decide how big it looks. `STAGE_SIZE` in `components/world/entity.ts` scales that box by stage (Origin 0.88, Byte 1.06, Kylo 1.75, then 2.0, 2.25, 2.5): babies stay small and each form grows. Change the numbers there; no model needs re-uploading.
+Every model is first fitted to the same box, so proportions alone decide how big it looks. `STAGE_SIZE` in `components/world/entity.ts` scales that box by stage (Origin 0.8, Byte 0.96, Kylo 1.58, then 1.8, 2.03, 2.25): babies stay small and each form grows. Change the numbers there; no model needs re-uploading.
