@@ -1185,7 +1185,6 @@ function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evol
   return <>
     <button className="ui-btn ui-btn-secondary ui-btn-sm atlas-back" onClick={onBack}><ChevronLeft/> Back to atlas</button>
     <div className="player-page-head lineage-title"><small>FULL LINEAGE</small><h1>{evolution.name}</h1><p>Your discovered branch stays visible. Unknown forms remain hidden until one of your Rebyters actually reaches them.</p></div>
-    {modelUriFor(evolution)&&<div className="atlas-model-preview"><EvolutionModel evolution={evolution}/></div>}
     <div className="player-lineage-map">
       {grouped.map((group,index)=><section key={group.stage} className="lineage-stage">
         <div className="lineage-stage-label"><small>0{group.stage+1}</small><strong>{group.label}</strong></div>
@@ -1197,7 +1196,7 @@ function AtlasLineage({ evolution, onBack, onSelect, tree, discoveredIds }:{evol
             aria-pressed={item.id===evolution.id}
             className={`lineage-card${item.id===evolution.id?" active":""}${open?" selectable":" locked"}`}
             key={item.id}
-          >{open?<CreatureSprite evolution={item}/>:<LockKeyhole/>}<strong>{open?item.name:"???"}</strong><small>{open?(item.id===evolution.id?"Current focus":"Explore routes"):"Undiscovered"}</small></button>})}
+          >{open?<SpriteTile evolution={item}/>:<LockKeyhole/>}<strong>{open?item.name:"???"}</strong><small>{open?(item.id===evolution.id?"Current focus":"Explore routes"):"Undiscovered"}</small></button>})}
         </div>
         {index<grouped.length-1&&<div className="lineage-arrow"><ChevronRight/></div>}
       </section>)}
@@ -1231,7 +1230,7 @@ export function PlayerAtlas() {
     </div></section>
     <div className="player-page-head atlas-hero"><small>DISCOVERY ATLAS</small><h1>Mammal.exe</h1><p>Every form your trainer has ever reached stays revealed here, even after that Rebyter evolves again.</p></div>
     <div className="atlas-progress"><span><strong>{ownedEvolutionIds.size}</strong> / {tree.evolutions.length} discovered</span><div><i style={{width:`${ownedEvolutionIds.size/tree.evolutions.length*100}%`}}/></div></div>
-    {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<CreatureSprite evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
+    {stages.map(group=><section className="discovery-stage" key={group.stage}><h2>{STAGE_NAMES[group.stage]} <span>{group.items.filter(e=>ownedEvolutionIds.has(e.id)).length}/{group.items.length}</span></h2><div className="discovery-grid">{group.items.map(e=>{const open=ownedEvolutionIds.has(e.id); return <button disabled={!open} onClick={()=>open&&setSelectedId(e.id)} className={open?"discovery-card":"discovery-card locked"} key={e.id}>{open?<SpriteTile evolution={e}/>:<LockKeyhole/>}<strong>{open?e.name:"???"}</strong><small>{open?"View lineage":"Undiscovered"}</small></button>})}</div></section>)}
   </main></Shell>;
 }
 
