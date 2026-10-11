@@ -3284,11 +3284,16 @@
     },
     {
       "code": 6037,
+      "name": "NoTrainingMachine",
+      "msg": "Place the punching bag on your island to train"
+    },
+    {
+      "code": 6038,
       "name": "InvalidEvolutionItem",
       "msg": "That item does not evolve this Rebyter into that form"
     },
     {
-      "code": 6038,
+      "code": 6039,
       "name": "IslandMaxed",
       "msg": "The island is already at its largest size"
     }
