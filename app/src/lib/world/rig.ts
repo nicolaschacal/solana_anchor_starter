@@ -24,6 +24,12 @@ export function angleDelta(a: number, b: number) {
   return ((((b - a + Math.PI) % TAU) + TAU) % TAU) - Math.PI;
 }
 /** Distance at which a half-width (in metres) just fits the screen, whatever its shape. */
+/**
+ * On a wide screen the width-fit distance gets very short (the screen is short), so everything looked huge next to a
+ * phone: about 1.7x more pixels per metre. These floors keep the on-screen size of a rebyter close to the phone's.
+ */
+const WIDE_HOME_DIST = 8;
+const WIDE_FOCUS_DIST = 3.4;
 export function fitDistance(halfWidth: number, aspect: number, fov = FOV) {
   const t = Math.tan(THREE.MathUtils.degToRad(fov / 2));
   return halfWidth / (t * Math.min(aspect, 1.6));
@@ -69,7 +75,7 @@ export class WorldRig {
     return Math.max(1, this.half / 2.9);
   }
   get maxDist() {
-    return clamp(fitDistance(this.half + 0.6, this.aspect), 8, 17 * this.scale);
+    return clamp(fitDistance(this.half + 0.6, this.aspect), this.aspect >= 1 ? WIDE_HOME_DIST * 1.5 : 8, 17 * this.scale);
   }
   private get homeDist() {
     // Shows a bit less than the whole board: close enough to see the rebyters, far enough to see where they live.
@@ -77,7 +83,8 @@ export class WorldRig {
     const trim = this.half > 3.5 ? 0.6 : this.half > 3 ? 0.8 : 0.9;
     // The view is turned 35 degrees, so the board's diagonal is what has to fit.
     const reach = this.half > 3 ? (this.half - trim) * 1.22 : this.half - trim;
-    return clamp(fitDistance(reach, this.aspect), LIMITS.minDist + 1.5, this.maxDist);
+    const wide = this.aspect >= 1 ? WIDE_HOME_DIST * Math.max(1, this.half / 2.9) : 0;
+    return clamp(Math.max(fitDistance(reach, this.aspect), wide), LIMITS.minDist + 1.5, this.maxDist);
   }
   /** Height the home view looks at; raising it moves the island lower on screen. */
   homeY = 0.35;
@@ -183,7 +190,7 @@ export class WorldRig {
     this.focusHeight = height;
   }
   private focusDist() {
-    return clamp(fitDistance(0.85, this.aspect), 2.8, 7);
+    return clamp(fitDistance(0.85, this.aspect), this.aspect >= 1 ? WIDE_FOCUS_DIST : 2.8, 7);
   }
 
   setAspect(aspect: number) {
