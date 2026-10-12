@@ -13,6 +13,9 @@ export type Entity = {
   outer: THREE.Group;
   /** Metres from the feet to the top of the head. */
   height: number;
+  /** The model's own largest dimension before it is fitted (for the ?debug=1 readout). */
+  raw: number;
+  box: [number, number, number];
   /** A flat card (no 3D model): it always faces the camera instead of turning. */
   billboard: boolean;
   yaw: number;
@@ -87,7 +90,7 @@ export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
       walk.setEffectiveWeight(0);
     }
   }
-  return { mint, outer, height: size.y * scale, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
+  return { mint, outer, height: size.y * scale, raw: Math.max(size.x, size.y, size.z), box: [size.x * scale, size.y * scale, size.z * scale], billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
 }
 
 /** Eases the walk and idle animations into each other. */

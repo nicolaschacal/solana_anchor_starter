@@ -118,6 +118,7 @@ const NOTICES: Record<string, string> = {
   "Ya hay un objeto sólido en esa baldosa.": "There is already an object on that tile.",
 };
 const TAP_PIXELS = 8;
+const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
 export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate" }: Props) {
@@ -205,6 +206,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   }, []);
 
   const [ready, setReady] = useState(false);
+  const [debugRows, setDebugRows] = useState<string[]>([]);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState<"rebyters" | "objects">("rebyters");
@@ -733,6 +735,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           if (!walkers.current.some((k) => k.id === p.mint) || entities.current.has(p.mint) || !worldRef.current) return;
           if (shownForm.current.get(p.mint) !== formId) return;
           const entity = buildEntity(p.mint, asset, creature.evolution.stage);
+          if (DEBUG_SIZES) {
+            const row = `${creature.evolution.name} · stage ${creature.evolution.stage} · ${entity.billboard ? "FLAT CARD" : "3D"} · raw ${entity.raw.toFixed(2)} → ${entity.box.map((v) => v.toFixed(2)).join("×")} m`;
+            setDebugRows((rows) => [...rows.filter((r) => !r.startsWith(creature.evolution.name + " ")), row]);
+          }
           entities.current.set(p.mint, entity);
           worldRef.current.scene.add(entity.outer);
           worldRef.current.markShadowsDirty();
@@ -956,6 +962,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   return (
     <div className="world-view" ref={hostRef} data-ready={ready} data-editing={editing}>
       <canvas ref={canvasRef} className="world-canvas" />
+      {DEBUG_SIZES && (
+        <pre style={{ position: "absolute", left: 8, top: 120, zIndex: 20, margin: 0, padding: 8, background: "#000a", color: "#fff", font: "11px/1.4 monospace", borderRadius: 8, pointerEvents: "none", maxWidth: "92%", whiteSpace: "pre-wrap" }}>
+          {`screen ${innerWidth}×${innerHeight} @${devicePixelRatio}x\n${debugRows.join("\n")}`}
+        </pre>
+      )}
       {!ready && !failed && (
         <div className="world-loading" role="status">
           Loading your world…
