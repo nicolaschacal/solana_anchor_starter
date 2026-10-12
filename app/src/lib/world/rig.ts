@@ -26,10 +26,10 @@ export function angleDelta(a: number, b: number) {
 /** Distance at which a half-width (in metres) just fits the screen, whatever its shape. */
 /**
  * On a wide screen the width-fit distance gets very short (the screen is short), so everything looked huge next to a
- * phone: about 1.7x more pixels per metre. These floors keep the on-screen size of a rebyter close to the phone's.
+ * phone: about 2.4x more of the screen height per metre. These floors give a rebyter the same share of the screen height as on a phone.
  */
-const WIDE_HOME_DIST = 8;
-const WIDE_FOCUS_DIST = 3.4;
+const WIDE_HOME_DIST = 11;
+const WIDE_FOCUS_DIST = 4.8;
 export function fitDistance(halfWidth: number, aspect: number, fov = FOV) {
   const t = Math.tan(THREE.MathUtils.degToRad(fov / 2));
   return halfWidth / (t * Math.min(aspect, 1.6));
