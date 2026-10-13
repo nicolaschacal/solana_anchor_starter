@@ -143,6 +143,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   creaturesRef.current = creatures;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const closeUpRef = useRef(closeUp);
+  closeUpRef.current = closeUp;
   const focusRef = useRef<string | null>(focusMint);
   focusRef.current = focusMint;
   const clockRef = useRef<number | undefined>(worldTime);
@@ -212,7 +214,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   useEffect(() => {
     const rig = rigRef.current;
     if (!rig) return;
-    rig.minDist = closeUp ? 0.6 : LIMITS.minDist;
+    rig.free = closeUp;
+    rig.minDist = closeUp ? 0.4 : LIMITS.minDist;
     rig.focusMinDist = closeUp ? 0.8 : FOCUS.minDist;
   }, [closeUp, ready]);
   const [failed, setFailed] = useState(false);
@@ -599,6 +602,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       }
       const mint = pickRebyter(x, y, w, h);
       if (!mint) return;
+      if (closeUpRef.current) {
+        const hit = entities.current.get(mint);
+        if (hit) rigRef.current?.focus({ x: hit.outer.position.x, z: hit.outer.position.z }, Math.max(1.4, hit.height * 2.4), 0.2);
+        return;
+      }
       if (mint === focusRef.current && exitRef.current) exitRef.current();
       else onSelectRef.current(mint);
     };
@@ -628,6 +636,13 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         const d = Math.hypot(a.x - b.x, a.y - b.y);
         if (pinch > 0 && d > 0) rigRef.current?.zoom(pinch / d);
         pinch = d;
+        // Free camera: two fingers also slide the view (half of each finger's move is the pair's move).
+        if (closeUpRef.current) rigRef.current?.pan(dx / 2, dy / 2);
+        return;
+      }
+      if (closeUpRef.current && (event.buttons & 2 || event.shiftKey || event.ctrlKey)) {
+        moved += 99;
+        rigRef.current?.pan(dx, dy);
         return;
       }
       moved += Math.abs(dx) + Math.abs(dy);
@@ -645,6 +660,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       event.preventDefault();
       rigRef.current?.zoom(Math.exp(event.deltaY * 0.0012));
     };
+    const noMenu = (event: Event) => {
+      if (closeUpRef.current) event.preventDefault();
+    };
+    canvas.addEventListener("contextmenu", noMenu);
     canvas.addEventListener("pointerdown", down);
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
@@ -655,6 +674,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     const assetMap = assets.current;
     return () => {
       dead = true;
+      canvas.removeEventListener("contextmenu", noMenu);
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointermove", move);
       canvas.removeEventListener("pointerup", up);

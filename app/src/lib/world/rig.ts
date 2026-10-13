@@ -90,6 +90,8 @@ export class WorldRig {
   homeY = 0.35;
   /** How close the player may zoom. The admin preview lowers these to inspect models at scale. */
   minDist: number = LIMITS.minDist;
+  /** Free camera: very wide pitch and distance limits (admin preview). */
+  free = false;
   focusMinDist: number = FOCUS.minDist;
   private home(): Pose {
     return { yaw: 0.62, pitch: 0.62, dist: this.homeDist, x: this.centre.x, y: this.homeY, z: this.centre.z };
@@ -129,7 +131,7 @@ export class WorldRig {
   orbit(dYaw: number, dPitch: number) {
     if (this.mode === "top") return;
     this.interrupt();
-    const [lo, hi] = this.mode === "focus" ? [FOCUS.minPitch, FOCUS.maxPitch] : [LIMITS.minPitch, LIMITS.maxPitch];
+    const [lo, hi] = this.mode === "focus" ? [FOCUS.minPitch, FOCUS.maxPitch] : this.free ? [0.02, 1.5] : [LIMITS.minPitch, LIMITS.maxPitch];
     this.goal.yaw += dYaw;
     this.goal.pitch = clamp(this.goal.pitch + dPitch, lo, hi);
   }
@@ -142,7 +144,17 @@ export class WorldRig {
       return;
     }
     this.zoomed = true;
-    this.goal.dist = clamp(this.goal.dist * factor, this.minDist, this.maxDist);
+    this.goal.dist = clamp(this.goal.dist * factor, this.minDist, this.free ? 80 : this.maxDist);
+  }
+  /** Admin preview: slides the point the camera looks at (right along the screen, up and down). */
+  pan(dx: number, dy: number) {
+    if (this.mode === "top") return;
+    this.interrupt();
+    const k = this.goal.dist * 0.0022;
+    const yaw = this.goal.yaw;
+    this.goal.x -= Math.cos(yaw) * dx * k;
+    this.goal.z += Math.sin(yaw) * dx * k;
+    this.goal.y = clamp(this.goal.y + dy * k, -1, 12);
   }
   /** Any other input (a tap, a key) that should count as activity. */
   poke() {
@@ -236,7 +248,7 @@ export class WorldRig {
     this.goal = {
       yaw: shot.yaw,
       pitch: clamp(shot.pitch, LIMITS.minPitch, LIMITS.maxPitch),
-      dist: clamp(shot.dist, this.minDist, this.maxDist),
+      dist: clamp(shot.dist, this.minDist, this.free ? 80 : this.maxDist),
       x: this.centre.x + (at.x - this.centre.x) * k,
       y: shot.target === "centre" ? 0.35 : 0.45,
       z: this.centre.z + (at.z - this.centre.z) * k,
