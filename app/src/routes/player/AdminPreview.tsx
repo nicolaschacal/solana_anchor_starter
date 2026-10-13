@@ -18,6 +18,7 @@ export function AdminPreview({ tree, onClose }: { tree: TreeJson; onClose: () =>
   const stages = useMemo(() => STAGES.map((label, stage) => ({ label, stage, forms: tree.evolutions.filter((e) => e.stage === stage) })).filter((s) => s.forms.length), [tree]);
   const [stage, setStage] = useState(stages[0]?.stage ?? 0);
   const [page, setPage] = useState(0);
+  const [focus, setFocus] = useState<string | null>(null);
   const forms = stages.find((s) => s.stage === stage)?.forms ?? [];
   const per = Math.max(1, spec.maxPlaced);
   const pages = Math.max(1, Math.ceil(forms.length / per));
@@ -30,17 +31,21 @@ export function AdminPreview({ tree, onClose }: { tree: TreeJson; onClose: () =>
   const pick = (next: number) => {
     setStage(next);
     setPage(0);
+    setFocus(null);
   };
   return createPortal(
     <div className="rb-ui" style={{ position: "fixed", inset: 0, zIndex: 400, background: "#0c1a2e" }}>
       <Suspense fallback={<div className="world-loading" role="status">Loading preview…</div>}>
         <PlayerWorld
           key={`${stage}-${page}`}
+          closeUp
+          focusMint={focus}
+          onExit={() => setFocus(null)}
           creatures={creatures}
           initialLayout={layout}
           onCommitLayout={async () => undefined}
           period="Day"
-          onSelect={() => undefined}
+          onSelect={setFocus}
           editable={false}
           showcase
           size={SIZE}
@@ -55,11 +60,11 @@ export function AdminPreview({ tree, onClose }: { tree: TreeJson; onClose: () =>
         </div>
       </div>
       <div style={{ position: "absolute", left: 12, right: 12, bottom: "calc(12px + env(safe-area-inset-bottom,0px))", zIndex: 30, display: "flex", gap: 8, alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-        <button className="ui-btn ui-btn-secondary ui-btn-sm" style={{ pointerEvents: "auto" }} disabled={page === 0} onClick={() => setPage(page - 1)}><ChevronLeft /></button>
+        <button className="ui-btn ui-btn-secondary ui-btn-sm" style={{ pointerEvents: "auto" }} disabled={page === 0} onClick={() => { setPage(page - 1); setFocus(null); }}><ChevronLeft /></button>
         <div className="ui-btn ui-btn-secondary ui-btn-sm" style={{ pointerEvents: "auto", display: "block", maxWidth: "70%", whiteSpace: "normal", textAlign: "center", height: "auto", lineHeight: 1.35, padding: "6px 12px" }}>
           <strong>{page + 1}/{pages}</strong> · {shown.map((f) => f.name).join(", ")}
         </div>
-        <button className="ui-btn ui-btn-secondary ui-btn-sm" style={{ pointerEvents: "auto" }} disabled={page >= pages - 1} onClick={() => setPage(page + 1)}><ChevronRight /></button>
+        <button className="ui-btn ui-btn-secondary ui-btn-sm" style={{ pointerEvents: "auto" }} disabled={page >= pages - 1} onClick={() => { setPage(page + 1); setFocus(null); }}><ChevronRight /></button>
       </div>
     </div>,
     document.body,

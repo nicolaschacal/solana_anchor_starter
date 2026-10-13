@@ -11,7 +11,7 @@ import { OX, OZ, TileMap } from "../admin/habitat/tiles";
 import { FRONT_FACING, HabitatWorld, facingInward, footprint, spanOf, type PropEntry } from "../admin/habitat/world";
 import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
-import { FOV, WorldRig, angleDelta } from "../../lib/world/rig";
+import { FOV, WorldRig, angleDelta, FOCUS, LIMITS } from "../../lib/world/rig";
 import { createWalker, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
 import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
@@ -84,6 +84,8 @@ type Props = {
   size?: HabitatSize;
   /** The island's climate: it gives the habitat its land (water, cliffs) and so its capacity. */
   climate?: Climate;
+  /** Lets the camera zoom in very close (admin preview). */
+  closeUp?: boolean;
 };
 
 type Selection = { kind: "prop"; entry: PropEntry } | { kind: "creature"; mint: string } | null;
@@ -121,7 +123,7 @@ const TAP_PIXELS = 8;
 const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate" }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -207,6 +209,12 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
 
   const [ready, setReady] = useState(false);
   const [debugRows, setDebugRows] = useState<string[]>([]);
+  useEffect(() => {
+    const rig = rigRef.current;
+    if (!rig) return;
+    rig.minDist = closeUp ? 0.6 : LIMITS.minDist;
+    rig.focusMinDist = closeUp ? 0.8 : FOCUS.minDist;
+  }, [closeUp, ready]);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState<"rebyters" | "objects">("rebyters");

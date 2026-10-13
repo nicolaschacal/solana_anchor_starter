@@ -88,6 +88,9 @@ export class WorldRig {
   }
   /** Height the home view looks at; raising it moves the island lower on screen. */
   homeY = 0.35;
+  /** How close the player may zoom. The admin preview lowers these to inspect models at scale. */
+  minDist: number = LIMITS.minDist;
+  focusMinDist: number = FOCUS.minDist;
   private home(): Pose {
     return { yaw: 0.62, pitch: 0.62, dist: this.homeDist, x: this.centre.x, y: this.homeY, z: this.centre.z };
   }
@@ -135,11 +138,11 @@ export class WorldRig {
     this.interrupt();
     if (this.mode === "focus") {
       this.focusZoomed = true;
-      this.goal.dist = clamp(this.goal.dist * factor, FOCUS.minDist, FOCUS.maxDist);
+      this.goal.dist = clamp(this.goal.dist * factor, this.focusMinDist, FOCUS.maxDist);
       return;
     }
     this.zoomed = true;
-    this.goal.dist = clamp(this.goal.dist * factor, LIMITS.minDist, this.maxDist);
+    this.goal.dist = clamp(this.goal.dist * factor, this.minDist, this.maxDist);
   }
   /** Any other input (a tap, a key) that should count as activity. */
   poke() {
@@ -208,7 +211,7 @@ export class WorldRig {
       this.cur.dist = this.goal.dist = home.dist;
       if (this.introPending) this.startIntro();
     } else if (!this.zoomed && !this.touring) this.goal.dist = this.homeDist;
-    else this.goal.dist = clamp(this.goal.dist, LIMITS.minDist, this.maxDist);
+    else this.goal.dist = clamp(this.goal.dist, this.minDist, this.maxDist);
   }
 
   // ---- Frame ------------------------------------------------------------------
@@ -233,7 +236,7 @@ export class WorldRig {
     this.goal = {
       yaw: shot.yaw,
       pitch: clamp(shot.pitch, LIMITS.minPitch, LIMITS.maxPitch),
-      dist: clamp(shot.dist, LIMITS.minDist, this.maxDist),
+      dist: clamp(shot.dist, this.minDist, this.maxDist),
       x: this.centre.x + (at.x - this.centre.x) * k,
       y: shot.target === "centre" ? 0.35 : 0.45,
       z: this.centre.z + (at.z - this.centre.z) * k,
