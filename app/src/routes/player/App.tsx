@@ -5,6 +5,7 @@ import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foo
 import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
+import { useIsAdmin } from "../../hooks/useIsAdmin";
 import { Suspense, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -44,6 +45,7 @@ import "./ui.css";
 
 // The 3D world is loaded on demand: it brings the whole habitat engine with it.
 import { LandingBackdrop } from "../../components/world/LandingBackdrop";
+const AdminPreview = lazy(() => import("./AdminPreview").then(m => ({ default: m.AdminPreview })));
 const PlayerWorld = lazy(() => import("../../components/world/PlayerWorld").then(m => ({ default: m.PlayerWorld })));
 const fallbackTree = sampleMammal();
 const FOOD_DIET = ["carnivore", "herbivore", "piscivore", "frugivore"];
@@ -1236,6 +1238,8 @@ export function PlayerAtlas() {
 
 export function PlayerAccount() {
   const player=usePlayerCollection();
+  const isAdmin=useIsAdmin();
+  const [previewOpen,setPreviewOpen]=useState(false);
   const wallet=useRebytersAuth();
   const {connection}=useConnection();
   const navigate=useNavigate();
@@ -1314,11 +1318,15 @@ export function PlayerAccount() {
       <button className="trainer-profile-card account-nav-card" onClick={()=>navigate("/atlas")}>
         <div className="trainer-profile-head"><span><Sparkles/></span><div><small>PLAYER PROFILE</small><h2>{currentDiscoveries.length} discovered</h2><p>Open your Atlas and review every form you have discovered.</p></div><ChevronRight/></div>
       </button>
+      {isAdmin&&<button className="account-card subtle account-nav-card" onClick={()=>setPreviewOpen(true)}>
+        <Dna/><div><small>ADMIN</small><strong>Atlas preview</strong><p>See every form of the atlas in the real world. Nothing is saved.</p></div><ChevronRight/>
+      </button>}
       <button className="account-card subtle account-nav-card" onClick={()=>navigate("/?den=1")}>
         <Sparkles/><div><small>COLLECTION</small><strong>{owned.length} companion{owned.length===1?"":"s"}</strong><p>Open your Den and switch between your Rebyters.</p></div><ChevronRight/>
       </button>
     </div>
 
+    {previewOpen&&isAdmin&&<Suspense fallback={null}><AdminPreview tree={tree} onClose={()=>setPreviewOpen(false)}/></Suspense>}
     {wallet.connected&&<div className="account-logout">
       <button className="ui-btn ui-btn-danger" onClick={()=>void logOut()}>Log out</button>
     </div>}
