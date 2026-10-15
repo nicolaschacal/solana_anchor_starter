@@ -44,17 +44,25 @@ export function testerWallet(): AnchorWallet {
   return makeWallet(keypair);
 }
 
-/** Tops the tester up from the devnet faucet. Returns a message when it could not. */
-export async function fundTester(connection: Connection, wallet: AnchorWallet): Promise<string | null> {
+/** Tops the tester up from the devnet faucet (it often refuses big or repeated requests, so it steps down). */
+export async function fundTester(connection: Connection, wallet: AnchorWallet): Promise<{ sol: number; note: string }> {
+  const read = async () => (await connection.getBalance(wallet.publicKey)) / 1e9;
+  let sol = 0;
   try {
-    const have = await connection.getBalance(wallet.publicKey);
-    if (have >= 0.5e9) return null;
-    const sig = await connection.requestAirdrop(wallet.publicKey, 2e9);
-    const latest = await connection.getLatestBlockhash();
-    await connection.confirmTransaction({ signature: sig, ...latest }, "confirmed");
-    return null;
-  } catch (e) {
-    console.warn("Tester faucet:", e);
-    return "no devnet SOL yet: faucet unavailable";
+    sol = await read();
+    if (sol >= 0.5) return { sol, note: "" };
+  } catch {
+    return { sol, note: "no connection to devnet" };
   }
+  for (const amount of [2, 1, 0.5]) {
+    try {
+      const sig = await connection.requestAirdrop(wallet.publicKey, amount * 1e9);
+      const latest = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({ signature: sig, ...latest }, "confirmed");
+      return { sol: await read(), note: "" };
+    } catch (e) {
+      console.warn("Tester faucet:", e);
+    }
+  }
+  return { sol, note: "The devnet faucet refused. Tap here to copy this address, then get SOL at faucet.solana.com or send some from your own wallet." };
 }

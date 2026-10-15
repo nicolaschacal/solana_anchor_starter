@@ -36,10 +36,11 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   const [passkeyWallet,setPasskeyWallet]=useState<AnchorWallet|null>(null);
   const [tester,setTester]=useState<AnchorWallet|null>(()=>testerRequested()?testerWallet():null);
   const [testerNote,setTesterNote]=useState("");
+  const [testerSol,setTesterSol]=useState<number|null>(null);
   useEffect(()=>{
     if(!tester) return;
     let cancelled=false;
-    void fundTester(connection,tester).then(note=>{if(!cancelled) setTesterNote(note??"")});
+    void fundTester(connection,tester).then(r=>{if(!cancelled){setTesterNote(r.note);setTesterSol(r.sol)}});
     return()=>{cancelled=true};
   },[connection,tester]);
   const [loginOpen,setLoginOpen]=useState(false);
@@ -147,7 +148,7 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     connectError,
   }),[pendingWallet,connectError,anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
 
-  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<div className="tester-badge" role="status">TESTER · devnet · {tester.publicKey.toBase58().slice(0,4)}…{tester.publicKey.toBase58().slice(-4)}{testerNote&&<small>{testerNote}</small>}</div>}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<button type="button" className="tester-badge" onClick={()=>{void navigator.clipboard?.writeText(tester.publicKey.toBase58()).then(()=>setTesterNote("Address copied. Send devnet SOL to it (faucet.solana.com)."),()=>undefined)}}>TESTER · devnet · {testerSol===null?"…":`${testerSol.toFixed(2)} SOL`} · {tester.publicKey.toBase58().slice(0,4)}…{tester.publicKey.toBase58().slice(-4)}{testerNote&&<small>{testerNote}</small>}</button>}</AuthContext.Provider>;
 }
 
 export function useRebytersAuth(){
