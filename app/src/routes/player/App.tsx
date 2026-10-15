@@ -1,6 +1,7 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
+import { LandingEmail } from "./LandingEmail";
 import { foodThumbUrl } from "../../lib/economy/foodAssets";
 import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
@@ -719,8 +720,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
           <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
-          <p>Build your bond and grow your companions.</p>
-          <button className="landing-start" onClick={()=>authForWorld.openLogin()}><span className="landing-start-mark"><Sparkles/></span><strong>Start</strong><ChevronRight/></button>
+          <p>Build your bond and grow your companions. Leave your email to be first in.</p>
+          <LandingEmail/>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
           <div className="landing-features" aria-label="reByters features">
             <div><span><Heart/></span><small>RAISE</small></div>

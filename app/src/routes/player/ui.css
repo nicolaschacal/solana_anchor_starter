@@ -1101,4 +1101,29 @@
 .rb-ui .food-thumb{width:56px!important;height:56px!important;object-fit:contain!important;align-self:center!important}
 .rb-ui .food-art{object-fit:contain!important;display:block!important}
 .rb-ui .bag-art .food-art{width:54px!important;height:54px!important}
+
+.rb-ui .landing-email{width:min(100%,380px)!important;display:flex!important;flex-direction:column!important;gap:10px!important;position:relative!important}
+.rb-ui .landing-email-field{display:flex!important;flex-direction:row!important;width:100%!important;box-sizing:border-box!important;align-items:center!important;gap:10px!important;height:56px!important;padding:0 18px!important;border:2px solid var(--ui-line-strong)!important;border-radius:var(--ui-r-pill)!important;background:#fffaf0!important;box-shadow:inset 0 2px 0 rgba(120,80,40,.08)!important}
+.rb-ui .landing-email-field:focus-within{border-color:var(--ui-accent)!important;box-shadow:0 0 0 4px rgba(182,69,47,.15)!important}
+.rb-ui .landing-email-field svg{width:20px!important;height:20px!important;color:var(--ui-accent)!important;flex:none!important}
+.rb-ui .landing-email-field input{flex:1!important;min-width:0!important;border:0!important;outline:0!important;background:transparent!important;font:600 16px 'Nunito',system-ui,sans-serif!important;color:var(--ui-text)!important}
+.rb-ui .landing-email-field input::placeholder{color:#a58a73!important;font-weight:600!important}
+.rb-ui .landing-email-trap{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
+.rb-ui .landing-email-go{display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;min-height:56px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-primary)!important;box-shadow:var(--ui-shadow-primary)!important;color:var(--ui-on-accent)!important;cursor:pointer!important}
+.rb-ui .landing-email-go strong{font:700 20px 'Baloo 2','Nunito',sans-serif!important;color:var(--ui-on-accent)!important}
+.rb-ui .landing-email-go svg{width:20px!important;height:20px!important;color:var(--ui-on-accent)!important}
+.rb-ui .landing-email-go:disabled{opacity:.7!important;cursor:progress!important}
+.rb-ui .landing-email-error{margin:0!important;font-size:13px!important;font-weight:700!important;color:#b6452f!important}
+.rb-ui .landing-email-done{display:flex!important;flex-direction:column!important;align-items:center!important;gap:4px!important;padding:6px 0!important}
+.rb-ui .landing-email-done span{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border-radius:50%!important;background:#5d7d3a!important}
+.rb-ui .landing-email-done svg{width:24px!important;height:24px!important;color:#fff!important}
+.rb-ui .landing-email-done strong{font:800 20px 'Baloo 2','Nunito',sans-serif!important;color:var(--ui-text)!important}
+.rb-ui .landing-email-done small{font-size:14px!important;color:var(--ui-text-2)!important}
+/* Wide screens: a floating card over the scene instead of a full-width sheet that hides it. */
+@media (min-width:900px){
+.rb-ui .landing-sheet{left:50%!important;right:auto!important;bottom:4vh!important;width:min(440px,92%)!important;transform:translateX(-50%)!important;border-radius:32px!important;padding:20px 26px 18px!important;gap:8px!important;background:var(--ui-panel)!important;box-shadow:0 18px 50px rgba(48,28,14,.35),inset 0 1px 0 rgba(255,255,255,.85)!important}
+.rb-ui .landing-features{display:none!important}
+.rb-ui .landing-sheet h1{font-size:30px!important}
+.rb-ui .landing-logo{top:calc(40px + env(safe-area-inset-top,0px))!important}
+}
 }
