@@ -1138,4 +1138,6 @@
 .rb-ui .landing-sheet h1 .c2{color:#2f8f4e!important}
 .rb-ui .landing-sheet h1 .c3{color:#5a3320!important}
 @media (min-width:900px){.rb-ui .landing-logo strong{font-size:84px!important}.rb-ui .landing-logo span{font-size:15px!important}.rb-ui .landing-logo{top:calc(32px + env(safe-area-inset-top,0px))!important}}
+.rb-ui .landing-logo img{display:block!important;width:clamp(240px,74vw,330px)!important;height:auto!important;filter:drop-shadow(0 6px 10px rgba(40,20,8,.3))!important}
+@media (min-width:900px){.rb-ui .landing-logo img{width:420px!important}}
 }
