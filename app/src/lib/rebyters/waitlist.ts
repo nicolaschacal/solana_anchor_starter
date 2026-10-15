@@ -7,6 +7,9 @@
 const ENDPOINT =
   (import.meta.env.VITE_WAITLIST_URL as string | undefined) ?? "https://formsubmit.co/ajax/nicolaschaccal@gmail.com";
 
+/** Google Apps Script web app that appends each email to a sheet (see docs/waitlist-sheet.md). Empty = off. */
+const SHEET_URL = (import.meta.env.VITE_WAITLIST_SHEET_URL as string | undefined) ?? "";
+
 export const waitlistOpen = () => ENDPOINT.length > 0;
 export const validEmail = (value: string) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(value.trim()) && value.length <= 120;
 
@@ -17,5 +20,9 @@ export async function joinWaitlist(email: string): Promise<void> {
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ _subject: "New reByters waitlist email", _captcha: "false", _template: "table", email: email.trim().toLowerCase(), source: "reByters start screen", at: new Date().toISOString() }),
   });
+  if (SHEET_URL) {
+    // Apps Script has no CORS headers: send a simple text/plain POST and ignore the opaque reply.
+    fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "content-type": "text/plain;charset=utf-8" }, body: JSON.stringify({ email: email.trim().toLowerCase(), source: "reByters start screen" }) }).catch(() => undefined);
+  }
   if (!res.ok) throw new Error(`failed-${res.status}`);
 }
