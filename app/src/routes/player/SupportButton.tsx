@@ -14,7 +14,17 @@ const TIERS = [
   { sol: 0.5, name: "Founder" },
 ];
 
-const MAINNET_RPC = "https://api.mainnet-beta.solana.com";
+/** Public mainnet RPCs that allow browser calls; tried in order for the blockhash. */
+const MAINNET_RPCS = ["https://solana-rpc.publicnode.com", "https://api.mainnet-beta.solana.com", "https://rpc.ankr.com/solana"];
+
+async function latestBlockhash(): Promise<string> {
+  let last: unknown;
+  for (const url of MAINNET_RPCS) {
+    try { return (await new Connection(url, "confirmed").getLatestBlockhash()).blockhash; }
+    catch (e) { last = e; }
+  }
+  throw last instanceof Error ? last : new Error("rpc-unreachable");
+}
 
 type StdWallet = ReturnType<ReturnType<typeof getWallets>["get"]>[number];
 const hasFeatures = (w: StdWallet) => "standard:connect" in w.features && "solana:signAndSendTransaction" in w.features;
@@ -30,8 +40,7 @@ async function payWithWallet(wallet: StdWallet, sol: number) {
   const account = accounts[0] ?? wallet.accounts[0];
   if (!account) throw new Error("no-account");
   const payer = new PublicKey(account.address);
-  const connection = new Connection(MAINNET_RPC, "confirmed");
-  const { blockhash } = await connection.getLatestBlockhash();
+  const blockhash = await latestBlockhash();
   const tx = new Transaction({ feePayer: payer, recentBlockhash: blockhash }).add(
     SystemProgram.transfer({ fromPubkey: payer, toPubkey: new PublicKey(WALLET), lamports: Math.round(sol * LAMPORTS_PER_SOL) }),
   );
@@ -54,6 +63,7 @@ export function SupportButton() {
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<"" | "waiting" | "done" | "fail">("");
+  const [problem, setProblem] = useState("");
   const [showQr, setShowQr] = useState(false);
   const uri = payUri(sol);
   const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
@@ -78,10 +88,14 @@ export function SupportButton() {
 
   const back = async () => {
     const list = browserWallets();
-    if (!list.length) { setStatus("fail"); setShowQr(true); return; }
-    setStatus("waiting");
+    if (!list.length) { setProblem("No browser wallet found here. Use the QR or copy the address."); setStatus("fail"); setShowQr(true); return; }
+    setStatus("waiting"); setProblem("");
     try { await payWithWallet(list[0], sol); setStatus("done"); }
-    catch { setStatus("fail"); }
+    catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      setProblem(/reject|denied|declin|cancel|closed/i.test(m) ? "The payment was cancelled in your wallet." : `The wallet could not complete the payment (${m.slice(0, 90)}). Use the QR or copy the address.`);
+      setStatus("fail");
+    }
   };
 
   return (
@@ -112,7 +126,7 @@ export function SupportButton() {
                   <button type="button" className="support-go" onClick={back} disabled={status === "waiting"}>
                     {status === "waiting" ? "Approve in your wallet…" : status === "done" ? "Thank you! ❤" : "Back with my wallet"}
                   </button>
-                  {status === "fail" && <p className="support-scan">We couldn't open a wallet here. Use the QR or copy the address.</p>}
+                  {status === "fail" && <p className="support-scan">{problem}</p>}
                   {showQr ? (
                     <>
                       {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
