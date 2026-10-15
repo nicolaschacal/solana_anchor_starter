@@ -1245,4 +1245,9 @@
 .rb-ui .support-asset{position:absolute!important;top:14px!important;right:14px!important;margin:0!important}
 .rb-ui .support-card h3{text-align:left!important;padding:6px 110px 0 4px!important;margin-bottom:10px!important}
 .rb-ui .support-card>p:first-of-type{text-align:left!important}
+.rb-ui .support-card h3{text-align:center!important;padding:6px 0 0!important;margin-bottom:6px!important}
+.rb-ui .support-card>p:first-of-type{text-align:center!important}
+.rb-ui .support-asset{top:10px!important;right:10px!important;padding:2px!important}
+.rb-ui .support-asset button{padding:4px 11px!important;font-size:11px!important}
+.rb-ui .support-card h3{padding-top:24px!important}
 }
