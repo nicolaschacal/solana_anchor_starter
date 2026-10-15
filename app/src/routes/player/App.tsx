@@ -717,7 +717,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       <section className="game-viewer game-world world-scene landing">
         <LandingBackdrop night={worldClock.period==="Night"}/>
         <RebytersLoginButton className="landing-login gl-panel"/>
-        <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
+        <div className="landing-logo"><img src="/assets/brand/logo.webp" alt="reByters" width="900" height="410" decoding="async"/><span><i/>Raise · Evolve · Discover<i/></span></div>
         <div className="landing-sheet">
           <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
           <p>Build your bond and grow your companions. Leave your email to be first in.</p>
