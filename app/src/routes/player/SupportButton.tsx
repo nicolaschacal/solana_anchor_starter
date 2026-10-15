@@ -17,11 +17,24 @@ const TIERS = [
 /** Public mainnet RPCs that allow browser calls; tried in order for the blockhash. */
 const MAINNET_RPCS = ["https://solana-rpc.publicnode.com", "https://api.mainnet-beta.solana.com", "https://rpc.ankr.com/solana"];
 
-async function latestBlockhash(): Promise<string> {
+/** Builds the payment against one RPC and checks it by simulation, so a wallet never gets a transaction that cannot run. */
+async function buildPayment(payer: PublicKey, sol: number): Promise<Transaction> {
   let last: unknown;
   for (const url of MAINNET_RPCS) {
-    try { return (await new Connection(url, "confirmed").getLatestBlockhash()).blockhash; }
-    catch (e) { last = e; }
+    try {
+      const connection = new Connection(url, "finalized");
+      const { blockhash } = await connection.getLatestBlockhash("finalized");
+      const tx = new Transaction({ feePayer: payer, recentBlockhash: blockhash }).add(
+        SystemProgram.transfer({ fromPubkey: payer, toPubkey: new PublicKey(WALLET), lamports: Math.round(sol * LAMPORTS_PER_SOL) }),
+      );
+      let verdict: { err: unknown; logs?: string[] | null } | null = null;
+      try { verdict = (await connection.simulateTransaction(tx)).value; } catch { /* this RPC cannot simulate: let the wallet judge */ }
+      if (verdict?.err) throw new Error(`simulation: ${typeof verdict.err === "string" ? verdict.err : JSON.stringify(verdict.err)} ${(verdict.logs ?? []).slice(-2).join(" | ")}`);
+      return tx;
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("simulation:")) throw e;
+      last = e;
+    }
   }
   throw last instanceof Error ? last : new Error("rpc-unreachable");
 }
@@ -40,10 +53,7 @@ async function payWithWallet(wallet: StdWallet, sol: number) {
   const account = accounts[0] ?? wallet.accounts[0];
   if (!account) throw new Error("no-account");
   const payer = new PublicKey(account.address);
-  const blockhash = await latestBlockhash();
-  const tx = new Transaction({ feePayer: payer, recentBlockhash: blockhash }).add(
-    SystemProgram.transfer({ fromPubkey: payer, toPubkey: new PublicKey(WALLET), lamports: Math.round(sol * LAMPORTS_PER_SOL) }),
-  );
+  const tx = await buildPayment(payer, sol);
   await f["solana:signAndSendTransaction"].signAndSendTransaction({
     account,
     chain: "solana:mainnet",
@@ -95,7 +105,7 @@ export function SupportButton() {
     try { await payWithWallet(list[0], sol); setStatus("done"); }
     catch (e) {
       const m = e instanceof Error ? e.message : String(e);
-      setProblem(/reject|denied|declin|cancel|closed/i.test(m) ? "The payment was cancelled in your wallet." : `The wallet could not complete the payment (${m.slice(0, 90)}). Use the QR or copy the address.`);
+      setProblem(/reject|denied|declin|cancel|closed/i.test(m) ? "The payment was cancelled in your wallet." : `The wallet could not complete the payment (${m.slice(0, 200)}). Use the QR or copy the address.`);
       setStatus("fail");
     }
   };
