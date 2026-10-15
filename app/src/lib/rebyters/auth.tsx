@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { CircleUserRound, KeyRound, ShieldCheck, X } from "lucide-react";
@@ -22,6 +22,9 @@ type AuthContextValue={
   availableWallets:Array<{name:string;icon:string;readyState:string}>;
   connectWallet:(name:string)=>void;
   disconnect:()=>Promise<void>;
+  /** The wallet being connected right now (waiting for its approval), if any. */
+  pendingWallet:string|null;
+  connectError:string;
 };
 
 const AuthContext=createContext<AuthContextValue|null>(null);
@@ -41,6 +44,9 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   },[connection,tester]);
   const [loginOpen,setLoginOpen]=useState(false);
   const [pendingWallet,setPendingWallet]=useState<string|null>(null);
+  const [connectError,setConnectError]=useState("");
+  const adapterRef=useRef(adapter);
+  adapterRef.current=adapter;
 
   const kind:AuthKind=tester?"tester":passkeyWallet?"passkey":adapter.connected?"wallet":null;
   const anchorWallet=tester??passkeyWallet??adapterAnchor;
@@ -66,26 +72,35 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
 
   const connectWallet=useCallback((name:string)=>{
     setPasskeyWallet(null);
+    setConnectError("");
     setPendingWallet(name);
     adapter.select(name as Parameters<typeof adapter.select>[0]);
   },[adapter]);
 
+  // Connect once the chosen wallet is the selected one. This must not depend on the whole `adapter`
+  // object (it changes on every wallet state change, which re-ran connect() while the wallet was still
+  // asking for approval and cancelled the first attempt).
+  const selectedName=String(adapter.wallet?.adapter.name??"");
   useEffect(()=>{
-    if(!pendingWallet) return;
-    if(String(adapter.wallet?.adapter.name??"")!==pendingWallet) return;
-    let cancelled=false;
-    void adapter.connect()
+    if(!pendingWallet||selectedName!==pendingWallet) return;
+    let live=true;
+    const timer=window.setTimeout(()=>{
+      if(live) setConnectError(`${pendingWallet} has not answered yet. Open its extension, unlock it and approve the connection; if nothing shows, reload the page and try again.`);
+    },15000);
+    adapterRef.current.connect()
       .then(()=>{
-        if(cancelled) return;
         setPendingWallet(null);
+        setConnectError("");
         setLoginOpen(false);
       })
-      .catch(()=>{
-        if(cancelled) return;
+      .catch((e:unknown)=>{
         setPendingWallet(null);
-      });
-    return()=>{cancelled=true};
-  },[adapter,pendingWallet]);
+        const text=e instanceof Error?(e.message||e.name):String(e);
+        setConnectError(`Could not connect ${pendingWallet}: ${text||"the wallet refused or did not respond"}`);
+      })
+      .finally(()=>window.clearTimeout(timer));
+    return()=>{live=false;window.clearTimeout(timer)};
+  },[pendingWallet,selectedName]);
 
   const disconnect=useCallback(async()=>{
     if(tester){
@@ -116,7 +131,9 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     availableWallets,
     connectWallet,
     disconnect,
-  }),[anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
+    pendingWallet,
+    connectError,
+  }),[pendingWallet,connectError,anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
 
   return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<div className="tester-badge" role="status">TESTER · devnet · {tester.publicKey.toBase58().slice(0,4)}…{tester.publicKey.toBase58().slice(-4)}{testerNote&&<small>{testerNote}</small>}</div>}</AuthContext.Provider>;
 }
@@ -169,11 +186,11 @@ function RebytersLoginModal(){
               type="button"
               className="auth-wallet-option"
               key={item.name}
-              disabled={busy}
+              disabled={busy||!!auth.pendingWallet}
               onClick={()=>auth.connectWallet(item.name)}
             >
               <img src={item.icon} alt="" aria-hidden="true"/>
-              <span><strong>{item.name}</strong><small>{item.readyState==="Installed"?"Ready to connect":"Available on this device"}</small></span>
+              <span><strong>{item.name}</strong><small>{auth.pendingWallet===item.name?"Waiting for the wallet… approve in its popup":item.readyState==="Installed"?"Ready to connect":"Available on this device"}</small></span>
             </button>)
           : <>
               {[
@@ -214,7 +231,7 @@ function RebytersLoginModal(){
             </>}
       </div>
       {!passkeysSupported()&&<p className="auth-note">Passkeys are not available in this browser. You can still connect a detected wallet.</p>}
-      {error&&<p className="auth-error">{error}</p>}
+      {(error||auth.connectError)&&<p className="auth-error">{error||auth.connectError}</p>}
     </section>
   </div>;
 }
