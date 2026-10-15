@@ -1,5 +1,6 @@
 import { LandingBackdrop } from "../../components/world/LandingBackdrop";
 import { LandingEmail } from "./LandingEmail";
+import { SupportButton } from "./SupportButton";
 import { LandingFeatures } from "./showcase/LandingFeatures";
 import "./player.css";
 import "./ui.css";
@@ -21,6 +22,7 @@ export function WaitlistPage() {
               <p>Build your bond and grow your companions. Leave your email to be first in.</p>
               <LandingEmail />
               <LandingFeatures />
+              <SupportButton />
             </div>
           </section>
         </main>

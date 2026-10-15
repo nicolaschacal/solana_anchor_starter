@@ -1199,4 +1199,25 @@
 .rb-ui .landing-features .landing-feature+.landing-feature{border-left:1px solid var(--ui-line)!important}
 .rb-ui .landing-features .landing-feature span{transition:transform .15s ease!important}
 .rb-ui .landing-features .landing-feature:hover span,.rb-ui .landing-features .landing-feature:active span{transform:scale(1.1)!important}
+.rb-ui .sc-need-forms img{width:92px!important;height:92px!important;border-radius:24px!important;background:rgba(255,243,223,.95)!important;object-fit:contain!important;padding:6px!important;box-sizing:border-box!important}
+.rb-ui .evo-fx.evo-demo .evo-stage canvas{filter:brightness(.78)!important}
+.rb-ui .evo-fx.evo-demo .evo-name,.rb-ui .evo-fx.evo-demo .evo-sub{color:#fff3df!important}
+.rb-ui .sc-top{padding-right:max(10px,env(safe-area-inset-right))!important;padding-left:max(10px,env(safe-area-inset-left))!important;gap:8px!important}
+.rb-ui .sc-tabs{min-width:0!important}
+@media (max-width:430px){.rb-ui .sc-tabs button:not(.on) span{display:none!important}.rb-ui .sc-tabs button{padding:0 6px!important}.rb-ui .sc-close{width:40px!important;height:40px!important}}
+.rb-ui .support-btn{display:inline-flex!important;align-items:center!important;gap:8px!important;margin:10px auto 0!important;padding:10px 18px!important;border:2px solid var(--ui-primary)!important;border-radius:var(--ui-r-pill)!important;background:rgba(255,243,223,.9)!important;color:var(--ui-text)!important;font:600 14px 'Fredoka',sans-serif!important;cursor:pointer!important}
+.rb-ui .support-back{position:fixed!important;inset:0!important;z-index:200!important;display:grid!important;place-items:center!important;background:rgba(40,20,8,.55)!important;padding:16px!important}
+.rb-ui .support-card{width:min(420px,100%)!important;max-height:92dvh!important;overflow:auto!important;background:var(--ui-surface,#fff3df)!important;color:var(--ui-text)!important;border-radius:24px!important;padding:20px!important;font:500 15px/1.45 'Fredoka',sans-serif!important;box-shadow:0 12px 40px rgba(40,20,8,.4)!important;text-align:center!important}
+.rb-ui .support-card h3{margin:0 0 6px!important;font:700 22px 'Fredoka',sans-serif!important}
+.rb-ui .support-card p{margin:0 0 12px!important}
+.rb-ui .support-amts{display:flex!important;gap:8px!important;justify-content:center!important;margin:8px 0 12px!important}
+.rb-ui .support-amts button{flex:1!important;padding:9px 0!important;border:2px solid var(--ui-primary)!important;border-radius:var(--ui-r-pill)!important;background:transparent!important;color:var(--ui-text)!important;font:600 14px 'Fredoka',sans-serif!important;cursor:pointer!important}
+.rb-ui .support-amts button.on{background:var(--ui-primary)!important;color:var(--ui-on-accent)!important}
+.rb-ui .support-qr{width:176px!important;height:176px!important;margin:6px auto!important;border-radius:12px!important;background:#fff!important;padding:6px!important}
+.rb-ui .support-go,.rb-ui .support-copy,.rb-ui .support-x{display:block!important;width:100%!important;margin-top:8px!important;padding:12px!important;border:0!important;border-radius:var(--ui-r-pill)!important;font:600 15px 'Fredoka',sans-serif!important;cursor:pointer!important;text-decoration:none!important;box-sizing:border-box!important}
+.rb-ui .support-go{background:var(--ui-primary)!important;color:var(--ui-on-accent)!important}
+.rb-ui .support-copy{background:rgba(120,80,40,.12)!important;color:var(--ui-text)!important}
+.rb-ui .support-x{background:transparent!important;color:var(--ui-text-2)!important}
+.rb-ui .support-addr{font:500 11px monospace!important;word-break:break-all!important;opacity:.8!important}
+.rb-ui .support-note{font-size:12px!important;opacity:.75!important;margin-top:10px!important}
 }

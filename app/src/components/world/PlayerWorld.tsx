@@ -73,6 +73,8 @@ type Props = {
   action?: string;
   /** The meal being fed (with `action="feed"`): it is thrown at the rebyter, who eats it. */
   meal?: { food: number; tier: number } | null;
+  /** Put the starter punching bag on the free tile farthest from the tree (the tour does). */
+  bagFar?: boolean;
   /** A one-shot action finished. */
   onActionComplete?: () => void;
   /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
@@ -126,7 +128,7 @@ const TAP_PIXELS = 8;
 const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, bagFar = false, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -433,7 +435,19 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         } else {
           await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
           // Every new island starts with the punching bag, the machine everyone trains on.
-          const spot = freeTile([{ i: TREE_TILE.i, j: TREE_TILE.j }, ...layoutNow.placed.map((p) => ({ i: p.i, j: p.j }))], (i, j) => !world.canStand(i, j), spec);
+          let spot = freeTile([{ i: TREE_TILE.i, j: TREE_TILE.j }, ...layoutNow.placed.map((p) => ({ i: p.i, j: p.j }))], (i, j) => !world.canStand(i, j), spec);
+          if (bagFar) {
+            let best = -1;
+            for (let i = BOARD.i0; i <= BOARD.i1; i++)
+              for (let j = BOARD.j0; j <= BOARD.j1; j++) {
+                if (!world.canStand(i, j) || layoutNow.placed.some((p) => p.i === i && p.j === j)) continue;
+                const d = Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j);
+                if (d > best) {
+                  best = d;
+                  spot = { i, j };
+                }
+              }
+          }
           if (spot) await world.addProp("punchingBag", tileX(spot.i), tileZ(spot.j));
         }
       } catch {

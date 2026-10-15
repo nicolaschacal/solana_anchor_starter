@@ -14,7 +14,9 @@ const BUNDLED: Record<string, { model: string; thumb: string }> = {
   Chiropteran: { model: "/showcase/chiropteran.glb", thumb: "/showcase/thumbs/chiropteran.png" },
 };
 
-export const STAGE_NAMES = ["Origin", "Byte", "Kylo", "Stage 3", "Stage 4", "Stage 5"];
+export const STAGE_NAMES = ["Bit", "Byte", "Kylo", "Mega", "Giga", "Tera"];
+/** Names the tour shows instead of the atlas ones. */
+const DISPLAY_NAME: Record<string, string> = { Chiropteran: "Foxbat" };
 
 const published = modelUris as Record<string, { uri: string }>;
 
@@ -23,12 +25,14 @@ export const FORMS: Evolution[] = (seed as unknown as TreeJson).evolutions.map((
   const modelUri = own?.model ?? published[form.name.toLowerCase()]?.uri ?? modelUriFor(form);
   return {
     ...form,
+    name: DISPLAY_NAME[form.name] ?? form.name,
     modelUri,
     assets: { ...form.assets, ...(own ? { thumbnailUri: own.thumb, modelUri: own.model } : {}) },
   };
 });
 
-export const has3d = (form: Evolution) => !!modelUriFor(form);
+/** mammal.exe is not part of the game any more: the tour treats it as undiscovered. */
+export const has3d = (form: Evolution) => form.stage > 0 && !!modelUriFor(form);
 export const byName = (name: string) => FORMS.find((f) => f.name === name)!;
 /** Forms that can stand in the world, in atlas order. */
 export const SHOW_FORMS = FORMS.filter(has3d);

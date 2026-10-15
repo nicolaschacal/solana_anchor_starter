@@ -144,9 +144,9 @@ function EvolveScene() {
       {phase === "need" && (
         <div className="sc-need">
           <div className="sc-need-forms">
-            <span><SpriteTile evolution={EVOLVE_FROM} /><small>{EVOLVE_FROM.name}</small></span>
+            <span><img src={EVOLVE_FROM.assets?.thumbnailUri} alt="" /><small>{EVOLVE_FROM.name}</small></span>
             <ChevronRight />
-            <span><SpriteTile evolution={EVOLVE_TO} /><small>{EVOLVE_TO.name}</small></span>
+            <span><img src={EVOLVE_TO.assets?.thumbnailUri} alt="" /><small>{EVOLVE_TO.name}</small></span>
           </div>
           <h3>Evolution requirements</h3>
           <ul>
@@ -200,6 +200,7 @@ function ExploreScene() {
         onSelect={() => undefined}
         editable={false}
         showcase
+        bagFar
         size={7}
       />
     </Suspense>

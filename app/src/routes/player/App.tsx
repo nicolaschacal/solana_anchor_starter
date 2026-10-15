@@ -2,6 +2,7 @@ import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRe
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
 import { LandingEmail } from "./LandingEmail";
+import { SupportButton } from "./SupportButton";
 import { LandingFeatures } from "./showcase/LandingFeatures";
 import { foodThumbUrl } from "../../lib/economy/foodAssets";
 import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
@@ -725,6 +726,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           <LandingEmail/>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
           <LandingFeatures/>
+          <SupportButton/>
         </div>
       </section>
     </main></Shell>;

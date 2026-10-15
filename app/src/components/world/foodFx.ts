@@ -54,7 +54,8 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
   const base = entity.outer.position;
   // Thrown from in front, at about chest height, as if someone standing there tossed it.
   const from = base.clone().addScaledVector(fwd, 3.2).setY(base.y + h * 0.75);
-  const to = base.clone().addScaledVector(fwd, Math.max(0.3, h * 0.22)).setY(base.y + h * 0.5);
+  // Stops just in front of the mouth, so the bite happens before it, never inside the body.
+  const to = base.clone().addScaledVector(fwd, Math.max(0.45, h * 0.36)).setY(base.y + h * 0.45);
   obj.scale.setScalar(size);
   obj.position.copy(from);
   scene.add(obj);
@@ -87,7 +88,7 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
         return true;
       }
       eatT += dt;
-      const total = Math.max(0.5, eatFor || 1.2) * 0.65;
+      const total = Math.max(0.5, eatFor || 1.2) * 0.38;
       const k = Math.min(1, eatT / total);
       // Bitten away in a few steps, with a little shake at each bite.
       const bites = Math.ceil(k * 4) / 4;
@@ -95,6 +96,7 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
       obj.position.copy(to);
       obj.position.x += shake;
       obj.scale.setScalar(size * Math.max(0.001, 1 - bites * 0.97 + (bites - k) * 0.25));
+      obj.position.addScaledVector(fwd, -k * h * 0.12);
       if (k >= 1) {
         remove();
         return false;
