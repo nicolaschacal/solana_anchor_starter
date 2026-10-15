@@ -1231,4 +1231,5 @@
 .rb-ui .landing-sheet p{white-space:nowrap!important;margin:0!important}
 .rb-ui .support-btn svg{color:#7a2c14!important}
 @media (min-width:900px){.rb-ui .support-btn{height:46px!important;padding:0 22px!important;font-size:16px!important;right:22px!important;top:calc(20px + env(safe-area-inset-top,0px))!important}.rb-ui .landing-login ~ .support-btn{top:calc(78px + env(safe-area-inset-top,0px))!important}}
+.rb-ui .support-scan{margin:2px 0 4px!important;font-size:13px!important;opacity:.75!important}
 }

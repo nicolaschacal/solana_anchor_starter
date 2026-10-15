@@ -24,6 +24,7 @@ export function SupportButton() {
   const [qr, setQr] = useState("");
   const [copied, setCopied] = useState(false);
   const uri = payUri(sol);
+  const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
   useEffect(() => {
     if (!open) return;
@@ -61,9 +62,18 @@ export function SupportButton() {
                   </button>
                 ))}
               </div>
-              {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
-              <a className="support-go" href={uri}>Back with my wallet</a>
-              <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy address instead"}</button>
+              {touch ? (
+                <>
+                  <a className="support-go" href={uri}>Back with my wallet</a>
+                  <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy address instead"}</button>
+                </>
+              ) : (
+                <>
+                  {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
+                  <p className="support-scan">Scan with your phone's wallet app</p>
+                  <button type="button" className="support-go" onClick={copy}>{copied ? "Copied!" : "Copy wallet address"}</button>
+                </>
+              )}
               <button type="button" className="support-x" onClick={() => setOpen(false)}>Maybe later</button>
             </div>
           </div>
