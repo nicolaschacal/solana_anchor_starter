@@ -66,7 +66,8 @@ export function SupportButton() {
   const [problem, setProblem] = useState("");
   const [showQr, setShowQr] = useState(false);
   const uri = payUri(sol);
-  const touch = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+  // A phone or tablet (not a touch-screen laptop, which also reports a coarse pointer).
+  const mobile = typeof navigator !== "undefined" && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +89,7 @@ export function SupportButton() {
 
   const back = async () => {
     const list = browserWallets();
+    if (!list.length && mobile) { window.location.href = uri; return; }
     if (!list.length) { setProblem("No browser wallet found here. Use the QR or copy the address."); setStatus("fail"); setShowQr(true); return; }
     setStatus("waiting"); setProblem("");
     try { await payWithWallet(list[0], sol); setStatus("done"); }
@@ -116,28 +118,23 @@ export function SupportButton() {
                   </button>
                 ))}
               </div>
-              {touch ? (
-                <>
-                  <a className="support-go" href={uri}>Back with my wallet</a>
+              <>
+                <button type="button" className="support-go" onClick={back} disabled={status === "waiting"}>
+                  {status === "waiting" ? "Approve in your wallet…" : status === "done" ? "Thank you! ❤" : "Back with my wallet"}
+                </button>
+                {status === "fail" && <p className="support-scan">{problem}</p>}
+                {showQr && !mobile ? (
+                  <>
+                    {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
+                    <p className="support-scan">Scan with your phone's wallet app</p>
+                    <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy wallet address"}</button>
+                  </>
+                ) : mobile ? (
                   <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy address instead"}</button>
-                </>
-              ) : (
-                <>
-                  <button type="button" className="support-go" onClick={back} disabled={status === "waiting"}>
-                    {status === "waiting" ? "Approve in your wallet…" : status === "done" ? "Thank you! ❤" : "Back with my wallet"}
-                  </button>
-                  {status === "fail" && <p className="support-scan">{problem}</p>}
-                  {showQr ? (
-                    <>
-                      {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
-                      <p className="support-scan">Scan with your phone's wallet app</p>
-                      <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy wallet address"}</button>
-                    </>
-                  ) : (
-                    <button type="button" className="support-copy" onClick={() => setShowQr(true)}>Use QR code or address</button>
-                  )}
-                </>
-              )}
+                ) : (
+                  <button type="button" className="support-copy" onClick={() => setShowQr(true)}>Use QR code or address</button>
+                )}
+              </>
               <button type="button" className="support-x" onClick={() => setOpen(false)}>Maybe later</button>
             </div>
           </div>
