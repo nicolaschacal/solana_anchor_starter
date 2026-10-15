@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronRight, Dumbbell, Gem, Heart, LockKeyhole, Mountain, Sprout, X } from "lucide-react";
+import { Check, ChevronRight, Dumbbell, Gem, Heart, LockKeyhole, Mountain, MoonStar, Sprout, Sun, Sunrise, Sunset, X } from "lucide-react";
 import { SpriteTile } from "../../../components/admin/CreatureSprite";
 import { EvolutionAnimation, type EvolutionJob } from "../../../components/player/EvolutionAnimation";
+import { periodAt } from "../../../hooks/useWorldClock";
 import { defaultLayout, specFor } from "../../../components/world/layout";
 import type { WorldCreature } from "../../../components/world/PlayerWorld";
 import { EVOLVE_FROM, EVOLVE_TO, FORMS, SHOW_FORMS, STAGE_NAMES, byName, has3d, requirementsOf } from "./showcaseData";
@@ -187,10 +188,26 @@ function CollectScene() {
 }
 
 /** The island with its reByters walking around. */
+function WorldClockChip() {
+  // The waitlist page has no wallet/connection context, so this ticks from the device's own UTC clock.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
+  const clock = { now, period: periodAt(now) };
+  const Icon = clock.period === "Night" ? MoonStar : clock.period === "Day" ? Sun : clock.period === "Morning" ? Sunrise : Sunset;
+  return (
+    <div className="world-clock gl-panel sc-clock" aria-label="World time">
+      <span className={`world-clock-face ${clock.period.toLowerCase()}`} aria-hidden="true"><Icon /></span>
+      <span><strong>{clock.period}</strong><small>{new Date(clock.now).toISOString().slice(11, 16)} UTC</small></span>
+    </div>
+  );
+}
+
 function ExploreScene() {
   const creatures = useMemo(() => SHOW_FORMS.slice(0, SPEC.maxPlaced).map((f) => toCreature(f, "island")), []);
   const layout = useMemo(() => defaultLayout(creatures.map((c) => c.mint), SPEC), [creatures]);
   return (
+    <>
+    <WorldClockChip />
     <Suspense fallback={<WorldLoading />}>
       <PlayerWorld
         creatures={creatures}
@@ -200,9 +217,10 @@ function ExploreScene() {
         onSelect={() => undefined}
         editable={false}
         showcase
-        bagFar
+        tour
         size={7}
       />
     </Suspense>
+    </>
   );
 }

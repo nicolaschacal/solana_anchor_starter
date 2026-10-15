@@ -73,8 +73,8 @@ type Props = {
   action?: string;
   /** The meal being fed (with `action="feed"`): it is thrown at the rebyter, who eats it. */
   meal?: { food: number; tier: number } | null;
-  /** Put the starter punching bag near the island's center, clear of the tree (the tour does). */
-  bagFar?: boolean;
+  /** The tour's island: a bus stop and a vending machine instead of the punching bag. */
+  tour?: boolean;
   /** A one-shot action finished. */
   onActionComplete?: () => void;
   /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
@@ -115,6 +115,8 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   crateBin: "Wooden bin",
   fence: "Fence",
 };
+/** Rotation that turns the tour props' fronts toward the camera. */
+const TOUR_FACING = Math.PI;
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));
 /** The habitat engine reports in Spanish; the game speaks English. */
@@ -128,7 +130,7 @@ const TAP_PIXELS = 8;
 const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, bagFar = false, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, tour = false, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -436,21 +438,20 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           await world.addProp("tree", tileX(TREE_TILE.i), tileZ(TREE_TILE.j));
           // Every new island starts with the punching bag, the machine everyone trains on.
           let spot = freeTile([{ i: TREE_TILE.i, j: TREE_TILE.j }, ...layoutNow.placed.map((p) => ({ i: p.i, j: p.j }))], (i, j) => !world.canStand(i, j), spec);
-          if (bagFar) {
-            let best = Infinity;
+          if (tour) {
+            // The tour's island: a bus stop and a vending machine near the middle, clear of the tree.
             const ci = (BOARD.i0 + BOARD.i1) / 2, cj = (BOARD.j0 + BOARD.j1) / 2;
+            const free: { i: number; j: number }[] = [];
             for (let i = BOARD.i0; i <= BOARD.i1; i++)
-              for (let j = BOARD.j0; j <= BOARD.j1; j++) {
-                if (!world.canStand(i, j) || layoutNow.placed.some((p) => p.i === i && p.j === j)) continue;
-                if (Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j) < 2.5) continue;
-                const d = Math.hypot(i - ci, j - cj);
-                if (d < best) {
-                  best = d;
-                  spot = { i, j };
-                }
-              }
-          }
-          if (spot) await world.addProp("punchingBag", tileX(spot.i), tileZ(spot.j));
+              for (let j = BOARD.j0; j <= BOARD.j1; j++)
+                if (world.canStand(i, j) && !layoutNow.placed.some((p) => p.i === i && p.j === j) && Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j) >= 2.5) free.push({ i, j });
+            const back = (t: { i: number; j: number }, bi: number) => Math.hypot(t.i - bi, t.j - (BOARD.j0 + 1.6));
+            free.sort((x, y) => back(x, ci) - back(y, ci));
+            const stop = free[0];
+            const vend = [...free].sort((x, y) => back(x, ci + 2.6) - back(y, ci + 2.6)).find((t) => stop && Math.hypot(t.i - stop.i, t.j - stop.j) >= 2.4);
+            if (stop) await world.addProp("busStop", tileX(stop.i), tileZ(stop.j), TOUR_FACING);
+            if (vend) await world.addProp("vending", tileX(vend.i), tileZ(vend.j), TOUR_FACING);
+          } else if (spot) await world.addProp("punchingBag", tileX(spot.i), tileZ(spot.j));
         }
       } catch {
         if (!dead) setFailed(true);
