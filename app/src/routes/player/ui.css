@@ -1122,7 +1122,7 @@
 /* Wide screens: a floating card over the scene instead of a full-width sheet that hides it. */
 @media (min-width:900px){
 .rb-ui .landing-sheet{left:50%!important;right:auto!important;bottom:4vh!important;width:min(440px,92%)!important;transform:translateX(-50%)!important;border-radius:32px!important;padding:20px 26px 18px!important;gap:8px!important;background:var(--ui-panel)!important;box-shadow:0 18px 50px rgba(48,28,14,.35),inset 0 1px 0 rgba(255,255,255,.85)!important}
-.rb-ui .landing-features{display:none!important}
+.rb-ui .landing-features{margin-top:2px!important}
 .rb-ui .landing-sheet h1{font-size:30px!important}
 .rb-ui .landing-logo{top:calc(40px + env(safe-area-inset-top,0px))!important}
 }
@@ -1140,4 +1140,63 @@
 @media (min-width:900px){.rb-ui .landing-logo strong{font-size:84px!important}.rb-ui .landing-logo span{font-size:15px!important}.rb-ui .landing-logo{top:calc(32px + env(safe-area-inset-top,0px))!important}}
 .rb-ui .landing-logo img{display:block!important;width:clamp(240px,74vw,330px)!important;height:auto!important;filter:drop-shadow(0 6px 10px rgba(40,20,8,.3))!important}
 @media (min-width:900px){.rb-ui .landing-logo img{width:420px!important}}
+
+/* ---- Start-screen tour ---- */
+.rb-ui .sc-backdrop{position:fixed!important;inset:0!important;z-index:500!important;display:grid!important;place-items:center!important;background:rgba(8,14,32,.78)!important;backdrop-filter:blur(6px)!important}
+.rb-ui .sc-card{position:relative!important;display:flex!important;flex-direction:column!important;width:min(100%,520px)!important;height:100%!important;max-height:900px!important;background:var(--ui-panel)!important;overflow:hidden!important}
+@media (min-width:700px){.rb-ui .sc-card{height:min(92vh,860px)!important;border-radius:32px!important;box-shadow:0 24px 70px rgba(0,0,0,.5)!important}}
+.rb-ui .sc-media{position:relative!important;flex:1 1 auto!important;min-height:0!important;background:#1d2a63!important;overflow:hidden!important}
+.rb-ui .sc-media .world-scene,.rb-ui .sc-media .game-world,.rb-ui .sc-media>div:not(.sc-top):not(.sc-caption):not(.sc-evolve):not(.sc-atlas){position:absolute!important;inset:0!important}
+.rb-ui .sc-top{position:absolute!important;left:10px!important;right:10px!important;top:calc(10px + env(safe-area-inset-top,0px))!important;z-index:20!important;display:flex!important;gap:8px!important;align-items:center!important}
+.rb-ui .sc-tabs{display:flex!important;gap:4px!important;flex:1!important;padding:4px!important;border-radius:var(--ui-r-pill)!important;background:rgba(255,243,223,.92)!important;box-shadow:0 2px 10px rgba(40,20,8,.25)!important}
+.rb-ui .sc-tabs button{flex:1!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;height:36px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:transparent!important;color:var(--ui-text-2)!important;font:600 13px 'Fredoka','Nunito',sans-serif!important;cursor:pointer!important}
+.rb-ui .sc-tabs button svg{width:16px!important;height:16px!important}
+.rb-ui .sc-tabs button.on{background:var(--ui-primary)!important;color:var(--ui-on-accent)!important}
+@media (max-width:380px){.rb-ui .sc-tabs button span{display:none!important}}
+.rb-ui .sc-close{width:44px!important;height:44px!important;display:grid!important;place-items:center!important;border:0!important;border-radius:50%!important;background:rgba(255,243,223,.95)!important;color:var(--ui-text)!important;box-shadow:0 2px 10px rgba(40,20,8,.25)!important;cursor:pointer!important;flex:none!important}
+.rb-ui .sc-sheet{flex:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:10px!important;text-align:center!important;padding:20px 22px calc(18px + env(safe-area-inset-bottom,0px))!important;background:var(--ui-panel)!important;border-radius:28px 28px 0 0!important;margin-top:-26px!important;position:relative!important;z-index:10!important;box-shadow:0 -10px 30px rgba(48,28,14,.28)!important}
+.rb-ui .sc-sheet h2{margin:0!important;font:600 26px 'Fredoka','Nunito',sans-serif!important;color:var(--ui-text)!important}
+.rb-ui .sc-sheet p{margin:0!important;max-width:420px!important;font-size:15px!important;line-height:1.45!important;font-weight:600!important;color:var(--ui-text-2)!important}
+.rb-ui .sc-dots{display:flex!important;gap:6px!important}
+.rb-ui .sc-dots i{width:8px!important;height:8px!important;border-radius:50%!important;background:var(--ui-line-strong)!important}
+.rb-ui .sc-dots i.on{background:var(--ui-accent)!important;width:22px!important;border-radius:6px!important}
+.rb-ui .sc-next{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;width:min(100%,340px)!important;min-height:52px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-primary)!important;box-shadow:var(--ui-shadow-primary)!important;color:var(--ui-on-accent)!important;cursor:pointer!important}
+.rb-ui .sc-next strong{font:600 19px 'Fredoka','Nunito',sans-serif!important;color:var(--ui-on-accent)!important}
+.rb-ui .sc-next svg{width:20px!important;height:20px!important}
+.rb-ui .sc-loading{position:absolute!important;inset:0!important;display:grid!important;place-items:center!important;color:#fff!important;font:600 15px 'Fredoka',sans-serif!important}
+.rb-ui .sc-caption{position:absolute!important;left:0!important;right:0!important;bottom:44px!important;z-index:15!important;display:flex!important;gap:6px!important;justify-content:center!important;flex-wrap:wrap!important;padding:0 12px!important}
+.rb-ui .sc-caption span{padding:6px 12px!important;border-radius:var(--ui-r-pill)!important;background:rgba(255,243,223,.55)!important;color:var(--ui-text-2)!important;font:600 13px 'Fredoka','Nunito',sans-serif!important;transition:all .25s!important}
+.rb-ui .sc-caption span.on{background:var(--ui-accent)!important;color:#fff!important;transform:scale(1.08)!important}
+.rb-ui .sc-evolve{position:absolute!important;inset:0!important;background:radial-gradient(70% 55% at 50% 60%,rgba(47,134,240,.34),transparent 70%),#0c1a2e!important}
+.rb-ui .evo-fx.evo-demo{position:absolute!important;z-index:5!important}
+.rb-ui .evo-fx.evo-demo .evo-banner .ui-btn,.rb-ui .evo-fx.evo-demo .evo-status{display:none!important}
+.rb-ui .evo-fx.evo-demo .evo-banner{padding-bottom:44px!important}
+.rb-ui .sc-need{position:absolute!important;inset:0!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:16px!important;padding:70px 24px 40px!important;color:#fff!important}
+.rb-ui .sc-need-forms{display:flex!important;align-items:center!important;gap:12px!important}
+.rb-ui .sc-need-forms span{display:flex!important;flex-direction:column!important;align-items:center!important;gap:6px!important}
+.rb-ui .sc-need-forms .sprite-tile{width:92px!important;height:92px!important;border-radius:24px!important;background-color:rgba(255,243,223,.95)!important}
+.rb-ui .sc-need-forms small{font:600 14px 'Fredoka',sans-serif!important}
+.rb-ui .sc-need-forms>svg{width:28px!important;height:28px!important;color:#ffd35c!important}
+.rb-ui .sc-need h3{margin:0!important;font:600 18px 'Fredoka',sans-serif!important;letter-spacing:.04em!important;text-transform:uppercase!important;color:#ffd35c!important}
+.rb-ui .sc-need ul{list-style:none!important;margin:0!important;padding:0!important;display:flex!important;flex-direction:column!important;gap:8px!important;width:min(100%,320px)!important}
+.rb-ui .sc-need li{display:flex!important;align-items:center!important;gap:10px!important;padding:10px 14px!important;border-radius:16px!important;background:rgba(255,255,255,.08)!important;border:1.5px solid rgba(255,255,255,.18)!important;font:600 15px 'Nunito',sans-serif!important;transition:all .3s!important}
+.rb-ui .sc-need li span{display:grid!important;place-items:center!important;width:26px!important;height:26px!important;border-radius:50%!important;background:rgba(255,255,255,.14)!important}
+.rb-ui .sc-need li svg{width:15px!important;height:15px!important}
+.rb-ui .sc-need li.ok{background:rgba(93,125,58,.35)!important;border-color:#8fd16a!important}
+.rb-ui .sc-need li.ok span{background:#5d7d3a!important}
+.rb-ui .sc-atlas{position:absolute!important;inset:0!important;display:flex!important;flex-direction:column!important;padding:70px 14px 40px!important;background:linear-gradient(#2c4a8c,#1d2a63)!important}
+.rb-ui .sc-atlas header{display:flex!important;align-items:baseline!important;justify-content:space-between!important;padding:0 6px 10px!important;color:#fff!important}
+.rb-ui .sc-atlas header strong{font:600 22px 'Fredoka',sans-serif!important}
+.rb-ui .sc-atlas header small{font-size:13px!important;color:#ffd35c!important;font-weight:700!important}
+.rb-ui .sc-atlas-grid{flex:1!important;min-height:0!important;overflow:auto!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8px!important;align-content:start!important}
+.rb-ui .sc-form{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;padding:8px 4px!important;border-radius:16px!important;background:rgba(255,255,255,.08)!important;border:1.5px dashed rgba(255,255,255,.22)!important;color:rgba(255,255,255,.6)!important;aspect-ratio:1!important}
+.rb-ui .sc-form.open{background:rgba(255,243,223,.95)!important;border:1.5px solid #ffd35c!important;color:var(--ui-text)!important}
+.rb-ui .sc-form .sprite-tile{width:100%!important;flex:1!important;min-height:0!important;background-color:transparent!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important;border-radius:0!important}
+.rb-ui .sc-form>svg{width:26px!important;height:26px!important;flex:1!important}
+.rb-ui .sc-form small{font:700 11px 'Nunito',sans-serif!important}
+.rb-ui .landing-features .landing-feature{all:unset!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:6px!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent!important}
+.rb-ui .landing-features .landing-feature:focus-visible span{outline:3px solid var(--ui-accent)!important;outline-offset:2px!important}
+.rb-ui .landing-features .landing-feature+.landing-feature{border-left:1px solid var(--ui-line)!important}
+.rb-ui .landing-features .landing-feature span{transition:transform .15s ease!important}
+.rb-ui .landing-features .landing-feature:hover span,.rb-ui .landing-features .landing-feature:active span{transform:scale(1.1)!important}
 }

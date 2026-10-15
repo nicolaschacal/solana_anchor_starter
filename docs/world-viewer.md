@@ -63,3 +63,6 @@ Every model is first fitted to the same box, so proportions alone decide how big
 
 ## Tester mode
 Open the game with `?tester=1`: it signs in with a throwaway keypair stored in the browser (no wallet or passkey) and requests devnet SOL from the faucet; a small "TESTER" badge shows at the top. `?tester=reset` starts a new account, `?tester=off` leaves the mode. Everything else is the normal game on devnet.
+
+## Start-screen tour
+The four feature buttons (Raise, Evolve, Collect, Explore) on the start screen and on the waitlist page open a full-screen tour (`routes/player/showcase/`). Each page is the real game running live, no recorded clips: Raise is the world close-up with a creature going through touch / play / care / feed (with the thrown meal); Evolve shows the requirements of a real path and then the real evolution sequence (`EvolutionAnimation` with `container` + `demo`); Collect is the Atlas of every form, with the ones that have a 3D model unlocked and the rest locked; Explore is the island with creatures walking. A form counts as 3D when `modelUriFor` finds a model (published in `model-uris.json`, or bundled in `public/showcase/`). To feature a new creature, add its model to `BUNDLED` in `showcaseData.ts` or publish it.

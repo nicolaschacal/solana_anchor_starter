@@ -24,10 +24,16 @@ export function EvolutionAnimation({
   job,
   stageNames,
   onClose,
+  container,
+  demo = false,
 }: {
   job: EvolutionJob;
   stageNames: readonly string[];
   onClose: () => void;
+  /** Draw inside this element instead of over the whole page. */
+  container?: HTMLElement | null;
+  /** A showcase run: no focus grab, no keys, and it closes itself a moment after the reveal. */
+  demo?: boolean;
 }) {
   const { from, to } = job;
   const birth = from === null;
@@ -64,6 +70,7 @@ export function EvolutionAnimation({
 
   // Focus: move into the overlay and give it back afterwards.
   useEffect(() => {
+    if (demo) return;
     const previous = document.activeElement as HTMLElement | null;
     rootRef.current?.focus();
     return () => {
@@ -164,11 +171,17 @@ export function EvolutionAnimation({
 
   // Continue is a real React prop, so React still delivers its clicks.
   useEffect(() => {
-    if (ready) continueRef.current?.focus();
-  }, [ready]);
+    if (!ready) return;
+    if (demo) {
+      const t = window.setTimeout(() => closeRef.current(), 2800);
+      return () => window.clearTimeout(t);
+    }
+    continueRef.current?.focus();
+  }, [ready, demo]);
 
   // Keys: the overlay is modal, so it handles Escape and Tab before the panel behind it.
   useEffect(() => {
+    if (demo) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -190,7 +203,7 @@ export function EvolutionAnimation({
   return createPortal(
     <div
       ref={rootRef}
-      className="rb-ui evo-fx"
+      className={`rb-ui evo-fx${demo ? " evo-demo" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-label={birth ? "New Rebyter" : "Evolution"}
@@ -221,7 +234,7 @@ export function EvolutionAnimation({
         </button>
       </div>
     </div>,
-    document.body,
+    container ?? document.body,
   );
 }
 
