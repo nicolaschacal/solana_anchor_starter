@@ -116,7 +116,7 @@ const LABELS: Partial<Record<AssetKey, string>> = {
   fence: "Fence",
 };
 /** Rotation that turns the tour props' fronts toward the camera. */
-const TOUR_FACING = Math.PI;
+const TOUR_FACING = 0;
 const labelOf = (key: AssetKey) => LABELS[key] ?? "Object";
 const PALETTE_ITEMS = PALETTE.map((key) => ({ key, label: labelOf(key) }));
 /** The habitat engine reports in Spanish; the game speaks English. */
@@ -445,12 +445,14 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             for (let i = BOARD.i0; i <= BOARD.i1; i++)
               for (let j = BOARD.j0; j <= BOARD.j1; j++)
                 if (world.canStand(i, j) && !layoutNow.placed.some((p) => p.i === i && p.j === j) && Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j) >= 2.5) free.push({ i, j });
-            const back = (t: { i: number; j: number }, bi: number) => Math.hypot(t.i - bi, t.j - (BOARD.j0 + 1.6));
+            const back = (t: { i: number; j: number }, bi: number) => Math.hypot(t.i - bi, t.j - (BOARD.j0 + 0.4));
             free.sort((x, y) => back(x, ci) - back(y, ci));
+            // Fronts look at the middle of the island, where the rebyters are, whatever way the camera turns.
+            const towardMiddle = (t: { i: number; j: number }) => facingInward(tileX(t.i), tileZ(t.j), tileX(ci), tileZ(cj)) + TOUR_FACING;
             const stop = free[0];
             const vend = [...free].sort((x, y) => back(x, ci + 2.6) - back(y, ci + 2.6)).find((t) => stop && Math.hypot(t.i - stop.i, t.j - stop.j) >= 2.4);
-            if (stop) await world.addProp("busStop", tileX(stop.i), tileZ(stop.j), TOUR_FACING);
-            if (vend) await world.addProp("vending", tileX(vend.i), tileZ(vend.j), TOUR_FACING);
+            if (stop) await world.addProp("busStop", tileX(stop.i), tileZ(stop.j), towardMiddle(stop));
+            if (vend) await world.addProp("vending", tileX(vend.i), tileZ(vend.j), towardMiddle(vend));
           } else if (spot) await world.addProp("punchingBag", tileX(spot.i), tileZ(spot.j));
         }
       } catch {
