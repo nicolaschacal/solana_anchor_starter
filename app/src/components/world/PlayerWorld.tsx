@@ -73,7 +73,7 @@ type Props = {
   action?: string;
   /** The meal being fed (with `action="feed"`): it is thrown at the rebyter, who eats it. */
   meal?: { food: number; tier: number } | null;
-  /** Put the starter punching bag on the free tile farthest from the tree (the tour does). */
+  /** Put the starter punching bag near the island's center, clear of the tree (the tour does). */
   bagFar?: boolean;
   /** A one-shot action finished. */
   onActionComplete?: () => void;
@@ -437,12 +437,14 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           // Every new island starts with the punching bag, the machine everyone trains on.
           let spot = freeTile([{ i: TREE_TILE.i, j: TREE_TILE.j }, ...layoutNow.placed.map((p) => ({ i: p.i, j: p.j }))], (i, j) => !world.canStand(i, j), spec);
           if (bagFar) {
-            let best = -1;
+            let best = Infinity;
+            const ci = (BOARD.i0 + BOARD.i1) / 2, cj = (BOARD.j0 + BOARD.j1) / 2;
             for (let i = BOARD.i0; i <= BOARD.i1; i++)
               for (let j = BOARD.j0; j <= BOARD.j1; j++) {
                 if (!world.canStand(i, j) || layoutNow.placed.some((p) => p.i === i && p.j === j)) continue;
-                const d = Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j);
-                if (d > best) {
+                if (Math.hypot(i - TREE_TILE.i, j - TREE_TILE.j) < 2.5) continue;
+                const d = Math.hypot(i - ci, j - cj);
+                if (d < best) {
                   best = d;
                   spot = { i, j };
                 }
