@@ -6,7 +6,11 @@ import deployment from "../../lib/economy/deployment.json";
 
 /** Mainnet SOL destination (the game wallet). Plain transfer, no program involved. */
 const WALLET: string = deployment.treasury;
-const AMOUNTS = [0.05, 0.1, 0.5];
+const TIERS = [
+  { sol: 0.05, name: "Scout" },
+  { sol: 0.1, name: "Explorer" },
+  { sol: 0.5, name: "Founder" },
+];
 
 function payUri(sol: number) {
   const q = new URLSearchParams({ amount: String(sol), label: "reByters", message: "Support reByters" });
@@ -42,25 +46,27 @@ export function SupportButton() {
   return (
     <>
       <button type="button" className="support-btn" onClick={() => setOpen(true)}>
-        <Heart size={16} /> Support reByters
+        <Heart size={15} fill="currentColor" /> Back the project
       </button>
       {open && createPortal(
         <div className="rb-ui">
           <div className="support-back" onClick={() => setOpen(false)}>
             <div className="support-card" role="dialog" aria-label="Support reByters" onClick={(e) => e.stopPropagation()}>
-              <h3>Help reByters grow</h3>
-              <p>We're a small team building reByters. Any contribution helps us keep expanding the world, the creatures and the game. Thank you!</p>
+              <h3>Back reByters</h3>
+              <p>reByters is built by a small team. Join the first backers and help us grow new creatures, new islands and a bigger world. Pick a tier, or set any amount in your wallet.</p>
               <div className="support-amts">
-                {AMOUNTS.map((a) => (
-                  <button key={a} type="button" className={a === sol ? "on" : ""} onClick={() => setSol(a)}>{a} SOL</button>
+                {TIERS.map((t) => (
+                  <button key={t.sol} type="button" className={t.sol === sol ? "on" : ""} onClick={() => setSol(t.sol)}>
+                    <b>{t.name}</b><small>{t.sol} SOL</small>
+                  </button>
                 ))}
               </div>
               {qr && <img className="support-qr" src={qr} alt="Solana Pay QR code" />}
-              <a className="support-go" href={uri}>Open in my wallet</a>
-              <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy wallet address"}</button>
+              <a className="support-go" href={uri}>Back with my wallet</a>
+              <button type="button" className="support-copy" onClick={copy}>{copied ? "Copied!" : "Copy address instead"}</button>
               <p className="support-addr">{WALLET}</p>
-              <p className="support-note">Real SOL on Solana mainnet (not the devnet game). You can change the amount in your wallet.</p>
-              <button type="button" className="support-x" onClick={() => setOpen(false)}>Close</button>
+              <p className="support-note">Sent in real SOL on Solana mainnet, separate from the devnet game. Thank you for believing in us!</p>
+              <button type="button" className="support-x" onClick={() => setOpen(false)}>Maybe later</button>
             </div>
           </div>
         </div>,

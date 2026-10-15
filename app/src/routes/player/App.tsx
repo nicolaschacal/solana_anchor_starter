@@ -719,6 +719,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       <section className="game-viewer game-world world-scene landing">
         <LandingBackdrop night={worldClock.period==="Night"}/>
         <RebytersLoginButton className="landing-login gl-panel"/>
+        <SupportButton/>
         <div className="landing-logo"><img src="/assets/brand/logo.webp" alt="reByters" width="900" height="222" decoding="async"/><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
           <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
@@ -726,7 +727,6 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
           <LandingEmail/>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
           <LandingFeatures/>
-          <SupportButton/>
         </div>
       </section>
     </main></Shell>;

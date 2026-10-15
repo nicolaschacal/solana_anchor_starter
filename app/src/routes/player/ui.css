@@ -1220,4 +1220,10 @@
 .rb-ui .support-x{background:transparent!important;color:var(--ui-text-2)!important}
 .rb-ui .support-addr{font:500 11px monospace!important;word-break:break-all!important;opacity:.8!important}
 .rb-ui .support-note{font-size:12px!important;opacity:.75!important;margin-top:10px!important}
+.rb-ui .support-btn{position:absolute!important;right:14px!important;top:calc(14px + env(safe-area-inset-top,0px))!important;z-index:9!important;margin:0!important;height:34px!important;padding:0 14px!important;border:0!important;background:linear-gradient(180deg,#f0b73f,#d98a1c)!important;color:#3d2008!important;font-weight:700!important;font-size:13px!important;box-shadow:0 3px 0 #a8650f,0 6px 14px rgba(40,20,8,.3)!important}
+.rb-ui .support-btn svg{color:#b6452f!important}
+.rb-ui .landing-login ~ .support-btn{top:calc(66px + env(safe-area-inset-top,0px))!important}
+.rb-ui .support-amts button{display:flex!important;flex-direction:column!important;align-items:center!important;line-height:1.15!important;border-radius:16px!important}
+.rb-ui .support-amts button small{font-size:11px!important;opacity:.8!important}
+.rb-ui .support-amts button.on small,.rb-ui .support-amts button.on b{color:var(--ui-on-accent)!important;opacity:1!important}
 }
