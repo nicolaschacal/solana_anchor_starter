@@ -15,6 +15,7 @@ import { FOV, WorldRig, angleDelta, FOCUS, LIMITS } from "../../lib/world/rig";
 import { createWalker, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
 import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
+import { throwFood, type FoodFx } from "./foodFx";
 import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
 import {
   specFor,
@@ -70,6 +71,8 @@ type Props = {
   showcase?: boolean;
   /** What the protagonist is doing (idle | touch | feed | train | train-power | sad). */
   action?: string;
+  /** The meal being fed (with `action="feed"`): it is thrown at the rebyter, who eats it. */
+  meal?: { food: number; tier: number } | null;
   /** A one-shot action finished. */
   onActionComplete?: () => void;
   /** How many objects of a kind the player may have placed (Infinity = free). Owned decor comes from the wallet. */
@@ -123,7 +126,7 @@ const TAP_PIXELS = 8;
 const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
-export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
+export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
   const hostRef = useRef<HTMLDivElement>(null);
@@ -155,6 +158,9 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   exitRef.current = onExit;
   const allowanceRef = useRef(propAllowance);
   allowanceRef.current = propAllowance;
+  const foodFxRef = useRef<FoodFx | null>(null);
+  const mealRef = useRef(meal);
+  mealRef.current = meal;
   const doneRef = useRef(onActionComplete);
   doneRef.current = onActionComplete;
   const trainHitRef = useRef(onTrainHit);
@@ -330,6 +336,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         entity.outer.rotation.y = entity.yaw;
         blendWalk(entity, walker.walking, dt);
         entity.mixer?.update(dt);
+      }
+      if (foodFxRef.current) {
+        moving = true;
+        if (!foodFxRef.current.update(dt)) foodFxRef.current = null;
       }
       const scene = trainRef.current;
       if (scene && scene.phase !== "walk") {
@@ -879,6 +889,33 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     if (action === "idle") {
       stopAction(entity);
       return;
+    }
+    const world = worldRef.current;
+    const rig = rigRef.current;
+    const meal = mealRef.current;
+    if (action === "feed" && meal && world && rig) {
+      // The meal flies in first; the eating animation starts when it lands, and the meal shrinks away with it.
+      let cancelled = false;
+      const eat = () => {
+        const played = playAction(entity, "feed", () => doneRef.current?.());
+        if (!played) {
+          foodFxRef.current?.cancel();
+          doneRef.current?.();
+          return;
+        }
+        foodFxRef.current?.eat(entity.action?.getClip().duration ?? 1.2);
+      };
+      void throwFood(world.scene, entity, rig.cur.yaw, meal.food, meal.tier, eat).then((fx) => {
+        if (cancelled) return fx?.cancel();
+        if (!fx) return eat();
+        foodFxRef.current?.cancel();
+        foodFxRef.current = fx;
+      });
+      return () => {
+        cancelled = true;
+        foodFxRef.current?.cancel();
+        foodFxRef.current = null;
+      };
     }
     const played = playAction(entity, action, () => doneRef.current?.());
     if (!played) doneRef.current?.();

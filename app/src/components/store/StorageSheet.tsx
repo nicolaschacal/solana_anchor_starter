@@ -86,7 +86,7 @@ export function StorageSheet({ balance, inventory, onClose, embedded = false }: 
             const Glyph = iconFor(item);
             return (
               <button key={item.id} role="listitem" className="bag-slot" data-on={picked === item.id} aria-label={`${item.name}, ${owned(item)}`} onClick={() => setPicked(picked === item.id ? null : item.id)}>
-                <span className="bag-art" aria-hidden="true">{item.category === "food" ? <FoodArt food={item.food} size={36} /> : <Glyph />}</span>
+                <span className="bag-art" aria-hidden="true">{item.category === "food" ? <FoodArt food={item.food} tier={item.tier} size={36} /> : <Glyph />}</span>
                 <span className="bag-name">{item.name}</span>
                 <b className="bag-count">×{owned(item)}</b>
               </button>

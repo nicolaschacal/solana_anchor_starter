@@ -1,6 +1,7 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
+import { foodThumbUrl } from "../../lib/economy/foodAssets";
 import { CATALOG, evolutionItemFor, FOOD_GROUPS, FOOD_NAMES, FOOD_TIER_DIET, foodSlot, fullnessOf, type MachineItem } from "../../lib/economy/catalog";
 import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
@@ -577,6 +578,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   const [habitat,setHabitat]=useState(0);
     const bubbleRef=useRef<HTMLDivElement>(null);
   const [visualAction,setVisualAction]=useState("idle");
+  const [meal,setMeal]=useState<{food:number;tier:number}|null>(null);
   const [resting,setResting]=useState(false);
   const [restPending,setRestPending]=useState(false);
   const [actionWarning,setActionWarning]=useState<{action:RebyterInteraction;message:string}|null>(null);
@@ -832,7 +834,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             editable={inventory.starterClaimed}
             onExit={()=>setFocusMint(null)}
             action={focusMint&&active?.mint===focusMint?companionAction:"idle"}
-            onActionComplete={()=>setVisualAction("idle")}
+            meal={meal}
+            onActionComplete={()=>{setVisualAction("idle");setMeal(null);}}
             propAllowance={key=>propAllowance(inventory,key)}
             trainRequest={trainRequest}
             onTrainHit={()=>{const job=pendingTrain.current;pendingTrain.current=null;if(job)void trainNow(job.id,job.machine).catch(()=>undefined);}}
@@ -953,8 +956,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
               {FOOD_NAMES[food].map((name,tier)=>{
                 const stock=inventory.meals(food,tier);
                 const warn=mealWarning(active,food,tier);
-                return <button key={name} className={`food-tier${warn?" meal-warning":""}`} title={warn||`${name}: +${fullnessOf(food,tier)} fullness, diet x${FOOD_TIER_DIET[tier]}`} disabled={!!player.interactingMint||stock<1} onClick={()=>void interact("feed",foodSlot(food,tier)).then(()=>{setFeeding(false);setVisualAction("feed");}).catch(()=>undefined)}>
-                  <Apple/><span><strong>{name}</strong><small>+{fullnessOf(food,tier)} · ×{FOOD_TIER_DIET[tier]}</small></span>
+                return <button key={name} className={`food-tier${warn?" meal-warning":""}`} title={warn||`${name}: +${fullnessOf(food,tier)} fullness, diet x${FOOD_TIER_DIET[tier]}`} disabled={!!player.interactingMint||stock<1} onClick={()=>void interact("feed",foodSlot(food,tier)).then(()=>{setFeeding(false);setMeal({food,tier});setVisualAction("feed");}).catch(()=>undefined)}>
+                  <img className="food-thumb" src={foodThumbUrl(food,tier)} alt="" loading="lazy"/><span><strong>{name}</strong><small>+{fullnessOf(food,tier)} · ×{FOOD_TIER_DIET[tier]}</small></span>
                   <b className="food-count" aria-label={`${stock} in stock`}>×{stock}</b>
                 </button>;
               })}

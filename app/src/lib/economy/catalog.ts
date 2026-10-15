@@ -41,10 +41,10 @@ export type StoreItem = HabitatItem | FoodItem | MachineItem | EvolutionItem | D
 
 /** Names, in tier order, of the four foods: meat, plants, fish, fruit. */
 export const FOOD_NAMES = [
-  ["Meat Bite", "Steak", "Big Steak", "Feast Roast"],
-  ["Leaves", "Salad", "Garden Bowl", "Harvest Feast"],
-  ["Sardine", "Salmon", "Tuna Steak", "Sushi Platter"],
-  ["Berries", "Apple", "Fruit Basket", "Golden Fruit"],
+  ["Sausage", "Bacon", "Steak", "Roast Ham"],
+  ["Broccoli", "Carrot", "Cabbage", "Pumpkin"],
+  ["Salmon Fillet", "Halibut Fillet", "Whole Salmon", "Whole Halibut"],
+  ["Banana", "Apple", "Pineapple", "Melon"],
 ];
 export const FOOD_GROUPS = ["Meat", "Plants", "Fish", "Fruit"];
 /** How much of its fullness a plain meal gives (the program's base table), and the tier multipliers in %. */

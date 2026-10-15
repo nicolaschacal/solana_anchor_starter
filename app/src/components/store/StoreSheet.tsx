@@ -159,7 +159,7 @@ export function StoreSheet({ balance, inventory, onClose }: Props) {
             return (
               <article key={item.id} className={`store-card cat-${item.category}${item.category === "habitat" ? ` climate-${item.climate}` : ""}`}>
                 <div className="store-card-art" aria-hidden="true">
-                  {item.category === "food" ? <FoodArt food={item.food} /> : <Glyph />}
+                  {item.category === "food" ? <FoodArt food={item.food} tier={item.tier} /> : <Glyph />}
                   {owned > 0 && !starter && <b className="store-owned">×{owned}</b>}
                 </div>
                 <div className="store-card-copy">

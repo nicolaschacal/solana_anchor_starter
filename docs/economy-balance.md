@@ -118,10 +118,10 @@ saves transactions and fees rather than Gems.
 
 | Tier | Fullness | Diet weight | Meat / Fish price | Plants / Fruit price |
 |---|---|---|---|---|
-| 0 plain (Meat Bite, Leaves, Sardine, Berries) | ×1.0 | ×1 | 4 | 3 |
-| 1 (Steak, Salad, Salmon, Apple) | ×1.5 | ×2 | 6 | 4 |
-| 2 (Big Steak, Garden Bowl, Tuna Steak, Fruit Basket) | ×2.2 | ×3 | 9 | 6 |
-| 3 (Feast Roast, Harvest Feast, Sushi Platter, Golden Fruit) | ×3.0 | ×4 | 12 | 8 |
+| 0 plain (Sausage, Broccoli, Salmon Fillet, Banana) | ×1.0 | ×1 | 4 | 3 |
+| 1 (Bacon, Carrot, Halibut Fillet, Apple) | ×1.5 | ×2 | 6 | 4 |
+| 2 (Steak, Cabbage, Whole Salmon, Pineapple) | ×2.2 | ×3 | 9 | 6 |
+| 3 (Roast Ham, Pumpkin, Whole Halibut, Melon) | ×3.0 | ×4 | 12 | 8 |
 
 The free daily ration and the quests give plain (tier 0) meals only. Tiers 1–3 are bought with Gems.
 
@@ -158,3 +158,5 @@ Each island has its own land (water, ridges, a river, a cone). Water and cliffs 
 - Done: one currency, food tiers, starter pack, training machines, evolution items, habitat NFTs with growing on-chain layout and
   islands with on-chain limits (3/5/8), Storage menu.
 - Next: vending-machine sales, Irys uploads on request, cleanup of the leftover partial-clone folder in Documents.
+
+Food art: each meal has a 3D model (`app/public/assets/food/{meat,plants,fish,fruit}-{tier}.glb`, from the Food Mega Pack, ~70-95 KB each) and a thumbnail render (`food/thumbs/`). Feeding throws the model at the rebyter, whose Feeding animation starts when it lands while the meal is bitten away. Visual only; prices and fullness are unchanged.

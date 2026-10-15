@@ -1097,4 +1097,8 @@
 /* Atlas / lineage portraits: background images (reliable on iOS), rounded and framed like the rest */
 .rb-ui :is(.discovery-card,.lineage-card) .sprite-tile{display:block!important;flex:none!important;width:84px!important;height:84px!important;border-radius:14px!important;border:1px solid var(--ui-line)!important;background-position:center!important;background-repeat:no-repeat!important;box-sizing:border-box!important;margin-bottom:6px!important}
 .rb-ui :is(.discovery-card,.lineage-card) .sprite-tile:not([style*="contain"]){background-size:cover!important}
+
+.rb-ui .food-thumb{width:34px!important;height:34px!important;object-fit:contain!important;justify-self:center!important}
+.rb-ui .food-art{object-fit:contain!important;display:block!important}
+.rb-ui .bag-art .food-art{width:36px!important;height:36px!important}
 }
