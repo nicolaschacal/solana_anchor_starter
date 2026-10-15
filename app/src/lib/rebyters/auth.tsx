@@ -81,8 +81,19 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   // object (it changes on every wallet state change, which re-ran connect() while the wallet was still
   // asking for approval and cancelled the first attempt).
   const selectedName=String(adapter.wallet?.adapter.name??"");
+  const busyConnecting=adapter.connecting;
+  const alreadyConnected=adapter.connected;
   useEffect(()=>{
     if(!pendingWallet||selectedName!==pendingWallet) return;
+    // The adapter's own autoConnect (it remembers the last wallet) may already be asking the wallet:
+    // a second request on top of it makes the wallet answer "Connection rejected". Wait for it instead.
+    if(alreadyConnected){
+      setPendingWallet(null);
+      setConnectError("");
+      setLoginOpen(false);
+      return;
+    }
+    if(busyConnecting) return;
     let live=true;
     const timer=window.setTimeout(()=>{
       if(live) setConnectError(`${pendingWallet} has not answered yet. Open its extension, unlock it and approve the connection; if nothing shows, reload the page and try again.`);
@@ -95,12 +106,13 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
       })
       .catch((e:unknown)=>{
         setPendingWallet(null);
+        console.warn("Wallet connect failed:",e);
         const text=e instanceof Error?(e.message||e.name):String(e);
         setConnectError(`Could not connect ${pendingWallet}: ${text||"the wallet refused or did not respond"}`);
       })
       .finally(()=>window.clearTimeout(timer));
     return()=>{live=false;window.clearTimeout(timer)};
-  },[pendingWallet,selectedName]);
+  },[pendingWallet,selectedName,busyConnecting,alreadyConnected]);
 
   const disconnect=useCallback(async()=>{
     if(tester){
