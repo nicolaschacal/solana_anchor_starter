@@ -4055,5 +4055,9 @@ html,body,#root{background:#04101f!important}
 .food-grid .food-count{position:absolute;top:6px;right:8px;font-size:10px;color:#2f88d7}
 .machine-badge{color:#2f88d7;font-style:normal;font-weight:700}
 @media(max-width:520px){.food-tiers{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.tester-badge{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:99999;background:#1b1b1b;color:#ffd35c;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.06em;padding:4px 10px;border-radius:999px;opacity:.9;border:0;cursor:pointer;text-align:center;max-width:94vw}
+.tester-badge{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:99999;background:#1b1b1b;color:#ffd35c;font:700 10px/1.3 ui-monospace,monospace;letter-spacing:.04em;padding:4px 10px;border-radius:14px;opacity:.95;text-align:center;max-width:94vw}
+.tester-badge>button{all:unset;cursor:pointer;color:inherit}
+.tester-panel{display:flex;gap:6px;margin-top:5px}
+.tester-panel input{flex:1;min-width:0;width:min(78vw,380px);font:inherit;background:#000;color:#fff;border:1px solid #555;border-radius:6px;padding:4px 6px;user-select:text}
+.tester-panel button{background:#ffd35c;color:#1b1b1b;border:0;border-radius:6px;padding:4px 10px;font:inherit;cursor:pointer}
 .tester-badge small{display:block;font-weight:400;color:#fff;white-space:normal;word-break:break-all}

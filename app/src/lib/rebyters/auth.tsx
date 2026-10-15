@@ -148,7 +148,7 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     connectError,
   }),[pendingWallet,connectError,anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
 
-  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<button type="button" className="tester-badge" onClick={()=>{void navigator.clipboard?.writeText(tester.publicKey.toBase58()).then(()=>setTesterNote("Address copied. Send devnet SOL to it (faucet.solana.com)."),()=>undefined)}}>TESTER · devnet · {testerSol===null?"…":`${testerSol.toFixed(2)} SOL`} · {tester.publicKey.toBase58().slice(0,4)}…{tester.publicKey.toBase58().slice(-4)}{testerNote&&<small>{testerNote}</small>}</button>}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<TesterBadge address={tester.publicKey.toBase58()} sol={testerSol} note={testerNote}/>}</AuthContext.Provider>;
 }
 
 export function useRebytersAuth(){
@@ -246,5 +246,28 @@ function RebytersLoginModal(){
       {!passkeysSupported()&&<p className="auth-note">Passkeys are not available in this browser. You can still connect a detected wallet.</p>}
       {(error||auth.connectError)&&<p className="auth-error">{error||auth.connectError}</p>}
     </section>
+  </div>;
+}
+
+
+function TesterBadge({address,sol,note}:{address:string;sol:number|null;note:string}){
+  const [open,setOpen]=useState(false);
+  const [copied,setCopied]=useState(false);
+  const input=useRef<HTMLInputElement>(null);
+  function copy(){
+    const el=input.current;
+    if(el){el.focus();el.select();el.setSelectionRange(0,address.length);}
+    let ok=false;
+    try{ok=document.execCommand("copy")}catch{ok=false}
+    if(!ok&&navigator.clipboard) void navigator.clipboard.writeText(address).then(()=>setCopied(true),()=>undefined);
+    setCopied(ok);
+  }
+  return <div className="tester-badge" role="status">
+    <button type="button" onClick={()=>setOpen(o=>!o)}>TESTER · devnet · {sol===null?"…":`${sol.toFixed(2)} SOL`} · {address.slice(0,4)}…{address.slice(-4)} ▾</button>
+    {note&&<small>{note}</small>}
+    {open&&<div className="tester-panel">
+      <input ref={input} readOnly value={address} onFocus={e=>e.currentTarget.select()} onClick={e=>e.currentTarget.select()} aria-label="Tester wallet address"/>
+      <button type="button" onClick={copy}>{copied?"Copied":"Copy"}</button>
+    </div>}
   </div>;
 }
