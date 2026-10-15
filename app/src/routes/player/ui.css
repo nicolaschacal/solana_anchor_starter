@@ -972,18 +972,18 @@
 @media (prefers-reduced-motion:reduce){.rb-ui .landing-art{animation:none!important}}
 .rb-ui .landing-logo{top:calc(84px + env(safe-area-inset-top,0px))!important;gap:2px!important}
 .rb-ui .landing-leaf{width:34px!important;height:34px!important;color:#5d7d3a!important;fill:#7ea14d!important;margin-bottom:-8px!important;transform:rotate(-4deg)!important;filter:drop-shadow(0 2px 0 rgba(255,243,214,.8))!important}
-.rb-ui .landing-logo strong{font-family:'Baloo 2','Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:clamp(42px,13.5vw,58px)!important;line-height:.95!important;letter-spacing:-.01em!important;color:#4b2a1b!important;-webkit-text-stroke:5px #fff3d6!important;paint-order:stroke fill!important;text-shadow:0 5px 12px rgba(40,20,8,.35)!important}
+.rb-ui .landing-logo strong{font-family:'Fredoka','Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:clamp(42px,13.5vw,58px)!important;line-height:.95!important;letter-spacing:-.01em!important;color:#4b2a1b!important;-webkit-text-stroke:5px #fff3d6!important;paint-order:stroke fill!important;text-shadow:0 5px 12px rgba(40,20,8,.35)!important}
 .rb-ui .landing-logo span{font-weight:700!important;letter-spacing:.3em!important;font-size:12px!important;color:#fff3d6!important;text-shadow:0 1px 6px rgba(40,20,8,.7)!important}
 .rb-ui .landing-logo i{background:#fff3d6!important;opacity:.85!important;width:28px!important}
 .rb-ui .landing-sheet{border-radius:34px 34px 0 0!important;padding-top:20px!important}
-.rb-ui .landing-sheet h1{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;font-family:'Baloo 2','Nunito',sans-serif!important;font-size:clamp(26px,8vw,34px)!important;font-weight:800!important;letter-spacing:-.01em!important;white-space:nowrap!important}
-.rb-ui .landing-sheet h1 b{font-family:'Baloo 2','Nunito',sans-serif!important;font-weight:800!important}
+.rb-ui .landing-sheet h1{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;font-family:'Fredoka','Nunito',sans-serif!important;font-size:clamp(26px,8vw,34px)!important;font-weight:800!important;letter-spacing:-.01em!important;white-space:nowrap!important}
+.rb-ui .landing-sheet h1 b{font-family:'Fredoka','Nunito',sans-serif!important;font-weight:800!important}
 .rb-ui .landing-sheet h1 svg{width:20px!important;height:20px!important;color:#5d7d3a!important;fill:#8fb15a!important;flex:none!important}
 .rb-ui .landing-sheet h1 .l1{transform:scaleX(-1) rotate(20deg)!important;color:#b6452f!important;fill:#d98b73!important;margin-right:2px!important}
 .rb-ui .landing-sheet h1 .l2{transform:rotate(20deg)!important;margin-left:2px!important}
 .rb-ui .landing-sheet p{font-weight:600!important;font-size:15px!important}
 .rb-ui .landing-start{min-height:62px!important}
-.rb-ui .landing-start strong{font-family:'Baloo 2','Nunito',sans-serif!important;font-weight:700!important;font-size:28px!important;text-align:center!important}
+.rb-ui .landing-start strong{font-family:'Fredoka','Nunito',sans-serif!important;font-weight:700!important;font-size:28px!important;text-align:center!important}
 .rb-ui .landing-start .landing-start-mark{border-radius:50%!important;width:44px!important;height:44px!important}
 .rb-ui .landing-atlas{font-weight:700!important;font-size:15px!important}
 .rb-ui .landing-features span{width:50px!important;height:50px!important}
@@ -1110,14 +1110,14 @@
 .rb-ui .landing-email-field input::placeholder{color:#a58a73!important;font-weight:600!important}
 .rb-ui .landing-email-trap{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
 .rb-ui .landing-email-go{display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;min-height:56px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:var(--ui-primary)!important;box-shadow:var(--ui-shadow-primary)!important;color:var(--ui-on-accent)!important;cursor:pointer!important}
-.rb-ui .landing-email-go strong{font:700 20px 'Baloo 2','Nunito',sans-serif!important;color:var(--ui-on-accent)!important}
+.rb-ui .landing-email-go strong{font:700 20px 'Fredoka','Nunito',sans-serif!important;color:var(--ui-on-accent)!important}
 .rb-ui .landing-email-go svg{width:20px!important;height:20px!important;color:var(--ui-on-accent)!important}
 .rb-ui .landing-email-go:disabled{opacity:.7!important;cursor:progress!important}
 .rb-ui .landing-email-error{margin:0!important;font-size:13px!important;font-weight:700!important;color:#b6452f!important}
 .rb-ui .landing-email-done{display:flex!important;flex-direction:column!important;align-items:center!important;gap:4px!important;padding:6px 0!important}
 .rb-ui .landing-email-done span{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border-radius:50%!important;background:#5d7d3a!important}
 .rb-ui .landing-email-done svg{width:24px!important;height:24px!important;color:#fff!important}
-.rb-ui .landing-email-done strong{font:800 20px 'Baloo 2','Nunito',sans-serif!important;color:var(--ui-text)!important}
+.rb-ui .landing-email-done strong{font:800 20px 'Fredoka','Nunito',sans-serif!important;color:var(--ui-text)!important}
 .rb-ui .landing-email-done small{font-size:14px!important;color:var(--ui-text-2)!important}
 /* Wide screens: a floating card over the scene instead of a full-width sheet that hides it. */
 @media (min-width:900px){
@@ -1126,4 +1126,16 @@
 .rb-ui .landing-sheet h1{font-size:30px!important}
 .rb-ui .landing-logo{top:calc(40px + env(safe-area-inset-top,0px))!important}
 }
+
+/* The reByters wordmark: chunky rounded cream letters with a brown outline, flanked by orange sunbursts. */
+.rb-ui .landing-logo strong{display:inline-flex!important;align-items:center!important;gap:6px!important;font-family:'Fredoka','Nunito',sans-serif!important;font-weight:700!important;font-size:clamp(46px,14.5vw,64px)!important;letter-spacing:.01em!important;line-height:1!important;color:#fff3df!important;-webkit-text-stroke:9px #6a3b1d!important;paint-order:stroke fill!important;text-shadow:0 5px 0 #6a3b1d,0 10px 16px rgba(40,20,8,.35)!important;padding:4px 6px 10px!important}
+.rb-ui .landing-logo .spark{width:.5em!important;height:.5em!important;flex:none!important;-webkit-text-stroke:0!important;filter:drop-shadow(0 2px 0 #fff3df)!important}
+.rb-ui .landing-logo .spark.r{transform:scaleX(-1)!important}
+.rb-ui .landing-logo span{font-family:'Nunito',system-ui,sans-serif!important;font-weight:800!important;font-size:13px!important;letter-spacing:.34em!important;text-transform:lowercase!important;color:#5a3320!important;text-shadow:0 1px 0 rgba(255,255,255,.7),0 0 8px rgba(255,255,255,.6)!important}
+.rb-ui .landing-logo i{background:#5a3320!important;opacity:.8!important;width:26px!important}
+.rb-ui .landing-sheet h1,.rb-ui .landing-sheet h1 b{font-family:'Fredoka','Nunito',sans-serif!important;font-weight:600!important}
+.rb-ui .landing-sheet h1 .c1{color:#e5532a!important}
+.rb-ui .landing-sheet h1 .c2{color:#2f8f4e!important}
+.rb-ui .landing-sheet h1 .c3{color:#5a3320!important}
+@media (min-width:900px){.rb-ui .landing-logo strong{font-size:84px!important}.rb-ui .landing-logo span{font-size:15px!important}.rb-ui .landing-logo{top:calc(32px + env(safe-area-inset-top,0px))!important}}
 }

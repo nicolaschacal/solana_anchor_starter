@@ -717,7 +717,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
       <section className="game-viewer game-world world-scene landing">
         <LandingBackdrop night={worldClock.period==="Night"}/>
         <RebytersLoginButton className="landing-login gl-panel"/>
-        <div className="landing-logo"><strong>reByters</strong><span><i/>digital companions<i/></span></div>
+        <div className="landing-logo"><strong><Spark className="spark l"/>reByters<Spark className="spark r"/></strong><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
           <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
           <p>Build your bond and grow your companions. Leave your email to be first in.</p>
@@ -1408,4 +1408,10 @@ export function PlayerAcquire() {
       <button className="ui-btn ui-btn-ghost text-back" onClick={()=>navigate("/")}><ChevronLeft/> Back home</button>
     </section>
   </main></Shell>;
+}
+
+
+/** The little sunburst that flanks the reByters wordmark. */
+function Spark({className}:{className:string}){
+  return <svg className={className} viewBox="0 0 40 40" aria-hidden="true"><g stroke="#f08a24" strokeWidth="5" strokeLinecap="round"><path d="M6 20h9"/><path d="M10 7l8 8"/><path d="M10 33l8-8"/></g></svg>;
 }
