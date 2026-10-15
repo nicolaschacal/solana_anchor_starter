@@ -35,7 +35,7 @@ export type FoodFx = {
   cancel: () => void;
 };
 
-const THROW = 0.65;
+const THROW = 0.7;
 
 /**
  * Throws a meal at a rebyter from the camera's side, lets it hang at the mouth while `eat` is
@@ -49,10 +49,11 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
     return null;
   }
   const h = entity.height;
-  const size = THREE.MathUtils.clamp(h * 0.34, 0.22, 0.6);
+  const size = THREE.MathUtils.clamp(h * 0.55, 0.38, 0.95);
   const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
   const base = entity.outer.position;
-  const from = base.clone().addScaledVector(fwd, 2.4).setY(base.y + h * 1.7);
+  // Thrown from in front, at about chest height, as if someone standing there tossed it.
+  const from = base.clone().addScaledVector(fwd, 3.2).setY(base.y + h * 0.75);
   const to = base.clone().addScaledVector(fwd, Math.max(0.3, h * 0.22)).setY(base.y + h * 0.5);
   obj.scale.setScalar(size);
   obj.position.copy(from);
@@ -62,7 +63,7 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
   let eatT = 0;
   let landed = false;
   let dead = false;
-  const spin = (Math.random() > 0.5 ? 1 : -1) * 9;
+  const spin = (Math.random() > 0.5 ? 1 : -1) * 6;
   const remove = () => {
     dead = true;
     scene.remove(obj);
@@ -76,9 +77,8 @@ export async function throwFood(scene: THREE.Scene, entity: Entity, yaw: number,
         t += dt;
         const k = Math.min(1, t / THROW);
         obj.position.lerpVectors(from, to, k);
-        obj.position.y += Math.sin(k * Math.PI) * h * 0.6;
+        obj.position.y += Math.sin(k * Math.PI) * h * 0.35;
         obj.rotation.x += dt * spin;
-        obj.rotation.z += dt * spin * 0.5;
         if (k >= 1) {
           landed = true;
           obj.rotation.set(0, yaw, 0);
