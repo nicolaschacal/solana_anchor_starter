@@ -210,7 +210,7 @@ function ExploreScene() {
   const layout = useMemo(() => defaultLayout(creatures.map((c) => c.mint), SPEC), [creatures]);
   return (
     <>
-    {focus ? <button type="button" className="sc-back" onClick={() => setFocus(null)}>Back to the island</button> : <WorldClockChip />}
+    {!focus && <WorldClockChip />}
     <Suspense fallback={<WorldLoading />}>
       <PlayerWorld
         creatures={creatures}
@@ -219,6 +219,7 @@ function ExploreScene() {
         period="Day"
         onSelect={(mint) => setFocus(mint)}
         focusMint={focus}
+        onExit={() => setFocus(null)}
         editable={false}
         showcase
         tour
