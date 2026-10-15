@@ -78,11 +78,13 @@ function WorldLoading() {
 
 /** The close-up of one reByter, doing what you can do with it: touch, play, care and feed it. */
 const RAISE_STEPS = [
-  { action: "touch", label: "Pet it", meal: null },
+  { action: "feed", label: "Feed it", meal: { food: 3, tier: 1 } },
+  { action: "touch", label: "Feed it", meal: null }, // the happy reaction after the meal
   { action: "play", label: "Play with it", meal: null },
   { action: "care", label: "Care for it", meal: null },
-  { action: "feed", label: "Feed it", meal: { food: 3, tier: 1 } },
+  { action: "touch", label: "Pet it", meal: null },
 ] as const;
+const RAISE_LABELS = ["Feed it", "Play with it", "Care for it", "Pet it"];
 
 function RaiseScene() {
   const star = useMemo(() => toCreature(byName("Finbit"), "raise"), []);
@@ -91,7 +93,7 @@ function RaiseScene() {
   const [step, setStep] = useState(-1);
   const timer = useRef(0);
   useEffect(() => {
-    timer.current = window.setTimeout(() => setStep(0), 2200);
+    timer.current = window.setTimeout(() => setStep(0), 900);
     return () => window.clearTimeout(timer.current);
   }, []);
   const next = () => {
@@ -117,7 +119,7 @@ function RaiseScene() {
           size={7}
         />
       </Suspense>
-      <div className="sc-caption" aria-live="polite">{RAISE_STEPS.map((s, i) => <span key={s.action} className={i === step ? "on" : ""}>{s.label}</span>)}</div>
+      <div className="sc-caption" aria-live="polite">{RAISE_LABELS.map((label) => <span key={label} className={now?.label === label ? "on" : ""}>{label}</span>)}</div>
     </>
   );
 }
@@ -132,12 +134,12 @@ function EvolveScene() {
   useEffect(() => {
     if (phase !== "need") return;
     setShown(0);
-    const ticks = needs.map((_, i) => window.setTimeout(() => setShown(i + 1), 700 + i * 650));
-    const go = window.setTimeout(() => setPhase("fx"), 900 + needs.length * 650 + 800);
+    const ticks = needs.map((_, i) => window.setTimeout(() => setShown(i + 1), 250 + i * 230));
+    const go = window.setTimeout(() => setPhase("fx"), 250 + needs.length * 230 + 350);
     return () => [...ticks, go].forEach(window.clearTimeout);
   }, [phase, needs, run]);
   const job = useMemo<EvolutionJob | null>(
-    () => (phase === "fx" ? { from: EVOLVE_FROM, to: EVOLVE_TO, task: new Promise((r) => window.setTimeout(r, 1500)) } : null),
+    () => (phase === "fx" ? { from: EVOLVE_FROM, to: EVOLVE_TO, task: new Promise((r) => window.setTimeout(r, 900)) } : null),
     [phase, run],
   );
   return (
@@ -203,18 +205,20 @@ function WorldClockChip() {
 }
 
 function ExploreScene() {
+  const [focus, setFocus] = useState<string | null>(null);
   const creatures = useMemo(() => SHOW_FORMS.slice(0, SPEC.maxPlaced).map((f) => toCreature(f, "island")), []);
   const layout = useMemo(() => defaultLayout(creatures.map((c) => c.mint), SPEC), [creatures]);
   return (
     <>
-    <WorldClockChip />
+    {focus ? <button type="button" className="sc-back" onClick={() => setFocus(null)}>Back to the island</button> : <WorldClockChip />}
     <Suspense fallback={<WorldLoading />}>
       <PlayerWorld
         creatures={creatures}
         initialLayout={layout}
         onCommitLayout={async () => undefined}
         period="Day"
-        onSelect={() => undefined}
+        onSelect={(mint) => setFocus(mint)}
+        focusMint={focus}
         editable={false}
         showcase
         tour
