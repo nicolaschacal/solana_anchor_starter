@@ -23,6 +23,9 @@ export function LandingBackdrop({ night }: { night: boolean }) {
     };
     resize();
     window.addEventListener("resize", resize);
+    // The box can change without a window resize (layout settling, mobile toolbars): keep the bitmap matched so specks never stretch.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
+    ro?.observe(el);
     type P = { x: number; y: number; r: number; vx: number; vy: number; ph: number; sp: number };
     const spawn = (anywhere: boolean): P => ({
       x: anywhere ? Math.random() * w : -10, y: Math.random() * h * 0.8,
@@ -66,6 +69,7 @@ export function LandingBackdrop({ night }: { night: boolean }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      ro?.disconnect();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
     };
