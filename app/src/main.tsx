@@ -21,9 +21,14 @@ import { RpcMeter } from "./components/RpcMeter";
 import { rpcFetch } from "./lib/rebyters/rpc-fetch";
 import { RebytersAuthProvider } from "./lib/rebyters/auth";
 import { AppErrorBoundary, reloadOnce } from "./components/AppErrorBoundary";
+import { WaitlistPage, isWaitlistHost } from "./routes/player/WaitlistPage";
 initializeTheme();
 window.addEventListener("vite:preloadError", (event) => { if (reloadOnce()) event.preventDefault(); });
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+if (isWaitlistHost()) {
+  // The public domain only collects emails; the game runs on play.rebyters.xyz.
+  root.render(<React.StrictMode><AppErrorBoundary><WaitlistPage /></AppErrorBoundary></React.StrictMode>);
+} else root.render(
   <React.StrictMode>
     <AppErrorBoundary>
     <ConnectionProvider
