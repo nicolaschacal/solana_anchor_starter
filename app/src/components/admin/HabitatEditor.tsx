@@ -30,6 +30,7 @@ import {
   DIORAMA_SIZES,
   HabitatWorld,
   PROP_CATALOG,
+  isFitted,
   type DioramaSize,
   type Lighting,
   type Pane,
@@ -972,6 +973,7 @@ export function HabitatEditor({ registry }: { registry: Registry }) {
                     max={world?.kind === "diorama" ? 6 : 10}
                     step={0.1}
                     value={selected.h}
+                    disabled={isFitted(selected.key)}
                     onPointerDown={() => world && remember(world.snapshot())}
                     onChange={(e) => {
                       world?.updateProp(selected, { h: Number(e.target.value) });

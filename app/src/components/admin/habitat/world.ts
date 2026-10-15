@@ -78,6 +78,18 @@ export const DEFAULT_LIGHTING: Lighting = {
   shadows: true,
 };
 
+/**
+ * Props that fill whole tiles. The value is the height (in diorama tiles, 1 tile = 1 m) at which the
+ * model's width (and depth, for the one-tile ones) fills exactly its tiles; it comes from each model's
+ * proportions: bus stop 3 tiles wide, vending machine and punching bag 2, payphone and bin 1.
+ * These props are never resized, and an old save that stored another height is corrected on load.
+ */
+export const FITTED_H: Partial<Record<AssetKey, number>> = { busStop: 3.3, vending: 3.93, punchingBag: 3.32, payphone: 2.34, crateBin: 1.28 };
+export const isFitted = (key: AssetKey) => FITTED_H[key] !== undefined;
+/** Catalog heights are game-size; a diorama draws props at half of them (see `propScale`). */
+const GAME = 2;
+const catalogH = (key: AssetKey, h: number) => (FITTED_H[key] !== undefined ? FITTED_H[key]! * GAME : h);
+
 /** Props from the game's own environment folder, with a sensible default height in metres. */
 export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "tree", label: "Árbol", h: 5.5 },
@@ -93,12 +105,12 @@ export const PROP_CATALOG: { key: AssetKey; label: string; h: number }[] = [
   { key: "wildflowers", label: "Flores silvestres", h: 0.5 },
   { key: "reeds", label: "Juncos", h: 1.1 },
   { key: "lantern", label: "Farol encantado", h: 1 },
-  { key: "vending", label: "Máquina expendedora", h: 4.6 },
-  { key: "busStop", label: "Parada de colectivo", h: 5 },
-  { key: "punchingBag", label: "Saco de boxeo", h: 3 },
-  { key: "payphone", label: "Cabina telefónica", h: 3 },
+  { key: "vending", label: "Máquina expendedora", h: catalogH("vending", 4.6) },
+  { key: "busStop", label: "Parada de colectivo", h: catalogH("busStop", 5) },
+  { key: "punchingBag", label: "Saco de boxeo", h: catalogH("punchingBag", 3) },
+  { key: "payphone", label: "Cabina telefónica", h: catalogH("payphone", 3) },
   { key: "lanternPost", label: "Poste con farol", h: 3.6 },
-  { key: "crateBin", label: "Cesto de madera", h: 1.8 },
+  { key: "crateBin", label: "Cesto de madera", h: catalogH("crateBin", 1.8) },
   { key: "fence", label: "Cerca de madera", h: 1.4 },
 ];
 
@@ -111,27 +123,38 @@ export function facingInward(x: number, z: number, cx: number, cz: number) {
 }
 
 /** Tiles a prop covers along its own width (default 1). Wider props are quarter-turn only. */
-export const PROP_SPAN: Partial<Record<AssetKey, number>> = { busStop: 2 };
+export const PROP_SPAN: Partial<Record<AssetKey, number>> = { busStop: 3, vending: 2, punchingBag: 2 };
 export const spanOf = (key: AssetKey) => PROP_SPAN[key] ?? 1;
 /** Direction of the prop's width on the grid, for a quarter-turn rotation. */
 const axisOf = (r: number) => ({ x: Math.round(Math.cos(r)), z: Math.round(-Math.sin(r)) });
-/** Every tile a prop stands on. Two-tile props are centred between their tiles. */
+/** Offset (in tiles, along the prop's width) of the k-th tile from the prop's centre. */
+const spanOffset = (n: number, k: number) => k - (n - 1) / 2;
+/** Every tile a prop stands on, in order along its width. Even spans are centred between two tiles, odd ones on a tile. */
 export function footprint(key: AssetKey, x: number, z: number, r: number): [number, number][] {
-  if (spanOf(key) === 1) {
+  const n = spanOf(key);
+  if (n === 1) {
     const t = TileMap.tileOf(x, z);
     return [[t.i, t.j]];
   }
   const a = axisOf(r);
-  const t0 = TileMap.tileOf(x - 0.5 * a.x, z - 0.5 * a.z);
-  const t1 = TileMap.tileOf(x + 0.5 * a.x, z + 0.5 * a.z);
-  return [
-    [t0.i, t0.j],
-    [t1.i, t1.j],
-  ];
+  return Array.from({ length: n }, (_, k) => {
+    const o = spanOffset(n, k);
+    const t = TileMap.tileOf(x + o * a.x, z + o * a.z);
+    return [t.i, t.j] as [number, number];
+  });
 }
-/** Centre of a prop whose first tile is (i, j); `side` picks which way its width runs. */
+/** The tile a wide prop is held by: its middle tile when it covers an odd number, else its first. */
+export function anchorTile(key: AssetKey, x: number, z: number, r: number): [number, number] {
+  const tiles = footprint(key, x, z, r);
+  return tiles[spanOf(key) % 2 === 1 ? (tiles.length - 1) / 2 : 0];
+}
+/**
+ * Centre of a wide prop held by tile (i, j): that tile is its middle one when the span is odd; with an even span
+ * it is the first tile and `side` picks which way the width runs.
+ */
 export function spanCenter(key: AssetKey, i: number, j: number, r: number, side = 1) {
-  if (spanOf(key) === 1) return { x: OX + i, z: OZ + j };
+  const n = spanOf(key);
+  if (n === 1 || n % 2 === 1) return { x: OX + i, z: OZ + j };
   const a = axisOf(r);
   return { x: OX + i + 0.5 * a.x * side, z: OZ + j + 0.5 * a.z * side };
 }
@@ -708,6 +731,15 @@ diffuseColor.rgb = painted;`,
     }));
   }
   private async spawnEntry(data: PropData & { id?: number }) {
+    // Tile-filling props always have the height that fills their tiles, whatever an old layout stored.
+    if (isFitted(data.key)) {
+      data = { ...data, h: FITTED_H[data.key]! * GAME * this.propScale };
+      // A one-tile prop that fills its tile also sits in its middle.
+      if (spanOf(data.key) === 1) {
+        const t = TileMap.tileOf(data.x, data.z);
+        data = { ...data, x: OX + t.i, z: OZ + t.j };
+      }
+    }
     const prop = await this.env.spawn(data.key, data.x, data.z, data.h, data.r);
     if (!prop || this.disposed) return null;
     const entry: PropEntry = {
@@ -746,7 +778,7 @@ diffuseColor.rgb = painted;`,
     let at = { x: OX + tile.i, z: OZ + tile.j };
     let why = this.placementBlock(key, at.x, at.z, r);
     if (why && spanOf(key) > 1) {
-      // A wide prop starts at the tapped tile and runs either way along its width.
+      // A wide prop is held by the tapped tile and runs either way along its width.
       for (const side of [1, -1]) {
         at = spanCenter(key, tile.i, tile.j, r, side);
         why = this.placementBlock(key, at.x, at.z, r);
@@ -813,7 +845,7 @@ diffuseColor.rgb = painted;`,
   }
   moveProp(entry: PropEntry, x: number, z: number) {
     const tile = TileMap.tileOf(x, z);
-    // A wide prop moves with its first tile on the tapped tile, running either way.
+    // A wide prop moves with its middle tile (odd span) or first tile (even span) on the tapped tile, running either way.
     let at = spanCenter(entry.key, tile.i, tile.j, entry.r);
     let why = this.placementBlock(entry.key, at.x, at.z, entry.r, entry);
     if (why && spanOf(entry.key) > 1) {
@@ -836,11 +868,11 @@ diffuseColor.rgb = painted;`,
    * at a time around their first tile, and only if the new spot is free.
    */
   rotateProp(entry: PropEntry, delta: number) {
-    if (spanOf(entry.key) === 1) {
+    if (spanOf(entry.key) === 1 && !isFitted(entry.key)) {
       this.updateProp(entry, { r: entry.r + delta });
       return true;
     }
-    const [first] = footprint(entry.key, entry.x, entry.z, entry.r);
+    const first = anchorTile(entry.key, entry.x, entry.z, entry.r);
     const r = entry.r + Math.sign(delta) * (Math.PI / 2);
     const at = spanCenter(entry.key, first[0], first[1], r);
     const why = this.placementBlock(entry.key, at.x, at.z, r, entry);
@@ -855,7 +887,7 @@ diffuseColor.rgb = painted;`,
   }
   /** Slides a prop inside its own tile (to the edge at most), so rows of props need not line up. */
   nudgeProp(entry: PropEntry, dx: number, dz: number) {
-    if (spanOf(entry.key) > 1) return;
+    if (spanOf(entry.key) > 1 || isFitted(entry.key)) return;
     const tile = TileMap.tileOf(entry.x, entry.z);
     const limit = 0.45;
     const cx = OX + tile.i,
@@ -867,6 +899,7 @@ diffuseColor.rgb = painted;`,
     this.env.markShadowsDirty();
   }
   updateProp(entry: PropEntry, change: Partial<Pick<PropData, "h" | "r">>) {
+    if (isFitted(entry.key)) change = { r: change.r ?? entry.r };
     Object.assign(entry, change);
     this.applyEntry(entry);
     this.updateRing();

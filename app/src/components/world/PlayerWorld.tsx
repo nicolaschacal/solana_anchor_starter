@@ -8,7 +8,7 @@ import type { FxAsset } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
 import { CreatureSprite } from "../admin/CreatureSprite";
 import { OX, OZ, TileMap } from "../admin/habitat/tiles";
-import { FRONT_FACING, HabitatWorld, facingInward, footprint, spanOf, type PropEntry } from "../admin/habitat/world";
+import { FRONT_FACING, HabitatWorld, facingInward, footprint, isFitted, spanOf, type PropEntry } from "../admin/habitat/world";
 import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta, FOCUS, LIMITS } from "../../lib/world/rig";
@@ -511,7 +511,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     editRef.current = {
       resize: (factor) => {
         const sel = selectionRef.current;
-        if (sel?.kind !== "prop") return;
+        if (sel?.kind !== "prop" || isFitted(sel.entry.key)) return;
         world.updateProp(sel.entry, { h: Math.min(14, Math.max(0.15, sel.entry.h * factor)) });
         persistNow();
       },
@@ -1181,11 +1181,15 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
                 </span>
                 {selection.kind === "prop" && (
                   <span className="world-adjust" role="group" aria-label="Adjust object">
-                    <button onClick={() => editRef.current?.resize(1 / 1.12)} aria-label="Smaller"><Minus /></button>
-                    <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
-                    <button onClick={() => editRef.current?.rotate(-Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
-                    <button onClick={() => editRef.current?.rotate(Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
-                    {spanOf(selection.entry.key) === 1 && (
+                    {!isFitted(selection.entry.key) && (
+                      <>
+                        <button onClick={() => editRef.current?.resize(1 / 1.12)} aria-label="Smaller"><Minus /></button>
+                        <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
+                      </>
+                    )}
+                    <button onClick={() => editRef.current?.rotate(isFitted(selection.entry.key) ? -Math.PI / 2 : -Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
+                    <button onClick={() => editRef.current?.rotate(isFitted(selection.entry.key) ? Math.PI / 2 : Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
+                    {spanOf(selection.entry.key) === 1 && !isFitted(selection.entry.key) && (
                       <>
                         <button onClick={() => editRef.current?.nudge(-1, 0)} aria-label="Move left"><ArrowLeft /></button>
                         <button onClick={() => editRef.current?.nudge(0, 1)} aria-label="Move up"><ArrowUp /></button>
