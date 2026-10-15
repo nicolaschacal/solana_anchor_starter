@@ -43,7 +43,7 @@ function publicKeyOptions(challenge:Uint8Array,extra:Record<string,unknown>={}) 
 export function passkeysSupported() {
   return typeof window.PublicKeyCredential==="function";
 }
-function makeWallet(keypair:Keypair):AnchorWallet {
+export function makeWallet(keypair:Keypair):AnchorWallet {
   return {
     publicKey:keypair.publicKey,
     async signTransaction<T extends Transaction|VersionedTransaction>(transaction:T):Promise<T> {

@@ -4055,3 +4055,5 @@ html,body,#root{background:#04101f!important}
 .food-grid .food-count{position:absolute;top:6px;right:8px;font-size:10px;color:#2f88d7}
 .machine-badge{color:#2f88d7;font-style:normal;font-weight:700}
 @media(max-width:520px){.food-tiers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tester-badge{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 2px);transform:translateX(-50%);z-index:99999;background:#1b1b1b;color:#ffd35c;font:700 10px/1.2 ui-monospace,monospace;letter-spacing:.06em;padding:4px 10px;border-radius:999px;opacity:.85;pointer-events:none;text-align:center;max-width:94vw}
+.tester-badge small{display:block;font-weight:400;color:#fff;white-space:normal;word-break:break-all}

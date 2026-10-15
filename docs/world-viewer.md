@@ -60,3 +60,6 @@ Code: `components/admin/HabitatEditor.tsx` (UI), `components/admin/habitat/world
 
 ## Size by stage
 Every model is first fitted to the same box, so proportions alone decide how big it looks. `STAGE_SIZE` in `components/world/entity.ts` scales that box by stage (Origin 0.8, Byte 0.96, Kylo 1.58, then 1.8, 2.03, 2.25): babies stay small and each form grows. Change the numbers there; no model needs re-uploading.
+
+## Tester mode
+Open the game with `?tester=1`: it signs in with a throwaway keypair stored in the browser (no wallet or passkey) and requests devnet SOL from the faucet; a small "TESTER" badge shows at the top. `?tester=reset` starts a new account, `?tester=off` leaves the mode. Everything else is the normal game on devnet.

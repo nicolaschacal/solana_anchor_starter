@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
-import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { CircleUserRound, KeyRound, ShieldCheck, X } from "lucide-react";
+import { fundTester, testerRequested, testerWallet } from "./tester";
 import { createOrGetPasskeyWallet, passkeysSupported } from "./passkey";
 
-type AuthKind="wallet"|"passkey"|null;
+type AuthKind="wallet"|"passkey"|"tester"|null;
 type AuthContextValue={
   connected:boolean;
   kind:AuthKind;
@@ -28,12 +29,21 @@ const AuthContext=createContext<AuthContextValue|null>(null);
 export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   const adapter=useWallet();
   const adapterAnchor=useAnchorWallet();
+  const {connection}=useConnection();
   const [passkeyWallet,setPasskeyWallet]=useState<AnchorWallet|null>(null);
+  const [tester,setTester]=useState<AnchorWallet|null>(()=>testerRequested()?testerWallet():null);
+  const [testerNote,setTesterNote]=useState("");
+  useEffect(()=>{
+    if(!tester) return;
+    let cancelled=false;
+    void fundTester(connection,tester).then(note=>{if(!cancelled) setTesterNote(note??"")});
+    return()=>{cancelled=true};
+  },[connection,tester]);
   const [loginOpen,setLoginOpen]=useState(false);
   const [pendingWallet,setPendingWallet]=useState<string|null>(null);
 
-  const kind:AuthKind=passkeyWallet?"passkey":adapter.connected?"wallet":null;
-  const anchorWallet=passkeyWallet??adapterAnchor;
+  const kind:AuthKind=tester?"tester":passkeyWallet?"passkey":adapter.connected?"wallet":null;
+  const anchorWallet=tester??passkeyWallet??adapterAnchor;
   const publicKey=anchorWallet?.publicKey??adapter.publicKey??null;
 
   const signInWithPasskey=useCallback(async()=>{
@@ -78,12 +88,17 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
   },[adapter,pendingWallet]);
 
   const disconnect=useCallback(async()=>{
+    if(tester){
+      setTester(null);
+      try{sessionStorage.removeItem("rebyters.tester.v1.on")}catch{/* ignore */}
+      return;
+    }
     if(passkeyWallet){
       setPasskeyWallet(null);
       return;
     }
     await adapter.disconnect();
-  },[adapter,passkeyWallet]);
+  },[adapter,passkeyWallet,tester]);
 
   const value=useMemo<AuthContextValue>(()=>({
     connected:!!publicKey,
@@ -103,7 +118,7 @@ export function RebytersAuthProvider({children}:{children:React.ReactNode}){
     disconnect,
   }),[anchorWallet,availableWallets,connectWallet,disconnect,kind,loginOpen,publicKey,signInWithPasskey]);
 
-  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/></AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}<RebytersLoginModal/>{tester&&<div className="tester-badge" role="status">TESTER · devnet · {tester.publicKey.toBase58().slice(0,4)}…{tester.publicKey.toBase58().slice(-4)}{testerNote&&<small>{testerNote}</small>}</div>}</AuthContext.Provider>;
 }
 
 export function useRebytersAuth(){
