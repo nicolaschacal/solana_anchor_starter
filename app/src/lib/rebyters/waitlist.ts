@@ -11,9 +11,15 @@ const ENDPOINT =
 const SHEET_URL = (import.meta.env.VITE_WAITLIST_SHEET_URL as string | undefined) ?? "https://script.google.com/macros/s/AKfycbz5JYQRzmULdF7j86_zDn79RsZuadO6w3Rs3-L5FjcJ_AoVN1iKqaqy4BeIAFebSj09/exec";
 
 export const waitlistOpen = () => ENDPOINT.length > 0;
-export const validEmail = (value: string) => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(value.trim()) && value.length <= 120;
+/** Throwaway-inbox domains: they are never real people waiting for the game. */
+const DISPOSABLE = ["mailinator.com", "guerrillamail.com", "10minutemail.com", "tempmail.com", "temp-mail.org", "yopmail.com", "trashmail.com", "sharklasers.com", "getnada.com", "dispostable.com", "maildrop.cc", "throwawaymail.com", "fakeinbox.com", "mailnesia.com", "mintemail.com", "moakt.com", "emailondeck.com", "tempail.com"];
+export const validEmail = (value: string) => {
+  const v = value.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(v) && v.length <= 120 && !DISPOSABLE.includes(v.split("@")[1]);
+};
 
-export async function joinWaitlist(email: string): Promise<void> {
+/** `elapsedMs` is how long the form was on screen: bots submit instantly, people do not. */
+export async function joinWaitlist(email: string, elapsedMs = 0): Promise<void> {
   if (!ENDPOINT) throw new Error("not-open");
   const res = await fetch(ENDPOINT, {
     method: "POST",
@@ -22,7 +28,7 @@ export async function joinWaitlist(email: string): Promise<void> {
   });
   if (SHEET_URL) {
     // Apps Script has no CORS headers: send a simple text/plain POST and ignore the opaque reply.
-    fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "content-type": "text/plain;charset=utf-8" }, body: JSON.stringify({ email: email.trim().toLowerCase(), source: "reByters start screen" }) }).catch(() => undefined);
+    fetch(SHEET_URL, { method: "POST", mode: "no-cors", headers: { "content-type": "text/plain;charset=utf-8" }, body: JSON.stringify({ email: email.trim().toLowerCase(), source: "reByters start screen", elapsed: Math.round(elapsedMs) }) }).catch(() => undefined);
   }
   if (!res.ok) throw new Error(`failed-${res.status}`);
 }

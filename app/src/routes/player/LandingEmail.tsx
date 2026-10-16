@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowRight, Check, Mail } from "lucide-react";
 import { joinWaitlist, validEmail, waitlistOpen } from "../../lib/rebyters/waitlist";
 
@@ -15,13 +15,24 @@ const wasJoined = () => {
 export function LandingEmail() {
   const [email, setEmail] = useState("");
   const [trap, setTrap] = useState("");
+  const shownAt = useRef(Date.now());
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">(wasJoined() ? "done" : "idle");
   const [message, setMessage] = useState("");
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (state === "sending") return;
-    if (trap) return setState("done");
+    // Bots fill the hidden field or submit within a blink: pretend it worked and send nothing.
+    if (trap || Date.now() - shownAt.current < 2500) return setState("done");
+    try {
+      const last = Number(localStorage.getItem("rebyters.waitlist.at") ?? 0);
+      if (Date.now() - last < 30000) {
+        setState("error");
+        return setMessage("Please wait a moment before trying again.");
+      }
+    } catch {
+      // storage unavailable: skip the cooldown
+    }
     if (!validEmail(email)) {
       setState("error");
       return setMessage("Check that email address.");
@@ -32,9 +43,10 @@ export function LandingEmail() {
     }
     setState("sending");
     try {
-      await joinWaitlist(email);
+      await joinWaitlist(email, Date.now() - shownAt.current);
       try {
         localStorage.setItem(KEY, "1");
+        localStorage.setItem("rebyters.waitlist.at", String(Date.now()));
       } catch {
         // fine: the thank-you just will not persist
       }
