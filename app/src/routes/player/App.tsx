@@ -10,7 +10,8 @@ import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { useIsAdmin } from "../../hooks/useIsAdmin";
-const FreePreview = lazy(() => import("./FreePreview").then(m => ({ default: m.FreePreview })));
+import { FREE_MINT, setFreeForm, useFreeForm } from "../../lib/rebyters/freeRebyter";
+import { FormPicker } from "./FormPicker";
 import { Suspense, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -121,6 +122,8 @@ function usePlayerCollection() {
   const chain = useContext(PlayerStateContext);
   if (!chain) throw new Error("Player collection requires the persistent game provider");
   const wallet = useRebytersAuth();
+  const isAdminWallet = useIsAdmin();
+  const freeForm = useFreeForm();
   const [params] = useSearchParams();
   const tree = chain.mammalTree ?? fallbackTree;
   let owned: OwnedRebyter[] = chain.owned.map((item) => {
@@ -155,6 +158,14 @@ function usePlayerCollection() {
       { mint:"demo-wolf", dnaByteLength:50, evolutionId:tree.evolutions.find(e=>e.name==="Wolf")?.id??41, level:4, bond:58, discipline:64, fullness:61, energy:68, condition:0, hp:168, atk:82, def:71, spd:89, timeInteractions:[2,4,8,14], careMistakes:1, diet:[12,2,4,2], weight:18, cycle:0, stageEnteredAt:demoNow-96*3600, learnedSkills:(1n<<3n)|(1n<<6n) },
       { mint:"demo-dire", dnaByteLength:50, evolutionId:tree.evolutions.find(e=>e.name==="Dire Wolf")?.id??71, level:5, bond:76, discipline:81, fullness:55, energy:59, condition:0, hp:228, atk:121, def:106, spd:116, timeInteractions:[4,6,12,21], careMistakes:1, diet:[18,3,5,2], weight:24, cycle:0, stageEnteredAt:demoNow-180*3600, learnedSkills:(1n<<3n)|(1n<<5n)|(1n<<6n)|(1n<<7n) },
     ];
+  }
+  const freeEvolution = isAdminWallet && freeForm !== null ? tree.evolutions.find(e => e.id === freeForm) : undefined;
+  if (freeEvolution) {
+    owned = [...owned, {
+      mint: FREE_MINT, dnaByteLength: 50, evolutionId: freeEvolution.id, level: freeEvolution.stage + 1, bond: 60, discipline: 50,
+      fullness: 80, energy: 80, condition: 0, hp: 100, atk: 30, def: 30, spd: 30, timeInteractions: [0, 0, 0, 0], careMistakes: 0,
+      diet: [0, 0, 0, 0], weight: freeEvolution.initialWeight ?? 50, cycle: 0, stageEnteredAt: Math.floor(Date.now() / 1000), learnedSkills: 0n,
+    }];
   }
   return { ...chain, tree, owned };
 }
@@ -634,6 +645,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
   }
   async function interact(action:RebyterInteraction,option=0,_unused=0,machine?:MachineItem){
     if(!active)return;
+    if(active.mint===FREE_MINT)return; // the free rebyter is local: nothing goes on chain
     try{
       await player.interact(active.mint,action,option,machine);
     }catch{throw new Error("Interaction failed");}
@@ -825,7 +837,7 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
             creatures={worldCreatures}
             key={`island-${inventory.island.level}`}
             initialLayout={inventory.island.layout}
-            onCommitLayout={layout=>authForWorld.anchorWallet?saveIslandLayout(worldConnection,authForWorld.anchorWallet,layout):Promise.reject(new Error("Sign in to save your island"))}
+            onCommitLayout={layout=>authForWorld.anchorWallet?saveIslandLayout(worldConnection,authForWorld.anchorWallet,{...layout,placed:layout.placed.filter(p=>p.mint!==FREE_MINT)}):Promise.reject(new Error("Sign in to save your island"))}
             period={worldClock.period}
             worldTime={worldClock.now}
             onSelect={mint=>{setActiveMint(mint);setFocusMint(mint)}}
@@ -995,16 +1007,17 @@ export function PlayerDen() {
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const navigate=useNavigate();
   const isAdmin=useIsAdmin();
+  const freeForm=useFreeForm();
   const [previewing,setPreviewing]=useState(false);
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   return <Shell><main className="player-main den-page">
-    {previewing&&<Suspense fallback={null}><FreePreview forms={tree.evolutions} onClose={()=>setPreviewing(false)}/></Suspense>}
+    {previewing&&<FormPicker forms={tree.evolutions} current={freeForm} onPick={(id)=>{setFreeForm(id);setPreviewing(false);}} onClear={()=>{setFreeForm(null);setPreviewing(false);}} onClose={()=>setPreviewing(false)}/>}
     <div className="den-scroll">
     <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My reByters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
     {loading&&!ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
       {isAdmin&&<article className="den-card den-free">
         <div className="den-card-art" role="button" tabIndex={0} onClick={()=>setPreviewing(true)} aria-label="Free preview"><Sparkles/></div>
-        <div className="den-card-info"><button className="den-card-select" onClick={()=>setPreviewing(true)}><strong>Free preview</strong><small>Admin · any form, nothing saved</small></button></div>
+        <div className="den-card-info"><button className="den-card-select" onClick={()=>setPreviewing(true)}><strong>Free rebyter</strong><small>{freeForm===null?"Admin · pick any form":"Admin · change the free form"}</small></button></div>
       </article>}
       {owned.map((item,index)=>{
         const form=tree.evolutions.find(e=>e.id===item.evolutionId);
@@ -1018,9 +1031,11 @@ export function PlayerDen() {
               <strong>{form.name}</strong>
               <small>{STAGE_NAMES[form.stage]}</small>
             </button>
-            <a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
+            {item.mint===FREE_MINT
+              ?<span className="den-mint-link" title="Local only, not on chain">free · local</span>
+              :<a className="den-mint-link" href={`https://explorer.solana.com/address/${item.mint}?cluster=devnet`} target="_blank" rel="noreferrer" title={item.mint}>
               {mintLabel}<ExternalLink/>
-            </a>
+            </a>}
           </div>
         </article>;
       })}

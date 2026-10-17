@@ -1270,4 +1270,15 @@
 .rb-ui .ap-forms button.on{border-color:var(--ui-primary)!important;background:rgba(255,255,255,.7)!important}
 .rb-ui .ap-forms .sprite-tile{width:64px!important;height:64px!important}
 .rb-ui .ap-forms small{font:600 11px 'Fredoka',sans-serif!important;white-space:nowrap!important;max-width:70px!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.rb-ui .ap-picker{height:auto!important;max-height:min(720px,100%)!important;padding:14px!important}
+.rb-ui .ap-head{display:flex!important;align-items:center!important;justify-content:space-between!important}
+.rb-ui .ap-head strong{font:700 20px 'Fredoka',sans-serif!important;color:var(--ui-text)!important}
+.rb-ui .ap-head button{width:38px!important;height:38px!important;display:grid!important;place-items:center!important;border:0!important;border-radius:50%!important;background:rgba(120,80,40,.12)!important;color:var(--ui-text)!important;cursor:pointer!important}
+.rb-ui .ap-note{margin:4px 0 10px!important;font-size:13px!important;color:var(--ui-text-2)!important}
+.rb-ui .ap-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(84px,1fr))!important;gap:8px!important;overflow-y:auto!important;min-height:0!important;padding:2px!important}
+.rb-ui .ap-grid button{display:flex!important;flex-direction:column!important;align-items:center!important;gap:2px!important;padding:5px!important;border:2px solid transparent!important;border-radius:16px!important;background:rgba(120,80,40,.08)!important;color:var(--ui-text)!important;cursor:pointer!important}
+.rb-ui .ap-grid button.on{border-color:var(--ui-primary)!important;background:rgba(255,255,255,.7)!important}
+.rb-ui .ap-grid .sprite-tile{width:68px!important;height:68px!important}
+.rb-ui .ap-grid small{font:600 11px 'Fredoka',sans-serif!important;white-space:nowrap!important;max-width:78px!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.rb-ui .ap-clear{margin-top:10px!important;padding:11px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:rgba(120,80,40,.12)!important;color:var(--ui-text)!important;font:600 14px 'Fredoka',sans-serif!important;cursor:pointer!important}
 }
