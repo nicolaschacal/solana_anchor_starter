@@ -10,6 +10,7 @@ import type { Inventory } from "../../lib/economy/inventory";
 import { careGuidance, mealWarning, trainingGains } from "../../lib/rebyters/guidance";
 import type { RebyterInteraction } from "../../lib/rebyters/companions";
 import { useIsAdmin } from "../../hooks/useIsAdmin";
+const FreePreview = lazy(() => import("./FreePreview").then(m => ({ default: m.FreePreview })));
 import { Suspense, lazy, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { PlayerPanelContext, PlayerStateContext } from "./panel-context";
 import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -993,11 +994,18 @@ export function PlayerDen() {
   const { owned, tree, ownedLoadedAll, loading, loadAll }=usePlayerCollection();
   const [activeMint,setActiveMint]=useSelectedRebyter();
   const navigate=useNavigate();
+  const isAdmin=useIsAdmin();
+  const [previewing,setPreviewing]=useState(false);
   useEffect(()=>{ if(!ownedLoadedAll) void loadAll().catch(()=>undefined); },[ownedLoadedAll,loadAll]);
   return <Shell><main className="player-main den-page">
+    {previewing&&<Suspense fallback={null}><FreePreview forms={tree.evolutions} onClose={()=>setPreviewing(false)}/></Suspense>}
     <div className="den-scroll">
     <div className="player-page-head"><small>YOUR COLLECTION</small><h1>My reByters</h1><p>{owned.length?`${owned.length} companion${owned.length===1?"":"s"} in your wallet.`:"You have no companions yet."}</p></div>
     {loading&&!ownedLoadedAll?<div className="den-loading"><Sparkles/> Loading companions…</div>:<div className="den-grid">
+      {isAdmin&&<article className="den-card den-free">
+        <div className="den-card-art" role="button" tabIndex={0} onClick={()=>setPreviewing(true)} aria-label="Free preview"><Sparkles/></div>
+        <div className="den-card-info"><button className="den-card-select" onClick={()=>setPreviewing(true)}><strong>Free preview</strong><small>Admin · any form, nothing saved</small></button></div>
+      </article>}
       {owned.map((item,index)=>{
         const form=tree.evolutions.find(e=>e.id===item.evolutionId);
         if(!form) return null;
