@@ -199,6 +199,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const commitRef = useRef(onCommitLayout);
   commitRef.current = onCommitLayout;
   const baselineRef = useRef("");
+  /** True once the player changed something while decorating; leaving without edits saves nothing. */
+  const editedRef = useRef(false);
   /** Objects saved in the wallet that the wallet no longer backs: hidden, but kept when saving. */
   const hiddenRef = useRef<PlacedProp[]>([]);
   const [saving, setSaving] = useState(false);
@@ -523,6 +525,11 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       setPropCount(world.entries.length);
     };
     persistRef.current = persistNow;
+    // An edit by the player (not the wandering rebyters): only these make something worth saving.
+    const touch = () => {
+      editedRef.current = true;
+      persistNow();
+    };
     // Wide objects must stay on the board and off the rebyters.
     world.tileFilter = (i, j) => i >= BOARD.i0 && i <= BOARD.i1 && j >= BOARD.j0 && j <= BOARD.j1 && !walkerAt(i, j);
     // Fine adjustments for the selected object: turn it, or slide it inside its tile.
@@ -532,12 +539,12 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         const sel = selectionRef.current;
         if (sel?.kind !== "prop" || isFitted(sel.entry.key)) return;
         world.updateProp(sel.entry, { h: Math.min(14, Math.max(0.15, sel.entry.h * factor)) });
-        persistNow();
+        touch();
       },
       rotate: (delta) => {
         const sel = selectionRef.current;
         if (sel?.kind !== "prop") return;
-        if (world.rotateProp(sel.entry, delta)) persistNow();
+        if (world.rotateProp(sel.entry, delta)) touch();
       },
       nudge: (right, forward) => {
         const sel = selectionRef.current;
@@ -553,7 +560,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           (-dir.z * right + dir.x * forward) * step,
           (dir.x * right + dir.z * forward) * step,
         );
-        persistNow();
+        touch();
       },
     };
 
@@ -572,14 +579,14 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           const mine = walkers.current.find((k) => k.id === selected.mint);
           if (mine && standable(tile.i, tile.j) && !tileTaken(walkers.current, tile.i, tile.j, mine.id)) {
             placeWalker(mine, tile.i, tile.j);
-            persistNow();
+            touch();
             return;
           }
           say(prop ? "There is an object on that tile." : "It can't stand there.");
           return;
         }
         if (!prop || COVER_FREE(prop)) {
-          if (world.moveProp(selected.entry, tileX(tile.i), tileZ(tile.j))) persistNow();
+          if (world.moveProp(selected.entry, tileX(tile.i), tileZ(tile.j))) touch();
           return;
         }
       }
@@ -617,7 +624,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             )
           : undefined;
         const added = await world.addProp(key, tileX(tile.i), tileZ(tile.j), facing);
-        if (added) persistNow();
+        if (added) touch();
         return;
       }
       setSelection(null);
@@ -998,6 +1005,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   }, [trainRequest?.nonce, ready]);
 
   const finishEditing = () => {
+    if (!editedRef.current) {
+      setEditing(false);
+      return;
+    }
     persistRef.current();
     setEditing(false);
     void commit();
@@ -1010,6 +1021,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         say("Keep at least one rebyter in the world.");
         return;
       }
+      editedRef.current = true;
       setLayout({ ...current, placed: current.placed.filter((p) => p.mint !== mint) });
       if (selectionRef.current?.kind === "creature" && selectionRef.current.mint === mint) setSelection(null);
       return;
@@ -1027,6 +1039,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       say("There is no free tile.");
       return;
     }
+    editedRef.current = true;
     setLayout({ ...current, placed: [...current.placed, { mint, ...tile }] });
   };
   const removeSelection = () => {
@@ -1035,6 +1048,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     if (!world || !selected) return;
     if (selected.kind === "prop") {
       world.removeProp(selected.entry);
+      editedRef.current = true;
       persistRef.current();
     } else togglePlaced(selected.mint);
     setSelection(null);
@@ -1118,7 +1132,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       )}
 
       {ready && !editing && !focusMint && !showcase && editable && (
-        <button className="world-edit-button gl-panel" onClick={() => setEditing(true)} aria-label="Decorate habitat">
+        <button className="world-edit-button gl-panel" onClick={() => { editedRef.current = false; setEditing(true); }} aria-label="Decorate habitat">
           <Paintbrush />
           <span>Decorate</span>
           <ChevronRight className="edit-go" />
