@@ -75,9 +75,13 @@ export function freeTile(taken: { i: number; j: number }[], blocked: (i: number,
 }
 
 /** The layout to start from: the first rebyters on the first free tiles. */
-export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC): WorldLayout {
+export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC, stageOf?: (mint: string) => number): WorldLayout {
   const placed: PlacedRebyter[] = [];
-  mints.slice(0, spec.maxPlaced).forEach((mint) => {
+  let room = spec.maxPlaced;
+  mints.forEach((mint) => {
+    const cost = spaceCost(stageOf ? stageOf(mint) : 0);
+    if (cost > room) return;
+    room -= cost;
     const tile = freeTile(placed, () => false, spec);
     if (tile) placed.push({ mint, ...tile });
   });
@@ -109,4 +113,20 @@ export function limitProps(props: PlacedProp[], allowance: (key: AssetKey) => nu
     } else hidden.push(prop);
   }
   return { shown, hidden };
+}
+
+/** First stage that takes two tiles of room: Mega (stage 3). Bit, Byte and Kylo take one. */
+export const BIG_STAGE = 3;
+export const spaceCost = (stage: number) => (stage >= BIG_STAGE ? 2 : 1);
+
+/** Room used by the placed rebyters. The island limit (3/5/8) counts room, not heads. */
+export function spaceUsed(placed: PlacedRebyter[], stageOf: (mint: string) => number) {
+  return placed.reduce((n, p) => n + spaceCost(stageOf(p.mint)), 0);
+}
+
+/** Drops the oldest placed rebyters until one more of `cost` fits in `max`. */
+export function makeRoom(placed: PlacedRebyter[], cost: number, max: number, stageOf: (mint: string) => number) {
+  const out = [...placed];
+  while (out.length > 1 && spaceUsed(out, stageOf) + cost > max) out.shift();
+  return out;
 }

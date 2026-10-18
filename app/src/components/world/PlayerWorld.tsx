@@ -23,6 +23,9 @@ import {
   defaultLayout,
   freeTile,
   limitProps,
+  makeRoom,
+  spaceCost,
+  spaceUsed,
   reconcile,
   tileX,
   tileZ,
@@ -148,6 +151,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const loadedAssets = useRef<FxAsset[]>([]);
   const creaturesRef = useRef(creatures);
   creaturesRef.current = creatures;
+  const stageOf = (mint: string) => creaturesRef.current.find((c) => c.mint === mint)?.evolution.stage ?? 0;
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const closeUpRef = useRef(closeUp);
@@ -187,7 +191,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const ownedKey = creatures.map((c) => c.mint).join("|");
   const owned = useMemo(() => (ownedKey ? ownedKey.split("|") : []), [ownedKey]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
-    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint), spec), creatures.map((c) => c.mint)),
+    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint), spec, (m) => creatures.find((c) => c.mint === m)?.evolution.stage ?? 0), creatures.map((c) => c.mint)),
   );
   const layoutRef = useRef(layout);
   const setLayout = useCallback((next: WorldLayout) => {
@@ -825,11 +829,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       const world = worldRef.current;
       const taken = next.placed.map((p) => ({ i: p.i, j: p.j }));
       const tile = freeTile(taken, (i, j) => !world || !world.canStand(i, j), spec);
-      const dropFirst = next.placed.length >= MAX_PLACED;
-      const base = dropFirst ? next.placed.slice(1) : next.placed;
+      const base = makeRoom(next.placed, spaceCost(stageOf(mint)), MAX_PLACED, stageOf);
       if (tile) next = { ...next, placed: [...base, { mint, ...tile }] };
     }
-    if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned, spec).placed };
+    if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned, spec, stageOf).placed };
     if (next !== current && JSON.stringify(next) !== JSON.stringify(current)) setLayout(next);
   }, [owned, complete, setLayout]);
 
@@ -894,7 +897,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           (i, j) => !world || !world.canStand(i, j),
           spec,
         );
-        const base = current.placed.length >= MAX_PLACED ? current.placed.slice(1) : current.placed;
+        const base = makeRoom(current.placed, spaceCost(stageOf(focusMint)), MAX_PLACED, stageOf);
         if (tile) setLayout({ ...current, placed: [...base, { mint: focusMint, ...tile }] });
       }
       const walker = walkers.current.find((k) => k.id === focusMint);
@@ -1026,8 +1029,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       if (selectionRef.current?.kind === "creature" && selectionRef.current.mint === mint) setSelection(null);
       return;
     }
-    if (current.placed.length >= MAX_PLACED) {
-      say(`The world holds ${MAX_PLACED} rebyters. Take one out first.`);
+    if (spaceUsed(current.placed, stageOf) + spaceCost(stageOf(mint)) > MAX_PLACED) {
+      say(`Not enough room (${MAX_PLACED} spaces; Mega and bigger take 2). Take one out first.`);
       return;
     }
     const tile = freeTile(
@@ -1144,7 +1147,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           <div className="world-edit-head">
             <strong>Edit habitat</strong>
             <span className="world-edit-count">
-              {layout.placed.length}/{MAX_PLACED} reByters · {propCount}/{MAX_PROPS} objects
+              {spaceUsed(layout.placed, stageOf)}/{MAX_PLACED} space · {layout.placed.length} reByters · {propCount}/{MAX_PROPS} objects
             </span>
             <button className="ui-btn ui-btn-primary world-done" onClick={finishEditing}>
               <Check /> Done
