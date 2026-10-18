@@ -1,7 +1,7 @@
 import { useSelectedRebyter, selectedCompanion } from "../../hooks/useSelectedRebyter";
 import { useWorldClock } from "../../hooks/useWorldClock";
 import { MAMMAL_PILOT, modelUriFor } from "../../lib/assets/catalog";
-import { LandingEmail, LandingPitch } from "./LandingEmail";
+import { LandingEmail } from "./LandingEmail";
 import { SupportButton } from "./SupportButton";
 import { LandingFeatures } from "./showcase/LandingFeatures";
 import { foodThumbUrl } from "../../lib/economy/foodAssets";
@@ -735,7 +735,8 @@ function PlayerHomeScreen({ onBirth }:{onBirth:(from:Evolution|null,to:Evolution
         <SupportButton/>
         <div className="landing-logo"><img src="/assets/brand/logo.webp" alt="reByters" width="900" height="222" decoding="async"/><span><i/>digital companions<i/></span></div>
         <div className="landing-sheet">
-          <LandingPitch/>
+          <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
+          <p>Leave your email to be first in.</p>
           <LandingEmail/>
           <button className="landing-atlas" onClick={()=>goTo("/atlas")}><BookOpen/> Explore Atlas</button>
           <LandingFeatures/>
