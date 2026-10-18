@@ -84,9 +84,6 @@ export async function publishModelReplacement(
   gateway: string,
   progress: (s: string) => void,
 ): Promise<EvolutionAssets> {
-  if (glb.byteLength > 700 * 1024)
-    throw new Error(`3D model must be 700 KB or smaller (received ${Math.ceil(glb.byteLength / 1024)} KB)`);
-
   const existingImageUri =
     evolution.assets?.imageUri ?? evolution.assets?.thumbnailUri;
 

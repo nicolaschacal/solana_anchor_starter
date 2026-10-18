@@ -383,12 +383,6 @@ function Family({ state }: { state: RegistryState }) {
       setModelPreviewError("Choose a .glb file.");
       return;
     }
-    if (file.size > 700 * 1024) {
-      setModelPreviewError(
-        `Model is ${Math.ceil(file.size / 1024)} KB. Maximum is 700 KB.`,
-      );
-      return;
-    }
 
     setModelPreviewBusy(true);
     try {
@@ -586,7 +580,6 @@ function Family({ state }: { state: RegistryState }) {
   async function publishEditingModel() {
     if (!tree || !editing || !modelFile || !modelPreview) return;
     if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
-    if (modelFile.size > 700 * 1024) return;
 
     const assets = await tx.publishEvolutionModel(
       editing,
@@ -614,7 +607,7 @@ function Family({ state }: { state: RegistryState }) {
     let next = editing;
     if (modelFile) {
       if (!modelFile.name.toLowerCase().endsWith(".glb")) return;
-      if (modelFile.size > 700 * 1024 || !modelPreview) return;
+      if (!modelPreview) return;
 
       const assets = await tx.publishEvolutionModel(
         editing,
@@ -1006,7 +999,7 @@ function Family({ state }: { state: RegistryState }) {
             <div className="specimen-asset-publisher specimen-model-publisher">
               <div>
                 <strong>3D model + automatic front preview → Irys</strong>
-                <small>Choose the optimized GLB (≤700 KB). Admin generates a consistently lit front portrait, uses it for image + thumbnail, then publishes the GLB and fresh metadata with animation_url.</small>
+                <small>Choose the optimized GLB (any size). Admin generates a consistently lit front portrait, uses it for image + thumbnail, then publishes the GLB and fresh metadata with animation_url.</small>
               </div>
               <input
                 type="file"
@@ -1039,7 +1032,6 @@ function Family({ state }: { state: RegistryState }) {
                   modelPreviewBusy ||
                   !modelFile ||
                   !modelPreview ||
-                  modelFile.size > 700 * 1024 ||
                   !modelFile.name.toLowerCase().endsWith(".glb")
                 }
                 onClick={() => void publishEditingModel()}
@@ -1048,11 +1040,9 @@ function Family({ state }: { state: RegistryState }) {
                 {tx.busy ? "Publishing..." : "Push 3D + preview + metadata to Irys"}
               </button>
               {modelFile && (
-                <small className={modelFile.size > 700 * 1024 || modelPreviewError ? "notice error" : "muted"}>
+                <small className={modelPreviewError ? "notice error" : "muted"}>
                   {modelFile.name} · {Math.ceil(modelFile.size / 1024)} KB
-                  {modelFile.size > 700 * 1024
-                    ? " · too large"
-                    : modelPreview
+                  {modelPreview
                       ? " · preview ready"
                       : modelPreviewBusy
                         ? " · generating preview"
@@ -1081,8 +1071,7 @@ function Family({ state }: { state: RegistryState }) {
                   !!(
                     modelFile &&
                     (
-                      modelFile.size > 700 * 1024 ||
-                      !modelFile.name.toLowerCase().endsWith(".glb") ||
+                          !modelFile.name.toLowerCase().endsWith(".glb") ||
                       !modelPreview
                     )
                   )
