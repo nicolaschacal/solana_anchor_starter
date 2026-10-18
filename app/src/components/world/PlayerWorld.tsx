@@ -135,6 +135,23 @@ const TAP_PIXELS = 8;
 const DEBUG_SIZES = typeof location !== "undefined" && /[?&]debug=1/.test(location.search);
 
 
+const SIZE_TRIAL_KEY = "rebyters.sizeTrial.v1";
+function readSizeTrial(): Record<string, number> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SIZE_TRIAL_KEY) || "{}");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch {
+    return {};
+  }
+}
+function writeSizeTrial(value: Record<string, number>) {
+  try {
+    localStorage.setItem(SIZE_TRIAL_KEY, JSON.stringify(value));
+  } catch {
+    // Storage may be unavailable (private mode); the trial then lasts until the page closes.
+  }
+}
+
 export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, worldTime, onSelect, focusMint = null, action = "idle", meal = null, tour = false, onActionComplete, onExit, complete = true, editable = true, showcase = false, propAllowance, trainRequest = null, onTrainHit, onTrainEnd, size = 5, climate = "temperate", closeUp = false }: Props) {
   const spec = useMemo(() => specFor(size, climate), [size, climate]);
   const { board: BOARD, maxPlaced: MAX_PLACED, maxProps: MAX_PROPS, tree: TREE_TILE } = spec;
@@ -157,6 +174,25 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const footprintOf = (mint: string): Footprint => formFootprint(creaturesRef.current.find((c) => c.mint === mint)?.evolution);
   /** Island room a rebyter takes: the tiles it covers. */
   const costOf = (mint: string) => tilesOf(footprintOf(mint));
+  /**
+   * Size trial (Decorate → select a rebyter → +/−): an extra scale per form, kept on this device only,
+   * so sizes can be compared before choosing the rule. It does not change tiles or room.
+   */
+  const sizeTrial = useRef<Record<string, number>>(readSizeTrial());
+  const baseHeight = useRef(new Map<string, number>());
+  const trialOf = (mint: string) => {
+    const evolution = creaturesRef.current.find((c) => c.mint === mint)?.evolution;
+    return evolution ? sizeTrial.current[String(evolution.id)] ?? 1 : 1;
+  };
+  const applyTrial = (mint: string) => {
+    const entity = entities.current.get(mint);
+    if (!entity) return;
+    if (!baseHeight.current.has(mint)) baseHeight.current.set(mint, entity.height);
+    const f = trialOf(mint);
+    entity.outer.scale.setScalar(f);
+    entity.height = baseHeight.current.get(mint)! * f;
+    worldRef.current?.markShadowsDirty();
+  };
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const closeUpRef = useRef(closeUp);
@@ -244,6 +280,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const [tab, setTab] = useState<"rebyters" | "objects">("rebyters");
   const [armed, setArmed] = useState<AssetKey | null>(null);
   const [selection, setSelectionState] = useState<Selection>(null);
+  const [trialTick, setTrialTick] = useState(0);
   const [notice, setNotice] = useState("");
   const [glance, setGlance] = useState("");
   const [propCount, setPropCount] = useState(0);
@@ -546,8 +583,19 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     editRef.current = {
       resize: (factor) => {
         const sel = selectionRef.current;
-        if (sel?.kind !== "prop" || isFitted(sel.entry.key)) return;
+        if (sel?.kind === "creature") {
+          const evolution = creaturesRef.current.find((c) => c.mint === sel.mint)?.evolution;
+          if (!evolution) return;
+          const next = Math.min(4, Math.max(0.3, (sizeTrial.current[String(evolution.id)] ?? 1) * factor));
+          sizeTrial.current = { ...sizeTrial.current, [String(evolution.id)]: Math.round(next * 100) / 100 };
+          writeSizeTrial(sizeTrial.current);
+          for (const c of creaturesRef.current) if (c.evolution.id === evolution.id) applyTrial(c.mint);
+          setTrialTick((n) => n + 1);
+          return;
+        }
+        if (sel?.kind !== "prop") return;
         world.updateProp(sel.entry, { h: Math.min(14, Math.max(0.15, sel.entry.h * factor)) });
+        setTrialTick((n) => n + 1);
         touch();
       },
       rotate: (delta) => {
@@ -816,6 +864,8 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
             setDebugRows((rows) => [...rows.filter((r) => !r.startsWith(creature.evolution.name + " ")), row]);
           }
           entities.current.set(p.mint, entity);
+          baseHeight.current.delete(p.mint);
+          applyTrial(p.mint);
           worldRef.current.scene.add(entity.outer);
           worldRef.current.markShadowsDirty();
         })
@@ -1228,14 +1278,18 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
                     : labelOf(selection.entry.key)}{" "}
                   · tap a tile to move it
                 </span>
+                {selection.kind === "creature" && (
+                  <span className="world-adjust" role="group" aria-label="Adjust size" data-trial={trialTick}>
+                    <button onClick={() => editRef.current?.resize(1 / 1.1)} aria-label="Smaller"><Minus /></button>
+                    <small className="world-size-readout">×{trialOf(selection.mint).toFixed(2)}</small>
+                    <button onClick={() => editRef.current?.resize(1.1)} aria-label="Bigger"><Plus /></button>
+                  </span>
+                )}
                 {selection.kind === "prop" && (
-                  <span className="world-adjust" role="group" aria-label="Adjust object">
-                    {!isFitted(selection.entry.key) && (
-                      <>
-                        <button onClick={() => editRef.current?.resize(1 / 1.12)} aria-label="Smaller"><Minus /></button>
-                        <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
-                      </>
-                    )}
+                  <span className="world-adjust" role="group" aria-label="Adjust object" data-trial={trialTick}>
+                    <button onClick={() => editRef.current?.resize(1 / 1.12)} aria-label="Smaller"><Minus /></button>
+                    <small className="world-size-readout">{selection.entry.h.toFixed(1)}</small>
+                    <button onClick={() => editRef.current?.resize(1.12)} aria-label="Bigger"><Plus /></button>
                     <button onClick={() => editRef.current?.rotate(isFitted(selection.entry.key) ? -Math.PI / 2 : -Math.PI / 12)} aria-label="Turn left"><RotateCcw /></button>
                     <button onClick={() => editRef.current?.rotate(isFitted(selection.entry.key) ? Math.PI / 2 : Math.PI / 12)} aria-label="Turn right"><RotateCw /></button>
                     {spanOf(selection.entry.key) === 1 && !isFitted(selection.entry.key) && (

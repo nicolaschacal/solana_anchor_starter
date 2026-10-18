@@ -3,14 +3,13 @@ import { FORM_TILES, footprintOf, tilesOf } from "./footprint";
 import { hasRoom, makeRoom, tilesUsed } from "../../components/world/layout";
 
 describe("footprint", () => {
-  it("Kylo and smaller cover 1 tile, Mega and bigger cover 2x2", () => {
+  it("every rebyter covers one tile for now, whatever its stage", () => {
     expect(footprintOf({ key: "caniform", stage: 2 })).toEqual({ w: 1, d: 1 });
-    expect(footprintOf({ key: "fox", stage: 3 })).toEqual({ w: 2, d: 2 });
-    expect(footprintOf({ key: "kitsune", stage: 5 })).toEqual({ w: 2, d: 2 });
-    expect(tilesOf(footprintOf({ stage: 3 }))).toBe(4);
+    expect(footprintOf({ key: "fox", stage: 3 })).toEqual({ w: 1, d: 1 });
     expect(footprintOf(undefined)).toEqual({ w: 1, d: 1 });
+    expect(tilesOf({ w: 2, d: 2 })).toBe(4);
   });
-  it("a form listed in FORM_TILES overrides the stage rule", () => {
+  it("a form listed in FORM_TILES covers more", () => {
     FORM_TILES.__test_small_giga = [1, 1];
     expect(footprintOf({ key: "__test_small_giga", stage: 4 })).toEqual({ w: 1, d: 1 });
     delete FORM_TILES.__test_small_giga;

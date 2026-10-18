@@ -59,7 +59,9 @@ Rules: the creature and every solid prop occupy exactly one tile. Water cannot c
 Code: `components/admin/HabitatEditor.tsx` (UI), `components/admin/habitat/world.ts` (engine), `habitat/tiles.ts` (tile maths and meshes). `meadow()` gained opt-in `props`, `scenery`, `spawn` and `removeProp`; its default game behaviour is unchanged. Rendering was checked in headless Chromium only; review on real devices.
 
 ## Size in tiles
-Each rebyter covers a rectangle of tiles, **w** across by **d** deep (`app/src/lib/world/footprint.ts`). Rule: up to Kylo (stage 2) 1×1, from Mega (stage 3) up 2×2. A form listed in `FORM_TILES` (keyed by form key, e.g. `"kitsune": [1, 1]`) overrides the rule. The world scales the model so its width fills `w` tiles and its length `d` tiles (92%, whichever is tighter), wanderers keep that whole rectangle free, and the island counts those tiles of its room. No model needs re-uploading to change a size.
+Each rebyter covers a rectangle of tiles, **w** across by **d** deep (`app/src/lib/world/footprint.ts`). For now every rebyter covers 1×1; a form listed in `FORM_TILES` (keyed by form key, e.g. `"fox": [2, 2]`) covers more. The world scales the model so its width fills `w` tiles and its length `d` tiles (92%, whichever is tighter), wanderers keep that whole rectangle free, and the island counts those tiles of its room.
+
+**Size trial:** in Decorate, select a rebyter and use −/+ to try another size (shown as ×1.00). It applies to every rebyter of that form, is kept on that device only (localStorage `rebyters.sizeTrial.v1`) and does not change tiles or room; it is there to pick the sizes before writing them into the rule. Objects show their height next to −/+, and tile-filling objects (bus stop, vending machine…) can be resized again too.
 
 ## Tester mode
 Open the game with `?tester=1`: it signs in with a throwaway keypair stored in the browser (no wallet or passkey) and requests devnet SOL from the faucet; a small "TESTER" badge shows at the top. `?tester=reset` starts a new account, `?tester=off` leaves the mode. Everything else is the normal game on devnet.

@@ -732,9 +732,9 @@ diffuseColor.rgb = painted;`,
     }));
   }
   private async spawnEntry(data: PropData & { id?: number }) {
-    // Tile-filling props always have the height that fills their tiles, whatever an old layout stored.
+    // Tile-filling props start at the height that fills their tiles; a height the player chose with +/− is kept.
     if (isFitted(data.key)) {
-      data = { ...data, h: FITTED_H[data.key]! * GAME * this.propScale };
+      if (!(data.h > 0)) data = { ...data, h: FITTED_H[data.key]! * GAME * this.propScale };
       // A one-tile prop that fills its tile also sits in its middle.
       if (spanOf(data.key) === 1) {
         const t = TileMap.tileOf(data.x, data.z);
@@ -900,7 +900,6 @@ diffuseColor.rgb = painted;`,
     this.env.markShadowsDirty();
   }
   updateProp(entry: PropEntry, change: Partial<Pick<PropData, "h" | "r">>) {
-    if (isFitted(entry.key)) change = { r: change.r ?? entry.r };
     Object.assign(entry, change);
     this.applyEntry(entry);
     this.updateRing();
