@@ -1,5 +1,5 @@
 import { LandingBackdrop } from "../../components/world/LandingBackdrop";
-import { LandingEmail } from "./LandingEmail";
+import { LandingEmail, LandingPitch } from "./LandingEmail";
 import { SupportButton } from "./SupportButton";
 import { LandingFeatures } from "./showcase/LandingFeatures";
 import "./player.css";
@@ -19,8 +19,7 @@ export function WaitlistPage() {
             <SupportButton />
             <div className="landing-logo"><img src="/assets/brand/logo.webp" alt="reByters" width="900" height="222" decoding="async" /><span><i />digital companions<i /></span></div>
             <div className="landing-sheet">
-          <h1><b className="c1">Raise.</b> <b className="c2">Evolve.</b> <b className="c3">Explore.</b></h1>
-              <p>Leave your email to be first in.</p>
+          <LandingPitch/>
               <LandingEmail />
               <LandingFeatures />
             </div>

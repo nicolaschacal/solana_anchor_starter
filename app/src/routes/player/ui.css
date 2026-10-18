@@ -1282,4 +1282,11 @@
 .rb-ui .ap-grid .sprite-tile{width:68px!important;height:68px!important}
 .rb-ui .ap-grid small{font:600 11px 'Fredoka',sans-serif!important;white-space:nowrap!important;max-width:78px!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .rb-ui .ap-clear{margin-top:10px!important;padding:11px!important;border:0!important;border-radius:var(--ui-r-pill)!important;background:rgba(120,80,40,.12)!important;color:var(--ui-text)!important;font:600 14px 'Fredoka',sans-serif!important;cursor:pointer!important}
+.rb-ui .landing-badge{display:inline-flex!important;align-items:center!important;gap:6px!important;padding:5px 14px!important;border-radius:var(--ui-r-pill)!important;background:#5d7d3a!important;color:#fff!important;font:700 13px 'Fredoka','Nunito',sans-serif!important;letter-spacing:.04em!important;margin-top:-34px!important;box-shadow:0 3px 8px rgba(40,60,20,.3)!important}
+.rb-ui .landing-badge svg{width:15px!important;height:15px!important}
+.rb-ui .landing-sheet h1.landing-pitch{font-size:clamp(28px,8.5vw,38px)!important}
+.rb-ui .landing-perks{list-style:none!important;margin:0 0 4px!important;padding:0!important;display:flex!important;flex-direction:column!important;gap:5px!important;align-items:flex-start!important}
+.rb-ui .landing-perks li{display:flex!important;align-items:center!important;gap:8px!important;font-size:14px!important;font-weight:700!important;color:var(--ui-text)!important}
+.rb-ui .landing-perks svg{width:18px!important;height:18px!important;padding:2px!important;border-radius:50%!important;background:#5d7d3a!important;color:#fff!important;flex:none!important}
+.rb-ui .landing-sheet p{font-size:14px!important;max-width:320px!important}
 }

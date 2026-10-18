@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ArrowRight, Check, Mail } from "lucide-react";
+import { ArrowRight, Check, Mail, Sprout } from "lucide-react";
 import { joinWaitlist, validEmail, waitlistOpen } from "../../lib/rebyters/waitlist";
 
 const KEY = "rebyters.waitlist.joined";
@@ -86,10 +86,26 @@ export function LandingEmail() {
       </div>
       <input className="landing-email-trap" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
       <button type="submit" className="landing-email-go" disabled={state === "sending"}>
-        <strong>{state === "sending" ? "Saving…" : "Notify me"}</strong>
+        <strong>{state === "sending" ? "Saving…" : "Join the waitlist"}</strong>
         <ArrowRight />
       </button>
       {state === "error" && <p className="landing-email-error" role="alert">{message}</p>}
     </form>
+  );
+}
+
+/** Headline block of the start screen: an invitation to join the waitlist. */
+export function LandingPitch() {
+  return (
+    <>
+      <span className="landing-badge"><Sprout /> Early access is open</span>
+      <h1 className="landing-pitch"><b className="c1">Join the</b> <b className="c2">waitlist</b></h1>
+      <p>Raise, evolve and collect digital companions.</p>
+      <ul className="landing-perks">
+        <li><Check /> First in line when reByters opens</li>
+        <li><Check /> Help shape the game with us</li>
+        <li><Check /> One email at launch, no spam</li>
+      </ul>
+    </>
   );
 }
