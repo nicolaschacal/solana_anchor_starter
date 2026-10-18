@@ -92,7 +92,13 @@ export function tileIsFree(tiles: TileData | null, i: number, j: number): boolea
 
 
 /** How many rebyters and objects an island holds: a ceiling by size, lowered by its land. */
+/** Most rebyters an island may hold: checked on chain (ISLAND_LEVELS in the program). */
 export const REBYTERS_BY_SIZE: Record<IslandSize, number> = { 5: 3, 7: 5, 9: 8 };
+/**
+ * Ground room for rebyters, in tiles: each takes the tiles its footprint covers (1 for a 1×1, 4 for a 2×2).
+ * Sized so a 2×2 plus two 1×1 fit the starter island while the head count above still applies.
+ */
+export const TILES_BY_SIZE: Record<IslandSize, number> = { 5: 6, 7: 10, 9: 16 };
 export const PROPS_BY_SIZE: Record<IslandSize, number> = { 5: 14, 7: 24, 9: 40 };
 
 export function freeTileCount(tiles: TileData | null, size: IslandSize) {
@@ -110,6 +116,7 @@ export function islandCapacity(size: IslandSize, climate: Climate) {
   return {
     freeTiles: freeTileCount(terrainFor(climate, size), size),
     maxPlaced: REBYTERS_BY_SIZE[size],
+    maxTiles: TILES_BY_SIZE[size],
     maxProps: PROPS_BY_SIZE[size],
   };
 }

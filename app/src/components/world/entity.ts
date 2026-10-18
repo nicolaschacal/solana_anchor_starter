@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import type { FxAsset } from "../../lib/rebyters/evolution-fx";
-import { footprintFor, type Footprint } from "../../lib/world/footprint";
+import { ONE_TILE, type Footprint } from "../../lib/world/footprint";
 
 const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 const IDLE = ["idle", "idleblinking"];
@@ -17,7 +17,7 @@ export type Entity = {
   /** The model's own largest dimension before it is fitted (for the ?debug=1 readout). */
   raw: number;
   box: [number, number, number];
-  /** Tiles it covers (w across × d deep), from the GLB or the legacy rule for older uploads. */
+  /** Tiles it covers (w across × d deep), from FORM_TILES in lib/world/footprint.ts. */
   footprint: Footprint;
   /** A flat card (no 3D model): it always faces the camera instead of turning. */
   billboard: boolean;
@@ -56,7 +56,7 @@ function ownMaterials(root: THREE.Object3D) {
   });
 }
 
-export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
+export function buildEntity(mint: string, asset: FxAsset, footprint: Footprint = ONE_TILE): Entity {
   const root = clone(asset.scene);
   ownMaterials(root);
   const billboard = !asset.clips?.length && (asset.scene as THREE.Mesh).isMesh === true;
@@ -66,7 +66,6 @@ export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
   const box = new THREE.Box3().setFromObject(holder);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
-  const footprint = footprintFor(asset.scene, stage);
   // Width (x) to `w` tiles and length (z) to `d` tiles; a flat card has no depth, so only its width counts.
   const fitW = (TILE_FILL * footprint.w) / Math.max(size.x, 0.001);
   const fitD = size.z > 0.01 ? (TILE_FILL * footprint.d) / size.z : Infinity;

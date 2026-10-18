@@ -1,4 +1,4 @@
-import { declaredFootprint, ONE_TILE } from "../../../lib/world/footprint";
+import { ONE_TILE } from "../../../lib/world/footprint";
 import * as THREE from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import {
@@ -975,8 +975,8 @@ diffuseColor.rgb = painted;`,
     const center = bounds.getCenter(new THREE.Vector3());
     const framing = 2 / Math.max(size.x, size.y, size.z, 0.001);
     // In the game the companion fills the frame; in a diorama it stands on one tile.
-    // A diorama uses the game's rule: the model fills the tiles its GLB declares (lib/world/footprint.ts).
-    const fp = declaredFootprint(root) ?? ONE_TILE;
+    // A diorama uses the game's rule for a one-tile rebyter (lib/world/footprint.ts).
+    const fp = ONE_TILE;
     const tileFit = Math.min((0.92 * fp.w) / Math.max(size.x, 0.001), size.z > 0.01 ? (0.92 * fp.d) / size.z : Infinity);
     const scale = this.kind === "diorama" ? tileFit : framing * CREATURE_SCALE;
     this.stage.scale.setScalar(scale);

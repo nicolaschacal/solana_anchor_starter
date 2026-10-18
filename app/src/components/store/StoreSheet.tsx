@@ -39,7 +39,7 @@ export function detailFor(item: StoreItem) {
   switch (item.category) {
     case "habitat": {
       const spec = islandCapacity(item.size, item.climate);
-      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${spec.maxPlaced} spaces · ${spec.maxProps} objects`;
+      return `${item.size}×${item.size} · ${CLIMATES[item.climate].label} · ${spec.maxTiles} tiles · up to ${spec.maxPlaced} rebyters · ${spec.maxProps} objects`;
     }
     case "food":
       return "Used up when fed";

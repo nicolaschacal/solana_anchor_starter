@@ -13,7 +13,7 @@ import type { AssetKey } from "../assets/meadow";
 import { EMOTES, type Emote } from "../player/emotes";
 import { FOV, WorldRig, angleDelta, FOCUS, LIMITS } from "../../lib/world/rig";
 import { createWalker, fits, placeWalker, stepWalker, tileTaken, walkerPosition, type Walker } from "../../lib/world/wander";
-import { footprintFor, legacyFootprint, spaceOf, type Footprint } from "../../lib/world/footprint";
+import { footprintOf as formFootprint, tilesOf, type Footprint } from "../../lib/world/footprint";
 import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
 import { throwFood, type FoodFx } from "./foodFx";
@@ -25,8 +25,9 @@ import {
   freeTile,
   limitProps,
   coveredBy,
+  hasRoom,
   makeRoom,
-  spaceUsed,
+  tilesUsed,
   reconcile,
   tileX,
   tileZ,
@@ -152,15 +153,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const loadedAssets = useRef<FxAsset[]>([]);
   const creaturesRef = useRef(creatures);
   creaturesRef.current = creatures;
-  /** Tiles each form covers, read from its GLB once loaded (lib/world/footprint.ts). */
-  const formFootprint = useRef(new Map<number, Footprint>());
-  const footprintOf = (mint: string): Footprint => {
-    const evolution = creaturesRef.current.find((c) => c.mint === mint)?.evolution;
-    if (!evolution) return legacyFootprint(0);
-    return formFootprint.current.get(evolution.id) ?? legacyFootprint(evolution.stage);
-  };
-  /** Island room a rebyter takes: 1 for a one-tile body, 2 for a bigger one. */
-  const costOf = (mint: string) => spaceOf(footprintOf(mint));
+  /** Tiles a rebyter covers, from its form (FORM_TILES in lib/world/footprint.ts). */
+  const footprintOf = (mint: string): Footprint => formFootprint(creaturesRef.current.find((c) => c.mint === mint)?.evolution);
+  /** Island room a rebyter takes: the tiles it covers. */
+  const costOf = (mint: string) => tilesOf(footprintOf(mint));
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const closeUpRef = useRef(closeUp);
@@ -200,7 +196,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
   const ownedKey = creatures.map((c) => c.mint).join("|");
   const owned = useMemo(() => (ownedKey ? ownedKey.split("|") : []), [ownedKey]);
   const [layout, setLayoutState] = useState<WorldLayout>(() =>
-    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint), spec, (m) => spaceOf(legacyFootprint(creatures.find((c) => c.mint === m)?.evolution.stage ?? 0))), creatures.map((c) => c.mint)),
+    reconcile(initialLayout ?? defaultLayout(creatures.map((c) => c.mint), spec, (m) => tilesOf(formFootprint(creatures.find((c) => c.mint === m)?.evolution))), creatures.map((c) => c.mint)),
   );
   const layoutRef = useRef(layout);
   const setLayout = useCallback((next: WorldLayout) => {
@@ -765,7 +761,6 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
     if (!promise) {
       promise = loadEvolutionAsset(evolution).then((asset) => {
         loadedAssets.current.push(asset);
-        formFootprint.current.set(evolution.id, footprintFor(asset.scene, evolution.stage));
         return asset;
       });
       assets.current.set(evolution.id, promise);
@@ -813,7 +808,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         .then((asset) => {
           if (!walkers.current.some((k) => k.id === p.mint) || entities.current.has(p.mint) || !worldRef.current) return;
           if (shownForm.current.get(p.mint) !== formId) return;
-          const entity = buildEntity(p.mint, asset, creature.evolution.stage);
+          const entity = buildEntity(p.mint, asset, formFootprint(creature.evolution));
           const walker = walkers.current.find((k) => k.id === p.mint);
           if (walker) Object.assign(walker, { w: entity.footprint.w, d: entity.footprint.d });
           if (DEBUG_SIZES) {
@@ -843,7 +838,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       const taken = coveredBy(next.placed, footprintOf);
       const f = footprintOf(mint);
       const tile = freeTile(taken, (i, j) => !world || !world.canStand(i, j), spec, f.w, f.d);
-      const base = makeRoom(next.placed, costOf(mint), MAX_PLACED, costOf);
+      const base = makeRoom(next.placed, costOf(mint), spec, costOf);
       if (tile) next = { ...next, placed: [...base, { mint, ...tile }] };
     }
     if (!next.placed.length && owned.length) next = { ...next, placed: defaultLayout(owned, spec, costOf).placed };
@@ -908,7 +903,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         const world = worldRef.current;
         const f = footprintOf(focusMint);
         const tile = freeTile(coveredBy(current.placed, footprintOf), (i, j) => !world || !world.canStand(i, j), spec, f.w, f.d);
-        const base = makeRoom(current.placed, costOf(focusMint), MAX_PLACED, costOf);
+        const base = makeRoom(current.placed, costOf(focusMint), spec, costOf);
         if (tile) setLayout({ ...current, placed: [...base, { mint: focusMint, ...tile }] });
       }
       const walker = walkers.current.find((k) => k.id === focusMint);
@@ -1040,8 +1035,12 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       if (selectionRef.current?.kind === "creature" && selectionRef.current.mint === mint) setSelection(null);
       return;
     }
-    if (spaceUsed(current.placed, costOf) + costOf(mint) > MAX_PLACED) {
-      say(`Not enough room (${MAX_PLACED} spaces; a rebyter bigger than one tile takes 2). Take one out first.`);
+    if (!hasRoom(current.placed, costOf(mint), spec, costOf)) {
+      say(
+        current.placed.length >= MAX_PLACED
+          ? `The island holds ${MAX_PLACED} rebyters. Take one out first.`
+          : `Not enough room: this one takes ${costOf(mint)} of the island's ${spec.maxTiles} tiles. Take one out first.`,
+      );
       return;
     }
     const f = footprintOf(mint);
@@ -1161,7 +1160,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
           <div className="world-edit-head">
             <strong>Edit habitat</strong>
             <span className="world-edit-count">
-              {spaceUsed(layout.placed, costOf)}/{MAX_PLACED} space · {layout.placed.length} reByters · {propCount}/{MAX_PROPS} objects
+              {tilesUsed(layout.placed, costOf)}/{spec.maxTiles} tiles · {layout.placed.length}/{MAX_PLACED} reByters · {propCount}/{MAX_PROPS} objects
             </span>
             <button className="ui-btn ui-btn-primary world-done" onClick={finishEditing}>
               <Check /> Done

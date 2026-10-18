@@ -19,7 +19,10 @@ export type HabitatSpec = {
   board: { i0: number; i1: number; j0: number; j1: number };
   /** Tiles of the island that can be stood on. */
   freeTiles: number;
+  /** Most rebyters (heads), as the program checks. */
   maxPlaced: number;
+  /** Ground room for rebyters, in tiles (a 2×2 takes 4). */
+  maxTiles: number;
   maxProps: number;
   /** The land (null = flat grass) and whether a tile of it can be stood on. */
   tiles: TileData | null;
@@ -35,7 +38,7 @@ export function specFor(size: HabitatSize, climate: Climate = "temperate"): Habi
   const board = { i0: r.i0, i1: r.i1, j0: r.j0, j1: r.j1 };
   const tiles = terrainFor(climate, size);
   const free = (i: number, j: number) => i >= board.i0 && i <= board.i1 && j >= board.j0 && j <= board.j1 && tileIsFree(tiles, i, j);
-  const { freeTiles, maxPlaced, maxProps } = islandCapacity(size, climate);
+  const { freeTiles, maxPlaced, maxTiles, maxProps } = islandCapacity(size, climate);
   const c = Math.floor(size / 2);
   const start: [number, number][] = [
     [board.i0 + c, board.j0 + c],
@@ -49,6 +52,7 @@ export function specFor(size: HabitatSize, climate: Climate = "temperate"): Habi
     board,
     freeTiles,
     maxPlaced,
+    maxTiles,
     maxProps,
     tiles,
     free,
@@ -91,13 +95,13 @@ export function coveredBy(placed: PlacedRebyter[], footprintOf: (mint: string) =
   });
 }
 
-/** The layout to start from: the first rebyters on the first free tiles. */
-export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC, costOf?: (mint: string) => number): WorldLayout {
+/** The layout to start from: the first rebyters on the first free tiles, within the island's room. */
+export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC, tilesOf: (mint: string) => number = () => 1): WorldLayout {
   const placed: PlacedRebyter[] = [];
-  let room = spec.maxPlaced;
+  let room = spec.maxTiles;
   mints.forEach((mint) => {
-    const cost = costOf ? costOf(mint) : 1;
-    if (cost > room) return;
+    const cost = tilesOf(mint);
+    if (cost > room || placed.length >= spec.maxPlaced) return;
     room -= cost;
     const tile = freeTile(placed, () => false, spec);
     if (tile) placed.push({ mint, ...tile });
@@ -132,17 +136,19 @@ export function limitProps(props: PlacedProp[], allowance: (key: AssetKey) => nu
   return { shown, hidden };
 }
 
-/**
- * Room used by the placed rebyters against the island limit (3/5/8). `costOf` gives each one's space:
- * 1 for a one-tile body, 2 for a bigger footprint (see `spaceOf` in lib/world/footprint.ts).
- */
-export function spaceUsed(placed: PlacedRebyter[], costOf: (mint: string) => number) {
-  return placed.reduce((n, p) => n + costOf(p.mint), 0);
+/** Ground tiles the placed rebyters take (each one its footprint: 1 for 1×1, 4 for 2×2). */
+export function tilesUsed(placed: PlacedRebyter[], tilesOf: (mint: string) => number) {
+  return placed.reduce((n, p) => n + tilesOf(p.mint), 0);
 }
 
-/** Drops the oldest placed rebyters until one more of `cost` fits in `max`. */
-export function makeRoom(placed: PlacedRebyter[], cost: number, max: number, costOf: (mint: string) => number) {
+/** Whether one more rebyter taking `cost` tiles fits: both the tile room and the head count (checked on chain). */
+export function hasRoom(placed: PlacedRebyter[], cost: number, spec: Pick<HabitatSpec, "maxTiles" | "maxPlaced">, tilesOf: (mint: string) => number) {
+  return tilesUsed(placed, tilesOf) + cost <= spec.maxTiles && placed.length + 1 <= spec.maxPlaced;
+}
+
+/** Drops the oldest placed rebyters until one more taking `cost` tiles fits. */
+export function makeRoom(placed: PlacedRebyter[], cost: number, spec: Pick<HabitatSpec, "maxTiles" | "maxPlaced">, tilesOf: (mint: string) => number) {
   const out = [...placed];
-  while (out.length > 1 && spaceUsed(out, costOf) + cost > max) out.shift();
+  while (out.length && !hasRoom(out, cost, spec, tilesOf)) out.shift();
   return out;
 }
