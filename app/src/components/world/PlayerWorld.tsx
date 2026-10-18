@@ -1039,7 +1039,7 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
       say(
         current.placed.length >= MAX_PLACED
           ? `The island holds ${MAX_PLACED} rebyters. Take one out first.`
-          : `Not enough room: this one takes ${costOf(mint)} of the island's ${spec.maxTiles} tiles. Take one out first.`,
+          : `Not enough room: this one takes ${costOf(mint)} of the island's ${spec.maxTiles} tiles. Take one out, or expand the island in the store.`,
       );
       return;
     }
