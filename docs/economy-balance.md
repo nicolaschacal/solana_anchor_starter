@@ -150,7 +150,7 @@ locks 0.0064 SOL). Seeds are now `economy3` / `item4` / `profile5`. (Superseded:
 | Dune Oasis, Frostpeak | 7x7 | 5 | 24 |
 | Rainforest Canopy, Ember Crater | 9x9 | 8 | 40 |
 
-Island limits count **space**, not heads: Bit, Byte and Kylo take 1, Mega and bigger (stage 3+) take 2 (a 2x2 body). So a 5x5 island holds 3 small ones, or 1 Mega + 1 small. The chain still checks only the head count against the same number, which is always satisfied because count <= space.
+Island limits count **space**, not heads: a rebyter whose body covers one tile takes 1, a bigger body (e.g. 2x2, declared in its GLB) takes 2. Older models without that tag: 1 up to Kylo, 2 from Mega (stage 3+). So a 5x5 island holds 3 small ones, or 1 Mega + 1 small. The chain still checks only the head count against the same number, which is always satisfied because count <= space.
 
 Each island has its own land (water, ridges, a river, a cone). Water and cliffs keep Rebyters off those tiles, but for now they do
 **not** lower the limits: topology-based capacity is postponed. Camera limits scale with the island so the board fits a phone screen.

@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import type { FxAsset } from "../../lib/rebyters/evolution-fx";
+import { footprintFor, type Footprint } from "../../lib/world/footprint";
 
 const normalize = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 const IDLE = ["idle", "idleblinking"];
@@ -16,6 +17,8 @@ export type Entity = {
   /** The model's own largest dimension before it is fitted (for the ?debug=1 readout). */
   raw: number;
   box: [number, number, number];
+  /** Tiles it covers (w across × d deep), from the GLB or the legacy rule for older uploads. */
+  footprint: Footprint;
   /** A flat card (no 3D model): it always faces the camera instead of turning. */
   billboard: boolean;
   yaw: number;
@@ -28,17 +31,12 @@ export type Entity = {
   action: THREE.AnimationAction | null;
 };
 
-/** How tall a rebyter stands on a tile, as the editor's diorama sizes it. */
-const TILE_FIT = 0.92;
-
 /**
- * Growth by stage: babies are small, each later form stands a bit bigger. Every model is first fitted to the
- * same box (whatever its proportions), so this is the rule that makes an Origin look younger than a Kylo.
- * Mega and bigger take 2 spaces on the island (see `spaceCost` in layout.ts), so they are drawn about √2× a Kylo:
- * twice the footprint, i.e. they really cover two tiles.
+ * How much of its tiles a rebyter fills. Each model covers its own footprint of tiles (see
+ * lib/world/footprint.ts): it is scaled so its width fits `w` tiles and its length fits `d` tiles,
+ * whichever is tighter, leaving this margin so neighbours never touch. The stage plays no part.
  */
-export const STAGE_SIZE = [0.8, 0.96, 1.58, 2.3, 2.5, 2.7];
-export const stageSize = (stage: number) => STAGE_SIZE[Math.max(0, Math.min(STAGE_SIZE.length - 1, Math.floor(stage)))] ?? 1;
+const TILE_FILL = 0.92;
 
 function ownMaterials(root: THREE.Object3D) {
   root.traverse((node) => {
@@ -68,7 +66,11 @@ export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
   const box = new THREE.Box3().setFromObject(holder);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
-  const scale = (TILE_FIT * stageSize(stage)) / Math.max(size.x, size.y, size.z, 0.001);
+  const footprint = footprintFor(asset.scene, stage);
+  // Width (x) to `w` tiles and length (z) to `d` tiles; a flat card has no depth, so only its width counts.
+  const fitW = (TILE_FILL * footprint.w) / Math.max(size.x, 0.001);
+  const fitD = size.z > 0.01 ? (TILE_FILL * footprint.d) / size.z : Infinity;
+  const scale = Math.min(fitW, fitD);
   root.scale.multiplyScalar(scale);
   root.position.set(-centre.x * scale, -box.min.y * scale, -centre.z * scale);
   const outer = new THREE.Group();
@@ -92,7 +94,7 @@ export function buildEntity(mint: string, asset: FxAsset, stage = 2): Entity {
       walk.setEffectiveWeight(0);
     }
   }
-  return { mint, outer, height: size.y * scale, raw: Math.max(size.x, size.y, size.z), box: [size.x * scale, size.y * scale, size.z * scale], billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
+  return { mint, outer, height: size.y * scale, raw: Math.max(size.x, size.y, size.z), box: [size.x * scale, size.y * scale, size.z * scale], footprint, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
 }
 
 /** Eases the walk and idle animations into each other. */

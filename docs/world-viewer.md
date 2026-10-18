@@ -58,8 +58,8 @@ Rules: the creature and every solid prop occupy exactly one tile. Water cannot c
 
 Code: `components/admin/HabitatEditor.tsx` (UI), `components/admin/habitat/world.ts` (engine), `habitat/tiles.ts` (tile maths and meshes). `meadow()` gained opt-in `props`, `scenery`, `spawn` and `removeProp`; its default game behaviour is unchanged. Rendering was checked in headless Chromium only; review on real devices.
 
-## Size by stage
-Every model is first fitted to the same box, so proportions alone decide how big it looks. `STAGE_SIZE` in `components/world/entity.ts` scales that box by stage (Origin 0.8, Byte 0.96, Kylo 1.58, then Mega 2.3, Giga 2.5, Tera 2.7): babies stay small and each form grows; Mega and bigger take 2 spaces, so they are drawn about √2× a Kylo to really cover two tiles. Change the numbers there; no model needs re-uploading.
+## Size in tiles
+Each model declares how many tiles it covers, **w** across by **d** deep, in its GLB (scene extras `rebyter_tiles: [w, d]`, written when the model is rigged). The world scales the model so its width fills `w` tiles and its length `d` tiles (92%, whichever is tighter) and wanderers keep that whole rectangle free. The stage plays no part: a Giga can be smaller than a Kylo. Models uploaded without the tag use the legacy rule: 1×1, and 2×2 from Mega up (`lib/world/footprint.ts`). To change a size, re-export the GLB with another `rebyter_tiles`.
 
 ## Tester mode
 Open the game with `?tester=1`: it signs in with a throwaway keypair stored in the browser (no wallet or passkey) and requests devnet SOL from the faucet; a small "TESTER" badge shows at the top. `?tester=reset` starts a new account, `?tester=off` leaves the mode. Everything else is the normal game on devnet.

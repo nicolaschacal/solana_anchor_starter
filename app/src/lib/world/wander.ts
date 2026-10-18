@@ -1,14 +1,15 @@
 /**
  * Calm wandering on a tile grid. A walker idles for a while, then steps to a free
  * neighbouring tile, one at a time. Two walkers never share a tile: a step reserves
- * its destination before it starts.
+ * its destination before it starts. A big rebyter covers a rectangle of tiles
+ * (`w × d`, from its corner tile i, j); all of them must be free to stand or step.
  */
 export type Walker = {
   id: string;
-  /** Tile it stands on, or is leaving. */
+  /** Corner tile (smallest i, j) it stands on, or is leaving. */
   i: number;
   j: number;
-  /** Tile it is walking to (equal to i, j when still). */
+  /** Corner tile it is walking to (equal to i, j when still). */
   ti: number;
   tj: number;
   /** Progress of the current step, 0..1. */
@@ -18,6 +19,9 @@ export type Walker = {
   wait: number;
   /** Direction it is facing, radians around Y (0 faces +z). */
   yaw: number;
+  /** Tiles it covers across (i) and deep (j). 1 × 1 for most rebyters. */
+  w: number;
+  d: number;
 };
 
 export type WanderContext = {
@@ -34,19 +38,30 @@ const NEIGHBOURS: [number, number][] = [
   [0, -1],
 ];
 
-export function createWalker(id: string, i: number, j: number, rand: () => number = Math.random): Walker {
-  return { id, i, j, ti: i, tj: j, t: 0, walking: false, wait: 0.5 + rand() * 3, yaw: 0 };
+export function createWalker(id: string, i: number, j: number, rand: () => number = Math.random, w = 1, d = 1): Walker {
+  return { id, i, j, ti: i, tj: j, t: 0, walking: false, wait: 0.5 + rand() * 3, yaw: 0, w, d };
 }
+
+const covers = (ci: number, cj: number, w: number, d: number, i: number, j: number) => i >= ci && i < ci + w && j >= cj && j < cj + d;
 
 /** Whether a tile is taken by another walker, standing or on its way. */
 export function tileTaken(walkers: readonly Walker[], i: number, j: number, except?: string) {
-  return walkers.some((w) => w.id !== except && ((w.i === i && w.j === j) || (w.ti === i && w.tj === j)));
+  return walkers.some((k) => k.id !== except && (covers(k.i, k.j, k.w ?? 1, k.d ?? 1, i, j) || covers(k.ti, k.tj, k.w ?? 1, k.d ?? 1, i, j)));
 }
 
-/** Where the walker is right now, in fractional tiles. */
+/** Whether a walker of `w × d` could stand with its corner on `i, j`. */
+export function fits(walkers: readonly Walker[], i: number, j: number, w: number, d: number, canStand: (i: number, j: number) => boolean, except?: string) {
+  for (let a = 0; a < w; a++)
+    for (let b = 0; b < d; b++) if (!canStand(i + a, j + b) || tileTaken(walkers, i + a, j + b, except)) return false;
+  return true;
+}
+
+/** Where the walker's centre is right now, in fractional tiles. */
 export function walkerPosition(w: Walker) {
   const k = w.t * w.t * (3 - 2 * w.t); // ease in and out of each step
-  return { x: w.i + (w.ti - w.i) * k, z: w.j + (w.tj - w.j) * k };
+  const ox = ((w.w ?? 1) - 1) / 2,
+    oz = ((w.d ?? 1) - 1) / 2;
+  return { x: w.i + (w.ti - w.i) * k + ox, z: w.j + (w.tj - w.j) * k + oz };
 }
 
 export function stepWalker(w: Walker, all: readonly Walker[], dt: number, ctx: WanderContext) {
@@ -64,11 +79,7 @@ export function stepWalker(w: Walker, all: readonly Walker[], dt: number, ctx: W
   }
   w.wait -= dt;
   if (w.wait > 0) return;
-  const options = NEIGHBOURS.filter(([di, dj]) => {
-    const i = w.i + di,
-      j = w.j + dj;
-    return ctx.canStand(i, j) && !tileTaken(all, i, j, w.id);
-  });
+  const options = NEIGHBOURS.filter(([di, dj]) => fits(all, w.i + di, w.j + dj, w.w ?? 1, w.d ?? 1, ctx.canStand, w.id));
   if (!options.length) {
     w.wait = 1 + ctx.rand() * 2;
     return;

@@ -65,21 +65,38 @@ export const tileZ = (j: number) => OZ + j;
 export const onBoard = (i: number, j: number, spec: HabitatSpec = DEFAULT_SPEC) =>
   i >= spec.board.i0 && i <= spec.board.i1 && j >= spec.board.j0 && j <= spec.board.j1;
 
-/** The first free starting tile for a new arrival. */
-export function freeTile(taken: { i: number; j: number }[], blocked: (i: number, j: number) => boolean, spec: HabitatSpec = DEFAULT_SPEC) {
+/**
+ * The first free starting tile for a new arrival: the corner tile of a `w × d` footprint (1 × 1 by default)
+ * whose every tile is on the island, free and not taken. `taken` lists tiles already covered.
+ */
+export function freeTile(taken: { i: number; j: number }[], blocked: (i: number, j: number) => boolean, spec: HabitatSpec = DEFAULT_SPEC, w = 1, d = 1) {
   const used = new Set(taken.map((t) => `${t.i},${t.j}`));
   const candidates: [number, number][] = [...spec.start];
   for (let i = spec.board.i0; i <= spec.board.i1; i++) for (let j = spec.board.j0; j <= spec.board.j1; j++) candidates.push([i, j]);
-  const found = candidates.find(([i, j]) => !used.has(`${i},${j}`) && spec.free(i, j) && !blocked(i, j));
+  const ok = (i: number, j: number) => !used.has(`${i},${j}`) && spec.free(i, j) && !blocked(i, j);
+  const found = candidates.find(([i, j]) => {
+    for (let a = 0; a < w; a++) for (let b = 0; b < d; b++) if (!ok(i + a, j + b)) return false;
+    return true;
+  });
   return found ? { i: found[0], j: found[1] } : null;
 }
 
+/** Every tile the placed rebyters cover, given each one's footprint. */
+export function coveredBy(placed: PlacedRebyter[], footprintOf: (mint: string) => { w: number; d: number }) {
+  return placed.flatMap((p) => {
+    const f = footprintOf(p.mint);
+    const out: { i: number; j: number }[] = [];
+    for (let a = 0; a < f.w; a++) for (let b = 0; b < f.d; b++) out.push({ i: p.i + a, j: p.j + b });
+    return out;
+  });
+}
+
 /** The layout to start from: the first rebyters on the first free tiles. */
-export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC, stageOf?: (mint: string) => number): WorldLayout {
+export function defaultLayout(mints: string[], spec: HabitatSpec = DEFAULT_SPEC, costOf?: (mint: string) => number): WorldLayout {
   const placed: PlacedRebyter[] = [];
   let room = spec.maxPlaced;
   mints.forEach((mint) => {
-    const cost = spaceCost(stageOf ? stageOf(mint) : 0);
+    const cost = costOf ? costOf(mint) : 1;
     if (cost > room) return;
     room -= cost;
     const tile = freeTile(placed, () => false, spec);
@@ -115,18 +132,17 @@ export function limitProps(props: PlacedProp[], allowance: (key: AssetKey) => nu
   return { shown, hidden };
 }
 
-/** First stage that takes two tiles of room: Mega (stage 3). Bit, Byte and Kylo take one. */
-export const BIG_STAGE = 3;
-export const spaceCost = (stage: number) => (stage >= BIG_STAGE ? 2 : 1);
-
-/** Room used by the placed rebyters. The island limit (3/5/8) counts room, not heads. */
-export function spaceUsed(placed: PlacedRebyter[], stageOf: (mint: string) => number) {
-  return placed.reduce((n, p) => n + spaceCost(stageOf(p.mint)), 0);
+/**
+ * Room used by the placed rebyters against the island limit (3/5/8). `costOf` gives each one's space:
+ * 1 for a one-tile body, 2 for a bigger footprint (see `spaceOf` in lib/world/footprint.ts).
+ */
+export function spaceUsed(placed: PlacedRebyter[], costOf: (mint: string) => number) {
+  return placed.reduce((n, p) => n + costOf(p.mint), 0);
 }
 
 /** Drops the oldest placed rebyters until one more of `cost` fits in `max`. */
-export function makeRoom(placed: PlacedRebyter[], cost: number, max: number, stageOf: (mint: string) => number) {
+export function makeRoom(placed: PlacedRebyter[], cost: number, max: number, costOf: (mint: string) => number) {
   const out = [...placed];
-  while (out.length > 1 && spaceUsed(out, stageOf) + cost > max) out.shift();
+  while (out.length > 1 && spaceUsed(out, costOf) + cost > max) out.shift();
   return out;
 }

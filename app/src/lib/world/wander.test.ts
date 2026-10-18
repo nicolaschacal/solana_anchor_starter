@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWalker, stepWalker, tileTaken, walkerPosition } from "./wander";
+import { createWalker, fits, stepWalker, tileTaken, walkerPosition } from "./wander";
 
 function seeded(seed: number) {
   let s = seed;
@@ -57,5 +57,24 @@ describe("wander", () => {
     const w = createWalker("a", 0, 0, rand);
     for (let n = 0; n < 200; n++) stepWalker(w, [w], 0.1, { canStand: () => false, rand });
     expect([w.i, w.j]).toEqual([0, 0]);
+  });
+
+  it("a 2×2 rebyter covers four tiles and never overlaps anyone", () => {
+    const rand = seeded(11);
+    const open = (i: number, j: number) => i >= 0 && i < 6 && j >= 0 && j < 6;
+    const big = createWalker("big", 0, 0, rand, 2, 2);
+    const walkers = [big, createWalker("a", 5, 5, rand), createWalker("b", 0, 5, rand)];
+    expect(tileTaken(walkers, 1, 1)).toBe(true);
+    expect(walkerPosition(big)).toEqual({ x: 0.5, z: 0.5 });
+    for (let n = 0; n < 6000; n++) {
+      for (const w of walkers) stepWalker(w, walkers, 0.05, { canStand: open, rand });
+      const tiles = walkers.flatMap((w) => {
+        const out: string[] = [];
+        for (let a = 0; a < w.w; a++) for (let b = 0; b < w.d; b++) out.push(`${w.ti + a},${w.tj + b}`);
+        return out;
+      });
+      expect(new Set(tiles).size).toBe(tiles.length);
+      expect(fits([], big.ti, big.tj, 2, 2, open)).toBe(true);
+    }
   });
 });
