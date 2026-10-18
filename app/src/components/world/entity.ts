@@ -34,8 +34,10 @@ const TILE_FIT = 0.92;
 /**
  * Growth by stage: babies are small, each later form stands a bit bigger. Every model is first fitted to the
  * same box (whatever its proportions), so this is the rule that makes an Origin look younger than a Kylo.
+ * Mega and bigger take 2 spaces on the island (see `spaceCost` in layout.ts), so they are drawn about √2× a Kylo:
+ * twice the footprint, i.e. they really cover two tiles.
  */
-export const STAGE_SIZE = [0.8, 0.96, 1.58, 1.8, 2.03, 2.25];
+export const STAGE_SIZE = [0.8, 0.96, 1.58, 2.3, 2.5, 2.7];
 export const stageSize = (stage: number) => STAGE_SIZE[Math.max(0, Math.min(STAGE_SIZE.length - 1, Math.floor(stage)))] ?? 1;
 
 function ownMaterials(root: THREE.Object3D) {
