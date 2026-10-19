@@ -1,5 +1,32 @@
 # Rebyters
 
+A creature-raising game in development, where care, training and daily habits shape how your companions evolve.
+
+Built by [Nicolas Chacal](https://github.com/nicolaschacal). Follow the design and development process on [X](https://x.com/nicolaschacal).
+
+**Status:** active development on Solana devnet. Features and balance can change; this is not a finished game.
+
+## What I’m building
+
+- A playable creature-care loop: feed, play, care, rest, train and evolve.
+- Evolution paths shaped by diet, rhythm, weight, Bond, Discipline and other gameplay conditions.
+- A collection and lineage interface that makes those paths easier to explore.
+- A React client, content-authoring tools and a Solana program for verified state changes.
+
+## Explore the project
+
+| Start here | What you’ll find |
+| --- | --- |
+| [Project website](https://solana-anchor-starter.vercel.app) | Public project entry point |
+| [Gameplay design](docs/REBYTERS_GAMEPLAY.md) | Creature state, care and evolution |
+| [World viewer](docs/world-viewer.md) | World-viewer implementation and controls |
+| [Run locally](#local-dashboard) | Development setup |
+| [Development checks](#checks) | Build and validation commands |
+
+The repository still uses its original `solana_anchor_starter` name. The product is **Rebyters**.
+
+## Technical architecture
+
 One Solana program, one React client. `programs/solana_anchor_starter/` is the **only on-chain program**. `app/` contains the player experience, admin dashboard and publishing tools. There is no gameplay backend/database: Rebyter state lives in Token-2022 metadata and gameplay mutations are verified by the Solana program.
 
 The current gameplay baseline uses a **50-byte on-chain DNA state with no schema/version byte**. It stores visible gameplay state only: Weight, Bond, Discipline, Care Mistakes, Fullness, Energy, condition flags, diet/rhythm history, Cycle, combat stats, lazy-state timing, stage timing and persistent skills. There are no genetics, total-interaction counter or DNA birth timestamp. See [gameplay architecture](docs/REBYTERS_GAMEPLAY.md).
