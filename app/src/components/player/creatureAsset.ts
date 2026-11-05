@@ -4,6 +4,7 @@ import { modelUriFor } from "../../lib/assets/catalog";
 import type { FxAsset } from "../../lib/rebyters/evolution-fx";
 import type { Evolution } from "../../lib/rebyters/types";
 import { loadCreatureImage } from "./creatureImage";
+import { SPRITE_VIEWS } from "../world/entity";
 
 /** A flat card of the creature's art, for forms that do not ship a 3D model yet. */
 function spriteCard(image: HTMLImageElement): FxAsset {
@@ -21,12 +22,38 @@ function spriteCard(image: HTMLImageElement): FxAsset {
   return { scene: new THREE.Mesh(new THREE.PlaneGeometry(aspect, 1), material) };
 }
 
+function textureOf(url: string) {
+  return new THREE.TextureLoader().loadAsync(url).then((texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    return texture;
+  });
+}
+
+/** A 2D creature with front / side / back frames: one card whose picture follows where it walks. */
+async function directionalCard(views: NonNullable<NonNullable<Evolution["assets"]>["spriteViews"]>): Promise<FxAsset> {
+  const [front, side, back] = await Promise.all([textureOf(views.front), textureOf(views.side), textureOf(views.back)]);
+  const image = front.image as HTMLImageElement;
+  const aspect = (image.naturalWidth || image.width || 1) / (image.naturalHeight || image.height || 1);
+  const material = new THREE.MeshStandardMaterial({ map: front, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 1 });
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(aspect, 1), material);
+  SPRITE_VIEWS.set(card, { front, side, back });
+  return { scene: card };
+}
+
 /**
  * The same model the game shows for a form (published atlas URI first, then the
  * bundled one). When a form has no model, or it fails to load, its sprite is
  * used so the evolution still plays.
  */
 export async function loadEvolutionAsset(evolution: Evolution): Promise<FxAsset> {
+  if (evolution.assets?.spriteViews) {
+    try {
+      return await directionalCard(evolution.assets.spriteViews);
+    } catch {
+      // Fall through to the model / flat card.
+    }
+  }
   const uri = modelUriFor(evolution);
   if (uri) {
     const l = loader();

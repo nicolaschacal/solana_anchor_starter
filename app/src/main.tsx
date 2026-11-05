@@ -9,6 +9,7 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { RPC_URL } from "./lib/rebyters/config";
 import AdminApp from "./routes/admin/App";
 import { PlayerGame } from "./routes/player/PlayerGame";
+import { SpriteLab } from "./routes/player/SpriteLab";
 import { Navigate, Route, Routes } from "react-router-dom";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import "@xyflow/react/dist/style.css";
@@ -28,7 +29,10 @@ import { WaitlistPage, isWaitlistHost } from "./routes/player/WaitlistPage";
 initializeTheme();
 window.addEventListener("vite:preloadError", (event) => { if (reloadOnce()) event.preventDefault(); });
 const root = ReactDOM.createRoot(document.getElementById("root")!);
-if (isWaitlistHost()) {
+if (location.pathname === "/sprite-lab") {
+  // Dev page for 2D sprites in the real world; outside StrictMode so the WebGL canvas is created once.
+  root.render(<SpriteLab />);
+} else if (isWaitlistHost()) {
   // The public domain only collects emails; the game runs on play.rebyters.xyz.
   root.render(<React.StrictMode><AppErrorBoundary><WaitlistPage /></AppErrorBoundary></React.StrictMode>);
 } else root.render(

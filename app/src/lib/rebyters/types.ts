@@ -47,6 +47,8 @@ export interface EvolutionAssets {
   imageUri?: string;
   thumbnailUri?: string;
   modelUri?: string;
+  /** 2D directional sprite: same-size frames, feet at the bottom edge. The side view faces left. */
+  spriteViews?: { front: string; side: string; back: string };
 }
 export interface EvolutionPosition {
   x: number;

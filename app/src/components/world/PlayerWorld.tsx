@@ -17,7 +17,7 @@ import { footprintOf as formFootprint, tilesOf, type Footprint } from "../../lib
 import { createIsland, type Island } from "./island";
 import { createSky, type WorldSky } from "./sky";
 import { throwFood, type FoodFx } from "./foodFx";
-import { blendWalk, buildEntity, disposeAsset, disposeObject, playAction, stopAction, type Entity } from "./entity";
+import { blendWalk, buildEntity, disposeAsset, disposeObject, faceSprite, playAction, stopAction, type Entity } from "./entity";
 import {
   specFor,
   type HabitatSize,
@@ -383,7 +383,10 @@ export function PlayerWorld({ creatures, initialLayout, onCommitLayout, period, 
         entity.outer.visible = true;
         if (walker.walking) moving = true;
         if (starring) rig.trackFocus({ x, z }, entity.height);
-        if (entity.billboard) entity.yaw = rig.cur.yaw;
+        if (entity.billboard) {
+          entity.yaw = rig.cur.yaw;
+          if (entity.sprite) faceSprite(entity, walker.yaw - rig.cur.yaw, walker.walking, performance.now() / 1000);
+        }
         else entity.yaw += angleDelta(entity.yaw, starring && !walker.walking && !training ? rig.cur.yaw : walker.yaw) * Math.min(1, dt * 7);
         entity.outer.rotation.y = entity.yaw;
         blendWalk(entity, walker.walking, dt);

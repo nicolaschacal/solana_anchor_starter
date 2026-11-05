@@ -29,7 +29,62 @@ export type Entity = {
   clips: THREE.AnimationClip[];
   /** A one-off action (feed, play, touch…) or a mood loop (sad) is playing. */
   action: THREE.AnimationAction | null;
+  /** 2D directional sprite: the frames and the card that shows them. */
+  sprite: { views: SpriteViews; card: THREE.Mesh; baseY: number; baseX: number } | null;
 };
+
+export type SpriteViews = { front: THREE.Texture; side: THREE.Texture; back: THREE.Texture };
+/** Directional frames of a loaded card (kept aside: cloning an Object3D does not copy textures in userData). */
+export const SPRITE_VIEWS = new WeakMap<THREE.Object3D, SpriteViews>();
+
+let blobTexture: THREE.Texture | null = null;
+/** A soft round contact shadow, so a flat sprite sits on the ground instead of floating. */
+function blobShadow(width: number, depth: number) {
+  if (!blobTexture) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const g = c.getContext("2d")!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, "rgba(0,0,0,0.5)");
+    grad.addColorStop(0.6, "rgba(0,0,0,0.3)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    blobTexture = new THREE.CanvasTexture(c);
+  }
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, depth),
+    new THREE.MeshBasicMaterial({ map: blobTexture, transparent: true, depthWrite: false }),
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = 0.01;
+  mesh.renderOrder = -1;
+  return mesh;
+}
+
+/**
+ * Picks the frame of a directional sprite from where it heads relative to the camera
+ * (`rel` = heading yaw − camera yaw): towards the camera shows the front, away the back,
+ * sideways the profile, mirrored for the other side. Walking adds a small hop.
+ */
+export function faceSprite(entity: Entity, rel: number, walking: boolean, time: number) {
+  const s = entity.sprite;
+  if (!s) return;
+  const a = Math.atan2(Math.sin(rel), Math.cos(rel));
+  const abs = Math.abs(a);
+  const material = s.card.material as THREE.MeshStandardMaterial;
+  let map = s.views.side;
+  let flip = a > 0 ? -1 : 1; // the side art faces left; heading screen-right mirrors it
+  if (abs < Math.PI / 4) (map = s.views.front), (flip = 1);
+  else if (abs > (3 * Math.PI) / 4) (map = s.views.back), (flip = 1);
+  if (material.map !== map) material.map = map;
+  s.card.scale.x = Math.abs(s.card.scale.x) * flip;
+  s.card.position.x = s.baseX * flip;
+  const hop = walking ? Math.abs(Math.sin(time * 9)) * 0.045 : 0;
+  const breathe = walking ? 1 : 1 + Math.sin(time * 2.2) * 0.012;
+  s.card.position.y = s.baseY + hop;
+  s.card.scale.y = Math.abs(s.card.scale.x) * breathe;
+}
 
 /**
  * How much of its tiles a rebyter fills. Each model covers its own footprint of tiles (see
@@ -75,6 +130,14 @@ export function buildEntity(mint: string, asset: FxAsset, footprint: Footprint =
   const outer = new THREE.Group();
   outer.add(root);
   outer.visible = false;
+  const views = SPRITE_VIEWS.get(asset.scene);
+  let sprite: Entity["sprite"] = null;
+  if (views && (root as THREE.Mesh).isMesh) {
+    const card = root as THREE.Mesh;
+    card.castShadow = true; // alphaTest cuts the shadow to the creature's outline
+    sprite = { views, card, baseY: card.position.y, baseX: card.position.x };
+    outer.add(blobShadow(size.x * scale * 0.7, size.x * scale * 0.35));
+  }
   let mixer: THREE.AnimationMixer | null = null;
   let idle: THREE.AnimationAction | null = null;
   let walk: THREE.AnimationAction | null = null;
@@ -93,7 +156,7 @@ export function buildEntity(mint: string, asset: FxAsset, footprint: Footprint =
       walk.setEffectiveWeight(0);
     }
   }
-  return { mint, outer, height: size.y * scale, raw: Math.max(size.x, size.y, size.z), box: [size.x * scale, size.y * scale, size.z * scale], footprint, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null };
+  return { mint, outer, height: size.y * scale, raw: Math.max(size.x, size.y, size.z), box: [size.x * scale, size.y * scale, size.z * scale], footprint, billboard, yaw: 0, mixer, idle, walk, walkWeight: 0, clips, action: null, sprite };
 }
 
 /** Eases the walk and idle animations into each other. */
